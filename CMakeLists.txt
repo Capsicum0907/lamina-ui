@@ -23,6 +23,17 @@ add_library(lamina STATIC
     src/lamina/render/canvas.cpp
     src/lamina/render/geometry.cpp
     src/lamina/render/path.cpp
+    src/lamina/shapes/cubic.cpp
+    src/lamina/shapes/feature.cpp
+    src/lamina/shapes/feature_mapping.cpp
+    src/lamina/shapes/float_mapping.cpp
+    src/lamina/shapes/material_shapes.cpp
+    src/lamina/shapes/morph.cpp
+    src/lamina/shapes/point.cpp
+    src/lamina/shapes/polygon_measure.cpp
+    src/lamina/shapes/rounded_polygon.cpp
+    src/lamina/shapes/shapes.cpp
+    src/lamina/shapes/to_path.cpp
     src/lamina/text/font.cpp
     src/lamina/text/layout.cpp
     src/lamina/widgets/button.cpp
@@ -69,6 +80,9 @@ if(LAMINA_BUILD_EXAMPLES)
     add_executable(text_field examples/text_field/main.cpp)
     target_link_libraries(text_field PRIVATE lamina lamina_sdl3)
     lamina_warnings(text_field)
+    add_executable(shapes_gallery examples/shapes/main.cpp)
+    target_link_libraries(shapes_gallery PRIVATE lamina lamina_sdl3)
+    lamina_warnings(shapes_gallery)
 endif()
 
 if(LAMINA_BUILD_TESTS)
@@ -80,6 +94,7 @@ if(LAMINA_BUILD_TESTS)
         tests/main.cpp
         tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp
+        tests/shapes_test.cpp
         tests/spring_test.cpp
         tests/text_field_test.cpp
         tests/text_test.cpp
