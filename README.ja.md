@@ -18,6 +18,7 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 
 - `lamina/render/canvas.hpp`：曲線・角丸の四角・影・座標変換の積み重ねを持つ 2D の描画面。描くのは ThorVG です（`lamina::thorvg`）。ThorVG を選んだ理由は [docs/renderer-comparison.ja.md](docs/renderer-comparison.ja.md) にあります。
 - `lamina/platform/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。
+- `lamina/text/font.hpp`・`layout.hpp`：フォントと 1 行の文字。文字の並べ方と字形の輪郭はどちらも HarfBuzz から取り、輪郭はほかの図形と同じく描画面で塗るので、FreeType は使いません。可変フォントは文字の段階の太さに合わせて太さを変え、フォントに無い文字は `FontStack` の次のフォントで補います。
 - `lamina/motion/animated.hpp`・`lamina/color/mix.hpp`：ばねで動く値と、色の混ぜ合わせ。
 
 色の仕様は `ColorSpec` という口の向こうに置いています。HCT と色の系列は 2021 年と 2025 年の仕様で同じで、違うのは役割ごとに明度を選ぶ規則だけです。そのため 2025 年の仕様は、配色を使う側のコードを変えずに、別の `ColorSpec` として足せます。
@@ -38,8 +39,11 @@ cmake --build --preset release
 ctest --preset release
 ```
 
-`build/Release/playground.exe` を開くと、カードが 6 枚並んだ窓が出ます。カードをクリックすると、浮き上がり・角の丸みの増加・色の変化が、それぞれ expressive の体系のばねで動きます。
+`build/Release/playground.exe [フォントのファイル...]` を開くと、カードが 6 枚並んだ窓が出ます。フォントを指定しないときは `C:/Windows/Fonts/NotoSansJP-VF.ttf` を使います。カードをクリックすると、浮き上がり・角の丸みの増加・色の変化が、それぞれ expressive の体系のばねで動きます。
 
 ## 出典
+
+`tests/fixtures/fonts/` のテスト用フォントは、Noto Sans JP と Oswald の一部を取り出して名前を変えたもので、SIL Open Font License 1.1 に従います（ライセンスの文書を同じ場所に置いています）。
+
 
 トークンの値は、Google が Apache-2.0 で公開しているソースから取っています：androidx（Jetpack Compose の Material 3 と graphics-shapes）、material-components-android、material-web、material-color-utilities。ファイルとコミットは [docs/design-tokens.ja.md](docs/design-tokens.ja.md) にあります。

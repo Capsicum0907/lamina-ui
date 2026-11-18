@@ -14,6 +14,7 @@ public:
     void line_to(Point p);
     void cubic_to(Point c1, Point c2, Point end);
     void close();
+    void append(const Path& other);
 
     const std::vector<PathVerb>& verbs() const { return verbs_; }
     const std::vector<Point>& points() const { return points_; }

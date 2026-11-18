@@ -23,17 +23,26 @@ add_library(lamina STATIC
     src/lamina/render/canvas.cpp
     src/lamina/render/geometry.cpp
     src/lamina/render/path.cpp
+    src/lamina/text/font.cpp
+    src/lamina/text/layout.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
 target_include_directories(lamina PUBLIC src)
 target_compile_features(lamina PUBLIC cxx_std_20)
-target_link_libraries(lamina PRIVATE mcu::mcu)
+function(lamina_find_vcpkg_library var name)
+    find_library(${var}_RELEASE NAMES ${name} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH REQUIRED)
+    find_library(${var}_DEBUG NAMES ${name} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib" NO_DEFAULT_PATH REQUIRED)
+    set(${var} optimized ${${var}_RELEASE} debug ${${var}_DEBUG} PARENT_SCOPE)
+endfunction()
+
+find_path(HARFBUZZ_INCLUDE_DIR hb.h PATH_SUFFIXES harfbuzz REQUIRED)
+lamina_find_vcpkg_library(HARFBUZZ_LIBRARY harfbuzz)
+target_include_directories(lamina PRIVATE ${HARFBUZZ_INCLUDE_DIR})
+target_link_libraries(lamina PRIVATE mcu::mcu ${HARFBUZZ_LIBRARY})
 lamina_warnings(lamina)
 
 find_path(THORVG_INCLUDE_DIR thorvg.h PATH_SUFFIXES thorvg-1 REQUIRED)
-find_library(THORVG_LIBRARY_RELEASE NAMES thorvg-1 thorvg PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH REQUIRED)
-find_library(THORVG_LIBRARY_DEBUG NAMES thorvg-1 thorvg PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib" NO_DEFAULT_PATH REQUIRED)
-set(THORVG_LIBRARY optimized ${THORVG_LIBRARY_RELEASE} debug ${THORVG_LIBRARY_DEBUG})
+lamina_find_vcpkg_library(THORVG_LIBRARY thorvg-1)
 add_library(lamina_thorvg STATIC src/lamina/render/thorvg_canvas.cpp)
 add_library(lamina::thorvg ALIAS lamina_thorvg)
 target_include_directories(lamina_thorvg PRIVATE ${THORVG_INCLUDE_DIR})
@@ -62,9 +71,11 @@ if(LAMINA_BUILD_TESTS)
         tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp
         tests/spring_test.cpp
+        tests/text_test.cpp
         tests/tokens_test.cpp
     )
     target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
+    target_compile_definitions(lamina_tests PRIVATE LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts")
     add_test(NAME lamina_tests COMMAND lamina_tests)
 endif()

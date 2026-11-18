@@ -23,6 +23,11 @@ void Path::close() {
     verbs_.push_back(PathVerb::close);
 }
 
+void Path::append(const Path& other) {
+    verbs_.insert(verbs_.end(), other.verbs_.begin(), other.verbs_.end());
+    points_.insert(points_.end(), other.points_.begin(), other.points_.end());
+}
+
 Path Path::transformed(const Affine& m) const {
     Path out;
     out.verbs_ = verbs_;
