@@ -95,15 +95,12 @@ TEST_CASE("a stepped slider snaps to its ticks and draws the handle on them") {
     CHECK(s.value() == doctest::Approx(0.4));
 }
 
-TEST_CASE("the handle narrows while dragged") {
+TEST_CASE("the handle narrows at once while dragged") {
     auto s = make({});
     CHECK(s.handle_width() == 4.0);
     s.handle({PointerAction::down, 100.0, 22.0});
-    CHECK(s.animating());
-    settle(s);
     CHECK(s.handle_width() == doctest::Approx(2.0));
     s.handle({PointerAction::up, 100.0, 22.0});
-    settle(s);
     CHECK(s.handle_width() == doctest::Approx(4.0));
 }
 

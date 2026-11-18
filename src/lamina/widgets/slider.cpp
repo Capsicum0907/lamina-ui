@@ -139,7 +139,7 @@ bool Slider::handle(const platform::PointerEvent& e) {
         dragging_ = false;
         break;
     }
-    handle_width_.animate_to(dragging_ ? t.pressed_handle_width : t.handle_width);
+    handle_width_.snap_to(dragging_ ? t.pressed_handle_width : t.handle_width);
     return options_.value != before;
 }
 

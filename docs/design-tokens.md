@@ -265,7 +265,7 @@ C `tokens/SliderTokens.kt` (16 dp track, 4 × 44 dp handle, 2 dp pressed handle,
 - The track runs from half the handle width to the other end minus half the handle width. The gap on each side of the handle is half the 4 dp handle box plus 6 dp, so it does not change while the handle narrows. The corners next to the handle are 2 dp (`TrackInsideCornerSize`), the outer ones half the track height.
 - The pointer sets the value linearly over that range, and the value then snaps to the nearest step. With steps, the handle and ticks are drawn inset by the track's corner radius except on the first and last step, as `SliderImpl` places them.
 - The tick colors are crossed in `SliderDefaults.colors`: a tick on the active part is secondary-container, a tick on the inactive part is primary. The last tick, where the stop indicator sits, and ticks inside the handle gap are not drawn. The stop indicator is the active track color.
-- Pressing or dragging narrows the handle to half its width (`ThumbContent`). Compose switches the width at once; lamina-ui moves it with the fast spatial spring. Focus, which also narrows the handle in Compose, is not implemented.
+- Pressing or dragging narrows the handle to half its width (`ThumbContent`). Compose switches the width at once, and so does lamina-ui. Focus, which also narrows the handle in Compose, is not implemented.
 - Keys: Left/Right move by one step, or by 1 % of the range without steps; Home and End go to the ends. Page Up/Down are not implemented.
 
 ### Tabs
