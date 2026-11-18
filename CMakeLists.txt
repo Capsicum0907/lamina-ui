@@ -85,6 +85,13 @@ if(LAMINA_BUILD_EXAMPLES)
     lamina_warnings(shapes_gallery)
 endif()
 
+option(LAMINA_BUILD_TOOLS "Build the development tools" ON)
+if(LAMINA_BUILD_TOOLS)
+    add_executable(shape-dump tools/shape-dump/main.cpp)
+    target_link_libraries(shape-dump PRIVATE lamina)
+    lamina_warnings(shape-dump)
+endif()
+
 if(LAMINA_BUILD_TESTS)
     find_package(doctest CONFIG REQUIRED)
     add_executable(lamina_tests
