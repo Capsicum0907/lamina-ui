@@ -1,8 +1,10 @@
 #include "lamina/text/font.hpp"
 
+#include <algorithm>
 #include <map>
 #include <stdexcept>
 #include <utility>
+#include <vector>
 
 #include <hb.h>
 #include <hb-ot.h>
@@ -76,9 +78,15 @@ struct Font::Impl {
     bool variable_weight = false;
     mutable std::map<int, hb_font_t*> by_weight;
     mutable std::map<std::pair<int, std::uint32_t>, render::Path> outlines;
+    using VariationKey = std::vector<std::pair<std::uint32_t, float>>;
+    mutable std::map<VariationKey, hb_font_t*> by_variation;
+    mutable std::map<std::pair<VariationKey, std::uint32_t>, render::Path> varied_outlines;
 
     ~Impl() {
         for (auto& [w, f] : by_weight) {
+            hb_font_destroy(f);
+        }
+        for (auto& [k, f] : by_variation) {
             hb_font_destroy(f);
         }
         hb_font_destroy(base);
@@ -97,6 +105,22 @@ struct Font::Impl {
         const hb_variation_t v{weight_axis, static_cast<float>(weight)};
         hb_font_set_variations(f, &v, 1);
         by_weight.emplace(weight, f);
+        return f;
+    }
+
+    hb_font_t* font_for_variations(const VariationKey& key) const {
+        auto it = by_variation.find(key);
+        if (it != by_variation.end()) {
+            return it->second;
+        }
+        hb_font_t* f = hb_font_create(face);
+        std::vector<hb_variation_t> values;
+        values.reserve(key.size());
+        for (const auto& [tag, value] : key) {
+            values.push_back({tag, value});
+        }
+        hb_font_set_variations(f, values.data(), static_cast<unsigned>(values.size()));
+        by_variation.emplace(key, f);
         return f;
     }
 };
@@ -148,6 +172,28 @@ const render::Path& Font::glyph_outline_em(std::uint32_t glyph, int weight) cons
     OutlineSink sink{{}, 1.0 / units_per_em()};
     hb_font_draw_glyph(impl_->font_for_weight(weight), glyph, draw_funcs(), &sink);
     return impl_->outlines.emplace(key, std::move(sink.path)).first->second;
+}
+
+std::uint32_t Font::glyph_for(char32_t codepoint) const {
+    hb_codepoint_t glyph = 0;
+    return hb_font_get_nominal_glyph(impl_->base, codepoint, &glyph) ? glyph : 0;
+}
+
+const render::Path& Font::glyph_outline_em(std::uint32_t glyph, std::span<const Variation> variations) const {
+    Impl::VariationKey key;
+    key.reserve(variations.size());
+    for (const auto& v : variations) {
+        key.emplace_back(v.tag, v.value);
+    }
+    std::sort(key.begin(), key.end());
+    auto outline_key = std::make_pair(key, glyph);
+    auto it = impl_->varied_outlines.find(outline_key);
+    if (it != impl_->varied_outlines.end()) {
+        return it->second;
+    }
+    OutlineSink sink{{}, 1.0 / units_per_em()};
+    hb_font_draw_glyph(impl_->font_for_variations(key), glyph, draw_funcs(), &sink);
+    return impl_->varied_outlines.emplace(std::move(outline_key), std::move(sink.path)).first->second;
 }
 
 std::vector<ShapedGlyph> Font::shape(std::u32string_view text, std::size_t cluster_base, int weight) const {

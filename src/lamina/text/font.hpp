@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -17,6 +18,18 @@ struct ShapedGlyph {
     double offset_x_em;
     double offset_y_em;
 };
+
+struct Variation {
+    std::uint32_t tag;
+    float value;
+};
+
+constexpr std::uint32_t axis_tag(char a, char b, char c, char d) {
+    return (static_cast<std::uint32_t>(static_cast<unsigned char>(a)) << 24) |
+           (static_cast<std::uint32_t>(static_cast<unsigned char>(b)) << 16) |
+           (static_cast<std::uint32_t>(static_cast<unsigned char>(c)) << 8) |
+           static_cast<std::uint32_t>(static_cast<unsigned char>(d));
+}
 
 struct FontExtents {
     double ascender;
@@ -36,6 +49,8 @@ public:
     bool has_codepoint(char32_t codepoint) const;
     FontExtents extents_em() const;
     const render::Path& glyph_outline_em(std::uint32_t glyph, int weight) const;
+    std::uint32_t glyph_for(char32_t codepoint) const;
+    const render::Path& glyph_outline_em(std::uint32_t glyph, std::span<const Variation> variations) const;
     std::vector<ShapedGlyph> shape(std::u32string_view text, std::size_t cluster_base, int weight) const;
 
 private:

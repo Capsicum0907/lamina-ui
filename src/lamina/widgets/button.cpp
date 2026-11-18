@@ -5,6 +5,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/surface.hpp"
 
 namespace lamina::widgets {
@@ -21,17 +22,6 @@ const tokens::SpringSpec& state_spring() {
     return spec;
 }
 
-bool inside(const render::Rect& r, double x, double y) {
-    return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
-}
-
-render::Path ring(const render::Rect& r, double radius, double width) {
-    render::Path p = render::rounded_rect_path(r, render::uniform_radii(radius));
-    const render::Rect inner{r.x + width, r.y + width, r.width - 2 * width, r.height - 2 * width};
-    p.append(render::rounded_rect_path(inner, render::uniform_radii(std::max(0.0, radius - width))));
-    return p;
-}
-
 }
 
 Button::Button(ButtonOptions options, const text::FontStack& fonts)
@@ -44,9 +34,17 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
       state_layer_(0.0, state_spring()),
       elevation_(0.0, shape_spring()) {
     const auto& size = tokens::button_size(options_.size);
-    width_ = std::max(tokens::button_min_width, size.leading_space + label_.width + size.trailing_space);
+    width_ = std::max(tokens::button_min_width, size.leading_space + content_width() + size.trailing_space);
     corner_.snap_to(rest_corner());
     elevation_.snap_to(tokens::elevation_dp[tokens::button_style(options_.style).elevation]);
+}
+
+double Button::content_width() const {
+    if (!options_.leading_icon) {
+        return label_.width;
+    }
+    const auto& size = tokens::button_size(options_.size);
+    return size.icon_size + size.icon_label_space + label_.width;
 }
 
 double Button::height() const {
@@ -70,37 +68,18 @@ double Button::pressed_corner() const {
 }
 
 double Button::target_state_layer() const {
-    if (pressed_) {
-        return tokens::state_layer_opacity::pressed;
-    }
-    return hovered_ ? tokens::state_layer_opacity::hover : 0.0;
+    return press_.state_layer_opacity();
 }
 
 double Button::target_elevation() const {
     const auto& style = tokens::button_style(options_.style);
-    const std::size_t level = pressed_ ? style.pressed_elevation : hovered_ ? style.hovered_elevation : style.elevation;
+    const std::size_t level = press_.pressed ? style.pressed_elevation : press_.hovered ? style.hovered_elevation : style.elevation;
     return tokens::elevation_dp[level];
 }
 
 bool Button::handle(const platform::PointerEvent& e) {
-    const bool over = e.action != platform::PointerAction::leave && inside(bounds(), e.x_dp, e.y_dp);
-    bool clicked = false;
-    hovered_ = over;
-    switch (e.action) {
-    case platform::PointerAction::down:
-        pressed_ = over;
-        break;
-    case platform::PointerAction::up:
-        clicked = pressed_ && over;
-        pressed_ = false;
-        break;
-    case platform::PointerAction::leave:
-        pressed_ = false;
-        break;
-    case platform::PointerAction::move:
-        break;
-    }
-    corner_.animate_to(pressed_ ? pressed_corner() : rest_corner());
+    const bool clicked = press_.update(e, bounds());
+    corner_.animate_to(press_.pressed ? pressed_corner() : rest_corner());
     state_layer_.animate_to(target_state_layer());
     elevation_.animate_to(target_elevation());
     return clicked;
@@ -131,12 +110,17 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
         canvas.fill_path(shape, color::with_alpha(label_color, state_layer_.value()));
     }
     if (style.outline) {
-        canvas.fill_path(ring(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
+        canvas.fill_path(ring_path(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
     }
 
     const double line_box = std::max(label_.style.line_height, label_.ascent + label_.descent);
-    const render::Point at{r.x + (r.width - label_.width) / 2.0, r.y + (r.height - line_box) / 2.0};
-    text::draw_line(canvas, fonts_, label_, at, label_color);
+    double x = r.x + (r.width - content_width()) / 2.0;
+    if (options_.leading_icon) {
+        const auto& icon = *options_.leading_icon;
+        icon.font.draw(canvas, icon.symbol, {x, r.y + (r.height - size.icon_size) / 2.0}, size.icon_size, label_color);
+        x += size.icon_size + size.icon_label_space;
+    }
+    text::draw_line(canvas, fonts_, label_, {x, r.y + (r.height - line_box) / 2.0}, label_color);
 }
 
 }

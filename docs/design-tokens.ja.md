@@ -202,12 +202,62 @@ C の `tokens/Button{XSmall,Small,Medium,Large,XLarge}Tokens.kt`（高さ・四�
 
 - text のボタンのラベルは `primary` です。トークンのファイルは `on-surface-variant` ですが、`Button.kt` が「トークンが直ったら置き換える」として `Primary` で上書きしています。
 - ラベルの文字の段階は、`ButtonDefaults.textStyleFor` と同じく高さで決めます：medium 未満は Label L、large 未満は Title M、extra-large 未満は Headline S、それ以上は Headline L。
+- extra-small のボタンの前後の余白は 12 dp で、`ButtonDefaults.ExtraSmallContentPadding`（「ButtonXSmallTokens.kt の値が直ったら置き換える」）から取りました。トークンのファイルは 16 です。
 - 押したときの形は、`Button.kt` が「この部品が弾まないように」使っている標準の効果のばねで動かします。最小の幅は 58 dp（`ButtonDefaults.MinWidth`）です。
 
 ### 枠線つきの入力欄
 
-C の `tokens/OutlinedTextFieldTokens.kt`（高さ 56 dp・角は extra-small・枠線 1 dp で焦点時は 2 dp・入力とラベルは Body L・状態ごとの色）と C の `internal/TextFieldImpl.kt`（余白 16 dp・浮いたラベルは Body S）を `lamina/tokens/text_field.hpp` に写しました。
+C の `tokens/OutlinedTextFieldTokens.kt`（高さ 56 dp・角は extra-small・枠線 1 dp で焦点時は 2 dp・入力とラベルは Body L・状態ごとの色）と C の `internal/TextFieldImpl.kt`（余白 16 dp・浮いたラベルは Body S）を `lamina/tokens/text_field.hpp` に写しました。選択範囲の色は `primary` の不透明度 0.4 で、C の `MaterialTheme.kt` の `TextSelectionBackgroundOpacity` から取りました。
+
+### ボタンのアイコン
+
+C の `Button.kt`（`ButtonDefaults.iconSizeFor`・`iconSpacingFor`・`contentPaddingFor`）：アイコンは extra-small から extra-large まで 20 / 20 / 24 / 32 / 40 dp で、アイコンがあっても前後の余白は変わりません。extra-small のアイコンとラベルの間は 4 dp です（`ExtraSmallIconSpacing`、「ButtonXSmallTokens.kt が直ったらその値を使う」）。トークンのファイルは 8 dp です。
+
+### アイコンボタン
+
+C の `tokens/{XSmall,Small,Medium,Large,XLarge}IconButtonTokens.kt`（高さ・アイコンの大きさ・narrow / default / wide の左右の余白・四角いとき・押したとき・オンのときの角・枠線の太さ）と、`tokens/{Filled,FilledTonal,Outlined}IconButtonTokens.kt`・`tokens/IconButtonTokens.kt`（`StandardIconButtonTokens`、色）を `lamina/tokens/icon_button.hpp` に写しました。C の `IconButton.kt` と `IconButtonDefaults.kt` から：
+
+- uniform の幅は、アイコンに default の余白を左右に足したもので（`*ContainerSize(IconButtonWidthOption.Uniform)`）、どの大きさでも正方形になります。large だけは `DefaultLeadingSpace` の代わりに `UniformLeadingSpace` を持ちます。
+- 形は、押している間は押したときの形、オンならオンの形、それ以外は通常の形で、標準の効果のばねで動かします（「弾まないように」）。
+- Compose の outlined と standard は既定で `LocalContentColor` を使います。lamina-ui には文脈の色が無いので、トークンの色（Compose の `*VibrantColors`）を使います。
+- Compose の outlined の枠線は、大きさによらず `SmallIconButtonTokens.OutlinedOutlineWidth`（1 dp）です。lamina-ui はボタンと同じく大きさごとの `OutlinedOutlineWidth`（large は 2 dp、extra-large は 3 dp）を使います。
+- Compose は切り替えのアイコンボタンの色を一度に変えますが、lamina-ui は標準の効果のばねで移します。
+
+### FAB
+
+C の `tokens/Fab{Baseline,Medium,Large}Tokens.kt`（大きさ・角・アイコンの大きさ）と `tokens/Fab{Primary,Secondary}ContainerTokens.kt`（色、高さ 3・乗せたとき 4・押したとき 3）を `lamina/tokens/fab.hpp` に写しました。C の `FloatingActionButton.kt` から：
+
+- medium の FAB の角は large-increased（20 dp、`ShapeDefaults.LargeIncreased`）です。トークンは TODO つきでコメントになっています。
+- large の FAB のアイコンは 36 dp です（`LargeIconSize`、「FabLargeTokens.IconSize は誤り」）。トークンのファイルは 32 dp です。
+- FAB は押しても形が変わりません。
+
+### スイッチ
+
+C の `tokens/SwitchTokens.kt`（つまみの通り道 52 × 32 dp と 2 dp の枠線、つまみ 16 / 24 / 28 dp、アイコン 16 dp、色）を `lamina/tokens/switch.hpp` に写しました。C の `Switch.kt` から：
+
+- つまみの位置と大きさは速い空間のばね（`MotionSchemeKeyTokens.FastSpatial`）で動きます。つまみの中心は 16 dp から 36 dp まで（通り道の幅から高さを引いた分）動きます。
+- つまみはオンのときかアイコンを載せたときに 24 dp、押している間は 28 dp です。
+- 色はオンかオフかだけで決まります。トークンのファイルにある、乗せたときと押したときのつまみの色（primary-container・on-surface-variant）は使われていません。オンの通り道に枠線は無く（`Color.Transparent`）、オフの枠線は `UnselectedFocusTrackOutlineColor`（outline）です。
+- Compose は色を一度に変えますが、lamina-ui はつまみと同じく連続して変わるよう、標準の効果のばねで移します。
+- つまみのドラッグは作っていません。押すと切り替わります。
+
+### チェックボックス
+
+C の `tokens/CheckboxTokens.kt`（色・2 dp の枠線・40 dp の状態の重ね）と C の `Checkbox.kt` を `lamina/tokens/checkbox.hpp` に写しました。`Checkbox.kt` は、`ComposeMaterial3Flags.isCheckboxStylingFixEnabled` が false（既定）の間は今までの形で描くので、トークンのファイルではなくそちらに従います：
+
+- 箱は 20 dp で、周りに 2 dp の余白があります（`CheckboxSize`・`CheckboxDefaultPadding`）。18 dp の `ContainerSize` ではありません。角は 2 dp、線は 2 dp で、線の端は四角です。
+- チェックの印は箱の (0.2, 0.5) → (0.4, 0.7) → (0.8, 0.3) を通ります。中間の状態では、これらの点が y = 0.5 へ（角の点は x = 0.5 へも）寄って横線になります。
+- 描く割合と横線への寄り方は、標準の空間のばねで動きます（印の全長を超えないよう切り詰めます）。オフにすると、どちらも 100 ms 後に 0 へ飛びます（`SnapAnimationDelay`）。
+- 箱と印の色は、現れるときは標準の効果のばね、消えるときは速い効果のばねで移ります。
+
+### ラジオボタン
+
+C の `tokens/RadioButtonTokens.kt`（アイコン 20 dp・状態の重ね 40 dp・色）と C の `RadioButton.kt`（余白 2 dp・点 12 dp・線 2 dp）を `lamina/tokens/radio_button.hpp` に写しました。点の半径は速い空間のばね、色は標準の効果のばねで動きます。点は、`RadioButton.kt` と同じく半径から線の太さの半分を引いて描きます。
+
+### 選ぶ部品の状態の重ね
+
+スイッチ・チェックボックス・ラジオボタンは、状態の重ねとして 40 dp の円を部品の外まで描きます。Compose はこの波紋に `LocalContentColor` を使います。lamina-ui は、面の上の文脈の色にあたる on-surface を使います。押せる範囲は、小さいアイコンボタンも含めて少なくとも 48 dp です（`minimumInteractiveComponentSize`）。
 
 ## 未決の件
 
-- ほかの部品のトークンはまだ調べていません。
+- 上に挙げた部品のほかは、まだトークンを調べていません。

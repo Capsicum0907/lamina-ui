@@ -202,12 +202,62 @@ C `tokens/Button{XSmall,Small,Medium,Large,XLarge}Tokens.kt` (height, square and
 
 - The text button label is `primary`. The token file says `on-surface-variant`, but `Button.kt` overrides it with `Primary` ("replace with the token value once it's corrected").
 - The label type follows the height, as `ButtonDefaults.textStyleFor` does: below medium Label L, below large Title M, below extra-large Headline S, otherwise Headline L.
+- The extra-small button has 12 dp leading and trailing space, from `ButtonDefaults.ExtraSmallContentPadding` ("update with the value from ButtonXSmallTokens.kt once it's been corrected"); the token file says 16.
 - The pressed shape animates with the default effects spring, which `Button.kt` uses "to prevent any bounce in this component". The minimum width is 58 dp (`ButtonDefaults.MinWidth`).
 
 ### Outlined text field
 
-C `tokens/OutlinedTextFieldTokens.kt` (56 dp high, extra-small corners, outline 1 dp and 2 dp when focused, Body L input and label, colors per state) and C `internal/TextFieldImpl.kt` (16 dp padding, Body S for the floating label), read into `lamina/tokens/text_field.hpp`.
+C `tokens/OutlinedTextFieldTokens.kt` (56 dp high, extra-small corners, outline 1 dp and 2 dp when focused, Body L input and label, colors per state) and C `internal/TextFieldImpl.kt` (16 dp padding, Body S for the floating label), read into `lamina/tokens/text_field.hpp`. The selection is `primary` at 0.4 opacity, from `TextSelectionBackgroundOpacity` in C `MaterialTheme.kt`.
+
+### Button icons
+
+C `Button.kt` (`ButtonDefaults.iconSizeFor`, `iconSpacingFor`, `contentPaddingFor`): the icon is 20 / 20 / 24 / 32 / 40 dp from extra-small to extra-large, and the leading and trailing space do not change when there is an icon. The extra-small icon spacing is 4 dp (`ExtraSmallIconSpacing`, "use the value from ButtonXSmallTokens.kt once it's been corrected"); the token file says 8.
+
+### Icon buttons
+
+C `tokens/{XSmall,Small,Medium,Large,XLarge}IconButtonTokens.kt` (height, icon size, narrow / default / wide side space, square, pressed and selected corners, outline width), `tokens/{Filled,FilledTonal,Outlined}IconButtonTokens.kt` and `tokens/IconButtonTokens.kt` (`StandardIconButtonTokens`, colors), read into `lamina/tokens/icon_button.hpp`. From C `IconButton.kt` and `IconButtonDefaults.kt`:
+
+- The uniform width is the icon plus the default side space on both sides (`*ContainerSize(IconButtonWidthOption.Uniform)`), which makes it square at every size. Large has `UniformLeadingSpace` in place of `DefaultLeadingSpace`.
+- The shape is the pressed shape while pressed, else the checked shape when checked, else the rest shape, animated with the default effects spring ("to prevent any bounce").
+- The outlined and standard styles take `LocalContentColor` by default in Compose; lamina-ui has no content color, so they use the token colors (Compose's `*VibrantColors`).
+- Compose's default outlined border is always `SmallIconButtonTokens.OutlinedOutlineWidth` (1 dp). lamina-ui uses each size's own `OutlinedOutlineWidth` (2 dp large, 3 dp extra-large), as the button does.
+- Compose switches the colors of a toggled icon button at once; lamina-ui fades them with the default effects spring.
+
+### FAB
+
+C `tokens/Fab{Baseline,Medium,Large}Tokens.kt` (size, corner, icon size) and `tokens/Fab{Primary,Secondary}ContainerTokens.kt` (colors, elevation 3, hover 4, pressed 3), read into `lamina/tokens/fab.hpp`. From C `FloatingActionButton.kt`:
+
+- The medium FAB corner is large-increased (20 dp, `ShapeDefaults.LargeIncreased`); the token is commented out with a TODO.
+- The large FAB icon is 36 dp (`LargeIconSize`, "FabLargeTokens.IconSize is incorrect"); the token file says 32.
+- A FAB does not change shape when pressed.
+
+### Switch
+
+C `tokens/SwitchTokens.kt` (track 52 × 32 dp with a 2 dp outline, thumb 16 / 24 / 28 dp, icon 16 dp, colors), read into `lamina/tokens/switch.hpp`. From C `Switch.kt`:
+
+- The thumb position and size use the fast spatial spring (`MotionSchemeKeyTokens.FastSpatial`). The thumb's center travels from 16 dp to 36 dp (track width minus track height).
+- The thumb is 24 dp when checked or when it carries an icon, and 28 dp while pressed.
+- The colors depend only on checked: the hover and pressed handle colors of the token file (primary-container, on-surface-variant) are not used. The checked track has no outline (`Color.Transparent`); the unchecked outline is `UnselectedFocusTrackOutlineColor` (outline).
+- Compose switches the colors at once; lamina-ui fades them with the default effects spring, so the change is continuous like the thumb.
+- Dragging the thumb is not implemented; a click toggles.
+
+### Checkbox
+
+C `tokens/CheckboxTokens.kt` (colors, 2 dp outline, 40 dp state layer) and C `Checkbox.kt`, read into `lamina/tokens/checkbox.hpp`. `Checkbox.kt` draws the shipped geometry while `ComposeMaterial3Flags.isCheckboxStylingFixEnabled` is false (the default), so lamina-ui follows it rather than the token file:
+
+- The box is 20 dp with 2 dp padding (`CheckboxSize`, `CheckboxDefaultPadding`), not the 18 dp `ContainerSize`. The corner is 2 dp and the stroke 2 dp with square caps.
+- The check runs (0.2, 0.5) → (0.4, 0.7) → (0.8, 0.3) of the box. In the indeterminate state these points move toward y = 0.5 (and the corner toward x = 0.5), giving a dash.
+- The draw fraction and the move to the dash use the default spatial spring (clamped to the whole mark). Turning off, both snap to 0 after 100 ms (`SnapAnimationDelay`).
+- The box and check colors fade in with the default effects spring and out with the fast one.
+
+### Radio button
+
+C `tokens/RadioButtonTokens.kt` (20 dp icon, 40 dp state layer, colors) and C `RadioButton.kt` (2 dp padding, 12 dp dot, 2 dp stroke), read into `lamina/tokens/radio_button.hpp`. The dot radius animates on the fast spatial spring and the color on the default effects spring; the dot is drawn with its radius minus half the stroke, as in `RadioButton.kt`.
+
+### State layers of the selection controls
+
+Switch, checkbox and radio button draw an unbounded 40 dp circle as their state layer. Compose uses `LocalContentColor` for that ripple; lamina-ui uses on-surface, the content color on a surface. The touch target is at least 48 dp (`minimumInteractiveComponentSize`), also for small icon buttons.
 
 ## Open questions
 
-- Other components' tokens are not surveyed yet.
+- Components other than those above are not surveyed yet.

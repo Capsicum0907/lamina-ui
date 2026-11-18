@@ -1,13 +1,16 @@
 #pragma once
 
+#include <optional>
 #include <string>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/icons/icon.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/platform/input.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/button.hpp"
+#include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
 
@@ -16,6 +19,7 @@ struct ButtonOptions {
     tokens::ButtonStyle style = tokens::ButtonStyle::filled;
     tokens::ButtonSize size = tokens::ButtonSize::small;
     tokens::ButtonShape shape = tokens::ButtonShape::round;
+    std::optional<icons::Icon> leading_icon = std::nullopt;
 };
 
 class Button {
@@ -33,6 +37,7 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    double content_width() const;
     double rest_corner() const;
     double pressed_corner() const;
     double target_state_layer() const;
@@ -43,8 +48,7 @@ private:
     text::TextLine label_;
     double width_;
     render::Point origin_{0.0, 0.0};
-    bool hovered_ = false;
-    bool pressed_ = false;
+    PressState press_;
     motion::Animated corner_;
     motion::Animated state_layer_;
     motion::Animated elevation_;

@@ -19,6 +19,7 @@ endfunction()
 
 add_library(lamina STATIC
     src/lamina/color/spec_2021.cpp
+    src/lamina/icons/icon.cpp
     src/lamina/motion/spring.cpp
     src/lamina/render/canvas.cpp
     src/lamina/render/geometry.cpp
@@ -38,8 +39,13 @@ add_library(lamina STATIC
     src/lamina/text/layout.cpp
     src/lamina/layout/layout.cpp
     src/lamina/widgets/button.cpp
+    src/lamina/widgets/checkbox.cpp
+    src/lamina/widgets/fab.cpp
+    src/lamina/widgets/icon_button.cpp
     src/lamina/widgets/label.cpp
+    src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/surface.cpp
+    src/lamina/widgets/switch.cpp
     src/lamina/widgets/text_field.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
@@ -88,6 +94,10 @@ if(LAMINA_BUILD_EXAMPLES)
     add_executable(layout_demo examples/layout/main.cpp)
     target_link_libraries(layout_demo PRIVATE lamina lamina_sdl3)
     lamina_warnings(layout_demo)
+    add_executable(components examples/components/main.cpp)
+    target_link_libraries(components PRIVATE lamina lamina_sdl3)
+    target_compile_definitions(components PRIVATE LAMINA_ICONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/icons")
+    lamina_warnings(components)
 endif()
 
 option(LAMINA_BUILD_TOOLS "Build the development tools" ON)
@@ -103,10 +113,13 @@ if(LAMINA_BUILD_TESTS)
         tests/button_test.cpp
         tests/canvas_test.cpp
         tests/color_scheme_test.cpp
+        tests/icon_button_test.cpp
+        tests/icon_test.cpp
         tests/layout_test.cpp
         tests/main.cpp
         tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp
+        tests/selection_controls_test.cpp
         tests/shapes_test.cpp
         tests/spring_test.cpp
         tests/text_field_test.cpp
@@ -116,5 +129,6 @@ if(LAMINA_BUILD_TESTS)
     target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
     target_compile_definitions(lamina_tests PRIVATE LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts")
+    target_compile_definitions(lamina_tests PRIVATE LAMINA_ICONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/icons")
     add_test(NAME lamina_tests COMMAND lamina_tests)
 endif()

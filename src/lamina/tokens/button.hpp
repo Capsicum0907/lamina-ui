@@ -27,7 +27,7 @@ struct ButtonSizeTokens {
 };
 
 inline constexpr std::array<ButtonSizeTokens, static_cast<std::size_t>(ButtonSize::count)> button_sizes{{
-    {32.0, CornerSize::medium, CornerSize::small, 20.0, 8.0, 12.0, 12.0, 1.0, TypeRole::label_large},
+    {32.0, CornerSize::medium, CornerSize::small, 20.0, 4.0, 12.0, 12.0, 1.0, TypeRole::label_large},
     {40.0, CornerSize::medium, CornerSize::small, 20.0, 8.0, 16.0, 16.0, 1.0, TypeRole::label_large},
     {56.0, CornerSize::large, CornerSize::medium, 24.0, 8.0, 24.0, 24.0, 1.0, TypeRole::title_medium},
     {96.0, CornerSize::extra_large, CornerSize::large, 32.0, 12.0, 48.0, 48.0, 2.0, TypeRole::headline_small},

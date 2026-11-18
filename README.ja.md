@@ -8,7 +8,7 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 
 ## 現状
 
-作り始めたところです。今あるのは、設計の値の層・2D の描画・文字・形・SDL3 の窓と、部品が 2 つ（ボタンと入力欄）です。配置の仕組みは入ったばかりで、古い見本はまだ部品の位置を手で決めています。
+作り始めたところです。今あるのは、設計の値の層・2D の描画・文字・形・アイコン・SDL3 の窓・配置の仕組みと、部品（ボタン・アイコンボタン・FAB・スイッチ・チェックボックス・ラジオボタン・入力欄）です。古い見本の一部は、まだ部品の位置を手で決めています。
 
 - `lamina/tokens/motion.hpp`：standard と expressive の二つの動きの体系の、ばね・緩急・時間のトークン。
 - `lamina/motion/spring.hpp`：減衰するばね。解を式で直接求めます。`advance` は値を目標に向けて好きな時間だけ進めます。時間をどうコマに分けても結果は変わりません。`is_settled` は動きが止まったかを判定します。
@@ -19,8 +19,15 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 - `lamina/render/canvas.hpp`：曲線・角丸の四角・影・座標変換の積み重ねを持つ 2D の描画面。描くのは ThorVG です（`lamina::thorvg`）。ThorVG を選んだ理由は [docs/renderer-comparison.ja.md](docs/renderer-comparison.ja.md) にあります。
 - `lamina/platform/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。
 - `lamina/text/font.hpp`・`layout.hpp`：フォントと、1 行の文字・折り返す段落。文字の並べ方と字形の輪郭はどちらも HarfBuzz から取り、輪郭はほかの図形と同じく描画面で塗るので、FreeType は使いません。可変フォントは文字の段階の太さに合わせて太さを変え、フォントに無い文字は `FontStack` の次のフォントで補います。段落は、欧文では空白で、日本語では文字の間で折り返し、。や 」などの約物は行頭に来ないようにします（`text/line_break.hpp`）。
-- `lamina/widgets/button.hpp`：Material 3 Expressive のボタン。5 種類（filled・tonal・outlined・elevated・text）・5 段階の大きさ・2 種類の形。押すと、Compose と同じく効果のばねで角が押したときの形に変わり、マウスを乗せたときと押したときには状態の重ねと高さが変わります。`build/Release/buttons.exe` で全部を並べて見られます。
-- `lamina/widgets/text_field.hpp`：枠線つきの入力欄。焦点が当たるか文字が入ると、ラベルがばねで枠線の上に移ります。カーソルの点滅は、点滅の間に描き直さずに済むよう時間で起こします（`Window::wake_after`）。日本語は OS の IME で入力し、変換中の文字はその場に下線つきで描き、候補ウィンドウはカーソルの位置に出します（`Window::set_text_input`）。`build/Release/text_field.exe` は小さな入力の画面です。
+- `lamina/widgets/button.hpp`：Material 3 Expressive のボタン。5 種類（filled・tonal・outlined・elevated・text）・5 段階の大きさ・2 種類の形。押すと、Compose と同じく効果のばねで角が押したときの形に変わり、マウスを乗せたときと押したときには状態の重ねと高さが変わります。`ButtonOptions::leading_icon` でラベルの前にアイコンを置けます。大きさと間隔は大きさのトークンに従います。`build/Release/buttons.exe` で全部を並べて見られます。
+- `lamina/icons/`：フォントとしての Material Symbols。`symbols.hpp` が 44 個の記号に名前を付け（`Symbol::add`・`Symbol::delete_` など）、`IconFont` は `assets/icons/` の切り出したフォントを読み、HarfBuzz から取った輪郭で記号を好きな大きさと色で描きます。フォントの可変軸（塗り・太さ・グレード・光学サイズ）も指定でき、光学サイズは指定しなければ描く大きさに合わせます。`text::Font` には `glyph_for` と、軸の値を受け取る `glyph_outline_em` を足しました。`tools/icon-subset/subset.py` は、一つの名前の一覧からフォントと `symbols.hpp` を作り直します。
+- `lamina/widgets/icon_button.hpp`：アイコンボタン。4 種類（filled・tonal・outlined・standard）・5 段階の大きさ・2 種類の形・3 種類の幅（narrow・uniform・wide）。ボタンと同じく、押すと効果のばねで角が変わります。切り替えのアイコンボタンは、オンのときにも形と色が変わります。
+- `lamina/widgets/fab.hpp`：フローティングアクションボタン。3 段階の大きさ（FAB・medium・large）で、地は primary-container か secondary-container です。高さは段階 3 で、マウスを乗せると段階 4 になります。
+- `lamina/widgets/switch.hpp`：スイッチ。つまみは速い空間のばねで滑りながら大きさを変え（オフで 16 dp、オンかアイコンつきで 24 dp、押している間は 28 dp）、expressive では少し行き過ぎて戻ります。つまみには、オンとオフそれぞれのアイコンを載せられます。
+- `lamina/widgets/checkbox.hpp`：チェックボックス。オフ・オン・中間の 3 状態です。チェックの印は空間のばねで線の長さに沿って描かれ、中間の状態では横線へ寄っていきます。オフにすると、Compose と同じく箱の色が薄れる間に 100 ms 遅れて印が消えます。
+- `lamina/widgets/radio_button.hpp`：ラジオボタン。点は速い空間のばねで大きくなります。
+- `build/Release/components.exe` は、アイコン・アイコンつきのボタン・アイコンボタン・FAB・スイッチ・チェックボックス・ラジオボタンを並べます。テーマの切り替えはボタンの例と同じです。
+- `lamina/widgets/text_field.hpp`：枠線つきの入力欄。焦点が当たるか文字が入ると、ラベルがばねで枠線の上に移ります。カーソルの点滅は、点滅の間に描き直さずに済むよう時間で起こします（`Window::wake_after`）。日本語は OS の IME で入力し、変換中の文字はその場に下線つきで描き、候補ウィンドウはカーソルの位置に出します（`Window::set_text_input`）。選択は `Shift` を押しながら矢印・`Home`・`End` で広げるほか、ドラッグで範囲を、ダブルクリックで単語を（日本語では漢字・ひらがな・カタカナの同じ種類の連なりを）、トリプルクリックと `Ctrl+A` で全体を選びます。選択中に文字を打つ・IME で確定する・`Backspace` や `Delete` を押すと、選択した部分が置き換わります。`Ctrl+←` と `Ctrl+→` で単語ごとに動き、`Ctrl+Backspace` と `Ctrl+Delete` で単語ごとに消します。`Ctrl+C`・`Ctrl+X`・`Ctrl+V` は `TextFieldOptions` で渡したクリップボードを使います（OS のものは `Window::clipboard()`、テストでは任意の `platform::Clipboard`）。1行の入力欄はカーソルが見えるよう横に送り、文字を欄の内側で切り抜きます（`Canvas::push_clip`）。`Enter` で送信します。`TextFieldOptions::multiline` にすると文字は欄の幅で折り返し、欄は 56 dp（文字の上下に 16 dp）から1行ずつ高くなります。`Enter` で改行し `Ctrl+Enter` で送信します。上下の矢印はカーソルの横位置を保ったまま行を移り、`Home` と `End` は行の頭と末尾へ、`Ctrl` を添えると全体の頭と末尾へ動きます。`build/Release/text_field.exe` は小さな入力の画面で、メッセージ欄が複数行です。
 - `lamina/shapes/`：androidx の `graphics-shapes` を C++ に移したもの（角ごとに丸めと滑らかさを持つ多角形と、二つの輪郭の角を対応させて 3 次曲線を補間する `Morph`）と、Material 3 Expressive の 35 個の形（`material_shape`）。出典は [third_party/NOTICE-androidx-graphics-shapes.md](third_party/NOTICE-androidx-graphics-shapes.md)。`build/Release/shapes_gallery.exe` は全部の形を並べ、どれかを押すと大きな形が expressive の空間のばねでその形に変わります。
 - `lamina/layout/layout.hpp`：Compose と同じ考え方の行と列。部品は、まず制約の中で大きさを測り、次に置かれます。行と列には、間隔・余白・並ぶ向きの寄せ方（始め・中央・終わり・均等割り）・交わる向きの寄せ方（始め・中央・終わり・引き伸ばし）と、余った幅を比で分ける重みがあります。引き伸ばしの行は、`fill_cross` で全部の高さを求めない限り、いちばん高い子の高さになります。`lamina/widgets/nodes.hpp` は、ボタン・入力欄・`Label`（`widgets/label.hpp`、折り返す文字）を配置の部品に変えます。`build/Release/layout_demo.exe` は、窓の大きさを変えるとその場で組み直します。
 - `lamina/motion/animated.hpp`・`lamina/color/mix.hpp`：ばねで動く値と、色の混ぜ合わせ。
@@ -48,6 +55,8 @@ ctest --preset release
 ## 出典
 
 `tests/fixtures/fonts/` のテスト用フォントは、Noto Sans JP と Oswald の一部を取り出して名前を変えたもので、SIL Open Font License 1.1 に従います（ライセンスの文書を同じ場所に置いています）。
+
+`assets/icons/MaterialSymbolsRounded-subset.ttf` は、Google の Material Symbols Rounded（可変フォント）を変更したものです。[google/material-design-icons](https://github.com/google/material-design-icons) のコミット `10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7` から取り、Apache License 2.0 に従います（`assets/icons/LICENSE`）。`tools/icon-subset/subset.py` で `src/lamina/icons/symbols.hpp` にある 44 個の記号だけに絞り、合字の表とヒンティングを除きました。可変軸と名前の表は残しています。
 
 
 トークンの値は、Google が Apache-2.0 で公開しているソースから取っています：androidx（Jetpack Compose の Material 3 と graphics-shapes）、material-components-android、material-web、material-color-utilities。ファイルとコミットは [docs/design-tokens.ja.md](docs/design-tokens.ja.md) にあります。
