@@ -1,11 +1,15 @@
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <exception>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
+#include "lamina/motion/animated.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/platform/window.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/widgets/button.hpp"
@@ -26,7 +30,13 @@ struct Layout {
     color::Role caption = color::Role::on_surface_variant;
     tokens::TypeRole header_type = tokens::TypeRole::headline_small;
     tokens::TypeRole caption_type = tokens::TypeRole::label_large;
+    double chip = 32.0;
+    double chip_gap = 12.0;
+    color::Role chip_ring = color::Role::on_surface;
+    double chip_ring_width = 2.0;
 };
+
+const std::vector<color::Argb> seeds{0xff6750a4, 0xff006a6a, 0xffb3261e, 0xff7d5260, 0xff386a20};
 
 const std::vector<std::string> default_fonts{"C:/Windows/Fonts/NotoSansJP-VF.ttf"};
 
@@ -49,7 +59,18 @@ int main(int argc, char** argv) {
                 fonts.add(text::Font::from_file(path));
             }
         }
-        const auto scheme = color::spec_2021().build(color::default_scheme_options);
+        color::SchemeOptions options = color::default_scheme_options;
+        color::ColorScheme from = color::spec_2021().build(options);
+        color::ColorScheme to = from;
+        motion::Animated theme(1.0, tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::slow));
+        std::size_t seed_index = 0;
+        widgets::Button dark_toggle({"ダーク", ButtonStyle::outlined, ButtonSize::extra_small, ButtonShape::round}, fonts);
+        auto retheme = [&](const color::ColorScheme& current) {
+            from = current;
+            to = color::spec_2021().build(options);
+            theme.snap_to(0.0);
+            theme.animate_to(1.0);
+        };
         const auto caption_style = text::text_style(tokens::type_style(layout.caption_type));
         const auto header_style = text::text_style(tokens::type_style(layout.header_type));
 
@@ -96,8 +117,27 @@ int main(int argc, char** argv) {
                 }
                 y += row_height + layout.row_gap;
             }
+            const double chips_y = y;
+            const double chips_x = layout.margin + layout.label_width;
+            dark_toggle.set_origin({chips_x + seeds.size() * (layout.chip + layout.chip_gap), chips_y});
+            const color::ColorScheme scheme = color::mix(from, to, theme.value());
 
             for (const auto& e : frame.pointer) {
+                if (dark_toggle.handle(e)) {
+                    options.dark = !options.dark;
+                    retheme(scheme);
+                }
+                if (e.action == platform::PointerAction::up) {
+                    for (std::size_t i = 0; i < seeds.size(); ++i) {
+                        const double cx = chips_x + i * (layout.chip + layout.chip_gap) + layout.chip / 2.0;
+                        const double cy = chips_y + layout.chip / 2.0;
+                        if (std::hypot(e.x_dp - cx, e.y_dp - cy) <= layout.chip / 2.0 && i != seed_index) {
+                            seed_index = i;
+                            options.seed = seeds[i];
+                            retheme(scheme);
+                        }
+                    }
+                }
                 for (auto& row : rows) {
                     for (auto& b : row.buttons) {
                         if (b->handle(e)) {
@@ -126,6 +166,24 @@ int main(int argc, char** argv) {
                     animating = animating || b->animating();
                 }
             }
+            const auto theme_caption = text::layout_line(fonts, "Theme", caption_style);
+            text::draw_line(canvas, fonts, theme_caption, {layout.margin, chips_y + (layout.chip - caption_style.line_height) / 2.0}, scheme[layout.caption]);
+            for (std::size_t i = 0; i < seeds.size(); ++i) {
+                const render::Rect c{chips_x + i * (layout.chip + layout.chip_gap), chips_y, layout.chip, layout.chip};
+                if (i == seed_index) {
+                    const render::Rect ring{c.x - 2 * layout.chip_ring_width, c.y - 2 * layout.chip_ring_width,
+                                            c.width + 4 * layout.chip_ring_width, c.height + 4 * layout.chip_ring_width};
+                    canvas.fill_rounded_rect(ring, render::uniform_radii(ring.width / 2.0), scheme[layout.chip_ring]);
+                    const render::Rect gap{c.x - layout.chip_ring_width, c.y - layout.chip_ring_width,
+                                           c.width + 2 * layout.chip_ring_width, c.height + 2 * layout.chip_ring_width};
+                    canvas.fill_rounded_rect(gap, render::uniform_radii(gap.width / 2.0), scheme[color::Role::surface]);
+                }
+                canvas.fill_rounded_rect(c, render::uniform_radii(layout.chip / 2.0), seeds[i]);
+            }
+            theme.step(frame.dt_seconds);
+            dark_toggle.step(frame.dt_seconds);
+            dark_toggle.paint(canvas, scheme);
+            animating = animating || !theme.settled() || dark_toggle.animating();
             canvas.restore();
             window.present();
         }

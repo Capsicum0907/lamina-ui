@@ -23,6 +23,14 @@ inline Argb mix(Argb from, Argb to, double t) {
     return out;
 }
 
+inline ColorScheme mix(const ColorScheme& from, const ColorScheme& to, double t) {
+    ColorScheme out{};
+    for (std::size_t i = 0; i < role_count; ++i) {
+        out.colors[i] = mix(from.colors[i], to.colors[i], t);
+    }
+    return out;
+}
+
 inline Argb overlay(Argb base, Argb layer, double opacity) {
     return mix(base, (base & 0xff000000) | (layer & 0x00ffffff), opacity);
 }
