@@ -124,7 +124,7 @@ C `tokens/TypeScaleTokens.kt` (`VERSION: v0_103`) and W `_md-sys-typescale.scss`
 | Label M | 12 / 16 | 500 | 0.5 | 0.5 |
 | Label S | 11 / 16 | 500 | 0.5 | 0.5 |
 
-The two sources disagree on the three tracking values in bold. The cause is unknown.
+The two sources disagree on the three tracking values in bold. Each C value is the W value rounded to one decimal place with ties to even (−0.25 → −0.2, 0.15 → 0.2, 0.25 → 0.2), so W is taken to be the unrounded value. lamina-ui uses W.
 
 **Emphasized scale.** Same sizes and line heights. Weights: Display, Headline, Title L and Body are 500. Title M, Title S and Label are 700. W keeps the standard tracking. C has separate emphasized tracking values under a "TODO update with the generated tokens" note, so they are provisional.
 
@@ -183,5 +183,4 @@ C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, 
 
 ## Open questions
 
-- Typography: which source to follow where the tracking values disagree.
 - Not surveyed yet: component-level tokens (button heights, paddings, etc.), and the shadow geometry for each elevation level.

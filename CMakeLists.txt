@@ -30,6 +30,7 @@ if(LAMINA_BUILD_TESTS)
         tests/main.cpp
         tests/motion_tokens_test.cpp
         tests/spring_test.cpp
+        tests/tokens_test.cpp
     )
     target_link_libraries(lamina_tests PRIVATE lamina mcu::mcu doctest::doctest)
     if(MSVC)
