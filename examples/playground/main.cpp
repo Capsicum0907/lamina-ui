@@ -1,4 +1,3 @@
-#include <array>
 #include <cstdio>
 #include <exception>
 #include <string>
@@ -6,7 +5,9 @@
 
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
+#include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/platform/system_fonts.hpp"
 #include "lamina/platform/window.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/elevation.hpp"
@@ -47,7 +48,6 @@ struct Layout {
     tokens::TypeRole body_type = tokens::TypeRole::body_medium;
 };
 
-const std::vector<std::string> default_fonts{"C:/Windows/Fonts/NotoSansJP-VF.ttf"};
 const char* header_text = "lamina-ui の遊び場";
 const char* body_text = "クリックで浮き上がります。高さ・角の丸み・色が、それぞればねで動きます。Springs drive every change, so the motion settles naturally.";
 
@@ -57,18 +57,11 @@ struct Card {
     motion::Animated fill;
     motion::Animated hover;
     bool selected = false;
+    render::Rect rect{0.0, 0.0, 0.0, 0.0};
 };
 
 bool contains(const render::Rect& r, double x, double y) {
     return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
-}
-
-render::Rect card_rect(const Layout& l, const platform::Frame& f, int index) {
-    const double w = (f.width_dp - 2 * l.margin - (l.columns - 1) * l.gap) / l.columns;
-    const double h = (f.height_dp - 2 * l.margin - l.header_height - (l.rows - 1) * l.gap) / l.rows;
-    const int col = index % l.columns;
-    const int row = index / l.columns;
-    return {l.margin + col * (w + l.gap), l.margin + l.header_height + row * (h + l.gap), w, h};
 }
 
 double corner_dp(CornerSize size) {
@@ -80,16 +73,7 @@ double corner_dp(CornerSize size) {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        text::FontStack fonts;
-        if (argc > 1) {
-            for (int i = 1; i < argc; ++i) {
-                fonts.add(text::Font::from_file(argv[i]));
-            }
-        } else {
-            for (const auto& path : default_fonts) {
-                fonts.add(text::Font::from_file(path));
-            }
-        }
+        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
         const auto header_style = text::text_style(tokens::type_style(layout.header_type));
         const auto title_style = text::text_style(tokens::type_style(layout.title_type));
         const auto body_style = text::text_style(tokens::type_style(layout.body_type));
@@ -115,6 +99,24 @@ int main(int argc, char** argv) {
             titles.push_back(text::layout_line(fonts, "カード " + std::to_string(i + 1), title_style));
         }
 
+        render::Point header_at{0.0, 0.0};
+        std::vector<layout::NodePtr> grid_rows;
+        for (int r = 0; r < layout.rows; ++r) {
+            std::vector<layout::NodePtr> row_cards;
+            for (int col = 0; col < layout.columns; ++col) {
+                Card& c = cards[static_cast<std::size_t>(r * layout.columns + col)];
+                row_cards.push_back(layout::weighted(layout::fixed({0.0, 0.0}, [&c](const render::Rect& rect) { c.rect = rect; }), 1.0));
+            }
+            auto row = layout::row(std::move(row_cards));
+            row->spacing(layout.gap).cross_align(layout::CrossAlign::stretch).fill_cross(true);
+            grid_rows.push_back(layout::weighted(row, 1.0));
+        }
+        auto grid = layout::column(std::move(grid_rows));
+        grid->spacing(layout.gap).cross_align(layout::CrossAlign::stretch).fill_cross(true);
+        auto header = layout::fixed({0.0, layout.header_height}, [&header_at](const render::Rect& r) { header_at = {r.x, r.y}; });
+        auto page = layout::column({header, layout::weighted(grid, 1.0)});
+        page->padding(layout::Insets::all(layout.margin)).cross_align(layout::CrossAlign::stretch).fill_cross(true);
+
         platform::Window window({"lamina-ui playground", 960, 600});
         platform::Frame frame;
         double pointer_x = -1.0;
@@ -122,6 +124,7 @@ int main(int argc, char** argv) {
         bool animating = true;
 
         while (window.next_frame(frame, animating)) {
+            layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
             for (const auto& e : frame.pointer) {
                 if (e.action == platform::PointerAction::leave) {
                     pointer_x = pointer_y = -1.0;
@@ -132,11 +135,10 @@ int main(int argc, char** argv) {
                 if (e.action != platform::PointerAction::down) {
                     continue;
                 }
-                for (std::size_t i = 0; i < cards.size(); ++i) {
-                    if (!contains(card_rect(layout, frame, static_cast<int>(i)), e.x_dp, e.y_dp)) {
+                for (Card& c : cards) {
+                    if (!contains(c.rect, e.x_dp, e.y_dp)) {
                         continue;
                     }
-                    Card& c = cards[i];
                     c.selected = !c.selected;
                     c.elevation.animate_to(tokens::elevation_dp[c.selected ? layout.raised_elevation : layout.rest_elevation]);
                     c.corner.animate_to(corner_dp(c.selected ? layout.raised_corner : layout.rest_corner));
@@ -148,10 +150,10 @@ int main(int argc, char** argv) {
             canvas.clear(scheme[Role::surface]);
             canvas.save();
             canvas.scale(frame.scale);
-            text::draw_line(canvas, fonts, header_line, {layout.margin, layout.margin}, scheme[layout.header_text]);
+            text::draw_line(canvas, fonts, header_line, header_at, scheme[layout.header_text]);
             for (std::size_t i = 0; i < cards.size(); ++i) {
                 Card& c = cards[i];
-                const render::Rect r = card_rect(layout, frame, static_cast<int>(i));
+                const render::Rect r = c.rect;
                 c.hover.animate_to(contains(r, pointer_x, pointer_y) ? tokens::state_layer_opacity::hover : 0.0);
                 for (auto* a : {&c.elevation, &c.corner, &c.fill, &c.hover}) {
                     a->step(frame.dt_seconds);

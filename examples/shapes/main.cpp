@@ -1,8 +1,10 @@
 #include <cstdio>
 #include <exception>
 #include <memory>
+#include <vector>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/platform/window.hpp"
 #include "lamina/shapes/material_shapes.hpp"
@@ -52,23 +54,33 @@ int main() {
         motion::Animated progress(1.0, tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard));
         std::size_t hovered = all.size();
 
-        auto cell_rect = [&](std::size_t i) {
-            const int col = static_cast<int>(i) % layout.columns;
-            const int row = static_cast<int>(i) / layout.columns;
-            return render::Rect{layout.margin + col * layout.cell, layout.margin + row * layout.cell, layout.cell, layout.cell};
-        };
-        const render::Rect stage{layout.margin + layout.columns * layout.cell + layout.stage_gap,
-                                 layout.margin + (rows * layout.cell - layout.stage) / 2.0, layout.stage, layout.stage};
+        std::vector<render::Rect> cells(all.size());
+        render::Rect stage{0.0, 0.0, 0.0, 0.0};
+        std::vector<layout::NodePtr> grid_rows;
+        for (int r = 0; r < rows; ++r) {
+            std::vector<layout::NodePtr> row_cells;
+            for (int col = 0; col < layout.columns; ++col) {
+                const auto i = static_cast<std::size_t>(r * layout.columns + col);
+                if (i < all.size()) {
+                    row_cells.push_back(layout::fixed({layout.cell, layout.cell}, [&cells, i](const render::Rect& rect) { cells[i] = rect; }));
+                }
+            }
+            grid_rows.push_back(layout::row(std::move(row_cells)));
+        }
+        auto stage_node = layout::fixed({layout.stage, layout.stage}, [&stage](const render::Rect& rect) { stage = rect; });
+        auto page = layout::row({layout::column(std::move(grid_rows)), stage_node});
+        page->spacing(layout.stage_gap).padding(layout::Insets::all(layout.margin)).cross_align(layout::CrossAlign::center);
+        const layout::Size natural = page->measure({});
 
-        platform::Window window({"lamina-ui shapes", static_cast<int>(stage.x + stage.width + layout.margin),
-                                 static_cast<int>(layout.margin * 2 + rows * layout.cell)});
+        platform::Window window({"lamina-ui shapes", static_cast<int>(natural.width), static_cast<int>(natural.height)});
         platform::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
+            layout::run(*page, {0.0, 0.0, natural.width, natural.height});
             for (const auto& e : frame.pointer) {
                 hovered = all.size();
                 for (std::size_t i = 0; i < all.size(); ++i) {
-                    if (e.action != platform::PointerAction::leave && inside(cell_rect(i), e.x_dp, e.y_dp)) {
+                    if (e.action != platform::PointerAction::leave && inside(cells[i], e.x_dp, e.y_dp)) {
                         hovered = i;
                     }
                 }
@@ -86,7 +98,7 @@ int main() {
             canvas.save();
             canvas.scale(frame.scale);
             for (std::size_t i = 0; i < all.size(); ++i) {
-                const render::Rect c = cell_rect(i);
+                const render::Rect c = cells[i];
                 const render::Rect r{c.x + layout.cell_inset, c.y + layout.cell_inset, c.width - 2 * layout.cell_inset,
                                      c.height - 2 * layout.cell_inset};
                 color::Argb fill = scheme[i == current ? layout.cell_selected : layout.cell_fill];

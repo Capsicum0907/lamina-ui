@@ -6,6 +6,7 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
+#include "lamina/platform/system_fonts.hpp"
 #include "lamina/platform/window.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/widgets/nodes.hpp"
@@ -31,8 +32,6 @@ struct Style {
     Role card = Role::surface_container_low;
 };
 
-const std::vector<std::string> default_fonts{"C:/Windows/Fonts/NotoSansJP-VF.ttf"};
-
 struct Card {
     std::shared_ptr<layout::Linear> node;
 };
@@ -42,15 +41,7 @@ struct Card {
 int main(int argc, char** argv) {
     try {
         const Style style;
-        text::FontStack fonts;
-        for (int i = 1; i < argc; ++i) {
-            fonts.add(text::Font::from_file(argv[i]));
-        }
-        if (fonts.empty()) {
-            for (const auto& path : default_fonts) {
-                fonts.add(text::Font::from_file(path));
-            }
-        }
+        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
         const auto scheme = color::spec_2021().build(color::default_scheme_options);
 
         widgets::Label title("\u914d\u7f6e\u306e\u4ed5\u7d44\u307f", TypeRole::headline_medium, Role::on_surface, fonts);

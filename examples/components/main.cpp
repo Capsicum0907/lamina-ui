@@ -11,7 +11,10 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
+#include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/platform/resources.hpp"
+#include "lamina/platform/system_fonts.hpp"
 #include "lamina/platform/window.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/motion.hpp"
@@ -19,6 +22,8 @@
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
+#include "lamina/widgets/label.hpp"
+#include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/switch.hpp"
 
@@ -52,18 +57,14 @@ struct Layout {
 
 const std::vector<color::Argb> seeds{0xff6750a4, 0xff006a6a, 0xffb3261e, 0xff7d5260, 0xff386a20};
 
-const std::vector<std::string> default_fonts{"C:/Windows/Fonts/NotoSansJP-VF.ttf"};
-
 class Item {
 public:
     virtual ~Item() = default;
-    virtual double width() const = 0;
-    virtual double height() const = 0;
-    virtual void set_origin(render::Point p) = 0;
     virtual bool handle(const platform::PointerEvent& e) = 0;
     virtual void step(double dt) = 0;
     virtual bool animating() const = 0;
     virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
+    virtual layout::NodePtr node() = 0;
     std::function<void()> on_click;
 };
 
@@ -72,13 +73,11 @@ class Holder : public Item {
 public:
     template <typename... Args>
     explicit Holder(Args&&... args) : widget(std::forward<Args>(args)...) {}
-    double width() const override { return widget.width(); }
-    double height() const override { return widget.height(); }
-    void set_origin(render::Point p) override { widget.set_origin(p); }
     bool handle(const platform::PointerEvent& e) override { return widget.handle(e); }
     void step(double dt) override { widget.step(dt); }
     bool animating() const override { return widget.animating(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override { widget.paint(canvas, scheme); }
+    layout::NodePtr node() override { return widgets::node(widget); }
     W widget;
 };
 
@@ -93,9 +92,15 @@ Holder<W>* add(std::vector<std::unique_ptr<Item>>& items, Args&&... args) {
 struct Row {
     std::string caption;
     std::vector<std::unique_ptr<Item>> items;
-    double top = 0.0;
-    double height = 0.0;
+    std::unique_ptr<widgets::Label> label;
 };
+
+layout::NodePtr caption_cell(widgets::Label& caption, double width, double height, double line_height) {
+    caption.measure({});
+    return layout::fixed({width, height}, [&caption, line_height](const render::Rect& r) {
+        caption.set_origin({r.x, r.y + (r.height - line_height) / 2.0});
+    });
+}
 
 const char* checkbox_name(tokens::CheckboxState s) {
     switch (s) {
@@ -114,16 +119,8 @@ const char* checkbox_name(tokens::CheckboxState s) {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        text::FontStack fonts;
-        for (int i = 1; i < argc; ++i) {
-            fonts.add(text::Font::from_file(argv[i]));
-        }
-        if (fonts.empty()) {
-            for (const auto& path : default_fonts) {
-                fonts.add(text::Font::from_file(path));
-            }
-        }
-        const icons::IconFont icon_font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
+        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
+        const icons::IconFont icon_font = platform::bundled_icon_font();
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
 
         color::SchemeOptions options = color::default_scheme_options;
@@ -134,13 +131,8 @@ int main(int argc, char** argv) {
         bool retheme_pending = false;
 
         const auto caption_style = text::text_style(tokens::type_style(layout.caption_type));
-        const auto header_style = text::text_style(tokens::type_style(layout.header_type));
-        std::string status = "\u2014";
-        auto status_line = text::layout_line(fonts, status, caption_style);
-        auto report = [&](std::string s) {
-            status = std::move(s);
-            status_line = text::layout_line(fonts, status, caption_style);
-        };
+        widgets::Label status("\u2014", layout.caption_type, layout.caption, fonts, false);
+        auto report = [&](std::string s) { status.set_text(std::move(s)); };
 
         std::vector<Row> rows;
 
@@ -248,35 +240,61 @@ int main(int argc, char** argv) {
 
         widgets::IconButton dark_toggle({icon(options.dark ? Symbol::light_mode : Symbol::dark_mode), IconButtonStyle::outlined,
                                          IconButtonSize::small, ButtonShape::round, IconButtonWidth::uniform, true});
-        const auto header = text::layout_line(fonts, "\u90e8\u54c1", header_style);
+        widgets::Label header("\u90e8\u54c1", layout.header_type, layout.text, fonts, false);
+        widgets::Label symbols_caption("Symbols", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label theme_caption("Theme", layout.caption_type, layout.caption, fonts, false);
+
+        auto header_row = layout::row({widgets::node(header), widgets::node(status)});
+        header_row->fill_main(true).main_align(layout::MainAlign::space_between);
+        header_row->self_align = layout::CrossAlign::stretch;
+        std::vector<layout::NodePtr> page_children{header_row};
+        for (auto& row : rows) {
+            row.label = std::make_unique<widgets::Label>(row.caption, layout.caption_type, layout.caption, fonts, false);
+            std::vector<layout::NodePtr> nodes;
+            for (auto& item : row.items) {
+                nodes.push_back(item->node());
+            }
+            auto items_row = layout::row(std::move(nodes));
+            items_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
+            auto r = layout::row({caption_cell(*row.label, layout.label_width, caption_style.line_height, caption_style.line_height), items_row});
+            r->cross_align(layout::CrossAlign::center);
+            page_children.push_back(r);
+        }
+
+        const double symbol_pitch = layout.symbol_size + layout.symbol_gap;
+        std::size_t per_line = 1;
+        render::Point symbols_at{0.0, 0.0};
+        auto symbols = std::make_shared<layout::Leaf>(
+            [&per_line, symbol_pitch](const layout::Constraints& c) {
+                per_line = static_cast<std::size_t>(std::max(1.0, std::floor(c.max_width / symbol_pitch)));
+                const std::size_t lines = (icons::all_symbols.size() + per_line - 1) / per_line;
+                return layout::Size{static_cast<double>(per_line) * symbol_pitch, static_cast<double>(lines) * symbol_pitch};
+            },
+            [&symbols_at](const render::Rect& r) { symbols_at = {r.x, r.y}; });
+        page_children.push_back(
+            layout::row({caption_cell(symbols_caption, layout.label_width, layout.symbol_size, caption_style.line_height), symbols}));
+
+        std::vector<render::Rect> chip_rects(seeds.size());
+        std::vector<layout::NodePtr> chips;
+        for (std::size_t i = 0; i < seeds.size(); ++i) {
+            chips.push_back(layout::fixed({layout.chip, layout.chip}, [&chip_rects, i](const render::Rect& r) { chip_rects[i] = r; }));
+        }
+        chips.push_back(layout::fixed({dark_toggle.width(), layout.chip}, [&dark_toggle](const render::Rect& r) {
+            dark_toggle.set_origin({r.x, r.y + (r.height - dark_toggle.height()) / 2.0});
+        }));
+        auto chips_row = layout::row(std::move(chips));
+        chips_row->spacing(layout.chip_gap).cross_align(layout::CrossAlign::center);
+        auto theme_row = layout::row({caption_cell(theme_caption, layout.label_width, layout.chip, caption_style.line_height), chips_row});
+        theme_row->cross_align(layout::CrossAlign::center);
+        page_children.push_back(theme_row);
+        auto page = layout::column(std::move(page_children));
+        page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
         platform::Window window({"lamina-ui components", 1100, 860});
         platform::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
-            double y = layout.margin + header_style.line_height + layout.row_gap;
-            for (auto& row : rows) {
-                double x = layout.margin + layout.label_width;
-                double row_height = 0.0;
-                for (auto& item : row.items) {
-                    row_height = std::max(row_height, item->height());
-                }
-                for (auto& item : row.items) {
-                    item->set_origin({x, y + (row_height - item->height()) / 2.0});
-                    x += item->width() + layout.column_gap;
-                }
-                row.top = y;
-                row.height = row_height;
-                y += row_height + layout.row_gap;
-            }
-            const double symbols_y = y;
-            const double content_x = layout.margin + layout.label_width;
-            const double per_line = std::max(1.0, std::floor((frame.width_dp - content_x - layout.margin) /
-                                                             (layout.symbol_size + layout.symbol_gap)));
-            const auto symbol_lines = static_cast<double>((icons::all_symbols.size() + static_cast<std::size_t>(per_line) - 1) /
-                                                          static_cast<std::size_t>(per_line));
-            const double chips_y = symbols_y + symbol_lines * (layout.symbol_size + layout.symbol_gap) + layout.row_gap;
-            dark_toggle.set_origin({content_x + seeds.size() * (layout.chip + layout.chip_gap), chips_y - (dark_toggle.height() - layout.chip) / 2.0});
+            layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
             const color::ColorScheme scheme = color::mix(from, to, theme.value());
 
             for (const auto& e : frame.pointer) {
@@ -286,8 +304,8 @@ int main(int argc, char** argv) {
                 }
                 if (e.action == platform::PointerAction::up) {
                     for (std::size_t i = 0; i < seeds.size(); ++i) {
-                        const double cx = content_x + i * (layout.chip + layout.chip_gap) + layout.chip / 2.0;
-                        const double cy = chips_y + layout.chip / 2.0;
+                        const double cx = chip_rects[i].x + chip_rects[i].width / 2.0;
+                        const double cy = chip_rects[i].y + chip_rects[i].height / 2.0;
                         if (std::hypot(e.x_dp - cx, e.y_dp - cy) <= layout.chip / 2.0 && i != seed_index) {
                             seed_index = i;
                             options.seed = seeds[i];
@@ -315,35 +333,27 @@ int main(int argc, char** argv) {
             canvas.clear(scheme[color::Role::surface]);
             canvas.save();
             canvas.scale(frame.scale);
-            text::draw_line(canvas, fonts, header, {layout.margin, layout.margin}, scheme[layout.text]);
-            text::draw_line(canvas, fonts, status_line, {frame.width_dp - layout.margin - status_line.width, layout.margin},
-                            scheme[layout.caption]);
+            header.paint(canvas, scheme);
+            status.paint(canvas, scheme);
             animating = false;
             for (auto& row : rows) {
-                const auto caption = text::layout_line(fonts, row.caption, caption_style);
-                text::draw_line(canvas, fonts, caption, {layout.margin, row.top + (row.height - caption_style.line_height) / 2.0},
-                                scheme[layout.caption]);
+                row.label->paint(canvas, scheme);
                 for (auto& item : row.items) {
                     item->step(frame.dt_seconds);
                     item->paint(canvas, scheme);
                     animating = animating || item->animating();
                 }
             }
-            const auto symbols_caption = text::layout_line(fonts, "Symbols", caption_style);
-            text::draw_line(canvas, fonts, symbols_caption, {layout.margin, symbols_y + (layout.symbol_size - caption_style.line_height) / 2.0},
-                            scheme[layout.caption]);
+            symbols_caption.paint(canvas, scheme);
             for (std::size_t i = 0; i < icons::all_symbols.size(); ++i) {
-                const auto col = static_cast<double>(i % static_cast<std::size_t>(per_line));
-                const auto line = static_cast<double>(i / static_cast<std::size_t>(per_line));
-                icon_font.draw(canvas, icons::all_symbols[i],
-                               {content_x + col * (layout.symbol_size + layout.symbol_gap), symbols_y + line * (layout.symbol_size + layout.symbol_gap)},
+                const auto col = static_cast<double>(i % per_line);
+                const auto line = static_cast<double>(i / per_line);
+                icon_font.draw(canvas, icons::all_symbols[i], {symbols_at.x + col * symbol_pitch, symbols_at.y + line * symbol_pitch},
                                layout.symbol_size, scheme[layout.caption]);
             }
-            const auto theme_caption = text::layout_line(fonts, "Theme", caption_style);
-            text::draw_line(canvas, fonts, theme_caption, {layout.margin, chips_y + (layout.chip - caption_style.line_height) / 2.0},
-                            scheme[layout.caption]);
+            theme_caption.paint(canvas, scheme);
             for (std::size_t i = 0; i < seeds.size(); ++i) {
-                const render::Rect c{content_x + i * (layout.chip + layout.chip_gap), chips_y, layout.chip, layout.chip};
+                const render::Rect c = chip_rects[i];
                 if (i == seed_index) {
                     const render::Rect ring{c.x - 2 * layout.chip_ring_width, c.y - 2 * layout.chip_ring_width,
                                             c.width + 4 * layout.chip_ring_width, c.height + 4 * layout.chip_ring_width};

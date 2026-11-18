@@ -1,0 +1,40 @@
+#pragma once
+
+#include <filesystem>
+#include <span>
+#include <string_view>
+#include <vector>
+
+#include "lamina/text/font.hpp"
+
+namespace lamina::platform {
+
+struct FontDirectory {
+    std::string_view environment;
+    std::string_view subdirectory;
+};
+
+struct SystemFont {
+    std::string_view file;
+    unsigned face_index;
+};
+
+inline constexpr FontDirectory font_directories[] = {
+    {"WINDIR", "Fonts"},
+    {"SystemRoot", "Fonts"},
+    {"LOCALAPPDATA", "Microsoft/Windows/Fonts"},
+};
+
+inline constexpr SystemFont japanese_ui_fonts[] = {
+    {"NotoSansJP-VF.ttf", 0},
+    {"YuGothM.ttc", 1},
+    {"meiryo.ttc", 2},
+    {"BIZ-UDGothicR.ttc", 1},
+    {"msgothic.ttc", 1},
+};
+
+std::vector<std::filesystem::path> system_font_directories();
+text::FontStack system_font_stack(std::span<const SystemFont> candidates = japanese_ui_fonts);
+text::FontStack font_stack_from_arguments(int argc, char** argv);
+
+}

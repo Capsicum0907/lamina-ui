@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -10,9 +9,13 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/layout/layout.hpp"
+#include "lamina/platform/system_fonts.hpp"
 #include "lamina/platform/window.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/label.hpp"
+#include "lamina/widgets/nodes.hpp"
 
 using namespace lamina;
 using tokens::ButtonShape;
@@ -38,27 +41,24 @@ struct Layout {
 
 const std::vector<color::Argb> seeds{0xff6750a4, 0xff006a6a, 0xffb3261e, 0xff7d5260, 0xff386a20};
 
-const std::vector<std::string> default_fonts{"C:/Windows/Fonts/NotoSansJP-VF.ttf"};
-
 struct Row {
-    std::string caption;
+    std::unique_ptr<widgets::Label> caption;
     std::vector<std::unique_ptr<widgets::Button>> buttons;
 };
+
+layout::NodePtr caption_cell(widgets::Label& caption, double width, double height, double line_height) {
+    caption.measure({});
+    return layout::fixed({width, height}, [&caption, line_height](const render::Rect& r) {
+        caption.set_origin({r.x, r.y + (r.height - line_height) / 2.0});
+    });
+}
 
 }
 
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        text::FontStack fonts;
-        for (int i = 1; i < argc; ++i) {
-            fonts.add(text::Font::from_file(argv[i]));
-        }
-        if (fonts.empty()) {
-            for (const auto& path : default_fonts) {
-                fonts.add(text::Font::from_file(path));
-            }
-        }
+        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
         color::SchemeOptions options = color::default_scheme_options;
         color::ColorScheme from = color::spec_2021().build(options);
         color::ColorScheme to = from;
@@ -72,7 +72,6 @@ int main(int argc, char** argv) {
             theme.animate_to(1.0);
         };
         const auto caption_style = text::text_style(tokens::type_style(layout.caption_type));
-        const auto header_style = text::text_style(tokens::type_style(layout.header_type));
 
         const std::pair<ButtonStyle, const char*> styles[] = {
             {ButtonStyle::filled, "Filled"},     {ButtonStyle::tonal, "Tonal"}, {ButtonStyle::outlined, "Outlined"},
@@ -80,13 +79,13 @@ int main(int argc, char** argv) {
         };
         std::vector<Row> rows;
         for (const auto& [style, name] : styles) {
-            Row row{name, {}};
+            Row row{std::make_unique<widgets::Label>(name, layout.caption_type, layout.caption, fonts, false), {}};
             row.buttons.push_back(std::make_unique<widgets::Button>(widgets::ButtonOptions{"\u4fdd\u5b58", style, ButtonSize::small, ButtonShape::round}, fonts));
             row.buttons.push_back(std::make_unique<widgets::Button>(widgets::ButtonOptions{"Send", style, ButtonSize::small, ButtonShape::square}, fonts));
             row.buttons.push_back(std::make_unique<widgets::Button>(widgets::ButtonOptions{"\u7d9a\u3051\u308b", style, ButtonSize::medium, ButtonShape::round}, fonts));
             rows.push_back(std::move(row));
         }
-        Row sizes{"Sizes", {}};
+        Row sizes{std::make_unique<widgets::Label>("Sizes", layout.caption_type, layout.caption, fonts, false), {}};
         const std::pair<ButtonSize, const char*> size_list[] = {
             {ButtonSize::extra_small, "XS"}, {ButtonSize::small, "S"}, {ButtonSize::medium, "M"},
             {ButtonSize::large, "L"},        {ButtonSize::extra_large, "XL"},
@@ -96,30 +95,45 @@ int main(int argc, char** argv) {
         }
         rows.push_back(std::move(sizes));
 
-        const auto header = text::layout_line(fonts, "\u30dc\u30bf\u30f3", header_style);
+        widgets::Label header("\u30dc\u30bf\u30f3", layout.header_type, layout.text, fonts, false);
         int clicks = 0;
-        auto counter = text::layout_line(fonts, "\u62bc\u3057\u305f\u56de\u6570: 0", caption_style);
+        widgets::Label counter("\u62bc\u3057\u305f\u56de\u6570: 0", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label theme_caption("Theme", layout.caption_type, layout.caption, fonts, false);
+
+        auto header_row = layout::row({widgets::node(header), widgets::node(counter)});
+        header_row->fill_main(true).main_align(layout::MainAlign::space_between);
+        header_row->self_align = layout::CrossAlign::stretch;
+        std::vector<layout::NodePtr> page_children{header_row};
+        for (auto& row : rows) {
+            std::vector<layout::NodePtr> items;
+            for (auto& b : row.buttons) {
+                items.push_back(widgets::node(*b));
+            }
+            auto buttons_row = layout::row(std::move(items));
+            buttons_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
+            auto r = layout::row({caption_cell(*row.caption, layout.label_width, caption_style.line_height, caption_style.line_height), buttons_row});
+            r->cross_align(layout::CrossAlign::center);
+            page_children.push_back(r);
+        }
+        std::vector<render::Rect> chip_rects(seeds.size());
+        std::vector<layout::NodePtr> chips;
+        for (std::size_t i = 0; i < seeds.size(); ++i) {
+            chips.push_back(layout::fixed({layout.chip, layout.chip}, [&chip_rects, i](const render::Rect& r) { chip_rects[i] = r; }));
+        }
+        chips.push_back(widgets::node(dark_toggle));
+        auto chips_row = layout::row(std::move(chips));
+        chips_row->spacing(layout.chip_gap).cross_align(layout::CrossAlign::center);
+        auto theme_row = layout::row({caption_cell(theme_caption, layout.label_width, layout.chip, caption_style.line_height), chips_row});
+        theme_row->cross_align(layout::CrossAlign::center);
+        page_children.push_back(theme_row);
+        auto page = layout::column(std::move(page_children));
+        page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
         platform::Window window({"lamina-ui buttons", 1000, 760});
         platform::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
-            double y = layout.margin + header_style.line_height + layout.row_gap;
-            for (auto& row : rows) {
-                double x = layout.margin + layout.label_width;
-                double row_height = 0.0;
-                for (auto& b : row.buttons) {
-                    row_height = std::max(row_height, b->height());
-                }
-                for (auto& b : row.buttons) {
-                    b->set_origin({x, y + (row_height - b->height()) / 2.0});
-                    x += b->width() + layout.column_gap;
-                }
-                y += row_height + layout.row_gap;
-            }
-            const double chips_y = y;
-            const double chips_x = layout.margin + layout.label_width;
-            dark_toggle.set_origin({chips_x + seeds.size() * (layout.chip + layout.chip_gap), chips_y});
+            layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
             const color::ColorScheme scheme = color::mix(from, to, theme.value());
 
             for (const auto& e : frame.pointer) {
@@ -129,8 +143,8 @@ int main(int argc, char** argv) {
                 }
                 if (e.action == platform::PointerAction::up) {
                     for (std::size_t i = 0; i < seeds.size(); ++i) {
-                        const double cx = chips_x + i * (layout.chip + layout.chip_gap) + layout.chip / 2.0;
-                        const double cy = chips_y + layout.chip / 2.0;
+                        const double cx = chip_rects[i].x + chip_rects[i].width / 2.0;
+                        const double cy = chip_rects[i].y + chip_rects[i].height / 2.0;
                         if (std::hypot(e.x_dp - cx, e.y_dp - cy) <= layout.chip / 2.0 && i != seed_index) {
                             seed_index = i;
                             options.seed = seeds[i];
@@ -142,7 +156,7 @@ int main(int argc, char** argv) {
                     for (auto& b : row.buttons) {
                         if (b->handle(e)) {
                             ++clicks;
-                            counter = text::layout_line(fonts, "\u62bc\u3057\u305f\u56de\u6570: " + std::to_string(clicks), caption_style);
+                            counter.set_text("\u62bc\u3057\u305f\u56de\u6570: " + std::to_string(clicks));
                         }
                     }
                 }
@@ -152,24 +166,20 @@ int main(int argc, char** argv) {
             canvas.clear(scheme[color::Role::surface]);
             canvas.save();
             canvas.scale(frame.scale);
-            text::draw_line(canvas, fonts, header, {layout.margin, layout.margin}, scheme[layout.text]);
-            text::draw_line(canvas, fonts, counter, {frame.width_dp - layout.margin - counter.width, layout.margin}, scheme[layout.caption]);
+            header.paint(canvas, scheme);
+            counter.paint(canvas, scheme);
             animating = false;
             for (auto& row : rows) {
-                const auto& first = row.buttons.front();
-                const auto caption = text::layout_line(fonts, row.caption, caption_style);
-                const double cy = first->bounds().y + first->height() / 2.0;
-                text::draw_line(canvas, fonts, caption, {layout.margin, cy - caption_style.line_height / 2.0}, scheme[layout.caption]);
+                row.caption->paint(canvas, scheme);
                 for (auto& b : row.buttons) {
                     b->step(frame.dt_seconds);
                     b->paint(canvas, scheme);
                     animating = animating || b->animating();
                 }
             }
-            const auto theme_caption = text::layout_line(fonts, "Theme", caption_style);
-            text::draw_line(canvas, fonts, theme_caption, {layout.margin, chips_y + (layout.chip - caption_style.line_height) / 2.0}, scheme[layout.caption]);
+            theme_caption.paint(canvas, scheme);
             for (std::size_t i = 0; i < seeds.size(); ++i) {
-                const render::Rect c{chips_x + i * (layout.chip + layout.chip_gap), chips_y, layout.chip, layout.chip};
+                const render::Rect c = chip_rects[i];
                 if (i == seed_index) {
                     const render::Rect ring{c.x - 2 * layout.chip_ring_width, c.y - 2 * layout.chip_ring_width,
                                             c.width + 4 * layout.chip_ring_width, c.height + 4 * layout.chip_ring_width};
