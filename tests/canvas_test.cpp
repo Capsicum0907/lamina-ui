@@ -86,7 +86,9 @@ TEST_CASE_TEMPLATE("scale maps dp to pixels", CanvasType, ThorVGCanvas) {
 TEST_CASE_TEMPLATE("shadows fall in the offset direction", CanvasType, ThorVGCanvas) {
     CanvasType canvas(120, 120);
     canvas.clear(white);
-    canvas.fill_path_with_shadow(rounded_rect_path({30, 30, 60, 60}, uniform_radii(8)), red, {0.0, 8.0, 4.0, 0xff000000});
+    const Path shape = rounded_rect_path({30, 30, 60, 60}, uniform_radii(8));
+    canvas.fill_shadow(shape, {0.0, 8.0, 4.0, 0xff000000});
+    canvas.fill_path(shape, red);
     CHECK(canvas.pixel(60, 60) == red);
     const Argb below = canvas.pixel(60, 93);
     const Argb above = canvas.pixel(60, 27);

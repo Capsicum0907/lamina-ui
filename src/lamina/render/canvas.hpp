@@ -35,7 +35,7 @@ public:
     virtual PixelView finish() = 0;
 
     void fill_path(const Path& path, color::Argb color, FillRule rule = FillRule::non_zero);
-    void fill_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow);
+    void fill_shadow(const Path& path, const Shadow& shadow);
     void fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color::Argb color);
 
     void save();
@@ -48,7 +48,7 @@ public:
 
 protected:
     virtual void fill_device_path(const Path& path, color::Argb color, FillRule rule) = 0;
-    virtual void fill_device_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) = 0;
+    virtual void fill_device_shadow(const Path& path, const Shadow& shadow) = 0;
 
 private:
     Affine transform_{};

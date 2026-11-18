@@ -1,7 +1,6 @@
 #include "lamina/render/thorvg_canvas.hpp"
 
 #include <cmath>
-#include <numbers>
 #include <vector>
 
 #include <thorvg.h>
@@ -137,18 +136,17 @@ void ThorVGCanvas::fill_device_path(const Path& path, color::Argb color, FillRul
     impl_->add(shape);
 }
 
-void ThorVGCanvas::fill_device_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) {
-    if (shadow.blur_sigma <= 0.0 || (shadow.color >> 24) == 0) {
-        fill_device_path(path, color, FillRule::non_zero);
+void ThorVGCanvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
+    if ((shadow.color >> 24) == 0) {
+        return;
+    }
+    if (shadow.blur_sigma <= 0.0) {
+        fill_device_path(path.transformed({1.0, 0.0, 0.0, 1.0, shadow.offset_x, shadow.offset_y}), shadow.color, FillRule::non_zero);
         return;
     }
     auto* scene = tvg::Scene::gen();
-    scene->add(to_shape(path, color));
-    const Rgba s = split(shadow.color);
-    const double distance = std::hypot(shadow.offset_x, shadow.offset_y);
-    const double angle = std::atan2(shadow.offset_x, -shadow.offset_y) * 180.0 / std::numbers::pi;
-    scene->add(tvg::SceneEffect::DropShadow, static_cast<int>(s.r), static_cast<int>(s.g), static_cast<int>(s.b),
-               static_cast<int>(s.a), angle, distance, shadow.blur_sigma, shadow_quality);
+    scene->add(to_shape(path.transformed({1.0, 0.0, 0.0, 1.0, shadow.offset_x, shadow.offset_y}), shadow.color));
+    scene->add(tvg::SceneEffect::GaussianBlur, shadow.blur_sigma, 0, 0, shadow_quality);
     impl_->add(scene);
 }
 

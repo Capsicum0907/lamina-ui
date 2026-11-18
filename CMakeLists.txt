@@ -26,6 +26,7 @@ add_library(lamina STATIC
     src/lamina/text/font.cpp
     src/lamina/text/layout.cpp
     src/lamina/widgets/button.cpp
+    src/lamina/widgets/surface.cpp
     src/lamina/widgets/text_field.cpp
 )
 add_library(lamina::lamina ALIAS lamina)

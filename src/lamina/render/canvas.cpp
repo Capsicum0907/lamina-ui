@@ -6,13 +6,13 @@ void Canvas::fill_path(const Path& path, color::Argb color, FillRule rule) {
     fill_device_path(path.transformed(transform_), color, rule);
 }
 
-void Canvas::fill_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) {
+void Canvas::fill_shadow(const Path& path, const Shadow& shadow) {
     const double s = transform_.a;
     Shadow device = shadow;
     device.offset_x *= s;
     device.offset_y *= s;
     device.blur_sigma *= s;
-    fill_device_path_with_shadow(path.transformed(transform_), color, device);
+    fill_device_shadow(path.transformed(transform_), device);
 }
 
 void Canvas::fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color::Argb color) {

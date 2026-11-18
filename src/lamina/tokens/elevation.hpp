@@ -1,25 +1,58 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
-
-#include "lamina/color/mix.hpp"
-#include "lamina/render/canvas.hpp"
+#include <cstddef>
 
 namespace lamina::tokens {
 
 inline constexpr std::array<double, 6> elevation_dp{0.0, 1.0, 3.0, 6.0, 8.0, 12.0};
-
-inline constexpr double shadow_opacity = 0.3;
-
-inline render::Shadow shadow_for_elevation(double elevation, color::Argb shadow_color) {
-    return {0.0, elevation, elevation, color::with_alpha(shadow_color, shadow_opacity)};
-}
 
 namespace state_layer_opacity {
 inline constexpr double hover = 0.08;
 inline constexpr double focus = 0.10;
 inline constexpr double pressed = 0.10;
 inline constexpr double dragged = 0.16;
+}
+
+struct ShadowLayer {
+    double offset_y;
+    double blur;
+    double spread;
+    double opacity;
+};
+
+inline constexpr double key_shadow_opacity = 0.3;
+inline constexpr double ambient_shadow_opacity = 0.15;
+inline constexpr double css_blur_per_sigma = 2.0;
+
+constexpr double level_for_elevation(double dp) {
+    if (dp <= elevation_dp.front()) {
+        return 0.0;
+    }
+    for (std::size_t i = 1; i < elevation_dp.size(); ++i) {
+        if (dp <= elevation_dp[i]) {
+            return static_cast<double>(i - 1) + (dp - elevation_dp[i - 1]) / (elevation_dp[i] - elevation_dp[i - 1]);
+        }
+    }
+    return static_cast<double>(elevation_dp.size() - 1);
+}
+
+constexpr double clamp_step(double v, double hi) {
+    return std::clamp(v, 0.0, hi);
+}
+
+constexpr ShadowLayer key_shadow(double level) {
+    const double y = clamp_step(level, 1) + clamp_step(level - 3, 1) + 2 * clamp_step(level - 4, 1);
+    const double blur = 2 * clamp_step(level, 1) + clamp_step(level - 2, 1) + clamp_step(level - 4, 1);
+    return {y, blur, 0.0, key_shadow_opacity};
+}
+
+constexpr ShadowLayer ambient_shadow(double level) {
+    const double y = clamp_step(level, 1) + clamp_step(level - 1, 1) + 2 * clamp_step(level - 2, 3);
+    const double blur = 3 * clamp_step(level, 2) + 2 * clamp_step(level - 2, 3);
+    const double spread = clamp_step(level, 4) + 2 * clamp_step(level - 4, 1);
+    return {y, blur, spread, ambient_shadow_opacity};
 }
 
 }

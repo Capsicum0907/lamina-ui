@@ -13,6 +13,7 @@
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
+#include "lamina/widgets/surface.hpp"
 
 using namespace lamina;
 using color::Role;
@@ -30,7 +31,6 @@ struct Layout {
     double gap = 24.0;
     int columns = 3;
     int rows = 2;
-    double shadow_alpha = 0.3;
     std::size_t rest_elevation = 1;
     std::size_t raised_elevation = 4;
     CornerSize rest_corner = CornerSize::medium;
@@ -158,9 +158,7 @@ int main(int argc, char** argv) {
                 }
                 const auto base = color::mix(scheme[layout.rest_fill], scheme[layout.raised_fill], c.fill.value());
                 const auto fill = color::overlay(base, scheme[layout.hover_layer], c.hover.value());
-                const double e = c.elevation.value();
-                const render::Shadow shadow{0.0, e, e, color::with_alpha(scheme[Role::shadow], layout.shadow_alpha)};
-                canvas.fill_path_with_shadow(render::rounded_rect_path(r, render::uniform_radii(c.corner.value())), fill, shadow);
+                widgets::paint_surface(canvas, r, c.corner.value(), fill, c.elevation.value(), scheme[Role::shadow]);
                 const render::Point title_at{r.x + layout.card_padding, r.y + layout.card_padding};
                 const auto title_color = color::mix(scheme[layout.rest_text], scheme[layout.raised_text], c.fill.value());
                 text::draw_line(canvas, fonts, titles[i], title_at, title_color);

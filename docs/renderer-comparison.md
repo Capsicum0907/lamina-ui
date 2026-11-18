@@ -26,6 +26,6 @@ ThorVG (2026-11-19). The quality is the same and the speed difference does not m
 ## Notes
 
 - Blend2D has no blur. Its shadow is lamina-ui's own blur (three box blurs, `render/box_blur.cpp`), which is not optimized. The shadow time measures that code, not Blend2D.
-- ThorVG has blur and drop shadow built in (`SceneEffect`). Its drop-shadow angle is measured clockwise from up, and the offset is rounded to whole pixels. A shadow whose offset is animated by a spring therefore moves in 1 px steps.
+- ThorVG has blur and drop shadow built in (`SceneEffect`). Its drop-shadow angle is measured clockwise from up, and the offset is rounded to whole pixels, so a shadow animated by a spring would move in 1 px steps. lamina-ui therefore does not use the drop-shadow effect: it draws the shadow shape itself at the (fractional) offset and blurs it with the Gaussian blur effect (`Canvas::fill_shadow`).
 - ThorVG also has OpenGL and WebGPU engines with the same API. The vcpkg port builds only the CPU engine.
 - Text was not compared. Either renderer needs HarfBuzz for shaping Japanese text.

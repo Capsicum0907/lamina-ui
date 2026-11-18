@@ -20,7 +20,7 @@ public:
 
 protected:
     void fill_device_path(const Path& path, color::Argb color, FillRule rule) override;
-    void fill_device_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) override;
+    void fill_device_shadow(const Path& path, const Shadow& shadow) override;
 
 private:
     struct Impl;

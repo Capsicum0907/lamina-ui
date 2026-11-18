@@ -179,6 +179,19 @@ Start with the C++ port on the 2021 spec, and replace it with a C++ port of the 
 
 C `tokens/ElevationTokens.kt` (`VERSION: v0_210`): Level0–5 = 0 / 1 / 3 / 6 / 8 / 12 dp.
 
+Shadows follow W `elevation/internal/_elevation.scss`: two box shadows whose offset, blur and spread are piecewise-linear in the level, so a level between two steps is well defined.
+
+| Level | Key shadow (opacity 0.3): y / blur | Ambient shadow (opacity 0.15): y / blur / spread |
+|---|---|---|
+| 0 | 0 / 0 | 0 / 0 / 0 |
+| 1 | 1 / 2 | 1 / 3 / 1 |
+| 2 | 1 / 2 | 2 / 6 / 2 |
+| 3 | 1 / 3 | 4 / 8 / 3 |
+| 4 | 2 / 3 | 6 / 10 / 4 |
+| 5 | 4 / 4 | 8 / 12 / 6 |
+
+A CSS blur radius is twice the Gaussian standard deviation.
+
 C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, focus 0.10, pressed 0.10, dragged 0.16.
 
 ## Open questions

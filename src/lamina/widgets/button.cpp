@@ -5,6 +5,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/surface.hpp"
 
 namespace lamina::widgets {
 
@@ -125,12 +126,7 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
 
     if (style.container) {
         const color::Argb fill = color::overlay(scheme[*style.container], label_color, state_layer_.value());
-        const double e = elevation_.value();
-        if (e > 0.0) {
-            canvas.fill_path_with_shadow(shape, fill, tokens::shadow_for_elevation(e, scheme[color::Role::shadow]));
-        } else {
-            canvas.fill_path(shape, fill);
-        }
+        paint_surface(canvas, r, radius, fill, elevation_.value(), scheme[color::Role::shadow]);
     } else if (state_layer_.value() > 0.0) {
         canvas.fill_path(shape, color::with_alpha(label_color, state_layer_.value()));
     }

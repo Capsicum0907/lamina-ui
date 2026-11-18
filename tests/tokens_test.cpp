@@ -85,3 +85,24 @@ TEST_CASE("elevation and state layer tokens") {
     CHECK(state_layer_opacity::hover < state_layer_opacity::pressed);
     CHECK(state_layer_opacity::dragged == 0.16);
 }
+
+TEST_CASE("elevation shadows match the material-web levels") {
+    struct Expected {
+        double key_y, key_blur, ambient_y, ambient_blur, ambient_spread;
+    };
+    const Expected levels[] = {
+        {0, 0, 0, 0, 0}, {1, 2, 1, 3, 1}, {1, 2, 2, 6, 2}, {1, 3, 4, 8, 3}, {2, 3, 6, 10, 4}, {4, 4, 8, 12, 6},
+    };
+    for (int level = 0; level <= 5; ++level) {
+        const auto key = key_shadow(level);
+        const auto ambient = ambient_shadow(level);
+        const auto& e = levels[level];
+        CAPTURE(level);
+        CHECK(key.offset_y == e.key_y);
+        CHECK(key.blur == e.key_blur);
+        CHECK(ambient.offset_y == e.ambient_y);
+        CHECK(ambient.blur == e.ambient_blur);
+        CHECK(ambient.spread == e.ambient_spread);
+        CHECK(level_for_elevation(elevation_dp[level]) == doctest::Approx(level));
+    }
+}

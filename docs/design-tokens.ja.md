@@ -179,6 +179,19 @@ TonalSpot の色の系列（U の `cpp/scheme/scheme_tonal_spot.cc`）：
 
 C の `tokens/ElevationTokens.kt`（`VERSION: v0_210`）：Level0〜5 は 0 / 1 / 3 / 6 / 8 / 12 dp。
 
+影は W の `elevation/internal/_elevation.scss` に従います。影は 2 枚重ねで、ずれ・ぼかし・広がりは段階について折れ線の関数になっているので、段階の間の値も決まります。
+
+| 段階 | 主の影（不透明度 0.3）：y / ぼかし | 周りの影（不透明度 0.15）：y / ぼかし / 広がり |
+|---|---|---|
+| 0 | 0 / 0 | 0 / 0 / 0 |
+| 1 | 1 / 2 | 1 / 3 / 1 |
+| 2 | 1 / 2 | 2 / 6 / 2 |
+| 3 | 1 / 3 | 4 / 8 / 3 |
+| 4 | 2 / 3 | 6 / 10 / 4 |
+| 5 | 4 / 4 | 8 / 12 / 6 |
+
+CSS のぼかしの半径は、ガウス分布の標準偏差の 2 倍です。
+
 C の `tokens/StateTokens.kt`（`VERSION: v0_103`）の状態の重ねの不透明度：hover 0.08、focus 0.10、pressed 0.10、dragged 0.16。
 
 ## 未決の件
