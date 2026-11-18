@@ -1,5 +1,6 @@
 #include "lamina/color/scheme.hpp"
 
+#include <algorithm>
 #include <memory>
 
 #include "cpp/cam/hct.h"
@@ -14,6 +15,7 @@
 #include "cpp/scheme/scheme_rainbow.h"
 #include "cpp/scheme/scheme_tonal_spot.h"
 #include "cpp/scheme/scheme_vibrant.h"
+#include "lamina/color/mcu_scheme.hpp"
 
 namespace lamina::color {
 
@@ -73,9 +75,37 @@ constexpr std::array<RoleSource, role_count> role_sources{
     &mcu::MaterialDynamicColors::TertiaryFixedDim,
     &mcu::MaterialDynamicColors::OnTertiaryFixed,
     &mcu::MaterialDynamicColors::OnTertiaryFixedVariant,
+    &mcu::MaterialDynamicColors::Primary,
+    &mcu::MaterialDynamicColors::Secondary,
+    &mcu::MaterialDynamicColors::Tertiary,
+    &mcu::MaterialDynamicColors::Error,
 };
 
-std::unique_ptr<mcu::DynamicScheme> make_scheme(const SchemeOptions& o) {
+static_assert(std::ranges::none_of(role_sources, [](RoleSource source) { return source == nullptr; }));
+
+class Spec2021 final : public ColorSpec {
+public:
+    ColorScheme build(const SchemeOptions& options) const override {
+        const auto scheme = detail::make_mcu_scheme(options);
+        ColorScheme result{};
+        for (std::size_t i = 0; i < role_count; ++i) {
+            result.colors[i] = role_sources[i]().GetArgb(*scheme);
+        }
+        return result;
+    }
+};
+
+}
+
+const ColorSpec& spec_2021() {
+    static const Spec2021 instance;
+    return instance;
+}
+
+namespace detail {
+
+std::unique_ptr<material_color_utilities::DynamicScheme> make_mcu_scheme(const SchemeOptions& o) {
+    namespace mcu = material_color_utilities;
     const mcu::Hct seed(o.seed);
     switch (o.variant) {
     case Variant::monochrome: return std::make_unique<mcu::SchemeMonochrome>(seed, o.dark, o.contrast);
@@ -91,23 +121,6 @@ std::unique_ptr<mcu::DynamicScheme> make_scheme(const SchemeOptions& o) {
     return std::make_unique<mcu::SchemeTonalSpot>(seed, o.dark, o.contrast);
 }
 
-class Spec2021 final : public ColorSpec {
-public:
-    ColorScheme build(const SchemeOptions& options) const override {
-        const auto scheme = make_scheme(options);
-        ColorScheme result{};
-        for (std::size_t i = 0; i < role_count; ++i) {
-            result.colors[i] = role_sources[i]().GetArgb(*scheme);
-        }
-        return result;
-    }
-};
-
-}
-
-const ColorSpec& spec_2021() {
-    static const Spec2021 instance;
-    return instance;
 }
 
 }

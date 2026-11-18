@@ -19,6 +19,7 @@ endfunction()
 
 add_library(lamina STATIC
     src/lamina/color/spec_2021.cpp
+    src/lamina/color/spec_2025.cpp
     src/lamina/icons/icon.cpp
     src/lamina/motion/spring.cpp
     src/lamina/render/canvas.cpp
@@ -42,10 +43,12 @@ add_library(lamina STATIC
     src/lamina/widgets/checkbox.cpp
     src/lamina/widgets/dialog.cpp
     src/lamina/widgets/fab.cpp
+    src/lamina/widgets/grouped_menu.cpp
     src/lamina/widgets/icon_button.cpp
     src/lamina/widgets/label.cpp
     src/lamina/widgets/menu.cpp
     src/lamina/widgets/navigation_bar.cpp
+    src/lamina/widgets/navigation_rail.cpp
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/slider.cpp
     src/lamina/widgets/surface.cpp
@@ -128,6 +131,9 @@ if(LAMINA_BUILD_TOOLS)
     add_executable(shape-dump tools/shape-dump/main.cpp)
     target_link_libraries(shape-dump PRIVATE lamina)
     lamina_warnings(shape-dump)
+    add_executable(color-dump tools/color-dump/main.cpp)
+    target_link_libraries(color-dump PRIVATE lamina)
+    lamina_warnings(color-dump)
 endif()
 
 if(LAMINA_BUILD_TESTS)
@@ -137,6 +143,7 @@ if(LAMINA_BUILD_TESTS)
         tests/canvas_test.cpp
         tests/color_scheme_test.cpp
         tests/dialog_test.cpp
+        tests/grouped_menu_test.cpp
         tests/icon_button_test.cpp
         tests/icon_test.cpp
         tests/layout_test.cpp
@@ -145,6 +152,7 @@ if(LAMINA_BUILD_TESTS)
         tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp
         tests/navigation_bar_test.cpp
+        tests/navigation_rail_test.cpp
         tests/selection_controls_test.cpp
         tests/shapes_test.cpp
         tests/slider_test.cpp

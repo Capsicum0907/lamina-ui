@@ -165,15 +165,84 @@ TonalSpot palettes (U `cpp/scheme/scheme_tonal_spot.cc`):
 
 Baseline primary: #6750A4 (C `PaletteTokens.Primary40`).
 
+### Roles
+
+`color::Role` has 53 roles: background, on-background, surface, surface-dim, surface-bright, surface-container-lowest / -low / (default) / -high / -highest, on-surface, surface-variant, on-surface-variant, inverse-surface, inverse-on-surface, outline, outline-variant, shadow, scrim, surface-tint; primary, on-primary, primary-container, on-primary-container, inverse-primary; secondary, tertiary and error with the same four roles each (inverse-primary has no counterpart); primary-, secondary- and tertiary-fixed, -fixed-dim, on-*-fixed, on-*-fixed-variant; and the 2025 roles primary-dim, secondary-dim, tertiary-dim, error-dim.
+
+The 2021 spec has no dim roles (U `ColorSpec2021.primaryDim()` returns null). `spec_2021()` gives each dim role the color of its base role (primary-dim is primary, and so on), as U `ColorSpec2026` does when it maps the dim roles back to their base roles.
+
+### 2025 spec
+
+`lamina/color/spec_2025.cpp` ports U `java/dynamiccolor/ColorSpec2025.java` and the `DynamicScheme` rules it depends on, for the phone platform (U `DynamicScheme.Platform.PHONE`). The watch platform, the 2026 spec, the palette key colors and the Android-only roles (`controlActivated`, `textPrimaryInverse`, ...) are not ported. HCT, the HCT solver and the contrast functions are U's C++ code. Two helpers are taken from Java rather than from U's older C++: hue rotation by hue ranges (`DynamicScheme.getRotatedHue` / `getPiecewiseValue`) and tone 99 on a yellow hue (105° ≤ hue < 125°), which is the average of tones 98 and 100 (`TonalPalette.getHct`). The seed hue and the chroma checks use viewing conditions computed in full (U C++ `DefaultWithBackgroundLstar(50)`), as Java does; U's C++ constant `kDefaultViewingConditions` is rounded to 9 decimal places.
+
+**Variants.** The 2025 rules cover Neutral, TonalSpot, Vibrant and Expressive. For Monochrome, Fidelity, Content, Rainbow and FruitSalad, U falls back to the 2021 spec and its palettes (`DynamicScheme.maybeFallbackSpecVersion`), so `spec_2025()` returns the colors of `spec_2021()` for them. Their dim roles are what Java computes in that case: the 2025 dim rule evaluated by the 2021 tone algorithm on the 2021 palettes.
+
+**Palettes** (phone; hue "rotated" means the source hue plus a rotation looked up by hue range, from the tables in `spec_2025.cpp`):
+
+| Variant | primary | secondary | tertiary | neutral | neutral-variant | error |
+|---|---|---|---|---|---|---|
+| Neutral | source, 8 (12 on a blue source, 250° ≤ hue < 270°) | source, 4 (blue 6) | rotated, 20 | source, 1.4 | source, 1.4 × 2.2 | 50 |
+| TonalSpot | source, 32 (dark 26) | source, 16 | rotated, 28 | source, 5 | source, 5 × 1.7 | 60 |
+| Vibrant | source, 74 | rotated, 56 | rotated, 56 | rotated, 28 | rotated, 28 × 1.29 | 80 |
+| Expressive | source, 48 (dark 36) | rotated, 24 (dark 16) | rotated, 48 | rotated, 18 (dark 14, or 6 on a yellow neutral hue) | as neutral, × 2.3 (yellow × 1.6) | 64 |
+
+The error hue is 12°, 22° or 32°, picked by the source hue's range. In 2021 it was always 25° with chroma 84.
+
+**Surfaces** (neutral palette):
+
+| Role | Light (other / Vibrant / yellow neutral hue) | Dark |
+|---|---|---|
+| surface | 98 / 97 / 99 | 4 |
+| surface-dim | 87 / 85 / 90 | 4 |
+| surface-bright | 98 / 97 / 99 | 18 |
+| surface-container-lowest | 100 | 0 |
+| surface-container-low | 96 / 95 / 98 | 6 |
+| surface-container | 94 / 92 / 96 | 9 |
+| surface-container-high | 92 / 90 / 94 | 12 |
+| surface-container-highest | 90 / 88 / 92 | 15 |
+| inverse-surface | 4 | 98 |
+
+background is surface, surface-variant is surface-container-highest and surface-tint is primary. The containers, surface-dim (light only) and surface-bright (dark only) multiply the neutral chroma, for example by 1.25 / 1.4 / 1.5 / 1.7 for low / (default) / high / highest in TonalSpot.
+
+**Text and lines on surfaces.** on-surface, on-surface-variant, outline and outline-variant use the neutral palette (no longer neutral-variant) with the chroma multiplied (TonalSpot 1.7, Neutral 2.2, Expressive 1.6), and take their tone from contrast against surface-dim in light mode and surface-bright in dark mode: 9 (dark 11), 4.5 (dark 6), 3 and 1.5. In Vibrant, on-surface starts from the tone of highest chroma at 1.1 × the neutral chroma.
+
+**Accent tones.** Many accent tones are no longer fixed numbers. "Max-chroma tone" steps down from tone 100 while the highest chroma found so far is below the palette's chroma, and keeps the tone with the highest chroma; "min-chroma tone" steps up from 0. Each is then limited to a range. For TonalSpot:
+
+| Role | Light | Dark |
+|---|---|---|
+| primary | max-chroma tone | 80 |
+| primary-container | max-chroma tone, at most 90 | min-chroma tone, 35 to 93 |
+| secondary | max-chroma tone | 80 |
+| secondary-container | 90 | 25 |
+| tertiary | max-chroma tone | max-chroma tone, at most 98 |
+| tertiary-container | max-chroma tone | max-chroma tone, at most 93 |
+| error | max-chroma tone | min-chroma tone, at most 98 |
+| error-container | max-chroma tone, at most 90 | min-chroma tone, 30 to 93 |
+| primary-, secondary-, tertiary-dim | max-chroma tone, at most 90 | same |
+| error-dim | min-chroma tone | same |
+
+The other variants have their own ranges (and in Expressive and Vibrant, other limits on cyan hues, 170° ≤ hue < 207°, and for an Expressive yellow primary); they are the tables in `spec_2025.cpp`. Then:
+
+- primary, secondary, tertiary and error need contrast 4.5 against surface-dim (light) or surface-bright (dark) and stay at least 5 tones beyond their container: darker in light mode, lighter in dark mode.
+- Containers and *-fixed need contrast 1.5 only when the contrast level is above 0.
+- Accent and dim roles, and containers and *-fixed when the contrast level is above 0, are kept out of the tones between 49 and 65: a tone of 57 or more is raised to at least 65, a lower one is lowered to at most 49. Surfaces and *-fixed-dim are not moved.
+- Each dim role is at least 5 tones darker than its base role and needs contrast 4.5 against surface-container-high.
+- *-fixed is the tone the container has in light mode at contrast 0; *-fixed-dim is exactly 5 tones darker.
+- on-primary, on-secondary, on-tertiary, on-error, on-*-container and inverse-primary (against inverse-surface) need contrast 6; on-error-container 4.5, inverse-on-surface 7, on-*-fixed 7, on-*-fixed-variant 4.5.
+
+Contrast curves (value at contrast −1 / 0 / 0.5 / 1, linear in between): 1.5 → 1.5 / 1.5 / 3 / 5.5, 3 → 3 / 3 / 4.5 / 7, 4.5 → 4.5 / 4.5 / 7 / 11, 6 → 6 / 6 / 7 / 11, 7 → 7 / 7 / 11 / 21, 9 → 9 / 9 / 11 / 21, 11 → 11 / 11 / 21 / 21. Below contrast 0, a role with a contrast requirement always takes the tone that `foregroundTone` gives for it, instead of keeping its own tone when that already meets the requirement.
+
+`tools/color-dump/` compares every role with the Java code; the result is in its README.
+
 ### State of the C++ color library
 
 - U has a C++ port (`cpp/`): HCT, tonal palettes, quantizers, scoring, DynamicScheme, and the scheme variants Monochrome, Neutral, TonalSpot, Vibrant, Expressive, Fidelity, Content, Rainbow, FruitSalad.
-- **The C++ port implements only the 2021 spec.** The Java port has `ColorSpec2021`, `ColorSpec2025` and `ColorSpec2026` (`SpecVersion`). C++ has no spec selection and none of the 2025 roles (`primary_dim`, etc.). The last change to `cpp/` was 2024-10-01. The Java port was changed as late as 2026-10.
+- **U's C++ port implements only the 2021 spec.** The Java port has `ColorSpec2021`, `ColorSpec2025` and `ColorSpec2026` (`SpecVersion`). U's C++ has no spec selection and none of the 2025 roles (`primary_dim`, etc.). The last change to `cpp/` was 2024-10-01. The Java port was changed as late as 2026-10.
 - It has no build files (Google-internal include paths) and depends on abseil (`flat_hash_map`, `str_cat`) and gtest.
 
 ### Decision
 
-Start with the C++ port on the 2021 spec, and replace it with a C++ port of the 2025 spec later. HCT and tonal palettes are shared by both specs. Only the layer that decides each role's tone differs, so that layer is kept replaceable.
+lamina-ui started on U's C++ port and the 2021 spec, keeping the layer that decides each role's tone replaceable behind `ColorSpec`. The 2025 spec is now ported from the Java code as `spec_2025()` ("2025 spec" above). It is lamina-ui's own code on top of U's C++ HCT and contrast functions, so the vendored C++ is unchanged and `spec_2021()` still gives the same results. The 2025 spec changes the palettes as well as the tone rules, so the port covers both.
 
 ## Elevation and state layers
 
@@ -288,21 +357,49 @@ C `tokens/NavigationBarTokens.kt` (64 dp, surface-container, colors, Label M), `
 - The container has no elevation: `ShortNavigationBar` does not use `ContainerElevation` (Level2).
 - Compose switches the icon and label colors at once; lamina-ui fades them with the default effects spring.
 
+### Navigation rail
+
+C `tokens/NavigationRailCollapsedTokens.kt` (96 dp, 44 dp at the top, 4 dp between items, surface), C `tokens/NavigationRailExpandedTokens.kt` (220 to 360 dp), C `tokens/NavigationRailBaselineItemTokens.kt` (64 dp items, 24 dp icon, 40 dp under the header), C `tokens/NavigationRailVerticalItemTokens.kt` (56 × 32 dp pill, 4 dp to the label, Label M), C `tokens/NavigationRailHorizontalItemTokens.kt` (56 dp tall pill, 16 dp leading space, 8 dp to the label, Label L), C `tokens/NavigationRailColorTokens.kt`, C `WideNavigationRail.kt` and C `NavigationItem.kt` (`AnimatedNavigationItem`, `AnimatedMeasurePolicy`), read into `lamina/tokens/navigation_rail.hpp`. lamina-ui has the non-modal `WideNavigationRail` with the default top arrangement.
+
+- Collapsed and expanded are two targets of one set of springs, all on the default spatial spring: the rail's minimum width (96 to 220 dp), its full-range width (96 to 360 dp), the gap between items (4 to 0 dp), the items' minimum height (64 to 48 dp, the minimum interactive size) and each item's icon-position progress. The width follows the measure policy of `WideNavigationRailLayout`: an expanded rail is as wide as the animated minimum width, or as its widest item or header (up to the animated full-range width) when that is wider than 220 dp.
+- Items sit at the start of the rail with 20 dp before the pill (`WNRItemHorizontalPadding`, a constant in the .kt) and 20 dp after it while the icon is on top (0 dp once it moves to the start; this padding switches at once, as in Compose). Content smaller than the minimum height is centered, which puts the collapsed pill 6 dp from the item's top.
+- The pill's padding around the icon moves from 16 × 4 dp to 16 × 16 dp with the progress, and its size from the icon (24 × 24 dp) to icon, 8 dp and label; it is 56 × 32 dp on top and 56 dp tall at the start, always fully rounded. When an item is selected, the pill's width grows from 0 on the default spatial spring from its start edge (`placeRelativeWithLayer(startPadding, …)`), not from its center as in the navigation bar; its opacity is the same progress.
+- The label switches from Label M to Label L and from its top position to its start position when the progress passes 0.5; its opacity is 4 (p − 0.5)². Compose captures whether the icon is on top when the item first appears, so a rail that starts expanded keeps Label L when it collapses; lamina-ui always uses the progress alone.
+- Colors: indicator secondary-container, selected icon on-secondary-container, selected label secondary on top and on-secondary-container at the start (the .kt reuses `ItemActiveIcon` there, with a TODO for a missing token), unselected on-surface-variant. Compose animates the label color on the default effects spring and switches the icon color at once; lamina-ui moves both on that spring.
+- The state layer is the whole pill at its full width, shown while the pointer is anywhere on the item. Its color is on-surface: the ripple takes the rail's content color, not the `NavigationRailColorTokens` state-layer value (on-secondary-container).
+- The header is placed at the top start of the content area, and the items start 40 dp below it (`HeaderSpaceMinimum`).
+- Not done: the modal rail (`ModalWideNavigationRail`), the center and bottom arrangements, items without labels, badges, and the narrow 80 dp `NavigationRail`.
+
 ### Menu
 
-C `tokens/MenuTokens.kt` (surface-container, extra-small corners, Level2 shadow), C `tokens/ListTokens.kt` (24 dp leading icon, on-surface label, on-surface-variant icon), C `Menu.kt`, C `internal/MenuPosition.kt` and `androidMain/.../AndroidMenu.android.kt`, read into `lamina/tokens/menu.hpp`. lamina-ui has the classic dropdown menu (`DropdownMenu`, `DropdownMenuItem`), not the Expressive grouped menu (`DropdownMenuPopup`, `StandardMenuTokens.kt`).
+C `tokens/MenuTokens.kt` (surface-container, extra-small corners, Level2 shadow), C `tokens/ListTokens.kt` (24 dp leading icon, on-surface label, on-surface-variant icon), C `Menu.kt`, C `internal/MenuPosition.kt` and `androidMain/.../AndroidMenu.android.kt`, read into `lamina/tokens/menu.hpp`. This section is the classic dropdown menu (`DropdownMenu`, `DropdownMenuItem`); the Expressive grouped menu has its own section below.
 
 - 8 dp above and below the items, items 48 dp high and 112 to 280 dp wide, 12 dp padding at the sides and between the icon and the label (`DropdownMenuItemHorizontalPadding`), Label L text.
 - Position (`MenuAnchorPosition.Below`): vertically the first of below the anchor, above it, centered on its top, and against the window's top or bottom edge that keeps 48 dp from the top and bottom of the window; horizontally the first of start-aligned, end-aligned and against the window's left or right edge, with no horizontal margin (`AndroidMenu` passes 0).
 - The menu scales from 0.8 around the point where it meets the anchor (`calculateTransformOrigin`) with the fast spatial spring and fades in with the fast effects spring, and reverses when closed.
 - The canvas has no group opacity: lamina-ui fades the menu by fading each color it draws, so overlapping layers composite slightly differently in the middle of the fade.
 
+### Grouped menu
+
+C `tokens/StandardMenuTokens.kt` (surface-container-low, tertiary-container and on-tertiary-container when selected, on-surface label, on-surface-variant icons), C `tokens/SegmentedMenuTokens.kt` (44 dp items, 20 dp icons, corner sizes, 2 dp between groups), C `tokens/MenuTokens.kt` (Level2 shadow), C `tokens/DividerTokens.kt` (1 dp, outline-variant), C `MenuDefaults.kt` and C `Menu.kt` (`DropdownMenuPopup`, `DropdownMenuGroup`, `SelectableDropdownMenuItem`, `CheckableDropdownMenuItem`), read into `grouped_menu_tokens` in `lamina/tokens/menu.hpp`.
+
+- Groups: each is a surface with a Level2 shadow, 2 dp of padding above and below its content, and 2 dp from the next group (`GroupSpacing`, as the sample puts it). The whole menu is as wide as its widest item or label (`IntrinsicSize.Max`), so every group has the same width. There is no container around the groups.
+- Group corners by position: an only group 16 dp; the first 16 dp at the top and 8 dp at the bottom; middle groups 8 dp; the last 8 dp at the top and 16 dp at the bottom. A group that has been hovered and is not hovered now takes 8 dp corners (`inactiveShape`); the corners move on the fast spatial spring. Each group has its own hover state, the default of `DropdownMenuGroup`; the sample shares one interaction source among all groups, which lamina-ui does not do.
+- Items: inset 4 dp from the group's sides, 112 to 280 dp wide, at least 44 dp tall, 12 dp padding on every side, a 20 dp leading icon 8 dp before the text and a 20 dp trailing icon at the end. These are the values without `isPrecisionPointerComponentSizingEnabled`, which is off by default. The text is Label L: `Menu.kt` sets `labelLarge` (with a TODO) instead of `SegmentedMenuTokens.ItemLabelTextFont` (Body L).
+- Item corners: an only item 4 dp; the first 12 dp at the top and 4 dp at the bottom; middle items 4 dp; the last 4 dp at the top and 12 dp at the bottom. A selected item has 12 dp corners. The corners morph on the fast spatial spring and the container color on the fast effects spring. Compose switches the text and icon colors at once; lamina-ui moves them on the same effects spring.
+- The optional group label is Label L in on-surface, at least 32 dp tall, with 12 dp before and 4 dp after it. The optional divider below it has 12 dp at the sides and 2 dp above and below.
+- Position: the candidates of the classic menu, with 48 dp from the top and bottom of the window and 8 dp from its sides (`MenuHorizontalMargin`, the default of `DropdownMenuPositionProvider`; the classic menu gets 0 from `AndroidMenu`). The open and close animation is the classic one.
+- What a click does is the app's choice in Compose; lamina-ui offers it per group as `MenuSelection`: `none` reports the item and closes the menu, `single` selects one item, `multiple` toggles (like `CheckableDropdownMenuItem`), and the menu stays open for the last two.
+- Not done: supporting text, disabled items, the vibrant colors (`VibrantMenuTokens.kt`), submenus, and a selected leading icon on an item without a leading icon (Compose expands it horizontally); `selected_leading_icon` only replaces an existing leading icon.
+
 ### Dialog
 
 C `tokens/DialogTokens.kt` (surface-container-high, extra-large corners, Headline S, Body M, colors), C `tokens/ScrimTokens.kt` (scrim at 0.32) and C `AlertDialog.kt` (24 dp padding, 16 dp under the headline, 24 dp under the text, 280 to 560 dp wide, 8 dp between the buttons), read into `lamina/tokens/dialog.hpp`.
 
 - The dialog has no shadow: `AlertDialog` uses no shadow and a tonal elevation of 0, so `ContainerElevation` (Level3) is not used.
-- The buttons are text buttons at the end, dismiss before confirm. They do not wrap to a second line as `AlertDialogFlowRow` would.
+- The optional icon (`DialogTokens.IconSize` 24 dp, `IconColor` secondary) is centered above the headline with 16 dp below it (`IconPadding`), and the headline is then centered (`AlertDialogContent`).
+- The buttons are text buttons in an `AlertDialogFlowRow`: a flow row in the flipped layout direction with 8 dp between buttons, so on one line dismiss comes before confirm at the end, and when they do not fit, confirm stays on the first line and dismiss moves to the next, both at the end. Compose spaces the lines by 8 dp minus the 8 dp by which a button's 48 dp touch target exceeds its 40 dp height, that is 0 dp between 48 dp slots. lamina-ui lays the buttons out at their 40 dp height, so it puts that 8 dp back and the lines are 8 dp apart, as in Compose. The 4 dp of touch target below the last line is not added, so the last button is 24 dp from the bottom edge where Compose has 28 dp.
+- A headline that wraps to several lines is centered as a block as wide as its longest line. A wrapping Compose `Text` most likely takes the full maximum width, so with an icon its lines would start at the start edge (not verified). Single-line headlines are the same.
 - Compose leaves the enter and exit animation to the platform window. lamina-ui's own animation scales the surface from 0.8 with the default spatial spring and fades it and the scrim with the default effects spring.
 
 ## Open questions

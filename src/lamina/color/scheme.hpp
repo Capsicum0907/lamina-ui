@@ -58,6 +58,10 @@ enum class Role : std::size_t {
     tertiary_fixed_dim,
     on_tertiary_fixed,
     on_tertiary_fixed_variant,
+    primary_dim,
+    secondary_dim,
+    tertiary_dim,
+    error_dim,
     count,
 };
 
@@ -102,5 +106,6 @@ public:
 };
 
 const ColorSpec& spec_2021();
+const ColorSpec& spec_2025();
 
 }

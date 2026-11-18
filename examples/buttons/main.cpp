@@ -16,6 +16,7 @@
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
+#include "lamina/widgets/switch.hpp"
 
 using namespace lamina;
 using tokens::ButtonShape;
@@ -65,9 +66,11 @@ int main(int argc, char** argv) {
         motion::Animated theme(1.0, tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::slow));
         std::size_t seed_index = 0;
         widgets::Button dark_toggle({"ダーク", ButtonStyle::outlined, ButtonSize::extra_small, ButtonShape::round}, fonts);
+        widgets::Switch spec_switch;
+        widgets::Label spec_label("2025", layout.caption_type, layout.caption, fonts, false);
         auto retheme = [&](const color::ColorScheme& current) {
             from = current;
-            to = color::spec_2021().build(options);
+            to = (spec_switch.checked() ? color::spec_2025() : color::spec_2021()).build(options);
             theme.snap_to(0.0);
             theme.animate_to(1.0);
         };
@@ -121,6 +124,8 @@ int main(int argc, char** argv) {
             chips.push_back(layout::fixed({layout.chip, layout.chip}, [&chip_rects, i](const render::Rect& r) { chip_rects[i] = r; }));
         }
         chips.push_back(widgets::node(dark_toggle));
+        chips.push_back(widgets::node(spec_label));
+        chips.push_back(widgets::node(spec_switch));
         auto chips_row = layout::row(std::move(chips));
         chips_row->spacing(layout.chip_gap).cross_align(layout::CrossAlign::center);
         auto theme_row = layout::row({caption_cell(theme_caption, layout.label_width, layout.chip, caption_style.line_height), chips_row});
@@ -139,6 +144,9 @@ int main(int argc, char** argv) {
             for (const auto& e : frame.pointer) {
                 if (dark_toggle.handle(e)) {
                     options.dark = !options.dark;
+                    retheme(scheme);
+                }
+                if (spec_switch.handle(e)) {
                     retheme(scheme);
                 }
                 if (e.action == platform::PointerAction::up) {
@@ -193,7 +201,10 @@ int main(int argc, char** argv) {
             theme.step(frame.dt_seconds);
             dark_toggle.step(frame.dt_seconds);
             dark_toggle.paint(canvas, scheme);
-            animating = animating || !theme.settled() || dark_toggle.animating();
+            spec_label.paint(canvas, scheme);
+            spec_switch.step(frame.dt_seconds);
+            spec_switch.paint(canvas, scheme);
+            animating = animating || !theme.settled() || dark_toggle.animating() || spec_switch.animating();
             canvas.restore();
             window.present();
         }

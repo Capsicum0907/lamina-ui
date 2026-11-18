@@ -165,15 +165,84 @@ TonalSpot の色の系列（U の `cpp/scheme/scheme_tonal_spot.cc`）：
 
 基準の primary は #6750A4 です（C の `PaletteTokens.Primary40`）。
 
+### 役割
+
+`color::Role` には 53 個の役割があります。background・on-background・surface・surface-dim・surface-bright・surface-container の lowest / low /（無印）/ high / highest・on-surface・surface-variant・on-surface-variant・inverse-surface・inverse-on-surface・outline・outline-variant・shadow・scrim・surface-tint、primary・on-primary・primary-container・on-primary-container・inverse-primary、secondary・tertiary・error にも同じ 4 つずつ（inverse-primary に当たるものはありません）、primary・secondary・tertiary の -fixed・-fixed-dim・on-*-fixed・on-*-fixed-variant、そして 2025 年の役割の primary-dim・secondary-dim・tertiary-dim・error-dim です。
+
+2021 年の仕様には dim の役割がありません（U の `ColorSpec2021.primaryDim()` は null を返します）。`spec_2021()` は、dim の役割に元の役割の色を入れます（primary-dim は primary、ほかも同じ）。U の `ColorSpec2026` も dim の役割を元の役割に戻しています。
+
+### 2025 年の仕様
+
+`lamina/color/spec_2025.cpp` は、U の `java/dynamiccolor/ColorSpec2025.java` と、それが使う `DynamicScheme` の規則を、スマートフォン向け（U の `DynamicScheme.Platform.PHONE`）の部分だけ移したものです。腕時計向け・2026 年の仕様・系列の代表色・Android だけの役割（`controlActivated`・`textPrimaryInverse` など）は移していません。HCT・HCT の逆算・コントラストの関数は U の C++ 版を使います。次の二つは U の古い C++ ではなく Java から移しました。色相の範囲ごとに色相を回す計算（`DynamicScheme.getRotatedHue`・`getPiecewiseValue`）と、黄色の色相（105° 以上 125° 未満）での明度 99 の色を明度 98 と 100 の平均にする処理（`TonalPalette.getHct`）です。元の色の色相と、彩度を確かめる計算には、Java と同じく丸めずに計算した観察条件（U の C++ の `DefaultWithBackgroundLstar(50)`）を使います。U の C++ の定数 `kDefaultViewingConditions` は小数 9 桁に丸めてあります。
+
+**配色の種類。** 2025 年の規則があるのは Neutral・TonalSpot・Vibrant・Expressive です。Monochrome・Fidelity・Content・Rainbow・FruitSalad では、U は 2021 年の仕様とその色の系列に戻る（`DynamicScheme.maybeFallbackSpecVersion`）ので、`spec_2025()` もそれらでは `spec_2021()` の色を返します。dim の役割は、その場合に Java が出す値にしています。2025 年の dim の規則を、2021 年の系列の上で 2021 年の明度の計算にかけたものです。
+
+**色の系列**（スマートフォン向け。「回転」は元の色相に、色相の範囲ごとに決まった角度を足したもので、角度の表は `spec_2025.cpp` にあります）：
+
+| 種類 | primary | secondary | tertiary | neutral | neutral-variant | error |
+|---|---|---|---|---|---|---|
+| Neutral | 元の色、8（青、つまり 250° 以上 270° 未満なら 12） | 元の色、4（青なら 6） | 回転、20 | 元の色、1.4 | 元の色、1.4 × 2.2 | 50 |
+| TonalSpot | 元の色、32（ダークは 26） | 元の色、16 | 回転、28 | 元の色、5 | 元の色、5 × 1.7 | 60 |
+| Vibrant | 元の色、74 | 回転、56 | 回転、56 | 回転、28 | 回転、28 × 1.29 | 80 |
+| Expressive | 元の色、48（ダークは 36） | 回転、24（ダークは 16） | 回転、48 | 回転、18（ダークは 14、neutral の色相が黄色なら 6） | neutral と同じ色相、× 2.3（黄色なら × 1.6） | 64 |
+
+error の色相は、元の色相の範囲によって 12°・22°・32° のどれかになります。2021 年はいつも 25°・彩度 84 でした。
+
+**面**（neutral の系列）：
+
+| 役割 | ライト（その他 / Vibrant / neutral の色相が黄色） | ダーク |
+|---|---|---|
+| surface | 98 / 97 / 99 | 4 |
+| surface-dim | 87 / 85 / 90 | 4 |
+| surface-bright | 98 / 97 / 99 | 18 |
+| surface-container-lowest | 100 | 0 |
+| surface-container-low | 96 / 95 / 98 | 6 |
+| surface-container | 94 / 92 / 96 | 9 |
+| surface-container-high | 92 / 90 / 94 | 12 |
+| surface-container-highest | 90 / 88 / 92 | 15 |
+| inverse-surface | 4 | 98 |
+
+background は surface、surface-variant は surface-container-highest、surface-tint は primary と同じです。surface-container の各段・surface-dim（ライトだけ）・surface-bright（ダークだけ）は neutral の彩度に倍率を掛けます。TonalSpot なら low / 無印 / high / highest で 1.25 / 1.4 / 1.5 / 1.7 です。
+
+**面の上の文字と線。** on-surface・on-surface-variant・outline・outline-variant は neutral の系列（neutral-variant ではなくなりました）の彩度に倍率（TonalSpot 1.7、Neutral 2.2、Expressive 1.6）を掛けて使い、明度は、ライトでは surface-dim、ダークでは surface-bright とのコントラストで決めます。それぞれ 9（ダークは 11）・4.5（ダークは 6）・3・1.5 です。Vibrant の on-surface は、neutral の彩度の 1.1 倍で彩度が最も高くなる明度から始めます。
+
+**アクセントの明度。** アクセントの明度の多くは決まった数ではなくなりました。「彩度最大の明度」は、明度 100 から 1 ずつ下げながら、それまでに見つけた最大の彩度が系列の彩度に届かない間は探し続け、彩度が最も高かった明度を取ります。「彩度最小側の明度」は明度 0 から上げていきます。どちらも、そのあと範囲に収めます。TonalSpot では次のとおりです。
+
+| 役割 | ライト | ダーク |
+|---|---|---|
+| primary | 彩度最大の明度 | 80 |
+| primary-container | 彩度最大の明度、90 以下 | 彩度最小側の明度、35 から 93 |
+| secondary | 彩度最大の明度 | 80 |
+| secondary-container | 90 | 25 |
+| tertiary | 彩度最大の明度 | 彩度最大の明度、98 以下 |
+| tertiary-container | 彩度最大の明度 | 彩度最大の明度、93 以下 |
+| error | 彩度最大の明度 | 彩度最小側の明度、98 以下 |
+| error-container | 彩度最大の明度、90 以下 | 彩度最小側の明度、30 から 93 |
+| primary・secondary・tertiary の -dim | 彩度最大の明度、90 以下 | 同じ |
+| error-dim | 彩度最小側の明度 | 同じ |
+
+ほかの種類にはそれぞれの範囲があり（Expressive と Vibrant には、シアン、つまり 170° 以上 207° 未満の色相と、Expressive の黄色の primary のための別の上限もあります）、`spec_2025.cpp` の表に置いてあります。そのうえで次の規則が掛かります。
+
+- primary・secondary・tertiary・error は、surface-dim（ライト）か surface-bright（ダーク）に対してコントラスト 4.5 が要り、自分の container から 5 以上離れます。ライトでは暗い側、ダークでは明るい側です。
+- container と *-fixed は、コントラストの段階が 0 より上のときだけ、コントラスト 1.5 が要ります。
+- アクセントと dim の役割、それにコントラストの段階が 0 より上のときの container と *-fixed は、明度 49 と 65 の間を避けます。57 以上なら 65 以上に上げ、それより下なら 49 以下に下げます。面と *-fixed-dim は動かしません。
+- dim の役割は、元の役割より 5 以上暗く、surface-container-high に対してコントラスト 4.5 が要ります。
+- *-fixed は、container がライト・コントラスト 0 のときの明度です。*-fixed-dim はそれよりちょうど 5 暗くなります。
+- on-primary・on-secondary・on-tertiary・on-error・on-*-container と inverse-primary（inverse-surface に対して）はコントラスト 6、on-error-container は 4.5、inverse-on-surface は 7、on-*-fixed は 7、on-*-fixed-variant は 4.5 です。
+
+コントラストの曲線（コントラストの段階 −1 / 0 / 0.5 / 1 での値。間は直線でつなぎます）：1.5 → 1.5 / 1.5 / 3 / 5.5、3 → 3 / 3 / 4.5 / 7、4.5 → 4.5 / 4.5 / 7 / 11、6 → 6 / 6 / 7 / 11、7 → 7 / 7 / 11 / 21、9 → 9 / 9 / 11 / 21、11 → 11 / 11 / 21 / 21。コントラストの段階が 0 より下では、コントラストの条件がある役割は、自分の明度が条件を満たしていても、いつも `foregroundTone` が返す明度を取ります。
+
+`tools/color-dump/` で全部の役割を Java のコードと比べています。結果はその README にあります。
+
 ### C++ 版の色の計算ライブラリの状況
 
 - U には C++ 版（`cpp/`）があり、HCT・色の系列・減色・色の採点・DynamicScheme と、配色の種類（Monochrome, Neutral, TonalSpot, Vibrant, Expressive, Fidelity, Content, Rainbow, FruitSalad）が入っています。
-- **C++ 版は 2021 年の仕様しか実装していません。** Java 版には `ColorSpec2021`・`ColorSpec2025`・`ColorSpec2026`（`SpecVersion`）がありますが、C++ 版には仕様を選ぶ仕組みも、2025 年の仕様で増えた役割（`primary_dim` など）もありません。`cpp/` の最後の変更は 2024-10-01 で、Java 版は 2026-10 まで更新されています。
+- **U の C++ 版は 2021 年の仕様しか実装していません。** Java 版には `ColorSpec2021`・`ColorSpec2025`・`ColorSpec2026`（`SpecVersion`）がありますが、C++ 版には仕様を選ぶ仕組みも、2025 年の仕様で増えた役割（`primary_dim` など）もありません。`cpp/` の最後の変更は 2024-10-01 で、Java 版は 2026-10 まで更新されています。
 - ビルド用のファイルが無く（インクルードのパスが Google の社内向けの形）、abseil（`flat_hash_map`・`str_cat`）と gtest に依存しています。
 
 ### 決定
 
-まず C++ 版で 2021 年の仕様のまま始め、あとで 2025 年の仕様を C++ に移したものに差し替えます。HCT と色の系列は二つの仕様で共通で、違うのは役割ごとの明度を決める層だけなので、その層を差し替えられる形にしておきます。
+lamina-ui は U の C++ 版と 2021 年の仕様で始め、役割ごとの明度を決める層を `ColorSpec` の向こうで差し替えられる形にしておきました。2025 年の仕様は、いまは Java のコードから移した `spec_2025()` としてあります（上の「2025 年の仕様」）。U の C++ の HCT とコントラストの関数の上に作った lamina-ui 自身のコードなので、取り込んだ C++ は変えておらず、`spec_2021()` の結果も変わりません。2025 年の仕様は明度の規則だけでなく色の系列も変えるので、移したものは両方を含みます。
 
 ## 高さと状態の重ね
 
@@ -288,21 +357,49 @@ C の `tokens/NavigationBarTokens.kt`（64 dp・surface-container・色・Label 
 - 入れ物に高さはありません。`ShortNavigationBar` は `ContainerElevation`（Level2）を使いません。
 - Compose はアイコンとラベルの色を一度に変えますが、lamina-ui は標準の効果のばねで移します。
 
+### ナビゲーションレール
+
+C の `tokens/NavigationRailCollapsedTokens.kt`（96 dp・上の 44 dp・項目の間 4 dp・surface）、C の `tokens/NavigationRailExpandedTokens.kt`（220 から 360 dp）、C の `tokens/NavigationRailBaselineItemTokens.kt`（項目 64 dp・アイコン 24 dp・見出しの部品の下 40 dp）、C の `tokens/NavigationRailVerticalItemTokens.kt`（印 56 × 32 dp・名前まで 4 dp・Label M）、C の `tokens/NavigationRailHorizontalItemTokens.kt`（高さ 56 dp の印・前の余白 16 dp・名前まで 8 dp・Label L）、C の `tokens/NavigationRailColorTokens.kt`、C の `WideNavigationRail.kt` と C の `NavigationItem.kt`（`AnimatedNavigationItem`・`AnimatedMeasurePolicy`）を `lamina/tokens/navigation_rail.hpp` に写しました。lamina-ui にあるのは、上から並べる既定の配置の、手前に重ならない `WideNavigationRail` です。
+
+- 畳んだ状態と広げた状態は、同じばねの組の二つの行き先です。どれも標準の空間のばねで動きます：レールの最小の幅（96 から 220 dp）、全範囲の幅（96 から 360 dp）、項目の間（4 から 0 dp）、項目の最小の高さ（64 から 48 dp。触れる部品の最小の大きさ）、各項目のアイコンの位置の進み具合。幅は `WideNavigationRailLayout` の測り方に従います。広げたレールは、動いている最小の幅になります。いちばん広い項目か見出しの部品が 220 dp より広ければ、その幅（動いている全範囲の幅まで）になります。
+- 項目はレールの始めの側に置き、印の前に 20 dp（`WNRItemHorizontalPadding`。.kt の中の定数）、アイコンが上にある間は印の後ろにも 20 dp を空けます（アイコンが前に移ると 0 dp。この余白は Compose と同じく一度に切り替わります）。最小の高さより小さい中身は上下の中央に置くので、畳んだときの印は項目の上端から 6 dp 下になります。
+- 印のアイコンの周りの余白は、進み具合につれて 16 × 4 dp から 16 × 16 dp に変わり、大きさはアイコン（24 × 24 dp）から「アイコン・8 dp・名前」に変わります。上にあるときは 56 × 32 dp、前にあるときは高さ 56 dp で、角はいつも丸め切ります。項目を選ぶと、印の幅は標準の空間のばねで 0 から始めの側の端から広がります（`placeRelativeWithLayer(startPadding, …)`）。ナビゲーションバーのように中央からではありません。不透明度も同じ進み具合です。
+- 名前は、進み具合が 0.5 を過ぎたところで Label M から Label L に、上の位置から前の位置に替わります。不透明度は 4 (p − 0.5)² です。Compose は項目が最初に現れたときにアイコンが上かどうかを覚えるので、広げた状態で始まったレールは畳んでも Label L のままです。lamina-ui はいつも進み具合だけで決めます。
+- 色：印は secondary-container、選んだアイコンは on-secondary-container、選んだ名前は上にあるとき secondary・前にあるとき on-secondary-container（.kt はここで `ItemActiveIcon` を使い回し、足りないトークンについての `TODO` があります）、選んでいないものは on-surface-variant です。Compose は名前の色を標準の効果のばねで動かし、アイコンの色は一度に変えます。lamina-ui は両方をそのばねで動かします。
+- 状態の重ねは、全幅の印の形の全体で、ポインターが項目のどこにあっても出ます。色は on-surface です。波紋はレールの文字の色を取るので、`NavigationRailColorTokens` の状態の重ねの値（on-secondary-container）は使われません。
+- 見出しの部品は中身の領域の左上に置き、項目はその 40 dp 下から始めます（`HeaderSpaceMinimum`）。
+- まだないもの：手前に重なるレール（`ModalWideNavigationRail`）、中央と下の配置、名前のない項目、バッジ、幅 80 dp の狭い `NavigationRail`。
+
 ### メニュー
 
-C の `tokens/MenuTokens.kt`（surface-container・extra-small の角・Level2 の影）、C の `tokens/ListTokens.kt`（前のアイコン 24 dp・on-surface のラベル・on-surface-variant のアイコン）、C の `Menu.kt`・`internal/MenuPosition.kt` と `androidMain/.../AndroidMenu.android.kt` を `lamina/tokens/menu.hpp` に写しました。lamina-ui にあるのは従来のドロップダウンメニュー（`DropdownMenu`・`DropdownMenuItem`）で、Expressive のまとまりに分けたメニュー（`DropdownMenuPopup`・`StandardMenuTokens.kt`）ではありません。
+C の `tokens/MenuTokens.kt`（surface-container・extra-small の角・Level2 の影）、C の `tokens/ListTokens.kt`（前のアイコン 24 dp・on-surface のラベル・on-surface-variant のアイコン）、C の `Menu.kt`・`internal/MenuPosition.kt` と `androidMain/.../AndroidMenu.android.kt` を `lamina/tokens/menu.hpp` に写しました。この節は従来のドロップダウンメニュー（`DropdownMenu`・`DropdownMenuItem`）です。Expressive のまとまりに分けたメニューは下の節にあります。
 
 - 項目の上下に 8 dp、項目は高さ 48 dp で幅 112 から 280 dp です。左右の余白とアイコンとラベルの間は 12 dp（`DropdownMenuItemHorizontalPadding`）、文字は Label L です。
 - 置き場所（`MenuAnchorPosition.Below`）：縦は、元の部品の下・上・上端を中心にした所・窓の上端か下端の順に試し、窓の上下から 48 dp 離れて収まる最初の所に置きます。横は、始めをそろえる・終わりをそろえる・窓の左端か右端の順に試し、横の余白は 0 です（`AndroidMenu` が 0 を渡します）。
 - メニューは元の部品と接する点（`calculateTransformOrigin`）を中心に、0.8 倍から速い空間のばねで大きくなり、速い効果のばねで現れます。閉じるときはその逆です。
 - 描画面には全体の不透明度がありません。lamina-ui は描く色をそれぞれ薄くしてメニューを消すので、重なった部分の混ざり方は消える途中でわずかに違います。
 
+### まとまりに分けたメニュー
+
+C の `tokens/StandardMenuTokens.kt`（surface-container-low・選んだときの tertiary-container と on-tertiary-container・on-surface の名前・on-surface-variant のアイコン）、C の `tokens/SegmentedMenuTokens.kt`（項目 44 dp・アイコン 20 dp・角の大きさ・まとまりの間 2 dp）、C の `tokens/MenuTokens.kt`（Level2 の影）、C の `tokens/DividerTokens.kt`（1 dp・outline-variant）、C の `MenuDefaults.kt` と C の `Menu.kt`（`DropdownMenuPopup`・`DropdownMenuGroup`・`SelectableDropdownMenuItem`・`CheckableDropdownMenuItem`）を `lamina/tokens/menu.hpp` の `grouped_menu_tokens` に写しました。
+
+- まとまり：それぞれが Level2 の影を持つ一枚の面で、中身の上下に 2 dp の余白があり、次のまとまりとは 2 dp 離れます（見本どおりの `GroupSpacing`）。メニュー全体の幅は、いちばん広い項目か見出しの幅（`IntrinsicSize.Max`）なので、どのまとまりも同じ幅です。まとまり全体を囲む入れ物はありません。
+- まとまりの角は位置で決まります：一つだけなら 16 dp、最初は上 16 dp・下 8 dp、間のものは 8 dp、最後は上 8 dp・下 16 dp です。マウスが一度乗ってから離れたまとまりは角が 8 dp（`inactiveShape`）になり、角は速い空間のばねで動きます。マウスが乗っているかどうかは、`DropdownMenuGroup` の既定どおりまとまりごとに持ちます。見本はすべてのまとまりで一つの操作の元を共有していますが、lamina-ui はそうしていません。
+- 項目：まとまりの左右から 4 dp 引っ込み、幅 112 から 280 dp、高さ 44 dp 以上、四方に 12 dp の余白、前に 20 dp のアイコンと文字までの 8 dp、終わりの側に 20 dp のアイコンです。これは既定で切ってある `isPrecisionPointerComponentSizingEnabled` を使わないときの値です。文字は Label L です。`Menu.kt` は `SegmentedMenuTokens.ItemLabelTextFont`（Body L）ではなく `labelLarge` を指定しています（`TODO` 付き）。
+- 項目の角：一つだけなら 4 dp、最初は上 12 dp・下 4 dp、間のものは 4 dp、最後は上 4 dp・下 12 dp です。選んだ項目の角は 12 dp です。角は速い空間のばねで、入れ物の色は速い効果のばねで変わります。Compose は文字とアイコンの色を一度に変えますが、lamina-ui は同じ効果のばねで動かします。
+- まとまりの見出しは Label L・on-surface で、高さ 32 dp 以上、前に 12 dp・後ろに 4 dp を空けます。その下の区切り線は、左右に 12 dp・上下に 2 dp を空けます。どちらも付けなくて構いません。
+- 置き場所：従来のメニューと同じ候補を試し、窓の上下から 48 dp、左右から 8 dp 離します（`MenuHorizontalMargin`。`DropdownMenuPositionProvider` の既定値です。従来のメニューは `AndroidMenu` から 0 を受け取ります）。開け閉めの動きは従来のメニューと同じです。
+- 押したときにどうするかは、Compose ではアプリが決めます。lamina-ui はまとまりごとに `MenuSelection` で選べます。`none` は項目を知らせてメニューを閉じ、`single` は一つを選び、`multiple` は切り替えます（`CheckableDropdownMenuItem` と同じ）。後の二つではメニューは開いたままです。
+- まだないもの：補足の文字、押せない項目、鮮やかな色（`VibrantMenuTokens.kt`）、入れ子のメニュー、前のアイコンがない項目に選んだときだけ出るアイコン（Compose は横に広げて出します）。`selected_leading_icon` は、すでにある前のアイコンを差し替えるだけです。
+
 ### ダイアログ
 
 C の `tokens/DialogTokens.kt`（surface-container-high・extra-large の角・Headline S・Body M・色）、C の `tokens/ScrimTokens.kt`（窓を覆う幕。色は scrim、不透明度 0.32）と C の `AlertDialog.kt`（余白 24 dp・見出しの下 16 dp・本文の下 24 dp・幅 280 から 560 dp・ボタンの間 8 dp）を `lamina/tokens/dialog.hpp` に写しました。
 
 - ダイアログに影はありません。`AlertDialog` は影を付けず色の高さも 0 なので、`ContainerElevation`（Level3）は使われていません。
-- ボタンは終わりの側にそろえたテキストボタンで、閉じるボタンが確定のボタンの前に来ます。`AlertDialogFlowRow` のように 2 行目へ折り返すことはしません。
+- 付けてもよいアイコン（`DialogTokens.IconSize` 24 dp・`IconColor` は secondary）は見出しの上の中央に置き、下に 16 dp を空けます（`IconPadding`）。このとき見出しも中央にそろえます（`AlertDialogContent`）。
+- ボタンは `AlertDialogFlowRow` に並べたテキストボタンです。並べる向きを逆にした折り返しの行で、ボタンの間は 8 dp です。そのため一行なら閉じるボタンが確定のボタンの前に来て終わりの側にそろい、収まらなければ確定のボタンが一行目に残り、閉じるボタンが次の行に移ります。どちらも終わりの側にそろえます。Compose の行の間は、8 dp から「触れる範囲 48 dp がボタンの高さ 40 dp を超える 8 dp」を引いた値、つまり 48 dp の枠どうしの間で 0 dp です。lamina-ui はボタンを高さ 40 dp で並べるので、その 8 dp を戻し、Compose と同じく行と行は 8 dp 離れます。最後の行の下にある 4 dp の触れる範囲は足していないので、最後のボタンは下端から 24 dp です（Compose では 28 dp）。
+- 見出しが複数行に折り返すとき、lamina-ui は最も長い行の幅の塊として中央に置きます。Compose の折り返す文字は与えられた最大の幅を取るはずなので、アイコンがあっても各行は始めの側から並ぶと思われます（未確認）。一行の見出しは同じです。
 - Compose は現れるときと消えるときの動きを OS の窓に任せています。lamina-ui は独自に、面を 0.8 倍から標準の空間のばねで大きくし、面と幕を標準の効果のばねで現します。
 
 ## 未決の件
