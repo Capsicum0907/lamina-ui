@@ -36,7 +36,9 @@ add_library(lamina STATIC
     src/lamina/shapes/to_path.cpp
     src/lamina/text/font.cpp
     src/lamina/text/layout.cpp
+    src/lamina/layout/layout.cpp
     src/lamina/widgets/button.cpp
+    src/lamina/widgets/label.cpp
     src/lamina/widgets/surface.cpp
     src/lamina/widgets/text_field.cpp
 )
@@ -83,6 +85,9 @@ if(LAMINA_BUILD_EXAMPLES)
     add_executable(shapes_gallery examples/shapes/main.cpp)
     target_link_libraries(shapes_gallery PRIVATE lamina lamina_sdl3)
     lamina_warnings(shapes_gallery)
+    add_executable(layout_demo examples/layout/main.cpp)
+    target_link_libraries(layout_demo PRIVATE lamina lamina_sdl3)
+    lamina_warnings(layout_demo)
 endif()
 
 option(LAMINA_BUILD_TOOLS "Build the development tools" ON)
@@ -98,6 +103,7 @@ if(LAMINA_BUILD_TESTS)
         tests/button_test.cpp
         tests/canvas_test.cpp
         tests/color_scheme_test.cpp
+        tests/layout_test.cpp
         tests/main.cpp
         tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp

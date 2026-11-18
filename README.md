@@ -8,7 +8,7 @@ lamina-ui is not affiliated with or endorsed by Google. "Material Design" is Goo
 
 ## Status
 
-Early. So far there are the design-value layer, a 2D canvas, text, shapes, an SDL3 window, and two components (button and text field). There is no layout system yet; the examples place components by hand.
+Early. So far there are the design-value layer, a 2D canvas, text, shapes, an SDL3 window, and two components (button and text field). The layout system is new; the older examples still place components by hand.
 
 - `lamina/tokens/motion.hpp`: the spring, easing and duration tokens of the standard and expressive motion schemes.
 - `lamina/motion/spring.hpp`: a damped spring with a closed-form solution. `advance` moves a value toward its target by any time step, and the result does not depend on how the time is split into frames. `is_settled` tells when the motion has come to rest.
@@ -22,6 +22,7 @@ Early. So far there are the design-value layer, a 2D canvas, text, shapes, an SD
 - `lamina/widgets/button.hpp`: the Material 3 Expressive button in five styles (filled, tonal, outlined, elevated, text), five sizes and two shapes. Pressing morphs the corners to the pressed shape with the effects spring, as Compose does; hover and press add the state layer and change the elevation. `build/Release/buttons.exe` shows them all.
 - `lamina/widgets/text_field.hpp`: the outlined text field. The label floats onto the outline with a spring when the field is focused or filled; the caret blinks without redrawing in between (`Window::wake_after`); Japanese input goes through the system IME: the composition is drawn underlined in place and the candidate window is placed at the caret (`Window::set_text_input`). `build/Release/text_field.exe` is a small form.
 - `lamina/shapes/`: a C++ port of androidx `graphics-shapes` (rounded polygons with per-corner rounding and smoothing, and `Morph`, which pairs the corners of two outlines and interpolates their cubic curves) and the 35 Material 3 Expressive shapes (`material_shape`). Attribution: [third_party/NOTICE-androidx-graphics-shapes.md](third_party/NOTICE-androidx-graphics-shapes.md). `build/Release/shapes_gallery.exe` shows every shape; clicking one morphs the large shape into it with the expressive spatial spring.
+- `lamina/layout/layout.hpp`: rows and columns in the manner of Compose. A node is measured under constraints, then placed. Rows and columns take spacing, padding, main-axis alignment (start, center, end, space between/around/evenly), cross-axis alignment (start, center, end, stretch) and weights that share the leftover space. A stretched row is as tall as its tallest child unless `fill_cross` asks for all the space. `lamina/widgets/nodes.hpp` turns a button, text field or `Label` (`widgets/label.hpp`, wrapping text) into a node. `build/Release/layout_demo.exe` reflows as the window is resized.
 - `lamina/motion/animated.hpp`, `lamina/color/mix.hpp`: a value driven by a spring, and color mixing.
 
 The color spec is behind the `ColorSpec` interface. HCT and the tonal palettes are the same in the 2021 and 2025 specs; only the rules that pick each role's tone differ. A 2025 spec can therefore be added as another `ColorSpec` without changing the code that uses the scheme.

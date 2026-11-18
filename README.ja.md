@@ -8,7 +8,7 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 
 ## 現状
 
-作り始めたところです。今あるのは、設計の値の層・2D の描画・文字・形・SDL3 の窓と、部品が 2 つ（ボタンと入力欄）です。配置の仕組みはまだ無く、見本では部品の位置を手で決めています。
+作り始めたところです。今あるのは、設計の値の層・2D の描画・文字・形・SDL3 の窓と、部品が 2 つ（ボタンと入力欄）です。配置の仕組みは入ったばかりで、古い見本はまだ部品の位置を手で決めています。
 
 - `lamina/tokens/motion.hpp`：standard と expressive の二つの動きの体系の、ばね・緩急・時間のトークン。
 - `lamina/motion/spring.hpp`：減衰するばね。解を式で直接求めます。`advance` は値を目標に向けて好きな時間だけ進めます。時間をどうコマに分けても結果は変わりません。`is_settled` は動きが止まったかを判定します。
@@ -22,6 +22,7 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 - `lamina/widgets/button.hpp`：Material 3 Expressive のボタン。5 種類（filled・tonal・outlined・elevated・text）・5 段階の大きさ・2 種類の形。押すと、Compose と同じく効果のばねで角が押したときの形に変わり、マウスを乗せたときと押したときには状態の重ねと高さが変わります。`build/Release/buttons.exe` で全部を並べて見られます。
 - `lamina/widgets/text_field.hpp`：枠線つきの入力欄。焦点が当たるか文字が入ると、ラベルがばねで枠線の上に移ります。カーソルの点滅は、点滅の間に描き直さずに済むよう時間で起こします（`Window::wake_after`）。日本語は OS の IME で入力し、変換中の文字はその場に下線つきで描き、候補ウィンドウはカーソルの位置に出します（`Window::set_text_input`）。`build/Release/text_field.exe` は小さな入力の画面です。
 - `lamina/shapes/`：androidx の `graphics-shapes` を C++ に移したもの（角ごとに丸めと滑らかさを持つ多角形と、二つの輪郭の角を対応させて 3 次曲線を補間する `Morph`）と、Material 3 Expressive の 35 個の形（`material_shape`）。出典は [third_party/NOTICE-androidx-graphics-shapes.md](third_party/NOTICE-androidx-graphics-shapes.md)。`build/Release/shapes_gallery.exe` は全部の形を並べ、どれかを押すと大きな形が expressive の空間のばねでその形に変わります。
+- `lamina/layout/layout.hpp`：Compose と同じ考え方の行と列。部品は、まず制約の中で大きさを測り、次に置かれます。行と列には、間隔・余白・並ぶ向きの寄せ方（始め・中央・終わり・均等割り）・交わる向きの寄せ方（始め・中央・終わり・引き伸ばし）と、余った幅を比で分ける重みがあります。引き伸ばしの行は、`fill_cross` で全部の高さを求めない限り、いちばん高い子の高さになります。`lamina/widgets/nodes.hpp` は、ボタン・入力欄・`Label`（`widgets/label.hpp`、折り返す文字）を配置の部品に変えます。`build/Release/layout_demo.exe` は、窓の大きさを変えるとその場で組み直します。
 - `lamina/motion/animated.hpp`・`lamina/color/mix.hpp`：ばねで動く値と、色の混ぜ合わせ。
 
 色の仕様は `ColorSpec` という口の向こうに置いています。HCT と色の系列は 2021 年と 2025 年の仕様で同じで、違うのは役割ごとに明度を選ぶ規則だけです。そのため 2025 年の仕様は、配色を使う側のコードを変えずに、別の `ColorSpec` として足せます。
