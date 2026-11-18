@@ -3,6 +3,12 @@ project(lamina-ui VERSION 0.0.0 LANGUAGES CXX)
 
 option(LAMINA_BUILD_TESTS "Build the unit tests" OFF)
 
+if(LAMINA_BUILD_TESTS)
+    enable_testing()
+endif()
+
+add_subdirectory(third_party/material-color-utilities)
+
 add_library(lamina STATIC
     src/lamina/motion/spring.cpp
 )
@@ -16,7 +22,6 @@ else()
 endif()
 
 if(LAMINA_BUILD_TESTS)
-    enable_testing()
     find_package(doctest CONFIG REQUIRED)
     add_executable(lamina_tests
         tests/main.cpp
