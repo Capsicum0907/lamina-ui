@@ -8,7 +8,7 @@ lamina-ui is not affiliated with or endorsed by Google. "Material Design" is Goo
 
 ## Status
 
-Early. The design-value layer, a 2D canvas and an SDL3 window exist so far:
+Early. So far there are the design-value layer, a 2D canvas, text, shapes, an SDL3 window, and two components (button and text field). There is no layout system yet; the examples place components by hand.
 
 - `lamina/tokens/motion.hpp`: the spring, easing and duration tokens of the standard and expressive motion schemes.
 - `lamina/motion/spring.hpp`: a damped spring with a closed-form solution. `advance` moves a value toward its target by any time step, and the result does not depend on how the time is split into frames. `is_settled` tells when the motion has come to rest.

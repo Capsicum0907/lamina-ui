@@ -194,6 +194,20 @@ A CSS blur radius is twice the Gaussian standard deviation.
 
 C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, focus 0.10, pressed 0.10, dragged 0.16.
 
+## Components
+
+### Button
+
+C `tokens/Button{XSmall,Small,Medium,Large,XLarge}Tokens.kt` (height, square and pressed corner, icon size and spacing, leading and trailing space, outline width) and `tokens/{Filled,Tonal,Outlined,Elevated,Text}ButtonTokens.kt` (colors and elevation per state), read into `lamina/tokens/button.hpp`. Choices taken from C `Button.kt` rather than the token files:
+
+- The text button label is `primary`. The token file says `on-surface-variant`, but `Button.kt` overrides it with `Primary` ("replace with the token value once it's corrected").
+- The label type follows the height, as `ButtonDefaults.textStyleFor` does: below medium Label L, below large Title M, below extra-large Headline S, otherwise Headline L.
+- The pressed shape animates with the default effects spring, which `Button.kt` uses "to prevent any bounce in this component". The minimum width is 58 dp (`ButtonDefaults.MinWidth`).
+
+### Outlined text field
+
+C `tokens/OutlinedTextFieldTokens.kt` (56 dp high, extra-small corners, outline 1 dp and 2 dp when focused, Body L input and label, colors per state) and C `internal/TextFieldImpl.kt` (16 dp padding, Body S for the floating label), read into `lamina/tokens/text_field.hpp`.
+
 ## Open questions
 
-- Not surveyed yet: component-level tokens (button heights, paddings, etc.), and the shadow geometry for each elevation level.
+- Other components' tokens are not surveyed yet.
