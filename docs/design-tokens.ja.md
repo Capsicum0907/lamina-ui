@@ -258,6 +258,53 @@ C の `tokens/RadioButtonTokens.kt`（アイコン 20 dp・状態の重ね 40 dp
 
 スイッチ・チェックボックス・ラジオボタンは、状態の重ねとして 40 dp の円を部品の外まで描きます。Compose はこの波紋に `LocalContentColor` を使います。lamina-ui は、面の上の文脈の色にあたる on-surface を使います。押せる範囲は、小さいアイコンボタンも含めて少なくとも 48 dp です（`minimumInteractiveComponentSize`）。
 
+### スライダー
+
+C の `tokens/SliderTokens.kt`（通り道 16 dp・つまみ 4 × 44 dp・押したときのつまみ 2 dp・つまみの隙間 6 dp・終わりの印 4 dp・色）と C の `Slider.kt` を `lamina/tokens/slider.hpp` に写しました。`Slider.kt` から：
+
+- 通り道は、つまみの幅の半分の所から、反対の端よりつまみの幅の半分だけ手前まで伸びます。つまみの両側の隙間は 4 dp のつまみの箱の半分に 6 dp を足した幅なので、つまみが細くなっても変わりません。つまみの側の角は 2 dp（`TrackInsideCornerSize`）、外側の角は通り道の高さの半分です。
+- ポインターはこの範囲で値を比例して決め、そのあと値をいちばん近い段に寄せます。段があるときは、最初と最後の段を除いて、つまみと目盛りを通り道の角の半径だけ内側に描きます。`SliderImpl` の置き方と同じです。
+- 目盛りの色は `SliderDefaults.colors` で入れ違いになっています。動いた側の目盛りは secondary-container、残りの側の目盛りは primary です。終わりの印と重なる最後の目盛りと、つまみの隙間に入る目盛りは描きません。終わりの印は動いた側の通り道の色です。
+- 押している間とドラッグの間、つまみは幅が半分になります（`ThumbContent`）。Compose は幅を一度に変えますが、lamina-ui は速い空間のばねで変えます。Compose では焦点が当たったときにも細くなりますが、焦点は作っていません。
+- キー：左右の矢印で 1 段、段が無ければ範囲の 1 % 動き、`Home` と `End` で両端へ移ります。`Page Up` と `Page Down` は作っていません。
+
+### タブ
+
+C の `tokens/PrimaryNavigationTabTokens.kt` と `tokens/SecondaryNavigationTabTokens.kt`（48 dp の列・3 dp の印・Title S のラベル・色）、C の `tokens/DividerTokens.kt`、C の `Tab.kt` と `TabRow.kt` を `lamina/tokens/tabs.hpp` に写しました。トークンのファイルではなく .kt に従った所：
+
+- ラベルの上にアイコンがあるタブは 72 dp の高さです（`LargeTabHeight`）。`IconAndLabelTextContainerHeight` は 64 です。ラベルのベースラインは印の 14 dp 上で、アイコンの下端はそのベースラインの 20 dp 上です。前に置くアイコンとラベルの間は 8 dp です（`LeadingIconTab`）。
+- primary の印はタブの中身（左右 16 dp の余白を除いたラベル）と同じ幅で、少なくとも 24 dp です。タブの中央に置き、角は 3 dp です。secondary の印はタブの幅いっぱいで、高さは 3 dp です。`SecondaryIndicator` が高さを primary のトークンから取るためです。
+- 下の区切り線は `HorizontalDivider`（1 dp の outline-variant）で、secondary のトークンにある surface-variant ではありません。
+- 印の位置と幅は標準の空間のばねで動き、最初に置くときは動かしません。ラベルとアイコンの色は、現れるときは標準の効果のばね、消えるときは速い効果のばねで移ります（`TabTransition`）。状態の重ねは、選んだときの文字の色でタブ全体に掛かります。
+- Compose の `Tab` は、色を渡さなければ選んでいないときの色を選んだときと同じにします。lamina-ui はトークンのファイルにある選んでいないときの色（on-surface-variant）を使います。
+
+### ナビゲーションバー
+
+C の `tokens/NavigationBarTokens.kt`（64 dp・surface-container・色・Label M）、`tokens/NavigationBarVerticalItemTokens.kt`（印 56 × 32 dp・アイコン 24 dp・項目の余白 6 dp）と C の `ShortNavigationBar.kt` と `NavigationItem.kt` を `lamina/tokens/navigation_bar.hpp` に写しました。lamina-ui にあるのは、項目を同じ幅に並べてアイコンをラベルの上に置く、短いナビゲーションバーです。
+
+- 印は項目の上端から 6 dp 下にあり、ラベルは印の 4 dp 下にあります（`TopIconIndicatorToLabelPadding`）。
+- 印の幅は 56 dp に進み具合を掛けたもので、進み具合は標準の空間のばねで動きます。そのため印は中央から広がり、少し行き過ぎます。不透明度も同じ進み具合で、1 を超えないよう切り詰めます。
+- 状態の重ねは 56 × 32 dp の印の形の全体で、ポインターが項目のどこにあっても出ます。色は on-surface（バーの文字の色）です。
+- 入れ物に高さはありません。`ShortNavigationBar` は `ContainerElevation`（Level2）を使いません。
+- Compose はアイコンとラベルの色を一度に変えますが、lamina-ui は標準の効果のばねで移します。
+
+### メニュー
+
+C の `tokens/MenuTokens.kt`（surface-container・extra-small の角・Level2 の影）、C の `tokens/ListTokens.kt`（前のアイコン 24 dp・on-surface のラベル・on-surface-variant のアイコン）、C の `Menu.kt`・`internal/MenuPosition.kt` と `androidMain/.../AndroidMenu.android.kt` を `lamina/tokens/menu.hpp` に写しました。lamina-ui にあるのは従来のドロップダウンメニュー（`DropdownMenu`・`DropdownMenuItem`）で、Expressive のまとまりに分けたメニュー（`DropdownMenuPopup`・`StandardMenuTokens.kt`）ではありません。
+
+- 項目の上下に 8 dp、項目は高さ 48 dp で幅 112 から 280 dp です。左右の余白とアイコンとラベルの間は 12 dp（`DropdownMenuItemHorizontalPadding`）、文字は Label L です。
+- 置き場所（`MenuAnchorPosition.Below`）：縦は、元の部品の下・上・上端を中心にした所・窓の上端か下端の順に試し、窓の上下から 48 dp 離れて収まる最初の所に置きます。横は、始めをそろえる・終わりをそろえる・窓の左端か右端の順に試し、横の余白は 0 です（`AndroidMenu` が 0 を渡します）。
+- メニューは元の部品と接する点（`calculateTransformOrigin`）を中心に、0.8 倍から速い空間のばねで大きくなり、速い効果のばねで現れます。閉じるときはその逆です。
+- 描画面には全体の不透明度がありません。lamina-ui は描く色をそれぞれ薄くしてメニューを消すので、重なった部分の混ざり方は消える途中でわずかに違います。
+
+### ダイアログ
+
+C の `tokens/DialogTokens.kt`（surface-container-high・extra-large の角・Headline S・Body M・色）、C の `tokens/ScrimTokens.kt`（窓を覆う幕。色は scrim、不透明度 0.32）と C の `AlertDialog.kt`（余白 24 dp・見出しの下 16 dp・本文の下 24 dp・幅 280 から 560 dp・ボタンの間 8 dp）を `lamina/tokens/dialog.hpp` に写しました。
+
+- ダイアログに影はありません。`AlertDialog` は影を付けず色の高さも 0 なので、`ContainerElevation`（Level3）は使われていません。
+- ボタンは終わりの側にそろえたテキストボタンで、閉じるボタンが確定のボタンの前に来ます。`AlertDialogFlowRow` のように 2 行目へ折り返すことはしません。
+- Compose は現れるときと消えるときの動きを OS の窓に任せています。lamina-ui は独自に、面を 0.8 倍から標準の空間のばねで大きくし、面と幕を標準の効果のばねで現します。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。

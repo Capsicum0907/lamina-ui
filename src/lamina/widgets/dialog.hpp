@@ -1,0 +1,66 @@
+#pragma once
+
+#include <memory>
+#include <optional>
+#include <string>
+
+#include "lamina/color/scheme.hpp"
+#include "lamina/layout/layout.hpp"
+#include "lamina/motion/animated.hpp"
+#include "lamina/platform/input.hpp"
+#include "lamina/render/canvas.hpp"
+#include "lamina/text/font.hpp"
+#include "lamina/tokens/dialog.hpp"
+#include "lamina/widgets/button.hpp"
+#include "lamina/widgets/label.hpp"
+
+namespace lamina::widgets {
+
+struct DialogOptions {
+    std::string headline;
+    std::string supporting_text;
+    std::string confirm_label;
+    std::string dismiss_label;
+};
+
+enum class DialogResult { none, confirmed, dismissed };
+
+color::ColorScheme faded(const color::ColorScheme& scheme, double opacity);
+
+class Dialog {
+public:
+    Dialog(DialogOptions options, const text::FontStack& fonts);
+    Dialog(const Dialog&) = delete;
+    Dialog& operator=(const Dialog&) = delete;
+
+    void open(layout::Size window);
+    void close();
+    void set_window(layout::Size window);
+    bool is_open() const { return open_; }
+    bool visible() const;
+    double opacity() const;
+    double scale() const { return scale_.value(); }
+    render::Rect bounds() const { return surface_; }
+    render::Rect confirm_bounds() const { return confirm_.bounds(); }
+    std::optional<render::Rect> dismiss_bounds() const;
+
+    DialogResult handle(const platform::PointerEvent& event);
+    DialogResult handle(const platform::KeyEvent& event);
+    void step(double dt_seconds);
+    bool animating() const;
+    void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+
+private:
+    Label headline_;
+    Label supporting_;
+    Button confirm_;
+    std::optional<Button> dismiss_;
+    layout::NodePtr root_;
+    layout::Size window_{0.0, 0.0};
+    render::Rect surface_{0.0, 0.0, 0.0, 0.0};
+    bool open_ = false;
+    motion::Animated scale_;
+    motion::Animated alpha_;
+};
+
+}

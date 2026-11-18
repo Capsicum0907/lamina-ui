@@ -258,6 +258,53 @@ C `tokens/RadioButtonTokens.kt` (20 dp icon, 40 dp state layer, colors) and C `R
 
 Switch, checkbox and radio button draw an unbounded 40 dp circle as their state layer. Compose uses `LocalContentColor` for that ripple; lamina-ui uses on-surface, the content color on a surface. The touch target is at least 48 dp (`minimumInteractiveComponentSize`), also for small icon buttons.
 
+### Slider
+
+C `tokens/SliderTokens.kt` (16 dp track, 4 × 44 dp handle, 2 dp pressed handle, 6 dp handle gap, 4 dp stop indicator, colors) and C `Slider.kt`, read into `lamina/tokens/slider.hpp`. From `Slider.kt`:
+
+- The track runs from half the handle width to the other end minus half the handle width. The gap on each side of the handle is half the 4 dp handle box plus 6 dp, so it does not change while the handle narrows. The corners next to the handle are 2 dp (`TrackInsideCornerSize`), the outer ones half the track height.
+- The pointer sets the value linearly over that range, and the value then snaps to the nearest step. With steps, the handle and ticks are drawn inset by the track's corner radius except on the first and last step, as `SliderImpl` places them.
+- The tick colors are crossed in `SliderDefaults.colors`: a tick on the active part is secondary-container, a tick on the inactive part is primary. The last tick, where the stop indicator sits, and ticks inside the handle gap are not drawn. The stop indicator is the active track color.
+- Pressing or dragging narrows the handle to half its width (`ThumbContent`). Compose switches the width at once; lamina-ui moves it with the fast spatial spring. Focus, which also narrows the handle in Compose, is not implemented.
+- Keys: Left/Right move by one step, or by 1 % of the range without steps; Home and End go to the ends. Page Up/Down are not implemented.
+
+### Tabs
+
+C `tokens/PrimaryNavigationTabTokens.kt` and `tokens/SecondaryNavigationTabTokens.kt` (48 dp row, 3 dp indicator, Title S label, colors), C `tokens/DividerTokens.kt`, and C `Tab.kt` and `TabRow.kt`, read into `lamina/tokens/tabs.hpp`. From the .kt files rather than the token files:
+
+- A tab with an icon above its label is 72 dp high (`LargeTabHeight`); `IconAndLabelTextContainerHeight` says 64. Its label baseline is 14 dp above the indicator and the icon ends 20 dp above that baseline. A leading icon is 8 dp before the label (`LeadingIconTab`).
+- The primary indicator is as wide as the tab's content (the label without its 16 dp side padding), at least 24 dp, centered on the tab, with 3 dp corners. The secondary indicator spans the tab and is 3 dp high, because `SecondaryIndicator` takes its height from the primary token.
+- The divider is `HorizontalDivider` (1 dp outline-variant), not the secondary token's surface-variant.
+- The indicator's offset and width move with the default spatial spring and are placed without animation the first time. Label and icon colors fade in with the default effects spring and out with the fast effects spring (`TabTransition`). The state layer covers the tab in the selected content color.
+- Compose's `Tab` makes the unselected color equal to the selected one unless a color is passed. lamina-ui takes the inactive colors of the token files (on-surface-variant).
+
+### Navigation bar
+
+C `tokens/NavigationBarTokens.kt` (64 dp, surface-container, colors, Label M), `tokens/NavigationBarVerticalItemTokens.kt` (56 × 32 dp indicator, 24 dp icon, 6 dp item padding) and C `ShortNavigationBar.kt` and `NavigationItem.kt`, read into `lamina/tokens/navigation_bar.hpp`. lamina-ui has the short navigation bar with equal-width items and icons above labels.
+
+- The indicator is 6 dp below the top of the item and the label 4 dp below the indicator (`TopIconIndicatorToLabelPadding`).
+- The indicator's width is 56 dp times a progress that moves with the default spatial spring, so it grows from its center and overshoots a little; its opacity is the same progress, clamped to 1.
+- The state layer is the whole 56 × 32 dp pill, shown while the pointer is anywhere on the item. Its color is on-surface (the bar's content color).
+- The container has no elevation: `ShortNavigationBar` does not use `ContainerElevation` (Level2).
+- Compose switches the icon and label colors at once; lamina-ui fades them with the default effects spring.
+
+### Menu
+
+C `tokens/MenuTokens.kt` (surface-container, extra-small corners, Level2 shadow), C `tokens/ListTokens.kt` (24 dp leading icon, on-surface label, on-surface-variant icon), C `Menu.kt`, C `internal/MenuPosition.kt` and `androidMain/.../AndroidMenu.android.kt`, read into `lamina/tokens/menu.hpp`. lamina-ui has the classic dropdown menu (`DropdownMenu`, `DropdownMenuItem`), not the Expressive grouped menu (`DropdownMenuPopup`, `StandardMenuTokens.kt`).
+
+- 8 dp above and below the items, items 48 dp high and 112 to 280 dp wide, 12 dp padding at the sides and between the icon and the label (`DropdownMenuItemHorizontalPadding`), Label L text.
+- Position (`MenuAnchorPosition.Below`): vertically the first of below the anchor, above it, centered on its top, and against the window's top or bottom edge that keeps 48 dp from the top and bottom of the window; horizontally the first of start-aligned, end-aligned and against the window's left or right edge, with no horizontal margin (`AndroidMenu` passes 0).
+- The menu scales from 0.8 around the point where it meets the anchor (`calculateTransformOrigin`) with the fast spatial spring and fades in with the fast effects spring, and reverses when closed.
+- The canvas has no group opacity: lamina-ui fades the menu by fading each color it draws, so overlapping layers composite slightly differently in the middle of the fade.
+
+### Dialog
+
+C `tokens/DialogTokens.kt` (surface-container-high, extra-large corners, Headline S, Body M, colors), C `tokens/ScrimTokens.kt` (scrim at 0.32) and C `AlertDialog.kt` (24 dp padding, 16 dp under the headline, 24 dp under the text, 280 to 560 dp wide, 8 dp between the buttons), read into `lamina/tokens/dialog.hpp`.
+
+- The dialog has no shadow: `AlertDialog` uses no shadow and a tonal elevation of 0, so `ContainerElevation` (Level3) is not used.
+- The buttons are text buttons at the end, dismiss before confirm. They do not wrap to a second line as `AlertDialogFlowRow` would.
+- Compose leaves the enter and exit animation to the platform window. lamina-ui's own animation scales the surface from 0.8 with the default spatial spring and fades it and the scrim with the default effects spring.
+
 ## Open questions
 
 - Components other than those above are not surveyed yet.
