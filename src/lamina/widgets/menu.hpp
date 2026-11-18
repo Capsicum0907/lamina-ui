@@ -32,6 +32,8 @@ struct MenuResponse {
 };
 
 render::Point menu_position(const render::Rect& anchor, layout::Size window, layout::Size menu);
+render::Point menu_position(const render::Rect& anchor, layout::Size window, layout::Size menu, double horizontal_margin,
+                            double vertical_margin);
 render::Point menu_transform_origin(const render::Rect& anchor, const render::Rect& menu);
 
 class Menu {

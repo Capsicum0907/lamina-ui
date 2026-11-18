@@ -162,8 +162,49 @@ private:
     std::vector<NodePtr> children_;
 };
 
+enum class FlowDirection { start_to_end, end_to_start };
+
+class Flow final : public Node {
+public:
+    explicit Flow(std::vector<NodePtr> children) : children_(std::move(children)) {}
+
+    Flow& spacing(double v) {
+        spacing_ = v;
+        return *this;
+    }
+    Flow& line_spacing(double v) {
+        line_spacing_ = v;
+        return *this;
+    }
+    Flow& direction(FlowDirection v) {
+        direction_ = v;
+        return *this;
+    }
+
+    std::size_t line_count() const { return lines_.size(); }
+
+protected:
+    Size on_measure(const Constraints& c) override;
+    void on_arrange(const render::Rect& rect) override;
+
+private:
+    struct Line {
+        std::size_t begin;
+        std::size_t end;
+        double width;
+        double height;
+    };
+
+    std::vector<NodePtr> children_;
+    double spacing_ = 0.0;
+    double line_spacing_ = 0.0;
+    FlowDirection direction_ = FlowDirection::start_to_end;
+    std::vector<Line> lines_;
+};
+
 std::shared_ptr<Linear> row(std::vector<NodePtr> children);
 std::shared_ptr<Linear> column(std::vector<NodePtr> children);
+std::shared_ptr<Flow> flow(std::vector<NodePtr> children);
 NodePtr spacer(Size size = {0.0, 0.0});
 NodePtr flexible_space(double weight = 1.0);
 NodePtr fixed(Size size, Leaf::ArrangeFn arrange);

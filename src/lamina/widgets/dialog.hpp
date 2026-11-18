@@ -1,10 +1,12 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/icons/icon.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/platform/input.hpp"
@@ -21,6 +23,7 @@ struct DialogOptions {
     std::string supporting_text;
     std::string confirm_label;
     std::string dismiss_label;
+    std::optional<icons::Icon> icon = std::nullopt;
 };
 
 enum class DialogResult { none, confirmed, dismissed };
@@ -43,6 +46,9 @@ public:
     render::Rect bounds() const { return surface_; }
     render::Rect confirm_bounds() const { return confirm_.bounds(); }
     std::optional<render::Rect> dismiss_bounds() const;
+    std::optional<render::Rect> icon_bounds() const;
+    render::Rect headline_bounds() const { return headline_.bounds(); }
+    std::size_t button_lines() const { return actions_->line_count(); }
 
     DialogResult handle(const platform::PointerEvent& event);
     DialogResult handle(const platform::KeyEvent& event);
@@ -55,6 +61,9 @@ private:
     Label supporting_;
     Button confirm_;
     std::optional<Button> dismiss_;
+    std::optional<icons::Icon> icon_;
+    render::Point icon_origin_{0.0, 0.0};
+    std::shared_ptr<layout::Flow> actions_;
     layout::NodePtr root_;
     layout::Size window_{0.0, 0.0};
     render::Rect surface_{0.0, 0.0, 0.0, 0.0};

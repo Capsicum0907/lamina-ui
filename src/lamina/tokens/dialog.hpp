@@ -16,6 +16,10 @@ struct DialogTokens {
     double min_width;
     double max_width;
     double button_space;
+    double button_line_space;
+    double icon_size;
+    color::Role icon_color;
+    double icon_bottom_space;
     TypeRole headline;
     color::Role headline_color;
     TypeRole supporting_text;
@@ -36,6 +40,10 @@ inline constexpr DialogTokens dialog_tokens{
     .min_width = 280.0,
     .max_width = 560.0,
     .button_space = 8.0,
+    .button_line_space = 8.0,
+    .icon_size = 24.0,
+    .icon_color = color::Role::secondary,
+    .icon_bottom_space = 16.0,
     .headline = TypeRole::headline_small,
     .headline_color = color::Role::on_surface,
     .supporting_text = TypeRole::body_medium,

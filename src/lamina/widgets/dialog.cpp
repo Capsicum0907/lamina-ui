@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/nodes.hpp"
@@ -37,30 +38,43 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
     : headline_(options.headline, t.headline, t.headline_color, fonts),
       supporting_(options.supporting_text, t.supporting_text, t.supporting_text_color, fonts),
       confirm_(action(options.confirm_label), fonts),
+      icon_(std::move(options.icon)),
       scale_(t.closed_scale, scale_spring),
       alpha_(0.0, alpha_spring) {
     if (!options.dismiss_label.empty()) {
         dismiss_.emplace(action(options.dismiss_label), fonts);
     }
-    std::vector<layout::NodePtr> buttons;
+    std::vector<layout::NodePtr> buttons{node(confirm_)};
     if (dismiss_) {
         buttons.push_back(node(*dismiss_));
     }
-    buttons.push_back(node(confirm_));
-    auto actions = layout::row(std::move(buttons));
-    actions->spacing(t.button_space);
-    actions->self_align = layout::CrossAlign::end;
+    const double touch_slack = std::max(0.0, tokens::minimum_interactive_size - confirm_.height());
+    actions_ = layout::flow(std::move(buttons));
+    actions_->spacing(t.button_space)
+        .line_spacing(std::clamp(t.button_line_space - touch_slack, 0.0, t.button_line_space) + touch_slack)
+        .direction(layout::FlowDirection::end_to_start);
+    actions_->self_align = layout::CrossAlign::end;
 
     std::vector<layout::NodePtr> children;
+    if (icon_) {
+        auto icon = layout::fixed({t.icon_size, t.icon_size}, [this](const render::Rect& r) { icon_origin_ = {r.x, r.y}; });
+        icon->self_align = layout::CrossAlign::center;
+        children.push_back(icon);
+        children.push_back(layout::spacer({0.0, t.icon_bottom_space}));
+    }
     if (!options.headline.empty()) {
-        children.push_back(node(headline_));
+        auto headline = node(headline_);
+        if (icon_) {
+            headline->self_align = layout::CrossAlign::center;
+        }
+        children.push_back(headline);
         children.push_back(layout::spacer({0.0, t.headline_bottom_space}));
     }
     if (!options.supporting_text.empty()) {
         children.push_back(node(supporting_));
         children.push_back(layout::spacer({0.0, t.supporting_text_bottom_space}));
     }
-    children.push_back(actions);
+    children.push_back(actions_);
     auto column = layout::column(std::move(children));
     column->padding(layout::Insets::all(t.padding));
     root_ = column;
@@ -71,6 +85,13 @@ std::optional<render::Rect> Dialog::dismiss_bounds() const {
         return std::nullopt;
     }
     return dismiss_->bounds();
+}
+
+std::optional<render::Rect> Dialog::icon_bounds() const {
+    if (!icon_) {
+        return std::nullopt;
+    }
+    return render::Rect{icon_origin_.x, icon_origin_.y, t.icon_size, t.icon_size};
 }
 
 void Dialog::set_window(layout::Size window) {
@@ -167,6 +188,9 @@ void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.translate(-cx, -cy);
     const double radius = tokens::corner_radius(t.corner, surface_.width, surface_.height);
     canvas.fill_path(render::rounded_rect_path(surface_, render::uniform_radii(radius)), s[t.container]);
+    if (icon_) {
+        icon_->font.draw(canvas, icon_->symbol, icon_origin_, t.icon_size, s[t.icon_color]);
+    }
     headline_.paint(canvas, s);
     supporting_.paint(canvas, s);
     if (dismiss_) {

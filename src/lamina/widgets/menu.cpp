@@ -56,6 +56,11 @@ color::Argb faded(color::Argb c, double alpha) {
 }
 
 render::Point menu_position(const render::Rect& anchor, layout::Size window, layout::Size menu) {
+    return menu_position(anchor, window, menu, t.window_horizontal_margin, t.window_vertical_margin);
+}
+
+render::Point menu_position(const render::Rect& anchor, layout::Size window, layout::Size menu, double horizontal_margin,
+                            double vertical_margin) {
     const double anchor_right = anchor.x + anchor.width;
     const double anchor_bottom = anchor.y + anchor.height;
     const std::array<double, 3> xs{
@@ -69,8 +74,7 @@ render::Point menu_position(const render::Rect& anchor, layout::Size window, lay
         anchor.y - menu.height / 2.0,
         anchor.y + anchor.height / 2.0 < window.height / 2.0 ? 0.0 : window.height - menu.height,
     };
-    return {pick(xs, menu.width, window.width, t.window_horizontal_margin),
-            pick(ys, menu.height, window.height, t.window_vertical_margin)};
+    return {pick(xs, menu.width, window.width, horizontal_margin), pick(ys, menu.height, window.height, vertical_margin)};
 }
 
 render::Point menu_transform_origin(const render::Rect& anchor, const render::Rect& menu) {

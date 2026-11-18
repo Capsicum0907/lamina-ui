@@ -16,10 +16,12 @@
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/dialog.hpp"
+#include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
+#include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/tabs.hpp"
@@ -30,13 +32,14 @@ using platform::PointerAction;
 
 namespace {
 
-enum class Overlay { none, menu, dialog };
+enum class Overlay { none, menu, grouped_menu, dialog, wrap_dialog };
 
 struct Layout {
     double margin = 32.0;
     double row_gap = 24.0;
     double column_gap = 16.0;
     double label_width = 160.0;
+    double rail_header_inset = 24.0;
     color::Role text = color::Role::on_surface;
     color::Role caption = color::Role::on_surface_variant;
     tokens::TypeRole header_type = tokens::TypeRole::headline_small;
@@ -103,8 +106,45 @@ int main(int argc, char** argv) {
                              {menu_labels[2], icon(Symbol::content_copy)},
                              {menu_labels[3], icon(Symbol::settings)}}},
                            fonts);
-        widgets::Dialog dialog({"Discard draft?", "This draft will be deleted from this device and cannot be restored.", "Discard", "Cancel"},
+        widgets::Button grouped_button({"View", tokens::ButtonStyle::outlined, tokens::ButtonSize::small, tokens::ButtonShape::round,
+                                        icon(Symbol::view_list)},
+                                       fonts);
+        widgets::Button wrap_button({"Reset", tokens::ButtonStyle::tonal, tokens::ButtonSize::small, tokens::ButtonShape::round,
+                                     icon(Symbol::refresh)},
+                                    fonts);
+        widgets::GroupedMenu grouped_menu(
+            {{{{{"List", icon(Symbol::view_list), std::nullopt, std::nullopt, true}, {"Grid", icon(Symbol::grid_view)}},
+               "Layout",
+               true,
+               widgets::MenuSelection::single},
+              {{{"Bookmarked", icon(Symbol::bookmark), std::nullopt, icon(Symbol::check)}, {"Starred", icon(Symbol::star)}},
+               {},
+               false,
+               widgets::MenuSelection::multiple},
+              {{{"Share", icon(Symbol::share)}, {"Settings", icon(Symbol::settings)}}}}},
+            fonts);
+        const std::vector<std::vector<std::string>> grouped_labels{{"List", "Grid"}, {"Bookmarked", "Starred"}, {"Share", "Settings"}};
+        widgets::Dialog dialog({"Discard draft?", "This draft will be deleted from this device and cannot be restored.", "Discard", "Cancel",
+                                icon(Symbol::delete_)},
                                fonts);
+        widgets::Dialog wrap_dialog({"Reset all settings?", "Every setting returns to its default value. Your drafts are kept.",
+                                     "Reset every setting to its default value", "Keep my current settings as they are"},
+                                    fonts);
+
+        const std::vector<std::string> sections{"Mail", "Starred", "Sent", "Contacts"};
+        widgets::IconButton rail_open({icon(Symbol::menu)});
+        widgets::IconButton rail_close({icon(Symbol::menu_open)});
+        auto rail_toggle = std::make_shared<layout::Stack>(std::vector<layout::NodePtr>{widgets::node(rail_open), widgets::node(rail_close)});
+        auto rail_header = layout::row({layout::spacer({layout.rail_header_inset, 0.0}), rail_toggle});
+        widgets::NavigationRail rail({{{icon(Symbol::mail), sections[0], {}, layout.selected_icon},
+                                       {icon(Symbol::star), sections[1], {}, layout.selected_icon},
+                                       {icon(Symbol::send), sections[2], {}, layout.selected_icon},
+                                       {icon(Symbol::person), sections[3], {}, layout.selected_icon}},
+                                      0,
+                                      false,
+                                      rail_header},
+                                     fonts);
+        auto rail_button = [&rail, &rail_open, &rail_close]() -> widgets::IconButton& { return rail.expanded() ? rail_close : rail_open; };
 
         const std::vector<std::string> destinations{"Home", "Search", "Favorites", "Settings"};
         widgets::NavigationBar nav({{{icon(Symbol::home), destinations[0], {}, layout.selected_icon},
@@ -118,12 +158,13 @@ int main(int argc, char** argv) {
         widgets::Label leading_caption("Leading icons", layout.caption_type, layout.caption, fonts, false);
         widgets::Label continuous_caption(format_value("Slider", continuous.value()), layout.caption_type, layout.caption, fonts, false);
         widgets::Label stepped_caption(format_value("Steps", stepped.value()), layout.caption_type, layout.caption, fonts, false);
-        widgets::Label overlay_caption("Menu and dialog", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label overlay_caption("Menus and dialogs", layout.caption_type, layout.caption, fonts, false);
 
         auto header_row = layout::row({widgets::node(header), layout::flexible_space(), widgets::node(status), widgets::centered_node(dark_toggle)});
         header_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center).fill_main(true);
         header_row->self_align = layout::CrossAlign::stretch;
-        auto overlay_row = layout::row({widgets::node(menu_button), widgets::node(dialog_button)});
+        auto overlay_row =
+            layout::row({widgets::node(menu_button), widgets::node(grouped_button), widgets::node(dialog_button), widgets::node(wrap_button)});
         overlay_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
 
         auto page = layout::column({
@@ -138,9 +179,11 @@ int main(int argc, char** argv) {
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin));
         auto nav_node = widgets::node(nav);
         nav_node->self_align = layout::CrossAlign::stretch;
-        auto root = layout::column({layout::weighted(page, 1.0), nav_node});
-        root->fill_cross(true);
+        auto main_column = layout::column({layout::weighted(page, 1.0), nav_node});
+        main_column->fill_cross(true);
         page->self_align = layout::CrossAlign::stretch;
+        auto root = layout::row({widgets::node(rail), layout::weighted(main_column, 1.0)});
+        root->fill_cross(true);
 
         auto background = [&](const platform::PointerEvent& e) {
             if (dark_toggle.handle(e)) {
@@ -172,23 +215,41 @@ int main(int argc, char** argv) {
             if (nav.handle(e)) {
                 report("Destination: " + destinations[nav.selected()]);
             }
+            if (rail_button().handle(e)) {
+                rail.set_expanded(!rail.expanded());
+                rail_open.handle({PointerAction::leave, 0.0, 0.0});
+                rail_close.handle({PointerAction::leave, 0.0, 0.0});
+                report(rail.expanded() ? "Rail: expanded" : "Rail: collapsed");
+            }
+            if (rail.handle(e)) {
+                report("Section: " + sections[rail.selected()]);
+            }
             if (menu_button.handle(e)) {
                 return Overlay::menu;
+            }
+            if (grouped_button.handle(e)) {
+                return Overlay::grouped_menu;
             }
             if (dialog_button.handle(e)) {
                 return Overlay::dialog;
             }
+            if (wrap_button.handle(e)) {
+                return Overlay::wrap_dialog;
+            }
             return Overlay::none;
         };
 
-        platform::Window window({"lamina-ui navigation", 960, 820});
+        platform::Window window({"lamina-ui navigation", 1120, 860});
         platform::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
             const layout::Size window_size{frame.width_dp, frame.height_dp};
+            rail.step(frame.dt_seconds);
             layout::run(*root, {0.0, 0.0, frame.width_dp, frame.height_dp});
-            if (dialog.visible()) {
-                dialog.set_window(window_size);
+            for (widgets::Dialog* d : {&dialog, &wrap_dialog}) {
+                if (d->visible()) {
+                    d->set_window(window_size);
+                }
             }
             const color::ColorScheme scheme = color::mix(from, to, theme.value());
 
@@ -201,6 +262,25 @@ int main(int argc, char** argv) {
                         report("Dialog: cancelled");
                     }
                     continue;
+                }
+                if (wrap_dialog.is_open()) {
+                    const auto result = wrap_dialog.handle(e);
+                    if (result == widgets::DialogResult::confirmed) {
+                        report("Dialog: settings reset");
+                    } else if (result == widgets::DialogResult::dismissed) {
+                        report("Dialog: settings kept");
+                    }
+                    continue;
+                }
+                if (grouped_menu.is_open()) {
+                    const auto response = grouped_menu.handle(e);
+                    if (response.chosen) {
+                        const auto [g, i] = *response.chosen;
+                        report("Menu: " + grouped_labels[g][i] + (grouped_menu.selected(g, i) ? " (on)" : ""));
+                    }
+                    if (response.consumed) {
+                        continue;
+                    }
                 }
                 if (menu.is_open()) {
                     const auto response = menu.handle(e);
@@ -217,8 +297,12 @@ int main(int argc, char** argv) {
                 }
                 if (opened == Overlay::menu) {
                     menu.open(menu_button.bounds(), window_size);
+                } else if (opened == Overlay::grouped_menu) {
+                    grouped_menu.open(grouped_button.bounds(), window_size);
                 } else if (opened == Overlay::dialog) {
                     dialog.open(window_size);
+                } else if (opened == Overlay::wrap_dialog) {
+                    wrap_dialog.open(window_size);
                 }
             }
             for (const auto& k : frame.keys) {
@@ -226,6 +310,12 @@ int main(int argc, char** argv) {
                     if (dialog.handle(k) == widgets::DialogResult::dismissed) {
                         report("Dialog: cancelled");
                     }
+                } else if (wrap_dialog.is_open()) {
+                    if (wrap_dialog.handle(k) == widgets::DialogResult::dismissed) {
+                        report("Dialog: settings kept");
+                    }
+                } else if (grouped_menu.is_open()) {
+                    grouped_menu.handle(k);
                 } else if (menu.is_open()) {
                     menu.handle(k);
                 } else if (focused_slider->handle(k)) {
@@ -239,6 +329,7 @@ int main(int argc, char** argv) {
             canvas.save();
             canvas.scale(frame.scale);
             const double dt = frame.dt_seconds;
+            rail.paint(canvas, scheme);
             for (widgets::Label* l : {&header, &status, &primary_caption, &secondary_caption, &leading_caption, &continuous_caption,
                                       &stepped_caption, &overlay_caption}) {
                 l->paint(canvas, scheme);
@@ -251,7 +342,13 @@ int main(int argc, char** argv) {
             continuous.step(dt);
             stepped.step(dt);
             menu_button.step(dt);
+            grouped_button.step(dt);
             dialog_button.step(dt);
+            wrap_button.step(dt);
+            rail_open.step(dt);
+            rail_close.step(dt);
+            grouped_menu.step(dt);
+            wrap_dialog.step(dt);
             nav.step(dt);
             menu.step(dt);
             dialog.step(dt);
@@ -262,13 +359,20 @@ int main(int argc, char** argv) {
             continuous.paint(canvas, scheme);
             stepped.paint(canvas, scheme);
             menu_button.paint(canvas, scheme);
+            grouped_button.paint(canvas, scheme);
             dialog_button.paint(canvas, scheme);
+            wrap_button.paint(canvas, scheme);
+            rail_button().paint(canvas, scheme);
             nav.paint(canvas, scheme);
             menu.paint(canvas, scheme);
+            grouped_menu.paint(canvas, scheme);
             dialog.paint(canvas, scheme);
+            wrap_dialog.paint(canvas, scheme);
             animating = !theme.settled() || dark_toggle.animating() || primary_tabs.animating() || secondary_tabs.animating() ||
                         leading_tabs.animating() || continuous.animating() || stepped.animating() || menu_button.animating() ||
-                        dialog_button.animating() || nav.animating() || menu.animating() || dialog.animating();
+                        dialog_button.animating() || nav.animating() || menu.animating() || dialog.animating() ||
+                        grouped_button.animating() || wrap_button.animating() || rail_open.animating() || rail_close.animating() ||
+                        rail.animating() || grouped_menu.animating() || wrap_dialog.animating();
             canvas.restore();
             window.present();
         }

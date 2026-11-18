@@ -188,12 +188,58 @@ void Stack::on_arrange(const render::Rect& rect) {
     }
 }
 
+Size Flow::on_measure(const Constraints& c) {
+    lines_.clear();
+    const Constraints loose = c.loosen();
+    double width = 0.0;
+    double height = 0.0;
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+        const Size s = children_[i]->measure(loose);
+        if (!lines_.empty() && lines_.back().width + spacing_ + s.width <= c.max_width) {
+            Line& line = lines_.back();
+            line.end = i + 1;
+            line.width += spacing_ + s.width;
+            line.height = std::max(line.height, s.height);
+        } else {
+            lines_.push_back({i, i + 1, s.width, s.height});
+        }
+    }
+    for (std::size_t l = 0; l < lines_.size(); ++l) {
+        width = std::max(width, lines_[l].width);
+        height += lines_[l].height + (l > 0 ? line_spacing_ : 0.0);
+    }
+    return c.constrain({width, height});
+}
+
+void Flow::on_arrange(const render::Rect& rect) {
+    double y = rect.y;
+    for (const Line& line : lines_) {
+        double x = direction_ == FlowDirection::start_to_end ? rect.x : rect.x + rect.width;
+        for (std::size_t i = line.begin; i < line.end; ++i) {
+            const Size s = children_[i]->measured();
+            if (direction_ == FlowDirection::start_to_end) {
+                children_[i]->arrange({x, y, s.width, s.height});
+                x += s.width + spacing_;
+            } else {
+                x -= s.width;
+                children_[i]->arrange({x, y, s.width, s.height});
+                x -= spacing_;
+            }
+        }
+        y += line.height + line_spacing_;
+    }
+}
+
 std::shared_ptr<Linear> row(std::vector<NodePtr> children) {
     return std::make_shared<Linear>(Axis::horizontal, std::move(children));
 }
 
 std::shared_ptr<Linear> column(std::vector<NodePtr> children) {
     return std::make_shared<Linear>(Axis::vertical, std::move(children));
+}
+
+std::shared_ptr<Flow> flow(std::vector<NodePtr> children) {
+    return std::make_shared<Flow>(std::move(children));
 }
 
 NodePtr spacer(Size size) {

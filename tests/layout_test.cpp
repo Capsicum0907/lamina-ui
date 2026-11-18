@@ -94,3 +94,30 @@ TEST_CASE("a stretched row is as tall as its tallest child, not as tall as the s
     CHECK(r->measured().height == 50);
     CHECK(a.rect.height == 50);
 }
+
+TEST_CASE("a flow wraps children that do not fit onto further lines") {
+    Box a, b, c;
+    auto f = flow({a.node({60, 10}), b.node({50, 20}), c.node({70, 10})});
+    f->spacing(5).line_spacing(3);
+    run(*f, {0, 0, 120, 500});
+    CHECK(f->line_count() == 2);
+    CHECK(f->measured().width == 115);
+    CHECK(f->measured().height == 20 + 3 + 10);
+    CHECK(a.rect.x == 0);
+    CHECK(b.rect.x == 65);
+    CHECK(c.rect.x == 0);
+    CHECK(c.rect.y == 23);
+}
+
+TEST_CASE("an end-to-start flow places the first child at the end of each line") {
+    Box a, b, c;
+    auto f = flow({a.node({60, 10}), b.node({50, 20}), c.node({70, 10})});
+    f->spacing(5).direction(FlowDirection::end_to_start);
+    run(*f, {0, 0, 120, 500});
+    CHECK(a.rect.x + a.rect.width == 115);
+    CHECK(b.rect.x + b.rect.width + 5 == a.rect.x);
+    CHECK(c.rect.x + c.rect.width == 115);
+    run(*f, {0, 0, 500, 500});
+    CHECK(f->line_count() == 1);
+    CHECK(c.rect.x + c.rect.width + 5 == b.rect.x);
+}

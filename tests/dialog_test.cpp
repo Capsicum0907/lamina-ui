@@ -118,3 +118,84 @@ TEST_CASE("an open dialog paints the scrim and its container") {
     const render::Rect r = d.bounds();
     CHECK(canvas.pixel(static_cast<int>(r.x + 10.0), static_cast<int>(r.y + 30.0)) == scheme()[color::Role::surface_container_high]);
 }
+
+namespace {
+
+const icons::IconFont& icon_font() {
+    static const icons::IconFont font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
+    return font;
+}
+
+widgets::DialogOptions with_icon() {
+    widgets::DialogOptions o = options();
+    o.icon = icons::Icon{icon_font(), icons::Symbol::delete_};
+    return o;
+}
+
+}
+
+TEST_CASE("dialog icon tokens follow DialogTokens.kt and AlertDialog.kt") {
+    const auto& t = tokens::dialog_tokens;
+    CHECK(t.icon_size == 24.0);
+    CHECK(t.icon_color == color::Role::secondary);
+    CHECK(t.icon_bottom_space == 16.0);
+    CHECK(t.button_line_space == 8.0);
+}
+
+TEST_CASE("an icon sits centered above a centered headline") {
+    widgets::Dialog plain(options(), fonts());
+    plain.open(window);
+    CHECK_FALSE(plain.icon_bounds());
+    CHECK(plain.headline_bounds().x == doctest::Approx(plain.bounds().x + 24.0));
+
+    widgets::Dialog d(with_icon(), fonts());
+    d.open(window);
+    const render::Rect r = d.bounds();
+    REQUIRE(d.icon_bounds());
+    const render::Rect icon = *d.icon_bounds();
+    CHECK(icon.width == 24.0);
+    CHECK(icon.y == doctest::Approx(r.y + 24.0));
+    CHECK(icon.x + icon.width / 2.0 == doctest::Approx(r.x + r.width / 2.0));
+    const render::Rect headline = d.headline_bounds();
+    CHECK(headline.y == doctest::Approx(icon.y + 24.0 + 16.0));
+    CHECK(headline.x + headline.width / 2.0 == doctest::Approx(r.x + r.width / 2.0));
+    CHECK(r.height == doctest::Approx(plain.bounds().height + 24.0 + 16.0));
+}
+
+TEST_CASE("the dialog paints its icon in the secondary color") {
+    widgets::Dialog d(with_icon(), fonts());
+    d.open(window);
+    settle(d);
+    render::ThorVGCanvas canvas(800, 600);
+    canvas.clear(0xffffffff);
+    d.paint(canvas, scheme());
+    const render::Rect icon = *d.icon_bounds();
+    int ink = 0;
+    for (int y = static_cast<int>(icon.y); y < static_cast<int>(icon.y + icon.height); ++y) {
+        for (int x = static_cast<int>(icon.x); x < static_cast<int>(icon.x + icon.width); ++x) {
+            ink += canvas.pixel(x, y) == scheme()[color::Role::secondary] ? 1 : 0;
+        }
+    }
+    CHECK(ink > 20);
+}
+
+TEST_CASE("buttons that do not fit wrap with confirm on the first line, both at the end") {
+    widgets::Dialog one(options(), fonts());
+    one.open(window);
+    CHECK(one.button_lines() == 1);
+
+    widgets::DialogOptions o = options();
+    o.confirm_label = "Discard the draft and every attachment in it";
+    o.dismiss_label = "Keep editing the draft for now";
+    widgets::Dialog d(o, fonts());
+    d.open(window);
+    CHECK(d.button_lines() == 2);
+    const render::Rect r = d.bounds();
+    const render::Rect confirm = d.confirm_bounds();
+    REQUIRE(d.dismiss_bounds());
+    const render::Rect dismiss = *d.dismiss_bounds();
+    CHECK(confirm.x + confirm.width == doctest::Approx(r.x + r.width - 24.0));
+    CHECK(dismiss.x + dismiss.width == doctest::Approx(r.x + r.width - 24.0));
+    CHECK(dismiss.y == doctest::Approx(confirm.y + confirm.height + 8.0));
+    CHECK(dismiss.y + dismiss.height == doctest::Approx(r.y + r.height - 24.0));
+}

@@ -9,6 +9,7 @@
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
+#include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/switch.hpp"
@@ -57,5 +58,13 @@ layout::NodePtr full_width_node(W& w) {
 inline layout::NodePtr node(Slider& s) { return full_width_node(s); }
 inline layout::NodePtr node(TabRow& t) { return full_width_node(t); }
 inline layout::NodePtr node(NavigationBar& b) { return full_width_node(b); }
+
+inline layout::NodePtr node(NavigationRail& r) {
+    return std::make_shared<layout::Leaf>(
+        [&r](const layout::Constraints& c) {
+            return layout::Size{r.measure_width(c.max_width), std::isfinite(c.max_height) ? c.max_height : r.height()};
+        },
+        [&r](const render::Rect& rect) { r.arrange(rect); });
+}
 
 }
