@@ -224,4 +224,27 @@ std::u32string decode_utf8(std::string_view s) {
     return out;
 }
 
+std::string encode_utf8(std::u32string_view text) {
+    std::string out;
+    out.reserve(text.size());
+    for (char32_t c : text) {
+        if (c < 0x80) {
+            out.push_back(static_cast<char>(c));
+        } else if (c < 0x800) {
+            out.push_back(static_cast<char>(0xc0 | (c >> 6)));
+            out.push_back(static_cast<char>(0x80 | (c & 0x3f)));
+        } else if (c < 0x10000) {
+            out.push_back(static_cast<char>(0xe0 | (c >> 12)));
+            out.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3f)));
+            out.push_back(static_cast<char>(0x80 | (c & 0x3f)));
+        } else {
+            out.push_back(static_cast<char>(0xf0 | (c >> 18)));
+            out.push_back(static_cast<char>(0x80 | ((c >> 12) & 0x3f)));
+            out.push_back(static_cast<char>(0x80 | ((c >> 6) & 0x3f)));
+            out.push_back(static_cast<char>(0x80 | (c & 0x3f)));
+        }
+    }
+    return out;
+}
+
 }

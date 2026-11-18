@@ -26,6 +26,7 @@ add_library(lamina STATIC
     src/lamina/text/font.cpp
     src/lamina/text/layout.cpp
     src/lamina/widgets/button.cpp
+    src/lamina/widgets/text_field.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
 target_include_directories(lamina PUBLIC src)
@@ -64,6 +65,9 @@ if(LAMINA_BUILD_EXAMPLES)
     add_executable(buttons examples/buttons/main.cpp)
     target_link_libraries(buttons PRIVATE lamina lamina_sdl3)
     lamina_warnings(buttons)
+    add_executable(text_field examples/text_field/main.cpp)
+    target_link_libraries(text_field PRIVATE lamina lamina_sdl3)
+    lamina_warnings(text_field)
 endif()
 
 if(LAMINA_BUILD_TESTS)
@@ -76,6 +80,7 @@ if(LAMINA_BUILD_TESTS)
         tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp
         tests/spring_test.cpp
+        tests/text_field_test.cpp
         tests/text_test.cpp
         tests/tokens_test.cpp
     )

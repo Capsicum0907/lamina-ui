@@ -1,6 +1,7 @@
 #include "lamina/text/layout.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "lamina/text/line_break.hpp"
 
@@ -119,6 +120,31 @@ TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const 
         block.height += std::max(style.line_height, line.ascent + line.descent);
     }
     return block;
+}
+
+double caret_x(const TextLine& line, std::size_t index) {
+    double best = line.width;
+    std::size_t best_cluster = line.last;
+    for (const PositionedGlyph& g : line.glyphs) {
+        if (g.cluster >= index && g.cluster < best_cluster) {
+            best_cluster = g.cluster;
+            best = g.x;
+        }
+    }
+    return index <= line.first ? 0.0 : best;
+}
+
+std::size_t index_at(const TextLine& line, double x) {
+    std::size_t best = line.first;
+    double best_distance = std::abs(x);
+    for (std::size_t i = line.first + 1; i <= line.last; ++i) {
+        const double d = std::abs(x - caret_x(line, i));
+        if (d < best_distance) {
+            best_distance = d;
+            best = i;
+        }
+    }
+    return best;
 }
 
 render::Path line_path(const FontStack& fonts, const TextLine& line, render::Point top_left) {

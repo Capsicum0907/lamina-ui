@@ -51,6 +51,9 @@ TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextSt
 
 TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width);
 
+double caret_x(const TextLine& line, std::size_t index);
+std::size_t index_at(const TextLine& line, double x);
+
 render::Path line_path(const FontStack& fonts, const TextLine& line, render::Point top_left);
 
 void draw_line(render::Canvas& canvas, const FontStack& fonts, const TextLine& line, render::Point top_left,

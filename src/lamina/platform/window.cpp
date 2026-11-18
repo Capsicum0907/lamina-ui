@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <optional>
 #include <stdexcept>
 
 #include <SDL3/SDL.h>
@@ -17,6 +18,23 @@ namespace {
 
 constexpr double nanoseconds_per_second = 1e9;
 constexpr double max_frame_seconds = 0.1;
+constexpr double milliseconds_per_second = 1000.0;
+
+std::optional<Key> to_key(SDL_Keycode k) {
+    switch (k) {
+    case SDLK_BACKSPACE: return Key::backspace;
+    case SDLK_DELETE: return Key::delete_forward;
+    case SDLK_LEFT: return Key::left;
+    case SDLK_RIGHT: return Key::right;
+    case SDLK_HOME: return Key::home;
+    case SDLK_END: return Key::end;
+    case SDLK_RETURN:
+    case SDLK_KP_ENTER: return Key::enter;
+    case SDLK_ESCAPE: return Key::escape;
+    case SDLK_TAB: return Key::tab;
+    default: return std::nullopt;
+    }
+}
 
 [[noreturn]] void fail(const char* what) {
     throw std::runtime_error(std::string(what) + ": " + SDL_GetError());
@@ -32,6 +50,8 @@ struct Window::Impl {
     int texture_h = 0;
     render::ThorVGCanvas canvas{1, 1};
     Uint64 last_ns = 0;
+    double wake_seconds = -1.0;
+    bool text_input = false;
 
     double pixel_density() const {
         int ww = 0;
@@ -71,6 +91,7 @@ struct Window::Impl {
 Window::Window(const WindowOptions& options) : impl_(std::make_unique<Impl>()) {
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
+    SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fail("SDL_Init");
     }
@@ -105,10 +126,17 @@ Window::~Window() {
 
 bool Window::next_frame(Frame& frame, bool animating) {
     frame.pointer.clear();
+    frame.keys.clear();
+    frame.text.clear();
     if (!animating) {
-        SDL_WaitEvent(nullptr);
+        if (impl_->wake_seconds >= 0.0) {
+            SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(impl_->wake_seconds * milliseconds_per_second)));
+        } else {
+            SDL_WaitEvent(nullptr);
+        }
         impl_->last_ns = SDL_GetTicksNS();
     }
+    impl_->wake_seconds = -1.0;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
         switch (e.type) {
@@ -127,6 +155,17 @@ bool Window::next_frame(Frame& frame, bool animating) {
             if (e.button.button == SDL_BUTTON_LEFT) {
                 frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y)});
             }
+            break;
+        case SDL_EVENT_KEY_DOWN:
+            if (const auto key = to_key(e.key.key)) {
+                frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0});
+            }
+            break;
+        case SDL_EVENT_TEXT_INPUT:
+            frame.text.push_back({TextEventKind::commit, e.text.text, 0});
+            break;
+        case SDL_EVENT_TEXT_EDITING:
+            frame.text.push_back({TextEventKind::compose, e.edit.text ? e.edit.text : "", e.edit.start});
             break;
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
             frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
@@ -150,6 +189,31 @@ bool Window::next_frame(Frame& frame, bool animating) {
     frame.width_dp = pw / frame.scale;
     frame.height_dp = ph / frame.scale;
     return true;
+}
+
+void Window::wake_after(double seconds) {
+    if (impl_->wake_seconds < 0.0 || seconds < impl_->wake_seconds) {
+        impl_->wake_seconds = std::max(0.0, seconds);
+    }
+}
+
+void Window::set_text_input(const render::Rect* area) {
+    if (!area) {
+        if (impl_->text_input) {
+            SDL_StopTextInput(impl_->window);
+            impl_->text_input = false;
+        }
+        return;
+    }
+    const double k = impl_->scale() / impl_->pixel_density();
+    const SDL_Rect rect{static_cast<int>(std::lround(area->x * k)), static_cast<int>(std::lround(area->y * k)),
+                        std::max(1, static_cast<int>(std::lround(area->width * k))),
+                        std::max(1, static_cast<int>(std::lround(area->height * k)))};
+    SDL_SetTextInputArea(impl_->window, &rect, 0);
+    if (!impl_->text_input) {
+        SDL_StartTextInput(impl_->window);
+        impl_->text_input = true;
+    }
 }
 
 render::Canvas& Window::canvas() {

@@ -21,6 +21,8 @@ struct Frame {
     double height_dp;
     double scale;
     std::vector<PointerEvent> pointer;
+    std::vector<KeyEvent> keys;
+    std::vector<TextEvent> text;
 };
 
 class Window {
@@ -32,6 +34,8 @@ public:
     Window& operator=(const Window&) = delete;
 
     bool next_frame(Frame& frame, bool animating);
+    void wake_after(double seconds);
+    void set_text_input(const render::Rect* caret_area_dp);
     render::Canvas& canvas();
     void present();
 

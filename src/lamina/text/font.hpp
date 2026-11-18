@@ -60,5 +60,6 @@ private:
 };
 
 std::u32string decode_utf8(std::string_view utf8);
+std::string encode_utf8(std::u32string_view text);
 
 }
