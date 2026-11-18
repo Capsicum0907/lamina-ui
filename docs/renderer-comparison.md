@@ -19,6 +19,10 @@ Measured on 2026-11-19 with Blend2D (vcpkg 2025-03-08) and ThorVG 1.0.5, CPU eng
 
 Pixel difference between the two images, with shadows: mean 0.13 per channel, max 24, 0.05 % of pixels differ by more than 8. In the zoomed crops (corners, star curves, hairlines) the two cannot be told apart.
 
+## Decision
+
+ThorVG (2026-11-19). The quality is the same and the speed difference does not matter at these frame times, while ThorVG has blur and shadow built in and offers GPU engines behind the same API. The Blend2D backend and the comparison tool were removed after this measurement; they remain in the git history (commit `2583aaf`).
+
 ## Notes
 
 - Blend2D has no blur. Its shadow is lamina-ui's own blur (three box blurs, `render/box_blur.cpp`), which is not optimized. The shadow time measures that code, not Blend2D.

@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.25)
 project(lamina-ui VERSION 0.0.0 LANGUAGES CXX)
 
 option(LAMINA_BUILD_TESTS "Build the unit tests" OFF)
-option(LAMINA_BUILD_TOOLS "Build the development tools" ON)
 
 if(LAMINA_BUILD_TESTS)
     enable_testing()
@@ -21,7 +20,6 @@ endfunction()
 add_library(lamina STATIC
     src/lamina/color/spec_2021.cpp
     src/lamina/motion/spring.cpp
-    src/lamina/render/box_blur.cpp
     src/lamina/render/canvas.cpp
     src/lamina/render/geometry.cpp
     src/lamina/render/path.cpp
@@ -31,12 +29,6 @@ target_include_directories(lamina PUBLIC src)
 target_compile_features(lamina PUBLIC cxx_std_20)
 target_link_libraries(lamina PRIVATE mcu::mcu)
 lamina_warnings(lamina)
-
-find_package(blend2d CONFIG REQUIRED)
-add_library(lamina_blend2d STATIC src/lamina/render/blend2d_canvas.cpp)
-add_library(lamina::blend2d ALIAS lamina_blend2d)
-target_link_libraries(lamina_blend2d PUBLIC lamina PRIVATE blend2d::blend2d)
-lamina_warnings(lamina_blend2d)
 
 find_path(THORVG_INCLUDE_DIR thorvg.h PATH_SUFFIXES thorvg-1 REQUIRED)
 find_library(THORVG_LIBRARY_RELEASE NAMES thorvg-1 thorvg PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH REQUIRED)
@@ -58,13 +50,7 @@ if(LAMINA_BUILD_TESTS)
         tests/spring_test.cpp
         tests/tokens_test.cpp
     )
-    target_link_libraries(lamina_tests PRIVATE lamina lamina_blend2d lamina_thorvg mcu::mcu doctest::doctest)
+    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
     add_test(NAME lamina_tests COMMAND lamina_tests)
-endif()
-
-if(LAMINA_BUILD_TOOLS)
-    add_executable(render-compare tools/render-compare/main.cpp)
-    target_link_libraries(render-compare PRIVATE lamina lamina_blend2d lamina_thorvg blend2d::blend2d)
-    lamina_warnings(render-compare)
 endif()
