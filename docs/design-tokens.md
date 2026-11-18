@@ -171,6 +171,10 @@ Baseline primary: #6750A4 (C `PaletteTokens.Primary40`).
 - **The C++ port implements only the 2021 spec.** The Java port has `ColorSpec2021`, `ColorSpec2025` and `ColorSpec2026` (`SpecVersion`). C++ has no spec selection and none of the 2025 roles (`primary_dim`, etc.). The last change to `cpp/` was 2024-10-01. The Java port was changed as late as 2026-10.
 - It has no build files (Google-internal include paths) and depends on abseil (`flat_hash_map`, `str_cat`) and gtest.
 
+### Decision
+
+Start with the C++ port on the 2021 spec, and replace it with a C++ port of the 2025 spec later. HCT and tonal palettes are shared by both specs. Only the layer that decides each role's tone differs, so that layer is kept replaceable.
+
 ## Elevation and state layers
 
 C `tokens/ElevationTokens.kt` (`VERSION: v0_210`): Level0–5 = 0 / 1 / 3 / 6 / 8 / 12 dp.
@@ -179,6 +183,5 @@ C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, 
 
 ## Open questions
 
-- Color: use the C++ port as it is (2021 spec), or port the 2025 spec from Java to C++.
 - Typography: which source to follow where the tracking values disagree.
 - Not surveyed yet: component-level tokens (button heights, paddings, etc.), and the shadow geometry for each elevation level.
