@@ -8,13 +8,17 @@ lamina-ui is not affiliated with or endorsed by Google. "Material Design" is Goo
 
 ## Status
 
-Early. Only the design-value layer exists so far, without rendering:
+Early. The design-value layer, a 2D canvas and an SDL3 window exist so far:
 
 - `lamina/tokens/motion.hpp`: the spring, easing and duration tokens of the standard and expressive motion schemes.
 - `lamina/motion/spring.hpp`: a damped spring with a closed-form solution. `advance` moves a value toward its target by any time step, and the result does not depend on how the time is split into frames. `is_settled` tells when the motion has come to rest.
 
 - `lamina/tokens/shape.hpp`, `typography.hpp`, `elevation.hpp`: the corner-radius scale, the type scale (with the emphasized weights), elevation levels and state-layer opacities.
 - `lamina/color/scheme.hpp`: color schemes from one seed color. `spec_2021().build(options)` returns the 49 color roles (primary, surface-container, outline, ...) for a seed, light or dark, a variant (TonalSpot, Expressive, Vibrant, ...) and a contrast level. It is computed by Google's material-color-utilities (`third_party/`), which implements the 2021 color spec.
+
+- `lamina/render/canvas.hpp`: a 2D canvas with paths, rounded rectangles, drop shadows and a transform stack, drawn by ThorVG (`lamina::thorvg`). Why ThorVG: [docs/renderer-comparison.md](docs/renderer-comparison.md).
+- `lamina/platform/window.hpp`: an SDL3 window that shows the canvas, converts pointer input to dp, and waits for events while nothing is animating (`lamina::sdl3`).
+- `lamina/motion/animated.hpp`, `lamina/color/mix.hpp`: a value driven by a spring, and color mixing.
 
 The color spec is behind the `ColorSpec` interface. HCT and the tonal palettes are the same in the 2021 and 2025 specs; only the rules that pick each role's tone differ. A 2025 spec can therefore be added as another `ColorSpec` without changing the code that uses the scheme.
 
@@ -33,6 +37,8 @@ cmake --preset default
 cmake --build --preset release
 ctest --preset release
 ```
+
+`build/Release/playground.exe` opens a window with six cards. Clicking a card raises it, rounds its corners further and changes its color, each driven by a spring of the expressive motion scheme.
 
 ## Attribution
 

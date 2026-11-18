@@ -16,6 +16,8 @@ public:
     void clear(color::Argb color) override;
     PixelView finish() override;
 
+    void resize(int width, int height);
+
 protected:
     void fill_device_path(const Path& path, color::Argb color) override;
     void fill_device_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) override;

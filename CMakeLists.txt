@@ -40,12 +40,26 @@ target_include_directories(lamina_thorvg PRIVATE ${THORVG_INCLUDE_DIR})
 target_link_libraries(lamina_thorvg PUBLIC lamina PRIVATE ${THORVG_LIBRARY})
 lamina_warnings(lamina_thorvg)
 
+find_package(SDL3 CONFIG REQUIRED)
+add_library(lamina_sdl3 STATIC src/lamina/platform/window.cpp)
+add_library(lamina::sdl3 ALIAS lamina_sdl3)
+target_link_libraries(lamina_sdl3 PUBLIC lamina lamina_thorvg PRIVATE SDL3::SDL3)
+lamina_warnings(lamina_sdl3)
+
+option(LAMINA_BUILD_EXAMPLES "Build the examples" ON)
+if(LAMINA_BUILD_EXAMPLES)
+    add_executable(playground examples/playground/main.cpp)
+    target_link_libraries(playground PRIVATE lamina lamina_sdl3)
+    lamina_warnings(playground)
+endif()
+
 if(LAMINA_BUILD_TESTS)
     find_package(doctest CONFIG REQUIRED)
     add_executable(lamina_tests
         tests/canvas_test.cpp
         tests/color_scheme_test.cpp
         tests/main.cpp
+        tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp
         tests/spring_test.cpp
         tests/tokens_test.cpp

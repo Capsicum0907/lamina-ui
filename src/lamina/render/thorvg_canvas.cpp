@@ -60,17 +60,25 @@ tvg::Shape* to_shape(const Path& path, color::Argb color) {
 }
 
 struct ThorVGCanvas::Impl {
-    int width;
-    int height;
+    int width = 0;
+    int height = 0;
     std::vector<std::uint32_t> buffer;
     tvg::SwCanvas* canvas = nullptr;
     bool dirty = false;
 
-    Impl(int w, int h) : width(w), height(h), buffer(static_cast<std::size_t>(w) * h, 0) {
+    Impl(int w, int h) {
         tvg::Initializer::init(0);
         canvas = tvg::SwCanvas::gen();
+        retarget(w, h);
+    }
+
+    void retarget(int w, int h) {
+        width = w;
+        height = h;
+        buffer.assign(static_cast<std::size_t>(w) * h, 0);
         canvas->target(buffer.data(), static_cast<std::uint32_t>(w), static_cast<std::uint32_t>(w),
                        static_cast<std::uint32_t>(h), tvg::ColorSpace::ARGB8888);
+        dirty = true;
     }
 
     ~Impl() {
@@ -116,11 +124,22 @@ PixelView ThorVGCanvas::finish() {
             static_cast<std::intptr_t>(impl_->width) * 4};
 }
 
+void ThorVGCanvas::resize(int width, int height) {
+    if (width != impl_->width || height != impl_->height) {
+        impl_->canvas->sync();
+        impl_->retarget(width, height);
+    }
+}
+
 void ThorVGCanvas::fill_device_path(const Path& path, color::Argb color) {
     impl_->add(to_shape(path, color));
 }
 
 void ThorVGCanvas::fill_device_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) {
+    if (shadow.blur_sigma <= 0.0 || (shadow.color >> 24) == 0) {
+        fill_device_path(path, color);
+        return;
+    }
     auto* scene = tvg::Scene::gen();
     scene->add(to_shape(path, color));
     const Rgba s = split(shadow.color);
