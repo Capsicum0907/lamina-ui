@@ -1,0 +1,184 @@
+# Design tokens (survey)
+
+[日本語](design-tokens.ja.md)
+
+The values lamina-ui takes from Material 3 Expressive, read from Google's open-source implementations. Every value below was read from source files, not from the design site. Spot checks were made against the raw files on 2026-11-18.
+
+## Sources
+
+| Key | Repository | Commit (2026-11-18) | License |
+|---|---|---|---|
+| C | [androidx/androidx](https://github.com/androidx/androidx) — `compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/` | `1b31f4ddbd0d` | Apache-2.0 |
+| G | androidx/androidx — `graphics/graphics-shapes/src/commonMain/kotlin/androidx/graphics/shapes/` | same | Apache-2.0 |
+| M | [material-components/material-components-android](https://github.com/material-components/material-components-android) — `lib/java/com/google/android/material/motion/res/values/tokens.xml` | `6061a69915d0` | Apache-2.0 |
+| W | [material-components/material-web](https://github.com/material-components/material-web) — `tokens/versions/latest/sass/` | `c6e9a66360b1` | Apache-2.0 |
+| U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
+
+Reusing these values requires keeping the Apache-2.0 notice and attribution.
+
+## Motion
+
+### Springs
+
+From C `tokens/StandardMotionTokens.kt` and `tokens/ExpressiveMotionTokens.kt` (`VERSION: v0_14_0`). M `m3_sys_motion_{scheme}_spring_{speed}_{kind}_{damping|stiffness}` has the same values.
+
+| Scheme | Speed | Spatial damping | Spatial stiffness | Effects damping | Effects stiffness |
+|---|---|---|---|---|---|
+| standard | fast | 0.9 | 1400 | 1.0 | 3800 |
+| standard | default | 0.9 | 700 | 1.0 | 1600 |
+| standard | slow | 0.9 | 300 | 1.0 | 800 |
+| expressive | fast | 0.6 | 800 | 1.0 | 3800 |
+| expressive | default | 0.8 | 380 | 1.0 | 1600 |
+| expressive | slow | 0.8 | 200 | 1.0 | 800 |
+
+- Damping is the damping ratio ζ (1.0 = critically damped, below 1 overshoots). Stiffness is k for a unit mass.
+- Effects springs are the same in both schemes. Only spatial springs differ.
+- Spatial: animations that change the shape or bounds of a component. Effects: animations that do not, such as color and alpha (C `MotionScheme.kt`, KDoc).
+
+### Durations and easing
+
+C `tokens/MotionTokens.kt` (`VERSION: v0_103`). Not cross-checked against M.
+
+| Token | Value |
+|---|---|
+| Short1–4 | 50 / 100 / 150 / 200 ms |
+| Medium1–4 | 250 / 300 / 350 / 400 ms |
+| Long1–4 | 450 / 500 / 550 / 600 ms |
+| ExtraLong1–4 | 700 / 800 / 900 / 1000 ms |
+
+| Easing (cubic-bezier) | Value |
+|---|---|
+| Emphasized | (0.2, 0.0, 0.0, 1.0) |
+| EmphasizedAccelerate | (0.3, 0.0, 0.8, 0.15) |
+| EmphasizedDecelerate | (0.05, 0.7, 0.1, 1.0) |
+| Standard | (0.2, 0.0, 0.0, 1.0) |
+| StandardAccelerate | (0.3, 0.0, 1.0, 1.0) |
+| StandardDecelerate | (0.0, 0.0, 0.0, 1.0) |
+| Legacy | (0.4, 0.0, 0.2, 1.0) |
+| LegacyAccelerate | (0.4, 0.0, 1.0, 1.0) |
+| LegacyDecelerate | (0.0, 0.0, 0.2, 1.0) |
+| Linear | (0.0, 0.0, 1.0, 1.0) |
+
+Emphasized and Standard have the same value in the source.
+
+## Shape
+
+### Corner radius
+
+C `tokens/ShapeTokens.kt` (`VERSION: 14_1_0`). W `_md-sys-shape.scss` agrees.
+
+| Step | dp |
+|---|---|
+| none | 0 |
+| extra-small | 4 |
+| small | 8 |
+| medium | 12 |
+| large | 16 |
+| large-increased | 20 |
+| extra-large | 28 |
+| extra-large-increased | 32 |
+| extra-extra-large | 48 |
+| full | half of the shorter side |
+
+One-sided variants exist: ExtraSmallTop (4, 4, 0, 0), LargeTop, LargeStart, LargeEnd, ExtraLargeTop (28, 28, 0, 0).
+
+### Shape library
+
+C `MaterialShapes.kt` defines 35 shapes as normalized `RoundedPolygon`s (unit square, center (0.5, 0.5)):
+
+Circle, Square, Slanted, Arch, Fan, Arrow, SemiCircle, Oval, Pill, Triangle, Diamond, ClamShell, Pentagon, Gem, Sunny, VerySunny, Cookie4Sided, Cookie6Sided, Cookie7Sided, Cookie9Sided, Cookie12Sided, Ghostish, Clover4Leaf, Clover8Leaf, Burst, SoftBurst, Boom, SoftBoom, Flower, Puffy, PuffyDiamond, PixelCircle, PixelTriangle, Bun, Heart.
+
+How they are built:
+
+- Shared roundings: `CornerRounding(radius)` with radius 0.15 / 0.2 / 0.3 / 0.5 / 1.0. G `CornerRounding(radius, smoothing ∈ [0, 1])`.
+- Examples: Circle = `circle(numVertices = 10)`. Square = `rectangle(1, 1, rounding 0.3)`. Triangle = 3 vertices, rounding 0.2, rotated −90°. Sunny = `star(8 per radius, innerRadius 0.8, rounding 0.15)`.
+- Most shapes are seed points, each with its own rounding, repeated `reps` times around the center, optionally mirrored.
+
+### Morphing
+
+G `Morph.kt`:
+
+1. Measure both outlines by arc length.
+2. Map each corner of one shape to the nearest corner of the other. Cut and shift the second outline so that progress 0 lines up. Split cubics until both outlines are lists of cubic Béziers paired one to one.
+3. At progress t, interpolate each pair of cubics (8 floats) linearly. t slightly outside [0, 1] is allowed, so a spring can overshoot the shape.
+
+## Typography
+
+C `tokens/TypeScaleTokens.kt` (`VERSION: v0_103`) and W `_md-sys-typescale.scss`. Sizes in sp. Weight Regular = 400, Medium = 500, Bold = 700.
+
+| Style | Size / line height | Weight | Tracking (C) | Tracking (W) |
+|---|---|---|---|---|
+| Display L | 57 / 64 | 400 | **−0.2** | −0.25 |
+| Display M | 45 / 52 | 400 | 0 | 0 |
+| Display S | 36 / 44 | 400 | 0 | 0 |
+| Headline L | 32 / 40 | 400 | 0 | 0 |
+| Headline M | 28 / 36 | 400 | 0 | 0 |
+| Headline S | 24 / 32 | 400 | 0 | 0 |
+| Title L | 22 / 28 | 400 | 0 | 0 |
+| Title M | 16 / 24 | 500 | **0.2** | 0.15 |
+| Title S | 14 / 20 | 500 | 0.1 | 0.1 |
+| Body L | 16 / 24 | 400 | 0.5 | 0.5 |
+| Body M | 14 / 20 | 400 | **0.2** | 0.25 |
+| Body S | 12 / 16 | 400 | 0.4 | 0.4 |
+| Label L | 14 / 20 | 500 | 0.1 | 0.1 |
+| Label M | 12 / 16 | 500 | 0.5 | 0.5 |
+| Label S | 11 / 16 | 500 | 0.5 | 0.5 |
+
+The two sources disagree on the three tracking values in bold. The cause is unknown.
+
+**Emphasized scale.** Same sizes and line heights. Weights: Display, Headline, Title L and Body are 500. Title M, Title S and Label are 700. W keeps the standard tracking. C has separate emphasized tracking values under a "TODO update with the generated tokens" note, so they are provisional.
+
+## Color
+
+### Roles and tones (2021 spec, TonalSpot)
+
+U `cpp/dynamiccolor/material_dynamic_colors.cc`, at contrast level 0. At run time a role's tone can still move to meet its contrast curve against its background.
+
+| Role | Light | Dark |
+|---|---|---|
+| primary / on-primary | 40 / 100 | 80 / 20 |
+| primary-container / on-primary-container | 90 / 30 | 30 / 90 |
+| inverse-primary | 80 | 40 |
+| secondary, tertiary, error | same as primary | same as primary |
+| surface / on-surface | 98 / 10 | 6 / 90 |
+| surface-dim / surface-bright | 87 / 98 | 6 / 24 |
+| surface-container lowest / low / (default) / high / highest | 100 / 96 / 94 / 92 / 90 | 4 / 10 / 12 / 17 / 22 |
+| surface-variant / on-surface-variant | 90 / 30 | 30 / 80 |
+| inverse-surface / inverse-on-surface | 20 / 95 | 90 / 20 |
+| outline / outline-variant | 50 / 80 | 60 / 30 |
+| surface-tint | 40 | 80 |
+| shadow, scrim | 0 | 0 |
+| *-fixed / *-fixed-dim | 90 / 80 | 90 / 80 |
+| on-*-fixed / on-*-fixed-variant | 10 / 30 | 10 / 30 |
+
+C `ColorLightTokens.kt` (`VERSION: v0_210`) uses 10 for on-*-container instead of 30. U changed this to 30 in "Update MCU to for expressive on-colors" (2024-06-11).
+
+TonalSpot palettes (U `cpp/scheme/scheme_tonal_spot.cc`):
+
+| Palette | Hue | Chroma |
+|---|---|---|
+| primary | source | 36 |
+| secondary | source | 16 |
+| tertiary | source + 60° | 24 |
+| neutral | source | 6 |
+| neutral-variant | source | 8 |
+
+Baseline primary: #6750A4 (C `PaletteTokens.Primary40`).
+
+### State of the C++ color library
+
+- U has a C++ port (`cpp/`): HCT, tonal palettes, quantizers, scoring, DynamicScheme, and the scheme variants Monochrome, Neutral, TonalSpot, Vibrant, Expressive, Fidelity, Content, Rainbow, FruitSalad.
+- **The C++ port implements only the 2021 spec.** The Java port has `ColorSpec2021`, `ColorSpec2025` and `ColorSpec2026` (`SpecVersion`). C++ has no spec selection and none of the 2025 roles (`primary_dim`, etc.). The last change to `cpp/` was 2024-10-01. The Java port was changed as late as 2026-10.
+- It has no build files (Google-internal include paths) and depends on abseil (`flat_hash_map`, `str_cat`) and gtest.
+
+## Elevation and state layers
+
+C `tokens/ElevationTokens.kt` (`VERSION: v0_210`): Level0–5 = 0 / 1 / 3 / 6 / 8 / 12 dp.
+
+C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, focus 0.10, pressed 0.10, dragged 0.16.
+
+## Open questions
+
+- Color: use the C++ port as it is (2021 spec), or port the 2025 spec from Java to C++.
+- Typography: which source to follow where the tracking values disagree.
+- Not surveyed yet: component-level tokens (button heights, paddings, etc.), and the shadow geometry for each elevation level.
