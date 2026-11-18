@@ -21,6 +21,8 @@ public:
 protected:
     void fill_device_path(const Path& path, color::Argb color, FillRule rule) override;
     void fill_device_shadow(const Path& path, const Shadow& shadow) override;
+    void begin_device_clip(const Rect& rect) override;
+    void end_device_clip() override;
 
 private:
     struct Impl;

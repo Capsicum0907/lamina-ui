@@ -46,14 +46,16 @@ int main(int argc, char** argv) {
         const auto header_style = text::text_style(tokens::type_style(layout.header_type));
         const auto log_style = text::text_style(tokens::type_style(layout.log_type));
 
+        platform::Window window({"lamina-ui text field", 760, 560});
         std::vector<std::unique_ptr<widgets::TextField>> fields;
-        fields.push_back(std::make_unique<widgets::TextField>("\u540d\u524d", fonts, layout.field_width));
-        fields.push_back(std::make_unique<widgets::TextField>("\u30e1\u30c3\u30bb\u30fc\u30b8", fonts, layout.field_width));
+        fields.push_back(std::make_unique<widgets::TextField>("\u540d\u524d", fonts, layout.field_width,
+                                                              widgets::TextFieldOptions{false, &window.clipboard()}));
+        fields.push_back(std::make_unique<widgets::TextField>("\u30e1\u30c3\u30bb\u30fc\u30b8", fonts, layout.field_width,
+                                                              widgets::TextFieldOptions{true, &window.clipboard()}));
         widgets::Button send({"\u9001\u4fe1", tokens::ButtonStyle::filled, tokens::ButtonSize::medium, tokens::ButtonShape::round}, fonts);
         const auto header = text::layout_line(fonts, "\u6587\u5b57\u306e\u5165\u529b", header_style);
-        std::vector<text::TextLine> log;
+        std::vector<text::TextBlock> log;
 
-        platform::Window window({"lamina-ui text field", 760, 560});
         platform::Frame frame;
         bool animating = true;
 
@@ -63,18 +65,22 @@ int main(int argc, char** argv) {
             if (message.empty()) {
                 return;
             }
-            log.push_back(text::layout_line(fonts, (name.empty() ? std::string("?") : name) + ": " + message, log_style));
+            log.push_back(text::layout_paragraph(fonts, (name.empty() ? std::string("?") : name) + ": " + message, log_style, frame.width_dp - 2 * layout.margin));
             fields[1]->set_text("");
         };
 
-        while (window.next_frame(frame, animating)) {
+        auto place = [&] {
             double y = layout.margin + header_style.line_height + layout.gap;
             for (auto& f : fields) {
                 f->set_origin({layout.margin, y});
                 y += f->bounds().height + layout.gap;
             }
             send.set_origin({layout.margin, y});
-            y += send.height() + layout.gap;
+            return y + send.height() + layout.gap;
+        };
+
+        while (window.next_frame(frame, animating)) {
+            place();
 
             for (const auto& e : frame.pointer) {
                 for (auto& f : fields) {
@@ -105,6 +111,8 @@ int main(int argc, char** argv) {
                     f->handle(t);
                 }
             }
+
+            double y = place();
 
             const widgets::TextField* focused = nullptr;
             for (auto& f : fields) {
@@ -137,9 +145,9 @@ int main(int argc, char** argv) {
             send.step(frame.dt_seconds);
             send.paint(canvas, scheme);
             animating = animating || send.animating();
-            for (const auto& line : log) {
-                text::draw_line(canvas, fonts, line, {layout.margin, y}, scheme[layout.log]);
-                y += log_style.line_height + layout.log_gap;
+            for (const auto& block : log) {
+                text::draw_block(canvas, fonts, block, {layout.margin, y}, scheme[layout.log]);
+                y += block.height + layout.log_gap;
             }
             canvas.restore();
             window.present();

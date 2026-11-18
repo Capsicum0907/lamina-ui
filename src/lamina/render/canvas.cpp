@@ -1,5 +1,8 @@
 #include "lamina/render/canvas.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 namespace lamina::render {
 
 void Canvas::fill_path(const Path& path, color::Argb color, FillRule rule) {
@@ -36,6 +39,16 @@ void Canvas::translate(double dx, double dy) {
 
 void Canvas::scale(double factor) {
     transform_ = transform_.then_local({factor, 0.0, 0.0, factor, 0.0, 0.0});
+}
+
+void Canvas::push_clip(const Rect& rect) {
+    const Point a = transform_.apply({rect.x, rect.y});
+    const Point b = transform_.apply({rect.x + rect.width, rect.y + rect.height});
+    begin_device_clip({std::min(a.x, b.x), std::min(a.y, b.y), std::abs(b.x - a.x), std::abs(b.y - a.y)});
+}
+
+void Canvas::pop_clip() {
+    end_device_clip();
 }
 
 color::Argb Canvas::pixel(int x, int y) {

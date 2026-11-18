@@ -42,6 +42,8 @@ public:
     void restore();
     void translate(double dx, double dy);
     void scale(double factor);
+    void push_clip(const Rect& rect);
+    void pop_clip();
     const Affine& transform() const { return transform_; }
 
     color::Argb pixel(int x, int y);
@@ -49,6 +51,8 @@ public:
 protected:
     virtual void fill_device_path(const Path& path, color::Argb color, FillRule rule) = 0;
     virtual void fill_device_shadow(const Path& path, const Shadow& shadow) = 0;
+    virtual void begin_device_clip(const Rect& rect) = 0;
+    virtual void end_device_clip() = 0;
 
 private:
     Affine transform_{};

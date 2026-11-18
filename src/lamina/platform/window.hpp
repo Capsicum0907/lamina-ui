@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "lamina/platform/clipboard.hpp"
 #include "lamina/platform/input.hpp"
 #include "lamina/render/canvas.hpp"
 
@@ -36,6 +37,7 @@ public:
     bool next_frame(Frame& frame, bool animating);
     void wake_after(double seconds);
     void set_text_input(const render::Rect* caret_area_dp);
+    Clipboard& clipboard();
     render::Canvas& canvas();
     void present();
 

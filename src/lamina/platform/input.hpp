@@ -10,13 +10,15 @@ struct PointerEvent {
     PointerAction action;
     double x_dp;
     double y_dp;
+    int clicks = 0;
 };
 
-enum class Key { backspace, delete_forward, left, right, home, end, enter, escape, tab };
+enum class Key { backspace, delete_forward, left, right, up, down, home, end, enter, escape, tab, a, c, v, x };
 
 struct KeyEvent {
     Key key;
     bool shift;
+    bool ctrl = false;
 };
 
 enum class TextEventKind { commit, compose };

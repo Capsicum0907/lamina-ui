@@ -28,6 +28,9 @@ struct OutlinedTextFieldTokens {
     double caret_width = 2.0;
     double caret_blink_seconds = 0.5;
     double composition_underline = 1.0;
+    color::Role selection = color::Role::primary;
+    double selection_opacity = 0.4;
+    double vertical_padding = 16.0;
 };
 
 inline constexpr OutlinedTextFieldTokens outlined_text_field{};

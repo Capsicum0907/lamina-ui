@@ -64,6 +64,7 @@ struct ThorVGCanvas::Impl {
     std::vector<std::uint32_t> buffer;
     tvg::SwCanvas* canvas = nullptr;
     bool dirty = false;
+    std::vector<std::pair<tvg::Scene*, Rect>> clips;
 
     Impl(int w, int h) {
         tvg::Initializer::init(0);
@@ -81,13 +82,25 @@ struct ThorVGCanvas::Impl {
     }
 
     ~Impl() {
+        drop_clips();
         delete canvas;
         tvg::Initializer::term();
     }
 
     void add(tvg::Paint* paint) {
-        canvas->add(paint);
+        if (clips.empty()) {
+            canvas->add(paint);
+        } else {
+            clips.back().first->add(paint);
+        }
         dirty = true;
+    }
+
+    void drop_clips() {
+        for (auto& [scene, rect] : clips) {
+            tvg::Paint::rel(scene);
+        }
+        clips.clear();
     }
 };
 
@@ -104,6 +117,7 @@ int ThorVGCanvas::height() const {
 }
 
 void ThorVGCanvas::clear(color::Argb color) {
+    impl_->drop_clips();
     impl_->canvas->remove();
     auto* bg = tvg::Shape::gen();
     bg->appendRect(0.0f, 0.0f, static_cast<float>(impl_->width), static_cast<float>(impl_->height));
@@ -147,6 +161,23 @@ void ThorVGCanvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
     auto* scene = tvg::Scene::gen();
     scene->add(to_shape(path.transformed({1.0, 0.0, 0.0, 1.0, shadow.offset_x, shadow.offset_y}), shadow.color));
     scene->add(tvg::SceneEffect::GaussianBlur, shadow.blur_sigma, 0, 0, shadow_quality);
+    impl_->add(scene);
+}
+
+void ThorVGCanvas::begin_device_clip(const Rect& rect) {
+    impl_->clips.emplace_back(tvg::Scene::gen(), rect);
+}
+
+void ThorVGCanvas::end_device_clip() {
+    if (impl_->clips.empty()) {
+        return;
+    }
+    auto [scene, rect] = impl_->clips.back();
+    impl_->clips.pop_back();
+    auto* clipper = tvg::Shape::gen();
+    clipper->appendRect(static_cast<float>(rect.x), static_cast<float>(rect.y), static_cast<float>(rect.width),
+                        static_cast<float>(rect.height));
+    scene->clip(clipper);
     impl_->add(scene);
 }
 

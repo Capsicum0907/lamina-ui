@@ -26,15 +26,39 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_DELETE: return Key::delete_forward;
     case SDLK_LEFT: return Key::left;
     case SDLK_RIGHT: return Key::right;
+    case SDLK_UP: return Key::up;
+    case SDLK_DOWN: return Key::down;
     case SDLK_HOME: return Key::home;
     case SDLK_END: return Key::end;
     case SDLK_RETURN:
     case SDLK_KP_ENTER: return Key::enter;
     case SDLK_ESCAPE: return Key::escape;
     case SDLK_TAB: return Key::tab;
+    case SDLK_A: return Key::a;
+    case SDLK_C: return Key::c;
+    case SDLK_V: return Key::v;
+    case SDLK_X: return Key::x;
     default: return std::nullopt;
     }
 }
+
+bool ctrl_held(SDL_Keymod mod) {
+    return (mod & SDL_KMOD_CTRL) != 0 && (mod & SDL_KMOD_ALT) == 0;
+}
+
+class SdlClipboard final : public Clipboard {
+public:
+    std::string text() override {
+        char* raw = SDL_GetClipboardText();
+        std::string out = raw ? raw : "";
+        SDL_free(raw);
+        return out;
+    }
+
+    void set_text(std::string_view utf8) override {
+        SDL_SetClipboardText(std::string(utf8).c_str());
+    }
+};
 
 [[noreturn]] void fail(const char* what) {
     throw std::runtime_error(std::string(what) + ": " + SDL_GetError());
@@ -52,6 +76,7 @@ struct Window::Impl {
     Uint64 last_ns = 0;
     double wake_seconds = -1.0;
     bool text_input = false;
+    SdlClipboard clipboard;
 
     double pixel_density() const {
         int ww = 0;
@@ -148,7 +173,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             if (e.button.button == SDL_BUTTON_LEFT) {
-                frame.pointer.push_back({PointerAction::down, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y)});
+                frame.pointer.push_back({PointerAction::down, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), e.button.clicks});
             }
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
@@ -158,7 +183,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_KEY_DOWN:
             if (const auto key = to_key(e.key.key)) {
-                frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0});
+                frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod)});
             }
             break;
         case SDL_EVENT_TEXT_INPUT:
@@ -214,6 +239,10 @@ void Window::set_text_input(const render::Rect* area) {
         SDL_StartTextInput(impl_->window);
         impl_->text_input = true;
     }
+}
+
+Clipboard& Window::clipboard() {
+    return impl_->clipboard;
 }
 
 render::Canvas& Window::canvas() {
