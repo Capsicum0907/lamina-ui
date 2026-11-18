@@ -13,6 +13,10 @@ Early. Only the design-value layer exists so far, without rendering:
 - `lamina/tokens/motion.hpp`: the spring, easing and duration tokens of the standard and expressive motion schemes.
 - `lamina/motion/spring.hpp`: a damped spring with a closed-form solution. `advance` moves a value toward its target by any time step, and the result does not depend on how the time is split into frames. `is_settled` tells when the motion has come to rest.
 
+- `lamina/color/scheme.hpp`: color schemes from one seed color. `spec_2021().build(options)` returns the 49 color roles (primary, surface-container, outline, ...) for a seed, light or dark, a variant (TonalSpot, Expressive, Vibrant, ...) and a contrast level. It is computed by Google's material-color-utilities (`third_party/`), which implements the 2021 color spec.
+
+The color spec is behind the `ColorSpec` interface. HCT and the tonal palettes are the same in the 2021 and 2025 specs; only the rules that pick each role's tone differ. A 2025 spec can therefore be added as another `ColorSpec` without changing the code that uses the scheme.
+
 The token values and their sources are listed in [docs/design-tokens.md](docs/design-tokens.md).
 
 ## Spring model
