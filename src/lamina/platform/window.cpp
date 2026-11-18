@@ -70,6 +70,7 @@ struct Window::Impl {
 
 Window::Window(const WindowOptions& options) : impl_(std::make_unique<Impl>()) {
     SDL_SetMainReady();
+    SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fail("SDL_Init");
     }
