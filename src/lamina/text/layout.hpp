@@ -37,13 +37,26 @@ struct TextLine {
     double ascent;
     double descent;
     double baseline;
+    std::size_t first;
+    std::size_t last;
+};
+
+struct TextBlock {
+    std::vector<TextLine> lines;
+    double width = 0.0;
+    double height = 0.0;
 };
 
 TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style);
+
+TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width);
 
 render::Path line_path(const FontStack& fonts, const TextLine& line, render::Point top_left);
 
 void draw_line(render::Canvas& canvas, const FontStack& fonts, const TextLine& line, render::Point top_left,
                color::Argb color);
+
+void draw_block(render::Canvas& canvas, const FontStack& fonts, const TextBlock& block, render::Point top_left,
+                color::Argb color);
 
 }

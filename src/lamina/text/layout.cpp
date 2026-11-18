@@ -2,25 +2,28 @@
 
 #include <algorithm>
 
+#include "lamina/text/line_break.hpp"
+
 namespace lamina::text {
 
-TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style) {
-    TextLine line{{}, style, 0.0, 0.0, 0.0, 0.0};
+namespace {
+
+TextLine shape_range(const FontStack& fonts, std::u32string_view text, std::size_t first, std::size_t last,
+                     const TextStyle& style) {
+    TextLine line{{}, style, 0.0, 0.0, 0.0, 0.0, first, last};
     if (fonts.empty()) {
         return line;
     }
-    const std::u32string text = decode_utf8(utf8);
-
     const FontExtents primary = fonts.fonts().front()->extents_em();
     line.ascent = primary.ascender * style.size;
     line.descent = -primary.descender * style.size;
 
     double x = 0.0;
-    std::size_t start = 0;
-    while (start < text.size()) {
+    std::size_t start = first;
+    while (start < last) {
         const std::size_t font_index = fonts.font_for(text[start]);
         std::size_t end = start + 1;
-        while (end < text.size() && fonts.font_for(text[end]) == font_index) {
+        while (end < last && fonts.font_for(text[end]) == font_index) {
             ++end;
         }
         const Font& font = *fonts.fonts()[font_index];
@@ -28,7 +31,7 @@ TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextSt
         line.ascent = std::max(line.ascent, e.ascender * style.size);
         line.descent = std::max(line.descent, -e.descender * style.size);
 
-        for (const ShapedGlyph& g : font.shape(std::u32string_view(text).substr(start, end - start), start, style.weight)) {
+        for (const ShapedGlyph& g : font.shape(text.substr(start, end - start), start, style.weight)) {
             line.glyphs.push_back({font_index, g.glyph, g.cluster, x + g.offset_x_em * style.size, -g.offset_y_em * style.size});
             x += g.advance_em * style.size + style.tracking;
         }
@@ -41,6 +44,81 @@ TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextSt
     const double box = std::max(style.line_height, line.ascent + line.descent);
     line.baseline = (box - (line.ascent + line.descent)) / 2.0 + line.ascent;
     return line;
+}
+
+std::vector<double> codepoint_advances(const TextLine& shaped, std::size_t count, const TextStyle& style) {
+    std::vector<double> advances(count, 0.0);
+    for (std::size_t i = 0; i < shaped.glyphs.size(); ++i) {
+        const double next_x = i + 1 < shaped.glyphs.size() ? shaped.glyphs[i + 1].x : shaped.width + style.tracking;
+        const std::size_t c = shaped.glyphs[i].cluster;
+        if (c < count) {
+            advances[c] += next_x - shaped.glyphs[i].x;
+        }
+    }
+    return advances;
+}
+
+}
+
+TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style) {
+    const std::u32string text = decode_utf8(utf8);
+    return shape_range(fonts, text, 0, text.size(), style);
+}
+
+TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width) {
+    TextBlock block;
+    const std::u32string text = decode_utf8(utf8);
+    const TextLine whole = shape_range(fonts, text, 0, text.size(), style);
+    const std::vector<double> advance = codepoint_advances(whole, text.size(), style);
+
+    auto emit = [&](std::size_t first, std::size_t last) {
+        while (last > first && is_space(text[last - 1])) {
+            --last;
+        }
+        block.lines.push_back(shape_range(fonts, text, first, last, style));
+    };
+
+    std::size_t line_start = 0;
+    std::size_t last_break = 0;
+    double width = 0.0;
+    std::size_t i = 0;
+    while (i < text.size()) {
+        if (text[i] == U'\n') {
+            emit(line_start, i);
+            line_start = i + 1;
+            last_break = line_start;
+            width = 0.0;
+            i = line_start;
+            continue;
+        }
+        if (i > line_start && can_break_before(text, i)) {
+            last_break = i;
+        }
+        const double next = width + advance[i];
+        if (next > max_width && i > line_start && !is_space(text[i])) {
+            const std::size_t cut = last_break > line_start ? last_break : i;
+            emit(line_start, cut);
+            line_start = cut;
+            while (line_start < text.size() && is_space(text[line_start])) {
+                ++line_start;
+            }
+            last_break = line_start;
+            width = 0.0;
+            i = line_start;
+            continue;
+        }
+        width = next;
+        ++i;
+    }
+    if (line_start < text.size() || block.lines.empty() || (!text.empty() && text.back() == U'\n')) {
+        emit(line_start, text.size());
+    }
+
+    for (const TextLine& line : block.lines) {
+        block.width = std::max(block.width, line.width);
+        block.height += std::max(style.line_height, line.ascent + line.descent);
+    }
+    return block;
 }
 
 render::Path line_path(const FontStack& fonts, const TextLine& line, render::Point top_left) {
@@ -59,6 +137,15 @@ void draw_line(render::Canvas& canvas, const FontStack& fonts, const TextLine& l
     const render::Path path = line_path(fonts, line, top_left);
     if (!path.empty()) {
         canvas.fill_path(path, color);
+    }
+}
+
+void draw_block(render::Canvas& canvas, const FontStack& fonts, const TextBlock& block, render::Point top_left,
+                color::Argb color) {
+    double y = top_left.y;
+    for (const TextLine& line : block.lines) {
+        draw_line(canvas, fonts, line, {top_left.x, y}, color);
+        y += std::max(line.style.line_height, line.ascent + line.descent);
     }
 }
 

@@ -49,7 +49,7 @@ struct Layout {
 
 const std::vector<std::string> default_fonts{"C:/Windows/Fonts/NotoSansJP-VF.ttf"};
 const char* header_text = "lamina-ui の遊び場";
-const char* body_text = "クリックで浮き上がります";
+const char* body_text = "クリックで浮き上がります。高さ・角の丸み・色が、それぞればねで動きます。Springs drive every change, so the motion settles naturally.";
 
 struct Card {
     motion::Animated elevation;
@@ -94,7 +94,8 @@ int main(int argc, char** argv) {
         const auto title_style = text::text_style(tokens::type_style(layout.title_type));
         const auto body_style = text::text_style(tokens::type_style(layout.body_type));
         const auto header_line = text::layout_line(fonts, header_text, header_style);
-        const auto body_line = text::layout_line(fonts, body_text, body_style);
+        double body_width = -1.0;
+        text::TextBlock body_block;
         std::vector<text::TextLine> titles;
         const auto& motion_scheme = tokens::expressive_motion;
         const auto spatial = motion_scheme.spring(SpringKind::spatial, SpringSpeed::standard);
@@ -163,8 +164,13 @@ int main(int argc, char** argv) {
                 const render::Point title_at{r.x + layout.card_padding, r.y + layout.card_padding};
                 const auto title_color = color::mix(scheme[layout.rest_text], scheme[layout.raised_text], c.fill.value());
                 text::draw_line(canvas, fonts, titles[i], title_at, title_color);
-                text::draw_line(canvas, fonts, body_line,
-                                {title_at.x, title_at.y + title_style.line_height + layout.title_gap}, scheme[layout.body_text]);
+                const double wrap = r.width - 2 * layout.card_padding;
+                if (wrap != body_width) {
+                    body_width = wrap;
+                    body_block = text::layout_paragraph(fonts, body_text, body_style, wrap);
+                }
+                text::draw_block(canvas, fonts, body_block,
+                                 {title_at.x, title_at.y + title_style.line_height + layout.title_gap}, scheme[layout.body_text]);
             }
             canvas.restore();
             window.present();

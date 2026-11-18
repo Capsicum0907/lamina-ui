@@ -93,3 +93,49 @@ TEST_CASE("drawn text covers pixels inside the line box only") {
     }
     CHECK(inked > 200);
 }
+
+namespace {
+
+std::u32string line_text(std::string_view utf8, const TextLine& line) {
+    const std::u32string all = decode_utf8(utf8);
+    return all.substr(line.first, line.last - line.first);
+}
+
+}
+
+TEST_CASE("Latin paragraphs break at spaces and drop the trailing space") {
+    const FontStack fonts({sans});
+    const char* text = "Hello world Hello world";
+    const double one_word = layout_line(fonts, "Hello world", body).width;
+    const TextBlock block = layout_paragraph(fonts, text, body, one_word + 1.0);
+    REQUIRE(block.lines.size() == 2);
+    CHECK(line_text(text, block.lines[0]) == U"Hello world");
+    CHECK(line_text(text, block.lines[1]) == U"Hello world");
+    CHECK(block.height == doctest::Approx(2 * body.line_height));
+}
+
+TEST_CASE("Japanese paragraphs break between characters but keep punctuation off the line start") {
+    const FontStack fonts({sans});
+    const char* text = "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86\xe3\x80\x82\xe3\x81\x88\xe3\x81\x8a";
+    const double three = layout_line(fonts, "\xe3\x81\x82\xe3\x81\x84\xe3\x81\x86", body).width;
+    const TextBlock block = layout_paragraph(fonts, text, body, three + 1.0);
+    REQUIRE(block.lines.size() == 3);
+    CHECK(line_text(text, block.lines[0]) == U"\u3042\u3044");
+    CHECK(line_text(text, block.lines[1]) == U"\u3046\u3002\u3048");
+    CHECK(line_text(text, block.lines[2]) == U"\u304a");
+}
+
+TEST_CASE("explicit newlines start new lines") {
+    const FontStack fonts({sans});
+    const TextBlock block = layout_paragraph(fonts, "Hello\nworld", body, 1000.0);
+    REQUIRE(block.lines.size() == 2);
+}
+
+TEST_CASE("a word longer than the line is split rather than overflowing forever") {
+    const FontStack fonts({sans});
+    const TextBlock block = layout_paragraph(fonts, "Helloworldhelloworld", body, 40.0);
+    CHECK(block.lines.size() > 1);
+    for (const auto& line : block.lines) {
+        CHECK(line.last > line.first);
+    }
+}

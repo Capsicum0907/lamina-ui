@@ -18,7 +18,7 @@ Early. The design-value layer, a 2D canvas and an SDL3 window exist so far:
 
 - `lamina/render/canvas.hpp`: a 2D canvas with paths, rounded rectangles, drop shadows and a transform stack, drawn by ThorVG (`lamina::thorvg`). Why ThorVG: [docs/renderer-comparison.md](docs/renderer-comparison.md).
 - `lamina/platform/window.hpp`: an SDL3 window that shows the canvas, converts pointer input to dp, and waits for events while nothing is animating (`lamina::sdl3`).
-- `lamina/text/font.hpp`, `layout.hpp`: fonts and single lines of text. HarfBuzz shapes the text and supplies the glyph outlines, which are filled on the canvas like any other path, so no FreeType is needed. Variable fonts follow the weight of the type scale, and characters a font lacks fall back to the next font in a `FontStack`.
+- `lamina/text/font.hpp`, `layout.hpp`: fonts, single lines and wrapped paragraphs of text. HarfBuzz shapes the text and supplies the glyph outlines, which are filled on the canvas like any other path, so no FreeType is needed. Variable fonts follow the weight of the type scale, and characters a font lacks fall back to the next font in a `FontStack`. Paragraphs break at spaces in Latin text and between characters in Japanese, keeping punctuation such as 。 and 」 off the start of a line (`text/line_break.hpp`).
 - `lamina/widgets/button.hpp`: the Material 3 Expressive button in five styles (filled, tonal, outlined, elevated, text), five sizes and two shapes. Pressing morphs the corners to the pressed shape with the effects spring, as Compose does; hover and press add the state layer and change the elevation. `build/Release/buttons.exe` shows them all.
 - `lamina/motion/animated.hpp`, `lamina/color/mix.hpp`: a value driven by a spring, and color mixing.
 
