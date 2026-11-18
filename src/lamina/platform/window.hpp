@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "lamina/platform/input.hpp"
 #include "lamina/render/canvas.hpp"
 
 namespace lamina::platform {
@@ -12,14 +13,6 @@ struct WindowOptions {
     std::string title;
     int width_dp;
     int height_dp;
-};
-
-enum class PointerAction { move, down, up, leave };
-
-struct PointerEvent {
-    PointerAction action;
-    double x_dp;
-    double y_dp;
 };
 
 struct Frame {

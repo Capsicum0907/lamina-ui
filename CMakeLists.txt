@@ -25,6 +25,7 @@ add_library(lamina STATIC
     src/lamina/render/path.cpp
     src/lamina/text/font.cpp
     src/lamina/text/layout.cpp
+    src/lamina/widgets/button.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
 target_include_directories(lamina PUBLIC src)
@@ -60,11 +61,15 @@ if(LAMINA_BUILD_EXAMPLES)
     add_executable(playground examples/playground/main.cpp)
     target_link_libraries(playground PRIVATE lamina lamina_sdl3)
     lamina_warnings(playground)
+    add_executable(buttons examples/buttons/main.cpp)
+    target_link_libraries(buttons PRIVATE lamina lamina_sdl3)
+    lamina_warnings(buttons)
 endif()
 
 if(LAMINA_BUILD_TESTS)
     find_package(doctest CONFIG REQUIRED)
     add_executable(lamina_tests
+        tests/button_test.cpp
         tests/canvas_test.cpp
         tests/color_scheme_test.cpp
         tests/main.cpp

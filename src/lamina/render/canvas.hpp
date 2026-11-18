@@ -16,6 +16,8 @@ struct PixelView {
     std::intptr_t stride;
 };
 
+enum class FillRule { non_zero, even_odd };
+
 struct Shadow {
     double offset_x;
     double offset_y;
@@ -32,7 +34,7 @@ public:
     virtual void clear(color::Argb color) = 0;
     virtual PixelView finish() = 0;
 
-    void fill_path(const Path& path, color::Argb color);
+    void fill_path(const Path& path, color::Argb color, FillRule rule = FillRule::non_zero);
     void fill_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow);
     void fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color::Argb color);
 
@@ -45,7 +47,7 @@ public:
     color::Argb pixel(int x, int y);
 
 protected:
-    virtual void fill_device_path(const Path& path, color::Argb color) = 0;
+    virtual void fill_device_path(const Path& path, color::Argb color, FillRule rule) = 0;
     virtual void fill_device_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) = 0;
 
 private:

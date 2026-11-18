@@ -2,8 +2,8 @@
 
 namespace lamina::render {
 
-void Canvas::fill_path(const Path& path, color::Argb color) {
-    fill_device_path(path.transformed(transform_), color);
+void Canvas::fill_path(const Path& path, color::Argb color, FillRule rule) {
+    fill_device_path(path.transformed(transform_), color, rule);
 }
 
 void Canvas::fill_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) {

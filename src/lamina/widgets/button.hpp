@@ -1,0 +1,53 @@
+#pragma once
+
+#include <string>
+
+#include "lamina/color/scheme.hpp"
+#include "lamina/motion/animated.hpp"
+#include "lamina/platform/input.hpp"
+#include "lamina/render/canvas.hpp"
+#include "lamina/text/layout.hpp"
+#include "lamina/tokens/button.hpp"
+
+namespace lamina::widgets {
+
+struct ButtonOptions {
+    std::string label;
+    tokens::ButtonStyle style = tokens::ButtonStyle::filled;
+    tokens::ButtonSize size = tokens::ButtonSize::small;
+    tokens::ButtonShape shape = tokens::ButtonShape::round;
+};
+
+class Button {
+public:
+    Button(ButtonOptions options, const text::FontStack& fonts);
+
+    double width() const { return width_; }
+    double height() const;
+    void set_origin(render::Point origin) { origin_ = origin; }
+    render::Rect bounds() const;
+
+    bool handle(const platform::PointerEvent& event);
+    void step(double dt_seconds);
+    bool animating() const;
+    void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+
+private:
+    double rest_corner() const;
+    double pressed_corner() const;
+    double target_state_layer() const;
+    double target_elevation() const;
+
+    ButtonOptions options_;
+    const text::FontStack& fonts_;
+    text::TextLine label_;
+    double width_;
+    render::Point origin_{0.0, 0.0};
+    bool hovered_ = false;
+    bool pressed_ = false;
+    motion::Animated corner_;
+    motion::Animated state_layer_;
+    motion::Animated elevation_;
+};
+
+}

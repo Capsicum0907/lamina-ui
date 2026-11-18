@@ -131,13 +131,15 @@ void ThorVGCanvas::resize(int width, int height) {
     }
 }
 
-void ThorVGCanvas::fill_device_path(const Path& path, color::Argb color) {
-    impl_->add(to_shape(path, color));
+void ThorVGCanvas::fill_device_path(const Path& path, color::Argb color, FillRule rule) {
+    auto* shape = to_shape(path, color);
+    shape->fillRule(rule == FillRule::even_odd ? tvg::FillRule::EvenOdd : tvg::FillRule::NonZero);
+    impl_->add(shape);
 }
 
 void ThorVGCanvas::fill_device_path_with_shadow(const Path& path, color::Argb color, const Shadow& shadow) {
     if (shadow.blur_sigma <= 0.0 || (shadow.color >> 24) == 0) {
-        fill_device_path(path, color);
+        fill_device_path(path, color, FillRule::non_zero);
         return;
     }
     auto* scene = tvg::Scene::gen();
