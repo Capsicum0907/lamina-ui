@@ -149,11 +149,15 @@ int main(int argc, char** argv) {
         auto display_order = [&] {
             std::vector<TaskRow*> out;
             for (const ItemId id : list.active()) {
-                out.push_back(find_row(id));
+                if (TaskRow* r = find_row(id)) {
+                    out.push_back(r);
+                }
             }
             if (expanded) {
                 for (const ItemId id : list.completed()) {
-                    out.push_back(find_row(id));
+                    if (TaskRow* r = find_row(id)) {
+                        out.push_back(r);
+                    }
                 }
             }
             return out;
@@ -293,6 +297,18 @@ int main(int argc, char** argv) {
             }
             input.set_focused(false);
             r.begin_edit(press);
+        };
+
+        auto save_if_changed = [&] {
+            if (list.revision() == saved_revision) {
+                return;
+            }
+            try {
+                examples::todo::write_file_replacing(file, list.save());
+            } catch (const std::exception& ex) {
+                std::fprintf(stderr, "lamina-ui to-do: could not save %s: %s\n", file.string().c_str(), ex.what());
+            }
+            saved_revision = list.revision();
         };
 
         bool first = true;
@@ -461,14 +477,7 @@ int main(int argc, char** argv) {
                 }
             }
 
-            if (list.revision() != saved_revision) {
-                try {
-                    examples::todo::write_file_replacing(file, list.save());
-                } catch (const std::exception& ex) {
-                    std::fprintf(stderr, "lamina-ui to-do: could not save %s: %s\n", file.string().c_str(), ex.what());
-                }
-                saved_revision = list.revision();
-            }
+            save_if_changed();
             sync_rows();
             for (auto& r : rows) {
                 r->set_column(column);
@@ -625,6 +634,12 @@ int main(int argc, char** argv) {
         };
 
         sdl3::run_app(window, update, paint);
+        for (auto& r : rows) {
+            if (r->editing()) {
+                commit(*r);
+            }
+        }
+        save_if_changed();
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());
