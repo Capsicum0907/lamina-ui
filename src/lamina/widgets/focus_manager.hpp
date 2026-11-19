@@ -39,6 +39,7 @@ public:
     void clear_focus();
     void suspend();
     void resume();
+    void discard();
     std::size_t size() const { return entries_.size(); }
 
     std::optional<render::Rect> caret_area() const;

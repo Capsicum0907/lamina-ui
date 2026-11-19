@@ -59,6 +59,12 @@ void FocusManager::resume() {
     m->set_focused(true);
 }
 
+void FocusManager::discard() {
+    if (!suspended_.empty()) {
+        suspended_.pop_back();
+    }
+}
+
 std::optional<render::Rect> FocusManager::caret_area() const {
     const Member* m = focused_member();
     return m ? m->caret_area() : std::nullopt;

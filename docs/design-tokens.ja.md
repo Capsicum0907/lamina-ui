@@ -267,7 +267,7 @@ C の `tokens/StateTokens.kt`（`VERSION: v0_103`）の状態の重ねの不透�
 
 2026-11-19 に、material-web の `9d2f79851cae` と androidx の `9b9d1fdd16f4` から読みました。上の表の版より新しいものです。
 
-- W の `tokens/_md-comp-focus-ring.scss`：幅 3 dp、外側への間隔 2 dp、内側への間隔 0、色は secondary。フォーカスが入った瞬間の幅は 8 dp で、`duration-long4` をかけて戻ります。
+- W の `tokens/_md-comp-focus-ring.scss`：幅 3 dp、外側への間隔 2 dp、内側への間隔 0、色は secondary。それに、`duration-long4` をかけた、幅 8 dp のアクティブ幅（active width）。
 - W の `focus/internal/_focus-ring.scss` は、外側への間隔だけ広げた箱の外に輪を描きます。角の半径も同じ間隔だけ大きくします。
 - 輪は部品の形に沿います。W の `button/internal/_shared.scss`、`iconbutton/internal/_shared.scss`、`fab/internal/_shared.scss` は入れ物の角に、W の `switch/internal/_switch.scss` はトラックの角に合わせます。W の `checkbox/internal/_checkbox.scss` と `radio/internal/_radio.scss` は 44 dp の円にします。40 dp の状態の重ねに間隔を足した大きさです。
 - Compose Material3 はボタンの周りに輪を描きません。フォーカスは状態の重ねを `FocusStateLayerOpacity` の 0.1（C の `tokens/StateTokens.kt`）にして示します。C の `tokens/CheckboxTokens.kt` と `tokens/SwitchTokens.kt` は `FocusIndicatorColor` を secondary としています。

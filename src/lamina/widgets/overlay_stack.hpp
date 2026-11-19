@@ -123,7 +123,7 @@ private:
 
     template <typename E>
     bool route(const E& e);
-    void prune();
+    void prune(bool restore_focus = true);
     void cancel_below();
 
     std::vector<std::unique_ptr<Layer>> layers_;

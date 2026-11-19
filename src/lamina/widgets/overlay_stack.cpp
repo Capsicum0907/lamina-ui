@@ -1,6 +1,7 @@
 #include "lamina/widgets/overlay_stack.hpp"
 
 #include <algorithm>
+#include <concepts>
 
 namespace lamina::widgets {
 
@@ -21,7 +22,7 @@ bool OverlayStack::route(const E& e) {
         }
     }
     --routing_;
-    prune();
+    prune(!std::same_as<E, input::PointerEvent>);
     return stopped;
 }
 
@@ -41,7 +42,7 @@ bool OverlayStack::empty() const {
     return std::none_of(layers_.begin(), layers_.end(), [](const auto& layer) { return layer->live(); });
 }
 
-void OverlayStack::prune() {
+void OverlayStack::prune(bool restore_focus) {
     for (std::size_t i = layers_.size(); i-- > 0;) {
         if (layers_[i]->live()) {
             continue;
@@ -49,7 +50,11 @@ void OverlayStack::prune() {
         const bool give_back = layers_[i]->holds_focus;
         layers_.erase(layers_.begin() + static_cast<std::ptrdiff_t>(i));
         if (give_back && focus_) {
-            focus_->resume();
+            if (restore_focus) {
+                focus_->resume();
+            } else {
+                focus_->discard();
+            }
         }
     }
 }

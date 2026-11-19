@@ -223,3 +223,26 @@ TEST_CASE("removing an overlay outside an event takes it off at once") {
     CHECK_FALSE(stack.handle(escape));
     CHECK(menu.is_open());
 }
+
+TEST_CASE("an overlay closed by a pointer press drops the focus it held instead of showing it again") {
+    widgets::Button a({"A"}, fonts());
+    widgets::FocusManager focus;
+    focus.add(a);
+    a.set_focused(true);
+    widgets::OverlayStack stack;
+    stack.set_focus(focus);
+    widgets::Dialog dialog({"Delete?", "", "Delete", "Cancel"}, fonts());
+    dialog.open(window, input::InputSource::keyboard);
+    stack.push(dialog, [](widgets::DialogResult) {});
+    CHECK_FALSE(a.focused());
+    stack.handle(input::PointerEvent{PointerAction::down, 1.0, 1.0});
+    CHECK_FALSE(dialog.is_open());
+    CHECK(stack.empty());
+    CHECK_FALSE(a.focused());
+
+    a.set_focused(true);
+    dialog.open(window, input::InputSource::keyboard);
+    stack.push(dialog, [](widgets::DialogResult) {});
+    stack.handle(escape);
+    CHECK(a.focused());
+}
