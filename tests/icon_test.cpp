@@ -101,3 +101,14 @@ TEST_CASE("button icon size and spacing follow ButtonDefaults") {
     CHECK(tokens::button_size(tokens::ButtonSize::small).icon_size == 20.0);
     CHECK(tokens::button_size(tokens::ButtonSize::extra_large).icon_size == 40.0);
 }
+
+TEST_CASE("mixing icon styles interpolates the axes and switches the optical size at the halfway point") {
+    const icons::IconStyle a{0.0, 400.0, 0.0, 24.0};
+    const icons::IconStyle b{1.0, 700.0, 200.0, 48.0};
+    const icons::IconStyle quarter = icons::mix(a, b, 0.25);
+    CHECK(quarter.fill == 0.25);
+    CHECK(quarter.weight == 475.0);
+    CHECK(quarter.grade == 50.0);
+    CHECK(quarter.optical_size == 24.0);
+    CHECK(icons::mix(a, b, 0.5).optical_size == 48.0);
+}

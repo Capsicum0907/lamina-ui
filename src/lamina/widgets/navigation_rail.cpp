@@ -21,11 +21,6 @@ constexpr motion::SpringSpec color_spring =
 constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
-icons::IconStyle mix_style(const icons::IconStyle& a, const icons::IconStyle& b, double k) {
-    return {motion::lerp(a.fill, b.fill, k), motion::lerp(a.weight, b.weight, k), motion::lerp(a.grade, b.grade, k),
-            k < 0.5 ? a.optical_size : b.optical_size};
-}
-
 }
 
 NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontStack& fonts)
@@ -267,7 +262,7 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
     canvas.push_clip(b);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
-        const NavigationRailItem& spec = options_.items[i];
+        const NavigationItem& spec = options_.items[i];
         const Geometry g = geometry(i, item_max_width_);
         const render::Rect indicator = indicator_rect(i);
         const double progress = std::clamp(item.indicator.value(), 0.0, 1.0);
@@ -284,7 +279,7 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
         const double k = std::clamp(item.color.value(), 0.0, 1.0);
         const render::Rect icon = icon_rect(i);
         spec.icon.font.draw(canvas, spec.icon.symbol, {icon.x, icon.y}, t.icon_size,
-                            color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k), mix_style(spec.style, spec.selected_style, k));
+                            color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k), icons::mix(spec.style, spec.selected_style, k));
         if (g.label_opacity > 0.0) {
             const render::Rect label = label_rect(i);
             const double mode = std::clamp(item.label_mode.value(), 0.0, 1.0);

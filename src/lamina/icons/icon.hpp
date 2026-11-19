@@ -6,6 +6,7 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/symbols.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/icon.hpp"
@@ -18,6 +19,11 @@ struct IconStyle {
     double grade = tokens::symbol_axes.grade;
     std::optional<double> optical_size = std::nullopt;
 };
+
+constexpr IconStyle mix(const IconStyle& a, const IconStyle& b, double k) {
+    return {motion::lerp(a.fill, b.fill, k), motion::lerp(a.weight, b.weight, k), motion::lerp(a.grade, b.grade, k),
+            k < 0.5 ? a.optical_size : b.optical_size};
+}
 
 class IconFont {
 public:

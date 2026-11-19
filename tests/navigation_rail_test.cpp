@@ -13,7 +13,7 @@ using namespace lamina::test;
 namespace {
 
 widgets::NavigationRailOptions options() {
-    std::vector<widgets::NavigationRailItem> items;
+    std::vector<widgets::NavigationItem> items;
     for (auto [symbol, label] : {std::pair{icons::Symbol::home, "Home"}, std::pair{icons::Symbol::search, "Search"},
                                  std::pair{icons::Symbol::settings, "Settings"}}) {
         items.push_back({icons::Icon{icon_font(), symbol}, label});

@@ -13,18 +13,12 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/navigation_rail.hpp"
 #include "lamina/widgets/interaction.hpp"
+#include "lamina/widgets/navigation_item.hpp"
 
 namespace lamina::widgets {
 
-struct NavigationRailItem {
-    icons::Icon icon;
-    std::string label;
-    icons::IconStyle style = {};
-    icons::IconStyle selected_style = {};
-};
-
 struct NavigationRailOptions {
-    std::vector<NavigationRailItem> items;
+    std::vector<NavigationItem> items;
     std::size_t selected = 0;
     bool expanded = false;
     layout::NodePtr header = nullptr;

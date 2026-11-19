@@ -13,18 +13,12 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/navigation_bar.hpp"
 #include "lamina/widgets/interaction.hpp"
+#include "lamina/widgets/navigation_item.hpp"
 
 namespace lamina::widgets {
 
-struct NavigationBarItem {
-    icons::Icon icon;
-    std::string label;
-    icons::IconStyle style = {};
-    icons::IconStyle selected_style = {};
-};
-
 struct NavigationBarOptions {
-    std::vector<NavigationBarItem> items;
+    std::vector<NavigationItem> items;
     std::size_t selected = 0;
 };
 

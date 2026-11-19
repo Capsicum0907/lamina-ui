@@ -4,7 +4,6 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
-#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 
 namespace lamina::widgets {
@@ -22,11 +21,6 @@ constexpr motion::SpringSpec state_spring =
 
 double label_height(const text::TextLine& line) {
     return line.style.line_height;
-}
-
-icons::IconStyle mix_style(const icons::IconStyle& a, const icons::IconStyle& b, double k) {
-    return {motion::lerp(a.fill, b.fill, k), motion::lerp(a.weight, b.weight, k), motion::lerp(a.grade, b.grade, k),
-            k < 0.5 ? a.optical_size : b.optical_size};
 }
 
 }
@@ -132,7 +126,7 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
     canvas.fill_path(render::rounded_rect_path(bounds(), render::uniform_radii(0.0)), scheme[t.container]);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
-        const NavigationBarItem& spec = options_.items[i];
+        const NavigationItem& spec = options_.items[i];
         const double progress = item.indicator.value();
         const render::Rect indicator = indicator_rect(i);
         if (progress > 0.0 && indicator.width > 0.0) {
@@ -148,7 +142,7 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
         const render::Point icon_at{full.x + (full.width - t.icon_size) / 2.0, full.y + (full.height - t.icon_size) / 2.0};
         spec.icon.font.draw(canvas, spec.icon.symbol, icon_at, t.icon_size,
                             color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k),
-                            mix_style(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
+                            icons::mix(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
         if (item.label) {
             const double x = full.x + (full.width - item.label->width) / 2.0;
             text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space},
