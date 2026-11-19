@@ -6,7 +6,11 @@ Material 3 Expressive を手本にした、SDL3 の上で動く C++ のデスク
 
 lamina-ui は Google とは関係がなく、Google の承認も受けていません。Material Design は Google のデザインの体系で、lamina-ui はその公開されている指針とトークンの値に従っています。
 
+<img src="docs/images/calculator.png" alt="電卓の見本（横長の配置と関数のキー）" height="300"> <img src="docs/images/todo.png" alt="やることリストの見本" height="300">
+
 ## 現状
+
+バージョン 0.1.0 です。API はまだ固まっておらず、0.x のどの版でも変わることがあります。ビルドして動かしたのは Windows 11 と Visual Studio 2022 だけです。ほかの OS 向けのコードも書いてありますが、ビルドしたことはありません。拡大率の違うモニターと Windows 10 でも確かめていません。
 
 作り始めたところです。今あるのは、設計の値の層・2D の描画・文字・形・アイコン・SDL3 の窓・配置の仕組みと、部品（ボタン・アイコンボタン・FAB・スイッチ・チェックボックス・ラジオボタン・入力欄・スライダー・タブ・ナビゲーションバー・ナビゲーションレール・メニュー（従来のものと、まとまりに分けたもの）・ダイアログ・円形の進み具合の表示・スクロールする範囲・スナックバー）です。どの見本も、部品の位置を配置の仕組みで決めています。
 
@@ -93,3 +97,7 @@ CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どち�
 
 
 トークンの値は、Google が Apache-2.0 で公開しているソースから取っています：androidx（Jetpack Compose の Material 3 と graphics-shapes）、material-components-android、material-web、material-color-utilities。ファイルとコミットは [docs/design-tokens.ja.md](docs/design-tokens.ja.md) にあります。
+
+## ライセンス
+
+lamina-ui は [Apache License 2.0](LICENSE) で公開しています。含めているよそのコード・フォント・データは [NOTICE](NOTICE) にまとめています。

@@ -1,0 +1,27 @@
+lamina-ui
+Copyright 2026 Capsicum
+
+This product is licensed under the Apache License, Version 2.0 (LICENSE).
+
+This product includes software and data from the following projects:
+
+- material-color-utilities (https://github.com/material-foundation/material-color-utilities)
+  Copyright 2021 Google LLC. Apache License 2.0.
+  Vendored in third_party/material-color-utilities/ with the changes listed in its README.md.
+  src/lamina/color/spec_2025.cpp is a C++ port of its Java ColorSpec2025.
+
+- androidx (https://github.com/androidx/androidx)
+  Copyright The Android Open Source Project. Apache License 2.0.
+  src/lamina/shapes/ is a C++ port of graphics-shapes and the Material 3 shapes;
+  see third_party/NOTICE-androidx-graphics-shapes.md.
+
+- Material Symbols Rounded (https://github.com/google/material-design-icons)
+  Copyright Google LLC. Apache License 2.0 (assets/icons/LICENSE).
+  assets/icons/MaterialSymbolsRounded-subset.ttf is a modified subset.
+
+- Noto Sans JP and Oswald, as renamed subsets in tests/fixtures/fonts/.
+  SIL Open Font License 1.1 (license files in that directory).
+
+Design token values are taken from Google's Apache-2.0 licensed sources
+(androidx, material-components-android, material-web, material-color-utilities);
+docs/design-tokens.md lists the files and commits.

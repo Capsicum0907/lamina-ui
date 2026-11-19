@@ -6,7 +6,11 @@ A C++ desktop UI library built on SDL3, modeled on Material 3 Expressive.
 
 lamina-ui is not affiliated with or endorsed by Google. "Material Design" is Google's design system; lamina-ui follows its published guidelines and token values.
 
+<img src="docs/images/calculator.png" alt="The calculator example in its wide layout with scientific keys" height="300"> <img src="docs/images/todo.png" alt="The to-do list example" height="300">
+
 ## Status
+
+Version 0.1.0. The API is not stable yet and may change in any 0.x release. It has been built and run only on Windows 11 with Visual Studio 2022; the code for other platforms is written for them but has not been built, and mixed-DPI monitors and Windows 10 have not been tested.
 
 Early. So far there are the design-value layer, a 2D canvas, text, shapes, icons, an SDL3 window, a layout system, and these components: button, icon button, FAB, switch, checkbox, radio button, text field, slider, tabs, navigation bar, navigation rail, menu (classic and grouped), dialog, circular progress indicator, scroll area and snackbar. Every example places its components with the layout system.
 
@@ -93,3 +97,7 @@ The test fonts in `tests/fixtures/fonts/` are subsets of Noto Sans JP and Oswald
 
 
 Token values are taken from Google's Apache-2.0 licensed sources: androidx (Jetpack Compose Material 3 and graphics-shapes), material-components-android, material-web and material-color-utilities. See [docs/design-tokens.md](docs/design-tokens.md) for the files and commits.
+
+## License
+
+lamina-ui is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for the third-party code, fonts and data it includes.
