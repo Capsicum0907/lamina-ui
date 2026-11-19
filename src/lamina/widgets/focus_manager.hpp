@@ -18,6 +18,11 @@ concept TextInput = Focusable<W> && requires(const W& w) {
     { w.next_blink_seconds() } -> std::convertible_to<double>;
 };
 
+template <typename W>
+concept TabAccepting = Focusable<W> && requires(const W& w) {
+    { w.accepts_tab() } -> std::convertible_to<bool>;
+};
+
 enum class FocusDirection { next, previous };
 
 class FocusManager {
@@ -51,6 +56,7 @@ private:
         virtual const void* id() const = 0;
         virtual bool focused() const = 0;
         virtual bool can_focus() const = 0;
+        virtual bool accepts_tab() const = 0;
         virtual void set_focused(bool focused) = 0;
         virtual std::optional<render::Rect> caret_area() const = 0;
         virtual std::optional<double> next_wake_seconds() const = 0;
@@ -66,6 +72,13 @@ private:
                 return widget.can_focus();
             } else {
                 return true;
+            }
+        }
+        bool accepts_tab() const override {
+            if constexpr (TabAccepting<W>) {
+                return widget.accepts_tab();
+            } else {
+                return false;
             }
         }
         void set_focused(bool focused) override { widget.set_focused(focused); }

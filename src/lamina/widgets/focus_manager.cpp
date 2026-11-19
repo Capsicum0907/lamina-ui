@@ -5,7 +5,12 @@
 namespace lamina::widgets {
 
 bool FocusManager::handle(const input::KeyEvent& e) {
-    if (e.key != input::Key::tab || e.ctrl) {
+    if (e.key != input::Key::tab) {
+        return false;
+    }
+    const Member* focused = focused_member();
+    const bool tab_is_text = focused && focused->accepts_tab();
+    if (e.ctrl ? !tab_is_text : tab_is_text && !e.shift) {
         return false;
     }
     return move_focus(e.shift ? FocusDirection::previous : FocusDirection::next);

@@ -14,11 +14,15 @@ using input::PointerAction;
 
 static_assert(widgets::TextInput<widgets::TextField>);
 static_assert(widgets::Focusable<widgets::Button>);
+static_assert(widgets::TabAccepting<widgets::TextField>);
+static_assert(!widgets::TabAccepting<widgets::Button>);
 
 namespace {
 
 constexpr input::KeyEvent tab{input::Key::tab, false};
 constexpr input::KeyEvent shift_tab{input::Key::tab, true};
+constexpr input::KeyEvent ctrl_tab{input::Key::tab, false, true};
+constexpr input::KeyEvent ctrl_shift_tab{input::Key::tab, true, true};
 
 struct Fields {
     std::vector<std::unique_ptr<widgets::TextField>> list;
@@ -184,4 +188,46 @@ TEST_CASE("Tab uses no key when no widget can take the focus") {
     focus.add(gated);
     CHECK_FALSE(focus.handle(tab));
     CHECK_FALSE(gated.focused());
+}
+
+TEST_CASE("a field that accepts tabs keeps Tab, and Ctrl+Tab or Shift+Tab take the focus out of it") {
+    widgets::TextField first({.label = "First"}, fonts());
+    widgets::TextField editor({.label = "Editor", .multiline = true, .accepts_tab = true}, fonts());
+    widgets::TextField last({.label = "Last"}, fonts());
+    widgets::FocusManager focus;
+    focus.add(first);
+    focus.add(editor);
+    focus.add(last);
+
+    editor.set_focused(true);
+    CHECK_FALSE(focus.handle(tab));
+    editor.handle(tab);
+    CHECK(editor.text() == "\t");
+    CHECK(editor.focused());
+
+    CHECK(focus.handle(ctrl_tab));
+    CHECK(last.focused());
+    CHECK_FALSE(editor.focused());
+    CHECK_FALSE(focus.handle(ctrl_shift_tab));
+    CHECK(focus.handle(shift_tab));
+    CHECK(editor.focused());
+    CHECK(focus.handle(ctrl_shift_tab));
+    CHECK(first.focused());
+
+    editor.set_focused(true);
+    first.set_focused(false);
+    CHECK(focus.handle(shift_tab));
+    CHECK(first.focused());
+    CHECK(editor.text() == "\t");
+}
+
+TEST_CASE("Ctrl+Tab stays the program's while the focused widget does not accept tabs") {
+    Fields f(2);
+    f.list[0]->set_focused(true);
+    CHECK_FALSE(f.focus.handle(ctrl_tab));
+    CHECK_FALSE(f.focus.handle(ctrl_shift_tab));
+    CHECK(f.focused() == 0);
+    f.focus.clear_focus();
+    CHECK_FALSE(f.focus.handle(ctrl_tab));
+    CHECK(f.focused() == -1);
 }
