@@ -27,6 +27,9 @@ enum class Command {
     multiply,
     divide,
     equals,
+    parentheses,
+    open_parenthesis,
+    close_parenthesis,
     percent,
     toggle_sign,
     backspace,
@@ -57,6 +60,8 @@ struct Settings {
     std::string_view multiply = "×";
     std::string_view divide = "÷";
     std::string_view equals = "=";
+    std::string_view open = "(";
+    std::string_view close = ")";
     std::string_view separator = " ";
     std::string_view divide_by_zero_message = "Can't divide by 0";
     std::string_view out_of_range_message = "Out of range";
@@ -77,11 +82,15 @@ public:
 
 private:
     enum class Phase { input, result, error };
+    enum class TokenKind { number, op, open, close };
 
-    struct Term {
-        double value;
+    struct Token {
+        TokenKind kind;
+        Operator op = Operator::add;
         std::string text;
     };
+
+    using Tokens = std::vector<Token>;
 
     struct Outcome {
         double value;
@@ -91,6 +100,9 @@ private:
     void digit(int d);
     void point();
     void apply_operator(Operator op);
+    void parentheses();
+    void open_parenthesis();
+    void close_parenthesis();
     void equals();
     void percent();
     void toggle_sign();
@@ -99,25 +111,30 @@ private:
     void all_clear();
 
     void start_input();
-    Term entry_term() const;
-    Term computed_term(double value) const;
+    void continue_from_result();
+    int depth() const;
+    bool ends_complete() const;
+    bool ends_with_lone_minus() const;
+    void push(TokenKind kind, Operator op = Operator::add, std::string text = {});
+    void begin_number(std::string text);
+    Token number(double value) const;
+    Tokens completed(const Tokens& tokens) const;
+    std::optional<std::pair<Operator, Token>> last_operation(const Tokens& tokens) const;
     double round(double value) const;
-    Outcome evaluate(const std::vector<Term>& terms, const std::vector<Operator>& ops) const;
+    Outcome evaluate(const Tokens& tokens) const;
     std::string display(double value) const;
     std::string display_text(std::string_view raw) const;
     std::string_view symbol(Operator op) const;
-    std::string join(const std::vector<Term>& terms, const std::vector<Operator>& ops) const;
+    std::string join(const Tokens& tokens) const;
     std::string_view message(Error e) const;
 
     Settings settings_;
-    std::vector<Term> terms_;
-    std::vector<Operator> ops_;
-    std::string entry_;
+    Tokens tokens_;
     Phase phase_ = Phase::input;
     Error error_ = Error::none;
     double result_ = 0.0;
     std::string done_formula_;
-    std::optional<std::pair<Operator, Term>> repeat_;
+    std::optional<std::pair<Operator, Token>> repeat_;
 };
 
 }

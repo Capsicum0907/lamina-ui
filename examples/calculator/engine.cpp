@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
+#include <cstddef>
 #include <system_error>
 
 namespace lamina::examples::calculator {
@@ -26,6 +27,80 @@ double parse(std::string_view raw) {
     std::from_chars(raw.data(), raw.data() + raw.size(), v);
     return v;
 }
+
+double round_to(double value, int digits) {
+    if (!std::isfinite(value) || value == 0.0) {
+        return value;
+    }
+    char buffer[number_buffer];
+    const auto [end, ec] = std::to_chars(buffer, buffer + number_buffer, value, std::chars_format::scientific, digits - 1);
+    if (ec != std::errc{}) {
+        return value;
+    }
+    return parse(std::string_view(buffer, static_cast<std::size_t>(end - buffer)));
+}
+
+enum class ItemKind { number, op, open, close };
+
+struct Item {
+    ItemKind kind;
+    Operator op;
+    double value;
+};
+
+class Parser {
+public:
+    Parser(const std::vector<Item>& items, int digits) : items_(items), digits_(digits) {}
+
+    Error error() const { return error_; }
+
+    double expression() {
+        double left = term();
+        while (at(Operator::add) || at(Operator::subtract)) {
+            const Operator op = items_[i_++].op;
+            const double right = term();
+            left = round_to(op == Operator::add ? left + right : left - right, digits_);
+        }
+        return left;
+    }
+
+private:
+    bool at(Operator op) const { return i_ < items_.size() && items_[i_].kind == ItemKind::op && items_[i_].op == op; }
+
+    double term() {
+        double left = factor();
+        while (at(Operator::multiply) || at(Operator::divide)) {
+            const Operator op = items_[i_++].op;
+            const double right = factor();
+            if (op == Operator::divide && right == 0.0) {
+                error_ = Error::divide_by_zero;
+                return 0.0;
+            }
+            left = round_to(op == Operator::multiply ? left * right : left / right, digits_);
+        }
+        return left;
+    }
+
+    double factor() {
+        if (i_ >= items_.size()) {
+            return 0.0;
+        }
+        const Item& item = items_[i_++];
+        if (item.kind != ItemKind::open) {
+            return item.value;
+        }
+        const double v = expression();
+        if (i_ < items_.size() && items_[i_].kind == ItemKind::close) {
+            ++i_;
+        }
+        return v;
+    }
+
+    const std::vector<Item>& items_;
+    int digits_;
+    std::size_t i_ = 0;
+    Error error_ = Error::none;
+};
 
 std::string grouped(std::string_view digits, const NumberStyle& style) {
     if (style.group.empty() || style.group_size <= 0) {
@@ -113,6 +188,9 @@ void Engine::apply(Command c) {
     case Command::multiply: apply_operator(Operator::multiply); return;
     case Command::divide: apply_operator(Operator::divide); return;
     case Command::equals: equals(); return;
+    case Command::parentheses: parentheses(); return;
+    case Command::open_parenthesis: open_parenthesis(); return;
+    case Command::close_parenthesis: close_parenthesis(); return;
     case Command::percent: percent(); return;
     case Command::toggle_sign: toggle_sign(); return;
     case Command::backspace: backspace(); return;
@@ -128,30 +206,77 @@ void Engine::start_input() {
     }
 }
 
+void Engine::continue_from_result() {
+    if (phase_ == Phase::result) {
+        const Token previous = number(result_);
+        all_clear();
+        tokens_.push_back(previous);
+    } else if (phase_ == Phase::error) {
+        all_clear();
+    }
+}
+
+int Engine::depth() const {
+    int d = 0;
+    for (const Token& t : tokens_) {
+        d += t.kind == TokenKind::open ? 1 : t.kind == TokenKind::close ? -1 : 0;
+    }
+    return d;
+}
+
+bool Engine::ends_complete() const {
+    if (tokens_.empty()) {
+        return false;
+    }
+    const Token& back = tokens_.back();
+    return back.kind == TokenKind::close || (back.kind == TokenKind::number && back.text != "-");
+}
+
+bool Engine::ends_with_lone_minus() const {
+    return !tokens_.empty() && tokens_.back().kind == TokenKind::number && tokens_.back().text == "-";
+}
+
+void Engine::push(TokenKind kind, Operator op, std::string text) {
+    tokens_.push_back({kind, op, std::move(text)});
+}
+
+void Engine::begin_number(std::string text) {
+    if (!tokens_.empty() && tokens_.back().kind == TokenKind::close) {
+        push(TokenKind::op, Operator::multiply);
+    }
+    push(TokenKind::number, Operator::add, std::move(text));
+}
+
 void Engine::digit(int d) {
     start_input();
-    if (is_computed(entry_)) {
-        entry_.clear();
+    const std::string typed(1, static_cast<char>('0' + d));
+    if (tokens_.empty() || tokens_.back().kind != TokenKind::number) {
+        begin_number(typed);
+        return;
     }
-    const char c = static_cast<char>('0' + d);
-    if (entry_ == "0") {
-        entry_ = std::string(1, c);
-    } else if (entry_ == "-0") {
-        entry_ = std::string("-") + c;
-    } else if (digit_count(entry_) < settings_.max_entry_digits) {
-        entry_ += c;
+    std::string& text = tokens_.back().text;
+    if (is_computed(text) || text == "0") {
+        text = typed;
+    } else if (text == "-0") {
+        text = "-" + typed;
+    } else if (digit_count(text) < settings_.max_entry_digits) {
+        text += typed;
     }
 }
 
 void Engine::point() {
     start_input();
-    if (is_computed(entry_)) {
-        entry_.clear();
+    if (tokens_.empty() || tokens_.back().kind != TokenKind::number) {
+        begin_number("0.");
+        return;
     }
-    if (entry_.empty()) {
-        entry_ = "0.";
-    } else if (entry_.find('.') == std::string::npos) {
-        entry_ += '.';
+    std::string& text = tokens_.back().text;
+    if (is_computed(text)) {
+        text = "0.";
+    } else if (text == "-") {
+        text = "-0.";
+    } else if (text.find('.') == std::string::npos) {
+        text += '.';
     }
 }
 
@@ -159,53 +284,119 @@ void Engine::apply_operator(Operator op) {
     if (phase_ == Phase::error) {
         return;
     }
-    if (phase_ == Phase::result) {
-        const Term previous = computed_term(result_);
-        all_clear();
-        terms_.push_back(previous);
-        ops_.push_back(op);
+    continue_from_result();
+    if (tokens_.empty()) {
+        if (op == Operator::subtract) {
+            push(TokenKind::number, Operator::add, "-");
+        } else {
+            tokens_.push_back(number(0.0));
+            push(TokenKind::op, op);
+        }
         return;
     }
-    if (!entry_.empty()) {
-        terms_.push_back(entry_term());
-        entry_.clear();
-        ops_.push_back(op);
-    } else if (!ops_.empty()) {
-        ops_.back() = op;
-    } else {
-        terms_.push_back(computed_term(0.0));
-        ops_.push_back(op);
+    Token& back = tokens_.back();
+    switch (back.kind) {
+    case TokenKind::number:
+        if (back.text != "-") {
+            push(TokenKind::op, op);
+        }
+        return;
+    case TokenKind::close:
+        push(TokenKind::op, op);
+        return;
+    case TokenKind::op:
+        if (op == Operator::subtract && (back.op == Operator::multiply || back.op == Operator::divide)) {
+            push(TokenKind::number, Operator::add, "-");
+        } else {
+            back.op = op;
+        }
+        return;
+    case TokenKind::open:
+        if (op == Operator::subtract) {
+            push(TokenKind::number, Operator::add, "-");
+        }
+        return;
     }
+}
+
+void Engine::parentheses() {
+    if (phase_ == Phase::input && depth() > 0 && ends_complete()) {
+        close_parenthesis();
+        return;
+    }
+    open_parenthesis();
+}
+
+void Engine::open_parenthesis() {
+    continue_from_result();
+    if (ends_with_lone_minus()) {
+        return;
+    }
+    if (ends_complete()) {
+        push(TokenKind::op, Operator::multiply);
+    }
+    push(TokenKind::open);
+}
+
+void Engine::close_parenthesis() {
+    if (phase_ == Phase::input && ends_complete() && depth() > 0) {
+        push(TokenKind::close);
+    }
+}
+
+Engine::Tokens Engine::completed(const Tokens& tokens) const {
+    Tokens out = tokens;
+    while (!out.empty() && (out.back().kind == TokenKind::op || out.back().kind == TokenKind::open ||
+                            (out.back().kind == TokenKind::number && out.back().text == "-"))) {
+        out.pop_back();
+    }
+    int open = 0;
+    for (Token& t : out) {
+        open += t.kind == TokenKind::open ? 1 : t.kind == TokenKind::close ? -1 : 0;
+        if (t.kind == TokenKind::number && !t.text.empty() && t.text.back() == '.') {
+            t.text.pop_back();
+        }
+    }
+    for (; open > 0; --open) {
+        out.push_back({TokenKind::close, Operator::add, {}});
+    }
+    return out;
+}
+
+std::optional<std::pair<Operator, Engine::Token>> Engine::last_operation(const Tokens& tokens) const {
+    std::optional<std::pair<Operator, Token>> out;
+    int level = 0;
+    for (std::size_t i = 0; i < tokens.size(); ++i) {
+        const Token& t = tokens[i];
+        level += t.kind == TokenKind::open ? 1 : t.kind == TokenKind::close ? -1 : 0;
+        if (t.kind != TokenKind::op || level != 0) {
+            continue;
+        }
+        const Tokens operand(tokens.begin() + static_cast<std::ptrdiff_t>(i) + 1, tokens.end());
+        out = std::pair{t.op, operand.size() == 1 ? operand.front() : number(evaluate(operand).value)};
+    }
+    return out;
 }
 
 void Engine::equals() {
     if (phase_ == Phase::error) {
         return;
     }
-    std::vector<Term> terms;
-    std::vector<Operator> ops;
+    Tokens tokens;
     if (phase_ == Phase::result) {
         if (!repeat_) {
             return;
         }
-        terms = {computed_term(result_), repeat_->second};
-        ops = {repeat_->first};
+        tokens = {number(result_), {TokenKind::op, repeat_->first, {}}, repeat_->second};
     } else {
-        terms = terms_;
-        ops = ops_;
-        if (!entry_.empty()) {
-            terms.push_back(entry_term());
-        } else if (!ops.empty()) {
-            ops.pop_back();
-        }
-        if (terms.empty()) {
-            terms.push_back(computed_term(0.0));
+        tokens = completed(tokens_);
+        if (tokens.empty()) {
+            tokens.push_back(number(0.0));
         }
     }
-    const Outcome outcome = evaluate(terms, ops);
-    const std::optional<std::pair<Operator, Term>> repeat =
-        ops.empty() ? std::nullopt : std::optional<std::pair<Operator, Term>>{{ops.back(), terms.back()}};
-    std::string formula = join(terms, ops);
+    const Outcome outcome = evaluate(tokens);
+    const auto repeat = last_operation(tokens);
+    std::string formula = join(tokens);
     formula += settings_.separator;
     formula += settings_.equals;
     all_clear();
@@ -227,16 +418,29 @@ void Engine::percent() {
     if (phase_ == Phase::result) {
         const double value = round(result_ / percent_base);
         all_clear();
-        entry_ = computed_term(value).text;
+        tokens_.push_back(number(value));
         return;
     }
-    if (entry_.empty()) {
+    if (!ends_complete() || tokens_.back().kind != TokenKind::number) {
         return;
     }
-    double x = parse(entry_);
-    if (!ops_.empty() && (ops_.back() == Operator::add || ops_.back() == Operator::subtract)) {
-        const std::vector<Operator> left(ops_.begin(), ops_.end() - 1);
-        const Outcome base = evaluate(terms_, left);
+    const std::size_t last = tokens_.size() - 1;
+    double x = parse(tokens_[last].text);
+    const bool additive = last > 0 && tokens_[last - 1].kind == TokenKind::op &&
+                          (tokens_[last - 1].op == Operator::add || tokens_[last - 1].op == Operator::subtract);
+    if (additive) {
+        std::size_t start = last - 1;
+        int level = 0;
+        while (start > 0) {
+            const Token& t = tokens_[start - 1];
+            if (t.kind == TokenKind::open && level == 0) {
+                break;
+            }
+            level += t.kind == TokenKind::close ? 1 : t.kind == TokenKind::open ? -1 : 0;
+            --start;
+        }
+        const Outcome base = evaluate(Tokens(tokens_.begin() + static_cast<std::ptrdiff_t>(start),
+                                             tokens_.begin() + static_cast<std::ptrdiff_t>(last - 1)));
         if (base.error != Error::none) {
             return;
         }
@@ -244,7 +448,7 @@ void Engine::percent() {
     } else {
         x = round(x / percent_base);
     }
-    entry_ = computed_term(x).text;
+    tokens_[last] = number(x);
 }
 
 void Engine::toggle_sign() {
@@ -254,15 +458,23 @@ void Engine::toggle_sign() {
     if (phase_ == Phase::result) {
         const double value = -result_;
         all_clear();
-        entry_ = computed_term(value).text;
+        tokens_.push_back(number(value));
         return;
     }
-    if (entry_.empty()) {
-        entry_ = "-0";
-    } else if (entry_.front() == '-') {
-        entry_.erase(0, 1);
+    if (tokens_.empty() || tokens_.back().kind == TokenKind::op || tokens_.back().kind == TokenKind::open) {
+        push(TokenKind::number, Operator::add, "-0");
+        return;
+    }
+    Token& back = tokens_.back();
+    if (back.kind != TokenKind::number) {
+        return;
+    }
+    if (back.text == "-") {
+        tokens_.pop_back();
+    } else if (back.text.front() == '-') {
+        back.text.erase(0, 1);
     } else {
-        entry_.insert(0, 1, '-');
+        back.text.insert(0, 1, '-');
     }
 }
 
@@ -271,39 +483,29 @@ void Engine::backspace() {
         all_clear();
         return;
     }
-    if (phase_ == Phase::result) {
+    if (phase_ == Phase::result || tokens_.empty()) {
         return;
     }
-    if (!entry_.empty()) {
-        if (is_computed(entry_)) {
-            entry_.clear();
-        } else {
-            entry_.pop_back();
+    Token& back = tokens_.back();
+    if (back.kind == TokenKind::number && !is_computed(back.text)) {
+        back.text.pop_back();
+        if (!back.text.empty() && back.text != "-") {
+            return;
         }
-        if (entry_ == "-") {
-            entry_.clear();
-        }
-        return;
     }
-    if (!ops_.empty()) {
-        ops_.pop_back();
-        entry_ = terms_.back().text;
-        terms_.pop_back();
-    }
+    tokens_.pop_back();
 }
 
 void Engine::clear() {
-    if (phase_ == Phase::input && !entry_.empty()) {
-        entry_.clear();
+    if (phase_ == Phase::input && !tokens_.empty() && tokens_.back().kind == TokenKind::number) {
+        tokens_.pop_back();
         return;
     }
     all_clear();
 }
 
 void Engine::all_clear() {
-    terms_.clear();
-    ops_.clear();
-    entry_.clear();
+    tokens_.clear();
     phase_ = Phase::input;
     error_ = Error::none;
     result_ = 0.0;
@@ -311,56 +513,30 @@ void Engine::all_clear() {
     repeat_.reset();
 }
 
-Engine::Term Engine::entry_term() const {
-    std::string text = entry_;
-    if (!text.empty() && text.back() == '.') {
-        text.pop_back();
-    }
-    return {parse(text), text};
-}
-
-Engine::Term Engine::computed_term(double value) const {
-    return {value, format_number(value, settings_.display_digits, settings_.min_fixed_exponent, raw_style)};
+Engine::Token Engine::number(double value) const {
+    return {TokenKind::number, Operator::add, format_number(value, settings_.display_digits, settings_.min_fixed_exponent, raw_style)};
 }
 
 double Engine::round(double value) const {
-    if (!std::isfinite(value) || value == 0.0) {
-        return value;
-    }
-    char buffer[number_buffer];
-    const auto [end, ec] = std::to_chars(buffer, buffer + number_buffer, value, std::chars_format::scientific, settings_.working_digits - 1);
-    if (ec != std::errc{}) {
-        return value;
-    }
-    return parse(std::string_view(buffer, static_cast<std::size_t>(end - buffer)));
+    return round_to(value, settings_.working_digits);
 }
 
-Engine::Outcome Engine::evaluate(const std::vector<Term>& terms, const std::vector<Operator>& ops) const {
-    double sum = 0.0;
-    double product = terms.empty() ? 0.0 : terms.front().value;
-    for (std::size_t i = 0; i < ops.size() && i + 1 < terms.size(); ++i) {
-        const double x = terms[i + 1].value;
-        switch (ops[i]) {
-        case Operator::multiply:
-            product = round(product * x);
-            break;
-        case Operator::divide:
-            if (x == 0.0) {
-                return {0.0, Error::divide_by_zero};
-            }
-            product = round(product / x);
-            break;
-        case Operator::add:
-            sum = round(sum + product);
-            product = x;
-            break;
-        case Operator::subtract:
-            sum = round(sum + product);
-            product = -x;
-            break;
+Engine::Outcome Engine::evaluate(const Tokens& tokens) const {
+    std::vector<Item> items;
+    items.reserve(tokens.size());
+    for (const Token& t : tokens) {
+        switch (t.kind) {
+        case TokenKind::number: items.push_back({ItemKind::number, t.op, parse(t.text)}); break;
+        case TokenKind::op: items.push_back({ItemKind::op, t.op, 0.0}); break;
+        case TokenKind::open: items.push_back({ItemKind::open, t.op, 0.0}); break;
+        case TokenKind::close: items.push_back({ItemKind::close, t.op, 0.0}); break;
         }
     }
-    const double value = round(sum + product);
+    Parser parser(items, settings_.working_digits);
+    const double value = parser.expression();
+    if (parser.error() != Error::none) {
+        return {0.0, parser.error()};
+    }
     if (!std::isfinite(value)) {
         return {0.0, Error::out_of_range};
     }
@@ -404,17 +580,22 @@ std::string_view Engine::symbol(Operator op) const {
     return {};
 }
 
-std::string Engine::join(const std::vector<Term>& terms, const std::vector<Operator>& ops) const {
+std::string Engine::join(const Tokens& tokens) const {
     std::string out;
-    for (std::size_t i = 0; i < terms.size(); ++i) {
-        out += display_text(terms[i].text);
-        if (i < ops.size()) {
+    for (const Token& t : tokens) {
+        switch (t.kind) {
+        case TokenKind::number: out += display_text(t.text); break;
+        case TokenKind::op:
             out += settings_.separator;
-            out += symbol(ops[i]);
-            if (i + 1 < terms.size()) {
-                out += settings_.separator;
-            }
+            out += symbol(t.op);
+            out += settings_.separator;
+            break;
+        case TokenKind::open: out += settings_.open; break;
+        case TokenKind::close: out += settings_.close; break;
         }
+    }
+    while (!settings_.separator.empty() && out.ends_with(settings_.separator)) {
+        out.resize(out.size() - settings_.separator.size());
     }
     return out;
 }
@@ -432,16 +613,7 @@ std::string Engine::formula() const {
     if (phase_ != Phase::input) {
         return done_formula_;
     }
-    std::string out = join(terms_, ops_);
-    if (!entry_.empty()) {
-        if (!out.empty()) {
-            out += settings_.separator;
-        }
-        out += display_text(entry_);
-    } else if (out.empty()) {
-        out = display(0.0);
-    }
-    return out;
+    return tokens_.empty() ? display(0.0) : join(tokens_);
 }
 
 std::string Engine::result() const {
@@ -450,20 +622,11 @@ std::string Engine::result() const {
     case Phase::error: return std::string(message(error_));
     case Phase::input: break;
     }
-    if (ops_.empty()) {
+    const Tokens tokens = completed(tokens_);
+    if (std::none_of(tokens.begin(), tokens.end(), [](const Token& t) { return t.kind == TokenKind::op; })) {
         return {};
     }
-    std::vector<Term> terms = terms_;
-    std::vector<Operator> ops = ops_;
-    if (!entry_.empty()) {
-        terms.push_back(entry_term());
-    } else {
-        ops.pop_back();
-    }
-    if (ops.empty()) {
-        return {};
-    }
-    const Outcome outcome = evaluate(terms, ops);
+    const Outcome outcome = evaluate(tokens);
     return outcome.error == Error::none ? display(outcome.value) : std::string();
 }
 

@@ -21,6 +21,9 @@ Command command_for(char c) {
     case '<': return Command::backspace;
     case 'c': return Command::clear;
     case 'C': return Command::all_clear;
+    case 'p': return Command::parentheses;
+    case '(': return Command::open_parenthesis;
+    case ')': return Command::close_parenthesis;
     default: return static_cast<Command>(static_cast<int>(Command::digit_0) + (c - '0'));
     }
 }
@@ -265,4 +268,63 @@ TEST_CASE("format_number groups the integer part and trims trailing zeros") {
     CHECK(display(100.0) == "100");
     CHECK(display(0.05) == "0.05");
     CHECK(display(1e15) == "1e15");
+}
+
+TEST_CASE("the parentheses key opens a group, and closes it after a complete operand") {
+    Engine e = run("p2+3");
+    CHECK(e.formula() == "(2 + 3");
+    CHECK(e.result() == "5");
+    press(e, "p");
+    CHECK(e.formula() == "(2 + 3)");
+    press(e, "*4=");
+    CHECK(e.formula() == "(2 + 3) × 4 =");
+    CHECK(e.result() == "20");
+    CHECK(run("2p3").formula() == "2 × (3");
+    CHECK(run("2p3p").formula() == "2 × (3)");
+    CHECK(run("2*pp").formula() == "2 × ((");
+}
+
+TEST_CASE("open groups are closed by equals, and a digit after a group multiplies") {
+    Engine e = run("p2+3=");
+    CHECK(e.formula() == "(2 + 3) =");
+    CHECK(e.result() == "5");
+    CHECK(run("(2+3)4=").result() == "20");
+    CHECK(run("(2+3)4").formula() == "(2 + 3) × 4");
+    CHECK(run("2)").formula() == "2");
+    CHECK(run("(2+)").formula() == "(2 +");
+    CHECK(run("2*(3+4)-1=").result() == "13");
+    CHECK(run("((2))=").result() == "2");
+}
+
+TEST_CASE("repeated equals after a group repeats the group's value") {
+    Engine e = run("2*(3+4)=");
+    CHECK(e.result() == "14");
+    press(e, "=");
+    CHECK(e.formula() == "14 × 7 =");
+    CHECK(e.result() == "98");
+}
+
+TEST_CASE("minus starts a negative number at the start, after an open group and after times or divide") {
+    Engine e = run("-5*-2");
+    CHECK(e.formula() == "−5 × −2");
+    CHECK(press(e, "=").result() == "10");
+    CHECK(run("8/-2=").result() == "−4");
+    CHECK(run("(-3)=").result() == "−3");
+    CHECK(run("5+-").formula() == "5 −");
+    CHECK(run("-").formula() == "−");
+    CHECK(run("-+").formula() == "−");
+    CHECK(run("-=").formula() == "0 =");
+    CHECK(run("-<").formula() == "0");
+}
+
+TEST_CASE("percent after + or - inside a group takes its share of the group's left side") {
+    Engine e = run("100+(50+10%");
+    CHECK(e.formula() == "100 + (50 + 5");
+    CHECK(press(e, "=").result() == "155");
+}
+
+TEST_CASE("backspace removes parentheses like any other token") {
+    CHECK(run("p2<").formula() == "(");
+    CHECK(run("p2<<").formula() == "0");
+    CHECK(run("p2p<").formula() == "(2");
 }
