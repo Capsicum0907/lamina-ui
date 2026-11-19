@@ -173,7 +173,7 @@ TonalSpot の色の系列（U の `cpp/scheme/scheme_tonal_spot.cc`）：
 
 ### 2025 年の仕様
 
-`lamina/color/spec_2025.cpp` は、U の `java/dynamiccolor/ColorSpec2025.java` と、それが使う `DynamicScheme` の規則を、スマートフォン向け（U の `DynamicScheme.Platform.PHONE`）の部分だけ移したものです。腕時計向け・2026 年の仕様・系列の代表色・Android だけの役割（`controlActivated`・`textPrimaryInverse` など）は移していません。HCT・HCT の逆算・コントラストの関数は U の C++ 版を使います。次の二つは U の古い C++ ではなく Java から移しました。色相の範囲ごとに色相を回す計算（`DynamicScheme.getRotatedHue`・`getPiecewiseValue`）と、黄色の色相（105° 以上 125° 未満）での明度 99 の色を明度 98 と 100 の平均にする処理（`TonalPalette.getHct`）です。元の色の色相と、彩度を確かめる計算には、Java と同じく丸めずに計算した観察条件（U の C++ の `DefaultWithBackgroundLstar(50)`）を使います。U の C++ の定数 `kDefaultViewingConditions` は小数 9 桁に丸めてあります。
+`lamina/color/spec_2025.cpp` は、U の `java/dynamiccolor/ColorSpec2025.java` と、それが使う `DynamicScheme` の規則を、スマートフォン向け（U の `DynamicScheme.Platform.PHONE`）の部分だけ移したものです。腕時計向け・2026 年の仕様・系列の代表色・Android だけの役割（`controlActivated`・`textPrimaryInverse` など）は移していません。HCT・HCT の逆算・コントラストの関数は U の C++ 版を使います。次の二つは U の古い C++ ではなく Java から移しました。色相の範囲ごとに色相を回す計算（`DynamicScheme.getRotatedHue`・`getPiecewiseValue`）と、黄色の色相（105° 以上 125° 未満）での明度 99 の色を明度 98 と 100 の平均にする処理（`TonalPalette.getHct`）です。
 
 **配色の種類。** 2025 年の規則があるのは Neutral・TonalSpot・Vibrant・Expressive です。Monochrome・Fidelity・Content・Rainbow・FruitSalad では、U は 2021 年の仕様とその色の系列に戻る（`DynamicScheme.maybeFallbackSpecVersion`）ので、`spec_2025()` もそれらでは `spec_2021()` の色を返します。dim の役割は、その場合に Java が出す値にしています。2025 年の dim の規則を、2021 年の系列の上で 2021 年の明度の計算にかけたものです。
 

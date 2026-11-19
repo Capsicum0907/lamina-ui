@@ -360,17 +360,10 @@ struct Scheme {
     const Palette& palette(PaletteKind k) const { return palettes[static_cast<std::size_t>(k)]; }
 };
 
-constexpr double default_background_lstar = 50.0;
-
-const mcu::ViewingConditions& exact_viewing_conditions() {
-    static const mcu::ViewingConditions conditions = mcu::DefaultWithBackgroundLstar(default_background_lstar);
-    return conditions;
-}
-
-double hue_of(Argb argb) { return mcu::CamFromIntAndViewingConditions(argb, exact_viewing_conditions()).hue; }
+double hue_of(Argb argb) { return mcu::CamFromIntAndViewingConditions(argb, mcu::kDefaultViewingConditions).hue; }
 
 double chroma_of(double hue, double chroma, double tone) {
-    return mcu::CamFromIntAndViewingConditions(mcu::Hct(hue, chroma, tone).ToInt(), exact_viewing_conditions()).chroma;
+    return mcu::CamFromIntAndViewingConditions(mcu::Hct(hue, chroma, tone).ToInt(), mcu::kDefaultViewingConditions).chroma;
 }
 
 double best_tone_for_chroma(double hue, double chroma, double tone, bool by_decreasing_tone) {

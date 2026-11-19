@@ -21,4 +21,4 @@ python tools/color-dump/compare.py java.txt cpp.txt
 2026-11-19 の結果：
 
 - 組み込みの元の色：2021 年は 42 336 件を比べてすべて一致しました（照合元に無い dim の 3 456 件は除く）。2025 年は 45 792 件を比べてすべて一致しました。
-- 乱数で選んだ 100 個の元の色（`python -c "import random; r = random.Random(907); print(' '.join('ff%06x' % r.randrange(1 << 24) for _ in range(100)))"` で作ったもの）：2021 年は 352 800 件のうち 5 件、2025 年は 381 600 件のうち 4 件が違いました。どれも一つのチャンネルが 1 段ずれただけで、原因は `spec_2021()` と 2025 年の代替の種類が使う、取り込んだ C++ の HCT の計算にあります。その既定の観察条件（`kDefaultViewingConditions`）は小数 9 桁に丸めてあり、Java は丸めずに計算するので、変換した色相が最大で 10⁻⁵ 程度ずれます。`ff3489fb` の Vibrant・ライト・コントラスト 1 の primary-fixed-dim では、丸めずに計算した観察条件の色相を primary の系列に与えると、取り込んだコードでも Java と同じ値になりました。2025 年の 4 件は、2025 年が 2021 年のものをそのまま使う Fidelity・Content・Rainbow で出ています。Neutral・TonalSpot・Vibrant・Expressive の 2025 年の規則には違いがありませんでした。
+- 乱数で選んだ 100 個の元の色（`python -c "import random; r = random.Random(907); print(' '.join('ff%06x' % r.randrange(1 << 24) for _ in range(100)))"` で作ったもの）：2021 年は 352 800 件、2025 年は 381 600 件を比べて、すべて一致しました。取り込んだ C++ 版の既定の観察条件を丸めずに計算するよう直す前は（[third_party/material-color-utilities](../../third_party/material-color-utilities/README.ja.md)）、それぞれ 5 件と 4 件で一つのチャンネルが 1 段ずれていました。
