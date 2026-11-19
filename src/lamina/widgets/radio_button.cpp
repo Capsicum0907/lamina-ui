@@ -70,15 +70,15 @@ void RadioButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const render::Point center{r.x + r.width / 2.0, r.y + r.height / 2.0};
     const color::Argb c = color::mix(scheme[t.unselected], scheme[t.selected], selected_.value());
     const double outer = t.icon_size / 2.0;
-    render::Path ring = circle_path(center, outer);
-    ring.append(circle_path(center, outer - t.stroke_width));
+    render::Path ring = render::circle_path(center, outer);
+    ring.append(render::circle_path(center, outer - t.stroke_width));
     canvas.fill_path(ring, c, render::FillRule::even_odd);
     const double dot = dot_radius_.value() - t.stroke_width / 2.0;
     if (dot > 0.0) {
-        canvas.fill_path(circle_path(center, dot), c);
+        canvas.fill_path(render::circle_path(center, dot), c);
     }
     if (state_layer_.value() > 0.0) {
-        canvas.fill_path(circle_path(center, t.state_layer_size / 2.0),
+        canvas.fill_path(render::circle_path(center, t.state_layer_size / 2.0),
                          color::with_alpha(scheme[t.state_layer], state_layer_.value()));
     }
 }

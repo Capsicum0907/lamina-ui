@@ -100,14 +100,14 @@ void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
                      color::mix(scheme[t.unchecked.track], scheme[t.checked.track], p));
     const color::Argb border = mix_optional(scheme, t.unchecked.border, t.checked.border, p);
     if (color::alpha(border) != 0) {
-        canvas.fill_path(ring_path(r, track_radius, t.track_outline_width), border, render::FillRule::even_odd);
+        canvas.fill_path(render::ring_path(r, track_radius, t.track_outline_width), border, render::FillRule::even_odd);
     }
 
     const render::Point center{thumb_center_x(), r.y + r.height / 2.0};
     const double size = std::max(0.0, thumb_size_.value());
-    canvas.fill_path(circle_path(center, size / 2.0), color::mix(scheme[t.unchecked.thumb], scheme[t.checked.thumb], p));
+    canvas.fill_path(render::circle_path(center, size / 2.0), color::mix(scheme[t.unchecked.thumb], scheme[t.checked.thumb], p));
     if (state_layer_.value() > 0.0) {
-        canvas.fill_path(circle_path(center, t.state_layer_size / 2.0),
+        canvas.fill_path(render::circle_path(center, t.state_layer_size / 2.0),
                          color::with_alpha(scheme[t.state_layer], state_layer_.value()));
     }
     if (const auto& icon = current_icon()) {

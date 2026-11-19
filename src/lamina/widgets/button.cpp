@@ -106,7 +106,7 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
         canvas.fill_path(shape, fill);
     }
     if (style.outline) {
-        canvas.fill_path(ring_path(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
+        canvas.fill_path(render::ring_path(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
     }
 
     double x = r.x + (r.width - content_width()) / 2.0;

@@ -143,7 +143,7 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
     const auto& style = tokens::tab_style(options_.style);
     const color::Argb active = scheme[style.active_content];
     if (tab.state_layer.value() > 0.0) {
-        canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(0.0)), color::with_alpha(active, tab.state_layer.value()));
+        canvas.fill_rect(r, color::with_alpha(active, tab.state_layer.value()));
     }
     const color::Argb content = color::mix(scheme[style.inactive_content], active, tab.selected.value());
     const double cx = r.x + r.width / 2.0;
@@ -175,14 +175,14 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
 void TabRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const auto& style = tokens::tab_style(options_.style);
     const render::Rect r = bounds();
-    canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(0.0)), scheme[style.container]);
+    canvas.fill_rect(r, scheme[style.container]);
     canvas.push_clip(r);
     for (std::size_t i = 0; i < tabs_.size(); ++i) {
         paint_tab(canvas, scheme, tabs_[i], tab_rect(i));
     }
     canvas.pop_clip();
     const render::Rect divider{r.x, r.y + r.height - t.divider_thickness, r.width, t.divider_thickness};
-    canvas.fill_path(render::rounded_rect_path(divider, render::uniform_radii(0.0)), scheme[t.divider]);
+    canvas.fill_rect(divider, scheme[t.divider]);
     const render::Rect indicator = indicator_rect();
     canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(style.indicator_corner)), scheme[style.indicator]);
 }

@@ -6,7 +6,6 @@
 
 #include "lamina/input/events.hpp"
 #include "lamina/render/geometry.hpp"
-#include "lamina/render/path.hpp"
 #include "lamina/tokens/interaction.hpp"
 
 namespace lamina::widgets {
@@ -83,21 +82,6 @@ bool select_on_click(Items& items, const input::PointerEvent& e, std::size_t sel
         return true;
     }
     return false;
-}
-
-inline render::Path ring_path(const render::Rect& r, double radius, double width) {
-    render::Path p = render::rounded_rect_path(r, render::uniform_radii(radius));
-    const render::Rect inner{r.x + width, r.y + width, r.width - 2 * width, r.height - 2 * width};
-    p.append(render::rounded_rect_path(inner, render::uniform_radii(std::max(0.0, radius - width))));
-    return p;
-}
-
-inline render::Rect circle_rect(render::Point center, double radius) {
-    return {center.x - radius, center.y - radius, 2 * radius, 2 * radius};
-}
-
-inline render::Path circle_path(render::Point center, double radius) {
-    return render::rounded_rect_path(circle_rect(center, radius), render::uniform_radii(radius));
 }
 
 }

@@ -7,6 +7,37 @@ struct Point {
     double y;
 };
 
+constexpr Point operator+(Point a, Point b) {
+    return {a.x + b.x, a.y + b.y};
+}
+
+constexpr Point operator-(Point a, Point b) {
+    return {a.x - b.x, a.y - b.y};
+}
+
+constexpr Point operator-(Point p) {
+    return {-p.x, -p.y};
+}
+
+constexpr Point operator*(Point p, double k) {
+    return {p.x * k, p.y * k};
+}
+
+constexpr Point operator/(Point p, double k) {
+    return {p.x / k, p.y / k};
+}
+
+constexpr double cross(Point a, Point b) {
+    return a.x * b.y - a.y * b.x;
+}
+
+constexpr Point left_normal(Point d) {
+    return {-d.y, d.x};
+}
+
+double length(Point v);
+Point unit(Point v);
+
 struct Rect {
     double x;
     double y;
@@ -23,6 +54,10 @@ struct CornerRadii {
 
 constexpr CornerRadii uniform_radii(double r) {
     return {r, r, r, r};
+}
+
+constexpr Rect circle_rect(Point center, double radius) {
+    return {center.x - radius, center.y - radius, 2 * radius, 2 * radius};
 }
 
 CornerRadii fit_radii(const Rect& rect, CornerRadii radii);

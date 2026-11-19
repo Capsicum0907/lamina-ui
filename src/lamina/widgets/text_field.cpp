@@ -44,7 +44,7 @@ render::Path notched_ring_path(const render::Rect& r, double radius, double widt
     const double a = std::max(gap_left, r.x + straight);
     const double b = std::min(gap_right, r.x + r.width - straight);
     if (a >= b) {
-        return ring_path(r, radius, width);
+        return render::ring_path(r, radius, width);
     }
     const render::Rect inner{r.x + width, r.y + width, r.width - 2 * width, r.height - 2 * width};
     const render::Affine mirror{-1.0, 0.0, 0.0, 1.0, 2 * inner.x + inner.width, 0.0};
@@ -397,7 +397,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         const double gap_right = gap_left + label_large_.width * scale + 2 * t.label_gap_padding;
         canvas.fill_path(notched_ring_path(r, radius, outline_width, gap_left, gap_right), outline, render::FillRule::even_odd);
     } else {
-        canvas.fill_path(ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
+        canvas.fill_path(render::ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
     }
 
     const double rest_top = r.y + (t.height - label_large_.box_height()) / 2.0;
@@ -427,8 +427,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
             }
             const double x0 = x_in_line(k, a);
             const double x1 = x_in_line(k, b);
-            canvas.fill_rounded_rect({left + x0, top + line_tops_[k], x1 - x0, line_tops_[k + 1] - line_tops_[k]},
-                                     render::uniform_radii(0.0), selection);
+            canvas.fill_rect({left + x0, top + line_tops_[k], x1 - x0, line_tops_[k + 1] - line_tops_[k]}, selection);
         }
     }
 
@@ -446,15 +445,15 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         }
         const double x0 = x_in_line(k, a);
         const double x1 = x_in_line(k, b);
-        canvas.fill_rounded_rect({left + x0, top + line_tops_[k] + lines_[k].baseline + t.composition_underline * 2, x1 - x0,
-                                  t.composition_underline},
-                                 render::uniform_radii(0.0), scheme[t.input]);
+        canvas.fill_rect({left + x0, top + line_tops_[k] + lines_[k].baseline + t.composition_underline * 2, x1 - x0,
+                          t.composition_underline},
+                         scheme[t.input]);
     }
 
     const bool caret_on = std::fmod(blink_clock_, 2 * t.caret_blink_seconds) < t.caret_blink_seconds;
     if (focused_ && caret_on) {
         const render::Rect c = caret_area();
-        canvas.fill_rounded_rect({c.x - t.caret_width / 2.0, c.y, t.caret_width, c.height}, render::uniform_radii(0.0), scheme[t.caret]);
+        canvas.fill_rect({c.x - t.caret_width / 2.0, c.y, t.caret_width, c.height}, scheme[t.caret]);
     }
     canvas.pop_clip();
 }

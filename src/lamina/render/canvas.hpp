@@ -38,6 +38,7 @@ public:
     void fill_path(const Path& path, color::Argb color, FillRule rule = FillRule::non_zero);
     void fill_shadow(const Path& path, const Shadow& shadow);
     void fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color::Argb color);
+    void fill_rect(const Rect& rect, color::Argb color);
 
     void save();
     void restore();
@@ -52,6 +53,7 @@ public:
 protected:
     virtual void fill_device_path(const Path& path, color::Argb color, FillRule rule) = 0;
     virtual void fill_device_shadow(const Path& path, const Shadow& shadow) = 0;
+    virtual void fill_device_rect(Point from, Point to, color::Argb color) = 0;
     virtual void begin_device_clip(const Rect& rect) = 0;
     virtual void end_device_clip() = 0;
 

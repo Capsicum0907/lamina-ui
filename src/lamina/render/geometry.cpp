@@ -1,8 +1,18 @@
 #include "lamina/render/geometry.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace lamina::render {
+
+double length(Point v) {
+    return std::hypot(v.x, v.y);
+}
+
+Point unit(Point v) {
+    const double l = length(v);
+    return l > 0.0 ? Point{v.x / l, v.y / l} : Point{0.0, 0.0};
+}
 
 CornerRadii fit_radii(const Rect& rect, CornerRadii r) {
     r.top_left = std::max(0.0, r.top_left);

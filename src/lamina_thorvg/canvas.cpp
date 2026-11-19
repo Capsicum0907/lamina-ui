@@ -157,6 +157,23 @@ void Canvas::fill_device_path(const Path& path, color::Argb color, FillRule rule
     impl_->add(shape);
 }
 
+void Canvas::fill_device_rect(render::Point from, render::Point to, color::Argb color) {
+    auto* shape = tvg::Shape::gen();
+    const auto x0 = static_cast<float>(from.x);
+    const auto y0 = static_cast<float>(from.y);
+    const auto x1 = static_cast<float>(to.x);
+    const auto y1 = static_cast<float>(to.y);
+    shape->moveTo(x0, y0);
+    shape->lineTo(x1, y0);
+    shape->lineTo(x1, y1);
+    shape->lineTo(x0, y1);
+    shape->lineTo(x0, y0);
+    shape->close();
+    const Rgba c = split(color);
+    shape->fill(c.r, c.g, c.b, c.a);
+    impl_->add(shape);
+}
+
 void Canvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
     if ((shadow.color >> 24) == 0) {
         return;

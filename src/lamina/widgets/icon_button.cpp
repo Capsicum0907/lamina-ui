@@ -100,7 +100,7 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), fill);
     }
     if (color::alpha(outline) != 0) {
-        canvas.fill_path(ring_path(r, radius, size.outline_width), outline, render::FillRule::even_odd);
+        canvas.fill_path(render::ring_path(r, radius, size.outline_width), outline, render::FillRule::even_odd);
     }
     icons::draw_centered(canvas, options_.icon, r, size.icon_size, content);
 }

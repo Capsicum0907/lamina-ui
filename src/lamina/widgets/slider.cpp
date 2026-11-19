@@ -183,7 +183,7 @@ void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
         const double start = value_end + end_gap;
         canvas.fill_path(track_path({x0 + start, top, tw - start, t.track_height}, inside, corner),
                          scheme[t.inactive_track]);
-        canvas.fill_path(circle_path({x0 + tw - corner, cy}, t.stop_indicator_size / 2.0), scheme[t.stop_indicator]);
+        canvas.fill_path(render::circle_path({x0 + tw - corner, cy}, t.stop_indicator_size / 2.0), scheme[t.stop_indicator]);
     }
     const double active_end = value_end - end_gap;
     if (active_end > corner) {
@@ -197,7 +197,7 @@ void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
             continue;
         }
         const bool active = local >= 0.0 && local <= active_end;
-        canvas.fill_path(circle_path({ticks[i], cy}, t.tick_size / 2.0), scheme[active ? t.active_tick : t.inactive_tick]);
+        canvas.fill_path(render::circle_path({ticks[i], cy}, t.tick_size / 2.0), scheme[active ? t.active_tick : t.inactive_tick]);
     }
 
     const double w = handle_width_;

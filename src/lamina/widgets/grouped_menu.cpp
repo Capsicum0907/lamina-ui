@@ -339,8 +339,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
         if (group.divider_y) {
             const render::Rect line{gr.x + t.divider_horizontal_padding, gr.y + *group.divider_y,
                                     gr.width - 2.0 * t.divider_horizontal_padding, t.divider_thickness};
-            canvas.fill_path(render::rounded_rect_path(line, render::uniform_radii(0.0)),
-                             color::scale_alpha(scheme[t.divider_color], a));
+            canvas.fill_rect(line, color::scale_alpha(scheme[t.divider_color], a));
         }
         for (std::size_t i = 0; i < group.items.size(); ++i) {
             const Item& item = group.items[i];

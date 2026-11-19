@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
@@ -19,32 +18,6 @@ using tokens::motion_scheme;
 
 constexpr motion::SpringSpec box_in_spring = motion_scheme.default_effects();
 constexpr motion::SpringSpec box_out_spring = motion_scheme.fast_effects();
-
-struct Vec {
-    double x;
-    double y;
-};
-
-Vec sub(render::Point a, render::Point b) {
-    return {a.x - b.x, a.y - b.y};
-}
-
-render::Point offset(render::Point p, Vec v, double k) {
-    return {p.x + v.x * k, p.y + v.y * k};
-}
-
-double length(Vec v) {
-    return std::hypot(v.x, v.y);
-}
-
-Vec unit(Vec v) {
-    const double l = length(v);
-    return l > 0.0 ? Vec{v.x / l, v.y / l} : Vec{0.0, 0.0};
-}
-
-Vec left_normal(Vec d) {
-    return {-d.y, d.x};
-}
 
 template <std::size_t N>
 void add_polygon(render::Path& path, std::array<render::Point, N> pts) {
@@ -65,26 +38,26 @@ void add_polygon(render::Path& path, std::array<render::Point, N> pts) {
 }
 
 void add_segment(render::Path& path, render::Point a, render::Point b, double half, bool cap_start, bool cap_end) {
-    const Vec d = unit(sub(b, a));
+    const render::Point d = render::unit(b - a);
     if (d.x == 0.0 && d.y == 0.0) {
         return;
     }
-    const Vec n = left_normal(d);
-    const render::Point s = cap_start ? offset(a, d, -half) : a;
-    const render::Point e = cap_end ? offset(b, d, half) : b;
-    add_polygon<4>(path, {offset(s, n, half), offset(e, n, half), offset(e, n, -half), offset(s, n, -half)});
+    const render::Point n = render::left_normal(d);
+    const render::Point s = cap_start ? a + d * -half : a;
+    const render::Point e = cap_end ? b + d * half : b;
+    add_polygon<4>(path, {s + n * half, e + n * half, e + n * -half, s + n * -half});
 }
 
-void add_miter(render::Path& path, render::Point corner, Vec d1, Vec d2, double half) {
-    const double turn = d1.x * d2.y - d1.y * d2.x;
-    const Vec n1 = turn > 0.0 ? Vec{d1.y, -d1.x} : left_normal(d1);
-    const Vec n2 = turn > 0.0 ? Vec{d2.y, -d2.x} : left_normal(d2);
+void add_miter(render::Path& path, render::Point corner, render::Point d1, render::Point d2, double half) {
+    const double turn = render::cross(d1, d2);
+    const render::Point n1 = turn > 0.0 ? -render::left_normal(d1) : render::left_normal(d1);
+    const render::Point n2 = turn > 0.0 ? -render::left_normal(d2) : render::left_normal(d2);
     const double denom = 1.0 + n1.x * n2.x + n1.y * n2.y;
     if (denom <= 1e-6) {
         return;
     }
-    const Vec m{(n1.x + n2.x) / denom, (n1.y + n2.y) / denom};
-    add_polygon<4>(path, {corner, offset(corner, n1, half), offset(corner, m, half), offset(corner, n2, half)});
+    const render::Point m = (n1 + n2) / denom;
+    add_polygon<4>(path, {corner, corner + n1 * half, corner + m * half, corner + n2 * half});
 }
 
 }
@@ -103,17 +76,17 @@ render::Path check_mark_path(const render::Rect& box, double draw_fraction, doub
     const render::Point right = at(t.check_right.x, motion::lerp(t.check_right.y, c, g));
 
     const double half = stroke_width / 2.0;
-    const Vec d1 = unit(sub(cross, left));
-    const Vec d2 = unit(sub(right, cross));
-    const double l1 = length(sub(cross, left));
-    const double l2 = length(sub(right, cross));
+    const render::Point d1 = render::unit(cross - left);
+    const render::Point d2 = render::unit(right - cross);
+    const double l1 = render::length(cross - left);
+    const double l2 = render::length(right - cross);
     const double drawn = (l1 + l2) * f;
     if (drawn <= l1) {
-        add_segment(path, left, offset(left, d1, drawn), half, true, true);
+        add_segment(path, left, left + d1 * drawn, half, true, true);
         return path;
     }
     add_segment(path, left, cross, half, true, false);
-    add_segment(path, cross, offset(cross, d2, drawn - l1), half, false, true);
+    add_segment(path, cross, cross + d2 * (drawn - l1), half, false, true);
     add_miter(path, cross, d1, d2, half);
     return path;
 }
@@ -215,14 +188,14 @@ void Checkbox::paint(render::Canvas& canvas, const color::ColorScheme& scheme) c
         if (color::alpha(box_color) != 0) {
             canvas.fill_rounded_rect(inner, render::uniform_radii(std::max(0.0, t.corner_radius - t.stroke_width)), box_color);
         }
-        canvas.fill_path(ring_path(b, t.corner_radius, t.stroke_width), border_color, render::FillRule::even_odd);
+        canvas.fill_path(render::ring_path(b, t.corner_radius, t.stroke_width), border_color, render::FillRule::even_odd);
     }
     if (color::alpha(check_color) != 0) {
         canvas.fill_path(check_mark_path(b, check_fraction_.value(), gravitation_.value(), t.stroke_width), check_color);
     }
     if (state_layer_.value() > 0.0) {
         const render::Rect r = bounds();
-        canvas.fill_path(circle_path({r.x + r.width / 2.0, r.y + r.height / 2.0}, t.state_layer_size / 2.0),
+        canvas.fill_path(render::circle_path({r.x + r.width / 2.0, r.y + r.height / 2.0}, t.state_layer_size / 2.0),
                          color::with_alpha(scheme[t.state_layer], state_layer_.value()));
     }
 }

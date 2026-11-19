@@ -1,5 +1,7 @@
 #include "lamina/render/path.hpp"
 
+#include <algorithm>
+
 namespace lamina::render {
 
 void Path::move_to(Point p) {
@@ -72,6 +74,17 @@ Path rounded_rect_path(const Rect& rect, const CornerRadii& radii) {
     }
     p.close();
     return p;
+}
+
+Path ring_path(const Rect& r, double radius, double width) {
+    Path p = rounded_rect_path(r, uniform_radii(radius));
+    const Rect inner{r.x + width, r.y + width, r.width - 2 * width, r.height - 2 * width};
+    p.append(rounded_rect_path(inner, uniform_radii(std::max(0.0, radius - width))));
+    return p;
+}
+
+Path circle_path(Point center, double radius) {
+    return rounded_rect_path(circle_rect(center, radius), uniform_radii(radius));
 }
 
 }

@@ -83,6 +83,48 @@ TEST_CASE_TEMPLATE("scale maps dp to pixels", CanvasType, lamina::thorvg::Canvas
     CHECK(canvas.pixel(31, 31) == white);
 }
 
+TEST_CASE_TEMPLATE("fill_rect paints the same pixels as a rectangle path", CanvasType, lamina::thorvg::Canvas) {
+    const Rect r{3.3, 4.7, 17.45, 9.6};
+    CanvasType by_rect(48, 48);
+    CanvasType by_path(48, 48);
+    for (CanvasType* c : {&by_rect, &by_path}) {
+        c->clear(white);
+        c->translate(0.4, 0.15);
+        c->scale(1.75);
+    }
+    by_rect.fill_rect(r, 0xc0ff0000);
+    by_path.fill_path(rounded_rect_path(r, uniform_radii(0.0)), 0xc0ff0000);
+    int differing = 0;
+    for (int y = 0; y < 48; ++y) {
+        for (int x = 0; x < 48; ++x) {
+            differing += by_rect.pixel(x, y) != by_path.pixel(x, y);
+        }
+    }
+    CHECK(differing == 0);
+    const Argb edge = by_rect.pixel(6, 20);
+    CHECK(edge != white);
+    CHECK(edge != by_rect.pixel(20, 20));
+}
+
+TEST_CASE("point operators, length and unit") {
+    const Point a{1.0, 2.0};
+    const Point b{4.0, 6.0};
+    CHECK(length(b - a) == 5.0);
+    const Point u = unit(b - a);
+    CHECK(u.x == doctest::Approx(0.6));
+    CHECK(u.y == doctest::Approx(0.8));
+    CHECK(unit({0.0, 0.0}).x == 0.0);
+    const Point m = a + b * 0.5 - Point{1.0, 1.0};
+    CHECK(m.x == 2.0);
+    CHECK(m.y == 4.0);
+    CHECK(left_normal({1.0, 0.0}).y == 1.0);
+    CHECK(cross({1.0, 0.0}, {0.0, 1.0}) == 1.0);
+    CHECK((-a / 2.0).y == -1.0);
+    const Rect c = circle_rect({10.0, 10.0}, 4.0);
+    CHECK(c.x == 6.0);
+    CHECK(c.width == 8.0);
+}
+
 TEST_CASE_TEMPLATE("shadows fall in the offset direction", CanvasType, lamina::thorvg::Canvas) {
     CanvasType canvas(120, 120);
     canvas.clear(white);

@@ -100,7 +100,7 @@ bool NavigationBar::animating() const {
 }
 
 void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    canvas.fill_path(render::rounded_rect_path(bounds(), render::uniform_radii(0.0)), scheme[t.container]);
+    canvas.fill_rect(bounds(), scheme[t.container]);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const NavigationItem& spec = options_.items[i];

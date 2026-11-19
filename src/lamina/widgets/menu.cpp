@@ -184,8 +184,7 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
         const Item& item = items_[i];
         const render::Rect ir = item_rect(i);
         if (item.state_layer.value() > 0.0) {
-            canvas.fill_path(render::rounded_rect_path(ir, render::uniform_radii(0.0)),
-                             color::scale_alpha(color::with_alpha(scheme[t.state_layer], item.state_layer.value()), a));
+            canvas.fill_rect(ir, color::scale_alpha(color::with_alpha(scheme[t.state_layer], item.state_layer.value()), a));
         }
         double x = ir.x + t.item_horizontal_padding;
         const double cy = ir.y + ir.height / 2.0;

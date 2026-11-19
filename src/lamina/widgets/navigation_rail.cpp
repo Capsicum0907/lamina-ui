@@ -245,7 +245,7 @@ bool NavigationRail::animating() const {
 
 void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect b = bounds();
-    canvas.fill_path(render::rounded_rect_path(b, render::uniform_radii(0.0)), scheme[t.container]);
+    canvas.fill_rect(b, scheme[t.container]);
     canvas.push_clip(b);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];

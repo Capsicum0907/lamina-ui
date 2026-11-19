@@ -159,8 +159,7 @@ void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     }
     const double a = opacity();
     const render::Rect window{0.0, 0.0, window_.width, window_.height};
-    canvas.fill_path(render::rounded_rect_path(window, render::uniform_radii(0.0)),
-                     color::with_alpha(scheme[t.scrim], t.scrim_opacity * a));
+    canvas.fill_rect(window, color::with_alpha(scheme[t.scrim], t.scrim_opacity * a));
     const color::ColorScheme s = faded(scheme, a);
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});

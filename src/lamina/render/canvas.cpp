@@ -22,6 +22,10 @@ void Canvas::fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color
     fill_path(rounded_rect_path(rect, radii), color);
 }
 
+void Canvas::fill_rect(const Rect& rect, color::Argb color) {
+    fill_device_rect(transform_.apply({rect.x, rect.y}), transform_.apply({rect.x + rect.width, rect.y + rect.height}), color);
+}
+
 void Canvas::save() {
     stack_.push_back(transform_);
 }

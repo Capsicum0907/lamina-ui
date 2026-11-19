@@ -28,5 +28,7 @@ private:
 };
 
 Path rounded_rect_path(const Rect& rect, const CornerRadii& radii);
+Path ring_path(const Rect& rect, double radius, double width);
+Path circle_path(Point center, double radius);
 
 }
