@@ -33,6 +33,11 @@ struct TextLine {
     double box_height() const { return std::max(style.line_height, ascent + descent); }
 };
 
+struct Underline {
+    double offset;
+    double thickness;
+};
+
 struct TextBlock {
     std::vector<TextLine> lines;
     double width = 0.0;
@@ -42,6 +47,8 @@ struct TextBlock {
 TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style);
 
 TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width);
+
+Underline underline(const FontStack& fonts, const TextStyle& style);
 
 double caret_x(const TextLine& line, std::size_t index);
 std::size_t index_at(const TextLine& line, double x);

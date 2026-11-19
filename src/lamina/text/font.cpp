@@ -162,6 +162,15 @@ FontExtents Font::extents_em() const {
     return {e.ascender / upem, e.descender / upem, e.line_gap / upem};
 }
 
+UnderlineMetrics Font::underline_em() const {
+    hb_position_t position = 0;
+    hb_position_t thickness = 0;
+    hb_ot_metrics_get_position_with_fallback(impl_->base, HB_OT_METRICS_TAG_UNDERLINE_OFFSET, &position);
+    hb_ot_metrics_get_position_with_fallback(impl_->base, HB_OT_METRICS_TAG_UNDERLINE_SIZE, &thickness);
+    const double upem = units_per_em();
+    return {position / upem, thickness / upem};
+}
+
 const render::Path& Font::glyph_outline_em(std::uint32_t glyph, int weight) const {
     const int key_weight = impl_->variable_weight ? weight : 0;
     const auto key = std::make_pair(key_weight, glyph);

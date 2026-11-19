@@ -37,6 +37,11 @@ struct FontExtents {
     double line_gap;
 };
 
+struct UnderlineMetrics {
+    double position;
+    double thickness;
+};
+
 class Font {
 public:
     static std::shared_ptr<Font> from_file(const std::string& path, unsigned face_index = 0);
@@ -48,6 +53,7 @@ public:
     unsigned units_per_em() const;
     bool has_codepoint(char32_t codepoint) const;
     FontExtents extents_em() const;
+    UnderlineMetrics underline_em() const;
     const render::Path& glyph_outline_em(std::uint32_t glyph, int weight) const;
     std::uint32_t glyph_for(char32_t codepoint) const;
     const render::Path& glyph_outline_em(std::uint32_t glyph, std::span<const Variation> variations) const;

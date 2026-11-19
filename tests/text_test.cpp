@@ -223,3 +223,17 @@ TEST_CASE("paragraph tabs are measured from their own line and count toward wrap
     CHECK(line_text(text, wrapped.lines[1]) == U"bbbb");
     CHECK(layout_paragraph(fonts, text, body, stop + bbbb + 1.0).lines.size() == 1);
 }
+
+TEST_CASE("the underline sits below the baseline and scales with the size") {
+    const FontStack fonts({sans});
+    const Underline u = underline(fonts, body);
+    const UnderlineMetrics em = sans->underline_em();
+    CHECK(em.thickness > 0.0);
+    CHECK(u.offset > 0.0);
+    CHECK(u.offset < layout_line(fonts, "Hello", body).descent);
+    CHECK(u.thickness == doctest::Approx(em.thickness * body.size));
+    TextStyle large = body;
+    large.size = 2.0 * body.size;
+    CHECK(underline(fonts, large).offset == doctest::Approx(2.0 * u.offset));
+    CHECK(underline(FontStack{}, body).thickness == 0.0);
+}

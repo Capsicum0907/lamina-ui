@@ -156,6 +156,14 @@ TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const 
     return block;
 }
 
+Underline underline(const FontStack& fonts, const TextStyle& style) {
+    if (fonts.empty()) {
+        return {0.0, 0.0};
+    }
+    const UnderlineMetrics m = fonts.fonts().front()->underline_em();
+    return {-m.position * style.size, m.thickness * style.size};
+}
+
 double caret_x(const TextLine& line, std::size_t index) {
     double best = line.width;
     std::size_t best_cluster = line.last;
