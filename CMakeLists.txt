@@ -117,7 +117,7 @@ if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
     target_include_directories(calculator_engine PUBLIC examples)
     target_compile_features(calculator_engine PUBLIC cxx_std_20)
     lamina_warnings(calculator_engine)
-    add_library(timer_engine STATIC examples/timer/engine.cpp)
+    add_library(timer_engine STATIC examples/timer/engine.cpp examples/timer/layout.cpp)
     target_include_directories(timer_engine PUBLIC examples)
     target_compile_features(timer_engine PUBLIC cxx_std_20)
     lamina_warnings(timer_engine)
@@ -204,6 +204,7 @@ if(LAMINA_BUILD_TESTS)
         tests/text_field_test.cpp
         tests/text_test.cpp
         tests/timer_engine_test.cpp
+        tests/timer_layout_test.cpp
         tests/tokens_test.cpp
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
