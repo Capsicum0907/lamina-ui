@@ -18,6 +18,8 @@ struct DisplayStyle {
     color::Role focused_color = color::Role::on_surface;
     color::Role secondary_color = color::Role::on_surface_variant;
     color::Role error_color = color::Role::error;
+    tokens::TypeRole badge_type = tokens::TypeRole::label_large;
+    color::Role badge_color = color::Role::on_surface_variant;
     double min_fit = 0.45;
     double line_gap = 8.0;
     double inset = 16.0;
@@ -30,6 +32,7 @@ public:
     Display(DisplayStyle style, const text::FontStack& fonts);
 
     void show(const std::string& formula, const std::string& result, bool result_focused, bool error);
+    void set_badge(const std::string& text, bool visible);
     void arrange(const render::Rect& rect);
     void step(double dt_seconds);
     bool animating() const;
@@ -54,6 +57,9 @@ private:
     double secondary_ratio_;
     std::array<Line, 2> lines_;
     bool error_ = false;
+    std::string badge_text_;
+    text::TextLine badge_;
+    motion::Animated badge_opacity_;
     bool shown_ = false;
     render::Rect rect_{0.0, 0.0, 0.0, 0.0};
 };
