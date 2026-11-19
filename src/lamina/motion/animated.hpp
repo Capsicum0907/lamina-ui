@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "lamina/motion/spring.hpp"
 
 namespace lamina::motion {
@@ -34,5 +36,10 @@ private:
     double target_;
     motion::SpringSpec spec_;
 };
+
+template <typename Items, typename... Members>
+bool any_unsettled(const Items& items, Members... members) {
+    return std::any_of(items.begin(), items.end(), [&](const auto& item) { return (!(item.*members).settled() || ...); });
+}
 
 }

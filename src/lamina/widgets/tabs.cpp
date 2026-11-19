@@ -116,19 +116,8 @@ render::Rect TabRow::indicator_rect() const {
 }
 
 bool TabRow::handle(const input::PointerEvent& e) {
-    std::optional<std::size_t> clicked;
-    for (std::size_t i = 0; i < tabs_.size(); ++i) {
-        Tab& tab = tabs_[i];
-        if (tab.press.update(e, tab_rect(i))) {
-            clicked = i;
-        }
-        tab.state_layer.animate_to(tab.press.state_layer_opacity());
-    }
-    if (clicked && *clicked != options_.selected) {
-        select(*clicked);
-        return true;
-    }
-    return false;
+    return select_on_click(tabs_, e, options_.selected, [this](std::size_t i) { return tab_rect(i); },
+                           [this](std::size_t i) { select(i); });
 }
 
 void TabRow::step(double dt) {
@@ -144,8 +133,7 @@ bool TabRow::animating() const {
     if (!indicator_offset_.settled() || !indicator_width_.settled()) {
         return true;
     }
-    return std::any_of(tabs_.begin(), tabs_.end(),
-                       [](const Tab& tab) { return !tab.state_layer.settled() || !tab.selected.settled(); });
+    return motion::any_unsettled(tabs_, &Tab::state_layer, &Tab::selected);
 }
 
 void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme, const Tab& tab, const render::Rect& r) const {

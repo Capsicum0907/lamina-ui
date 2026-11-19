@@ -2,7 +2,6 @@
 #include "lamina/widgets/navigation_rail.hpp"
 
 #include <algorithm>
-#include <optional>
 
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
@@ -171,15 +170,7 @@ void NavigationRail::set_expanded(bool expanded) {
 }
 
 void NavigationRail::select(std::size_t index) {
-    if (index >= items_.size()) {
-        return;
-    }
-    options_.selected = index;
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        const double on = i == index ? 1.0 : 0.0;
-        items_[i].indicator.animate_to(on);
-        items_[i].color.animate_to(on);
-    }
+    select_navigation_item(items_, options_.selected, index);
 }
 
 render::Rect NavigationRail::item_rect(std::size_t index) const {
@@ -216,19 +207,8 @@ double NavigationRail::label_opacity(std::size_t index) const {
 }
 
 bool NavigationRail::handle(const input::PointerEvent& e) {
-    std::optional<std::size_t> clicked;
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        Item& item = items_[i];
-        if (item.press.update(e, item_rect(i))) {
-            clicked = i;
-        }
-        item.state_layer.animate_to(item.press.state_layer_opacity());
-    }
-    if (clicked && *clicked != options_.selected) {
-        select(*clicked);
-        return true;
-    }
-    return false;
+    return select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
+                           [this](std::size_t i) { select(i); });
 }
 
 void NavigationRail::step(double dt) {
@@ -250,10 +230,7 @@ bool NavigationRail::animating() const {
     if (!min_width_.settled() || !full_width_.settled() || !item_space_.settled() || !item_min_height_.settled()) {
         return true;
     }
-    return std::any_of(items_.begin(), items_.end(), [](const Item& item) {
-        return !item.state_layer.settled() || !item.indicator.settled() || !item.position.settled() || !item.color.settled() ||
-               !item.label_mode.settled();
-    });
+    return motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::position, &Item::color, &Item::label_mode);
 }
 
 void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {

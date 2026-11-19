@@ -81,31 +81,12 @@ render::Rect NavigationBar::indicator_rect(std::size_t index) const {
 }
 
 void NavigationBar::select(std::size_t index) {
-    if (index >= items_.size()) {
-        return;
-    }
-    options_.selected = index;
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        const double on = i == index ? 1.0 : 0.0;
-        items_[i].indicator.animate_to(on);
-        items_[i].color.animate_to(on);
-    }
+    select_navigation_item(items_, options_.selected, index);
 }
 
 bool NavigationBar::handle(const input::PointerEvent& e) {
-    std::optional<std::size_t> clicked;
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        Item& item = items_[i];
-        if (item.press.update(e, item_rect(i))) {
-            clicked = i;
-        }
-        item.state_layer.animate_to(item.press.state_layer_opacity());
-    }
-    if (clicked && *clicked != options_.selected) {
-        select(*clicked);
-        return true;
-    }
-    return false;
+    return select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
+                           [this](std::size_t i) { select(i); });
 }
 
 void NavigationBar::step(double dt) {
@@ -117,9 +98,7 @@ void NavigationBar::step(double dt) {
 }
 
 bool NavigationBar::animating() const {
-    return std::any_of(items_.begin(), items_.end(), [](const Item& item) {
-        return !item.state_layer.settled() || !item.indicator.settled() || !item.color.settled();
-    });
+    return motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::color);
 }
 
 void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {

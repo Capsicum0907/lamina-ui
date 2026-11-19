@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
+#include <optional>
 
 #include "lamina/input/events.hpp"
 #include "lamina/render/geometry.hpp"
@@ -51,6 +53,29 @@ struct PressState {
         return hovered ? tokens::state_layer_opacity::hover : 0.0;
     }
 };
+
+template <typename Items, typename HitRect>
+std::optional<std::size_t> update_presses(Items& items, const input::PointerEvent& e, HitRect hit) {
+    std::optional<std::size_t> clicked;
+    for (std::size_t i = 0; i < items.size(); ++i) {
+        auto& item = items[i];
+        if (item.press.update(e, hit(i))) {
+            clicked = i;
+        }
+        item.state_layer.animate_to(item.press.state_layer_opacity());
+    }
+    return clicked;
+}
+
+template <typename Items, typename HitRect, typename Select>
+bool select_on_click(Items& items, const input::PointerEvent& e, std::size_t selected, HitRect hit, Select select) {
+    const std::optional<std::size_t> clicked = update_presses(items, e, hit);
+    if (clicked && *clicked != selected) {
+        select(*clicked);
+        return true;
+    }
+    return false;
+}
 
 inline render::Path ring_path(const render::Rect& r, double radius, double width) {
     render::Path p = render::rounded_rect_path(r, render::uniform_radii(radius));
