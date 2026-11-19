@@ -55,6 +55,8 @@ public:
     void set_caption_regions(input::CaptionRegions regions);
     void minimize();
     void toggle_maximize();
+    void set_size(double width_dp, double height_dp);
+    void set_minimum_size(double width_dp, double height_dp);
     void close();
 
 private:

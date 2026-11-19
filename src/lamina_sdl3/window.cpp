@@ -177,6 +177,10 @@ struct Window::Impl {
         return s > 0.0f ? s : 1.0;
     }
 
+    int to_window(double dp) const {
+        return std::max(1, static_cast<int>(std::lround(dp * scale() / pixel_density())));
+    }
+
     double to_dp(float window_coord) const {
         return window_coord * pixel_density() / scale();
     }
@@ -364,6 +368,17 @@ void Window::toggle_maximize() {
     } else {
         SDL_MaximizeWindow(impl_->window);
     }
+}
+
+void Window::set_size(double width_dp, double height_dp) {
+    if ((SDL_GetWindowFlags(impl_->window) & SDL_WINDOW_MAXIMIZED) != 0) {
+        SDL_RestoreWindow(impl_->window);
+    }
+    SDL_SetWindowSize(impl_->window, impl_->to_window(width_dp), impl_->to_window(height_dp));
+}
+
+void Window::set_minimum_size(double width_dp, double height_dp) {
+    SDL_SetWindowMinimumSize(impl_->window, impl_->to_window(width_dp), impl_->to_window(height_dp));
 }
 
 void Window::close() {
