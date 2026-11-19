@@ -62,6 +62,8 @@ cmake --build --preset release
 ctest --preset release
 ```
 
+CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どちらも既定で有効）で二つのバックエンドを、`LAMINA_BUILD_EXAMPLES`・`LAMINA_BUILD_TOOLS`（どちらも有効）と `LAMINA_BUILD_TESTS`（プリセットで有効）でそれ以外をビルドします。SDL3 の窓と見本には両方のバックエンドが、テストには ThorVG が要ります。これに合わない組み合わせでは、構成の段階でエラーになって止まります。両方のバックエンドを外しても、本体のライブラリと `tools/` の道具はビルドできます。
+
 `build/Release/playground.exe [フォントのファイル...]` を開くと、カードが 6 枚並んだ窓が出ます。カードをクリックすると、浮き上がり・角の丸みの増加・色の変化が、それぞれ expressive の体系のばねで動きます。
 
 ビルドは、見本ごとにその隣へ `assets/` を写します。見本は `build/Release/` から動くほか、`assets/` フォルダーを一緒に写せば、ほかのどのフォルダーからでも動きます。写さなかったときは親のフォルダーをさかのぼって `assets/` を探すので、ソースの中のものが見つかります。

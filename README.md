@@ -62,6 +62,8 @@ cmake --build --preset release
 ctest --preset release
 ```
 
+The CMake options `LAMINA_BUILD_THORVG` and `LAMINA_BUILD_SDL3` (both on by default) build the two backends, and `LAMINA_BUILD_EXAMPLES`, `LAMINA_BUILD_TOOLS` (both on) and `LAMINA_BUILD_TESTS` (on in the preset) build the rest. The SDL3 window and the examples need both backends and the tests need ThorVG; a combination that breaks this stops the configure step with an error. With both backends off, the core library and the tools in `tools/` still build.
+
 `build/Release/playground.exe [font files...]` opens a window with six cards. Clicking a card raises it, rounds its corners further and changes its color, each driven by a spring of the expressive motion scheme.
 
 The build copies `assets/` next to each example. An example runs from `build/Release/`, and also from any other folder when its `assets/` folder is copied along with it. Without that copy it looks for `assets/` in the parent folders, which finds the one in the source tree.
