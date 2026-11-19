@@ -11,9 +11,10 @@ components --title-bar
 navigation --title-bar
 calculator --title-bar
 timer --title-bar
+todo --title-bar
 ```
 
-指定しなければ、例はこれまでどおり Windows の枠を使います。components の例は、帯の中にアプリのアイコンボタンも置いています。電卓とタイマーは帯を自分の背景と同じ色で塗り（TitleBarOptions::container）、ウィンドウが一枚の面に見えるようにしています。
+指定しなければ、例はこれまでどおり Windows の枠を使います。components の例は、帯の中にアプリのアイコンボタンも置いています。電卓とタイマーは帯を自分の背景と同じ色で塗り（TitleBarOptions::container）、ウィンドウが一枚の面に見えるようにしています。To-do も同じです。To-do のダイアログは帯も含めてウィンドウ全体を暗くし、帯のボタンを押してもダイアログや一覧には届きません。
 
 ## 層の分け方
 
