@@ -82,7 +82,7 @@ private:
     Hit hit(double x, double y) const;
 
     TextFieldOptions options_;
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     double width_;
     render::Point origin_{0.0, 0.0};
 

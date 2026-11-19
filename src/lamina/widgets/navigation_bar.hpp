@@ -57,7 +57,7 @@ private:
     render::Rect full_indicator_rect(std::size_t index) const;
 
     NavigationBarOptions options_;
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     std::vector<Item> items_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};

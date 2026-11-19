@@ -122,7 +122,7 @@ private:
     void retarget_item(std::size_t group, std::size_t item);
     void choose(std::size_t group, std::size_t item);
 
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     std::vector<Group> groups_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};

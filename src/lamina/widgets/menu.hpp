@@ -69,7 +69,7 @@ private:
         motion::Animated state_layer;
     };
 
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     std::vector<Item> items_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};

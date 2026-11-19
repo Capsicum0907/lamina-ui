@@ -45,7 +45,7 @@ private:
     void retarget();
 
     ButtonOptions options_;
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     text::TextLine label_;
     double width_;
     render::Point origin_{0.0, 0.0};

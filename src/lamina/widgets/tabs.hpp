@@ -68,7 +68,7 @@ private:
     void paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme, const Tab& tab, const render::Rect& r) const;
 
     TabRowOptions options_;
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     std::vector<Tab> tabs_;
     double width_ = 0.0;
     double height_ = 0.0;

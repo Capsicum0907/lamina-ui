@@ -24,7 +24,7 @@ private:
     std::string text_;
     text::TextStyle style_;
     color::Role color_;
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     bool wrap_;
     text::TextBlock block_;
     double laid_out_width_ = -1.0;

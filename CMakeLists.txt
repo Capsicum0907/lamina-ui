@@ -156,6 +156,7 @@ if(LAMINA_BUILD_TESTS)
         tests/color_scheme_test.cpp
         tests/dialog_test.cpp
         tests/edit_buffer_test.cpp
+        tests/font_ownership_test.cpp
         tests/grouped_menu_test.cpp
         tests/icon_button_test.cpp
         tests/icon_test.cpp

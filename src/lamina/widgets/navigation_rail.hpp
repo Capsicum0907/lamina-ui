@@ -87,7 +87,7 @@ private:
     void update_width();
 
     NavigationRailOptions options_;
-    const text::FontStack& fonts_;
+    text::FontStack fonts_;
     std::vector<Item> items_;
     motion::Animated min_width_;
     motion::Animated full_width_;
