@@ -6,6 +6,7 @@ option(LAMINA_BUILD_THORVG "Build the ThorVG canvas (lamina::thorvg)" ON)
 option(LAMINA_BUILD_SDL3 "Build the SDL3 window (lamina::sdl3)" ON)
 option(LAMINA_BUILD_EXAMPLES "Build the examples" ON)
 option(LAMINA_BUILD_TOOLS "Build the development tools" ON)
+option(LAMINA_CLIENT_TITLE_BAR "Build the Win32 client-drawn title bar; without it, or off Windows, windows keep the system frame" ON)
 
 if(LAMINA_BUILD_EXAMPLES AND NOT (LAMINA_BUILD_SDL3 AND LAMINA_BUILD_THORVG))
     message(FATAL_ERROR "LAMINA_BUILD_EXAMPLES needs LAMINA_BUILD_SDL3 and LAMINA_BUILD_THORVG; turn LAMINA_BUILD_EXAMPLES off")
@@ -75,6 +76,7 @@ add_library(lamina STATIC
     src/lamina/widgets/switch.cpp
     src/lamina/widgets/tabs.cpp
     src/lamina/widgets/text_field.cpp
+    src/lamina/widgets/title_bar.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
 target_include_directories(lamina PUBLIC src)
@@ -111,6 +113,12 @@ if(LAMINA_BUILD_SDL3)
     )
     add_library(lamina::sdl3 ALIAS lamina_sdl3)
     target_link_libraries(lamina_sdl3 PUBLIC lamina PRIVATE SDL3::SDL3)
+    if(WIN32 AND LAMINA_CLIENT_TITLE_BAR)
+        target_sources(lamina_sdl3 PRIVATE src/lamina_sdl3/caption_frame_win32.cpp)
+        target_link_libraries(lamina_sdl3 PRIVATE dwmapi comctl32)
+    else()
+        target_sources(lamina_sdl3 PRIVATE src/lamina_sdl3/caption_frame_none.cpp)
+    endif()
     lamina_warnings(lamina_sdl3)
 endif()
 
@@ -141,10 +149,11 @@ if(LAMINA_BUILD_EXAMPLES)
     add_library(lamina_examples_common STATIC
         examples/common/canvas.cpp
         examples/common/caption_cell.cpp
+        examples/common/options.cpp
         examples/common/theme.cpp
     )
     target_include_directories(lamina_examples_common PUBLIC examples)
-    target_link_libraries(lamina_examples_common PUBLIC lamina PRIVATE lamina_thorvg)
+    target_link_libraries(lamina_examples_common PUBLIC lamina PRIVATE lamina_thorvg lamina_sdl3)
     lamina_warnings(lamina_examples_common)
     lamina_add_example(playground playground)
     lamina_add_example(buttons buttons)
@@ -216,6 +225,7 @@ if(LAMINA_BUILD_TESTS)
         tests/switch_test.cpp
         tests/tabs_test.cpp
         tests/text_field_test.cpp
+        tests/title_bar_test.cpp
         tests/text_test.cpp
         tests/timer_engine_test.cpp
         tests/timer_layout_test.cpp

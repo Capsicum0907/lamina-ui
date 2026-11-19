@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "common/canvas.hpp"
+#include "common/options.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -23,6 +24,7 @@
 #include "lamina/widgets/scroll_area.hpp"
 #include "lamina/widgets/snackbar.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina/widgets/title_bar.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
@@ -40,6 +42,7 @@ namespace {
 
 struct Config {
     sdl3::WindowOptions window{"lamina-ui to-do", 420, 720};
+    const char* bar_title = "To-do";
     color::SchemeOptions scheme{.seed = color::default_scheme_options.seed, .dark = false, .variant = color::Variant::tonal_spot, .contrast = 0.0};
     color::Role background = color::Role::surface;
     std::string organization = "lamina-ui";
@@ -86,6 +89,7 @@ void report_problems(const examples::todo::LoadReport& report, const std::filesy
 int main(int argc, char** argv) {
     try {
         const Config config;
+        const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = sdl3::bundled_icon_font();
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
@@ -97,7 +101,12 @@ int main(int argc, char** argv) {
         report_problems(load_report, file);
         std::uint64_t saved_revision = list.revision();
 
-        sdl3::Window window(config.window, examples::window_canvas());
+        sdl3::WindowOptions window_options = config.window;
+        window_options.height_dp = examples::window_height_dp(config.window.height_dp, want_title_bar);
+        window_options.client_title_bar = want_title_bar;
+        sdl3::Window window(window_options, examples::window_canvas());
+        widgets::TitleBar title_bar({config.bar_title, icon_font, nullptr, config.background}, fonts);
+        const double bar_height = window.client_title_bar() ? title_bar.height() : 0.0;
         widgets::TextField input({.label = config.field_label, .multiline = false, .clipboard = &window.clipboard()}, fonts);
         widgets::IconButton add_button({icons::Icon{icon_font, config.add_icon}, config.add_style, config.add_size});
         examples::todo::LayoutSettings layout_settings = config.layout;
@@ -317,12 +326,40 @@ int main(int argc, char** argv) {
         std::size_t placed_editing = 0;
 
         auto update = [&](const sdl3::Frame& frame) {
+            const double body_height = frame.height_dp - bar_height;
+            const render::Rect body{0.0, bar_height, frame.width_dp, body_height};
+            if (window.client_title_bar()) {
+                title_bar.set_maximized(frame.maximized);
+                title_bar.set_active(frame.active);
+                title_bar.set_width(frame.width_dp);
+                title_bar.set_origin({0.0, 0.0});
+                window.set_caption_regions(title_bar.regions());
+                for (const auto& e : frame.pointer) {
+                    switch (title_bar.handle(e)) {
+                    case widgets::TitleBarAction::minimize:
+                        window.minimize();
+                        break;
+                    case widgets::TitleBarAction::toggle_maximize:
+                        window.toggle_maximize();
+                        break;
+                    case widgets::TitleBarAction::close:
+                        window.close();
+                        break;
+                    case widgets::TitleBarAction::none:
+                        break;
+                    }
+                }
+                title_bar.step(frame.dt_seconds);
+            }
             const examples::todo::Column column = layout.column(frame.width_dp);
             for (auto& r : rows) {
                 r->set_column(column);
             }
 
             for (const auto& e : frame.pointer) {
+                if (window.client_title_bar() && e.action == input::PointerAction::down && e.y_dp < bar_height) {
+                    continue;
+                }
                 if (overlays.handle(e)) {
                     continue;
                 }
@@ -348,7 +385,7 @@ int main(int argc, char** argv) {
                     header.set_expanded(expanded);
                 }
                 if (h.clear) {
-                    dialog.open({frame.width_dp, frame.height_dp});
+                    dialog.open_in(body);
                     overlays.push(dialog, on_dialog);
                 }
                 std::vector<TaskRow*> snapshot;
@@ -501,7 +538,10 @@ int main(int argc, char** argv) {
             for (const ItemId id : completed) {
                 sizes.completed.push_back(find_row(id)->target_height());
             }
-            const examples::todo::TodoFrame placed = layout.place(frame.width_dp, frame.height_dp, sizes);
+            examples::todo::TodoFrame placed = layout.place(frame.width_dp, body_height, sizes);
+            for (examples::todo::Box* b : {&placed.field, &placed.add, &placed.viewport}) {
+                b->y += bar_height;
+            }
             auto put = [&](ItemId id, const examples::todo::RowPlace& p) {
                 TaskRow* r = find_row(id);
                 const auto it = std::find(fresh.begin(), fresh.end(), id);
@@ -530,9 +570,9 @@ int main(int argc, char** argv) {
             input.set_width(placed.field.width);
             input.set_origin({placed.field.x, placed.field.y});
             add_button.set_origin({placed.add.x, placed.add.y});
-            snackbar.set_area({0.0, 0.0, frame.width_dp, frame.height_dp});
+            snackbar.set_area(body);
             if (dialog.visible()) {
-                dialog.set_window({frame.width_dp, frame.height_dp});
+                dialog.set_area(body);
             }
             empty_presence.animate_to(list.items().empty() ? 1.0 : 0.0);
             if (first) {
@@ -622,10 +662,13 @@ int main(int argc, char** argv) {
                 empty_label.paint(canvas, faded);
             }
 
+            if (window.client_title_bar()) {
+                title_bar.paint(canvas, scheme);
+            }
             snackbar.paint(canvas, scheme);
             dialog.paint(canvas, scheme);
 
-            bool animating = header.animating() || scroll.animating() || input.animating() || add_button.animating() ||
+            bool animating = (window.client_title_bar() && title_bar.animating()) || header.animating() || scroll.animating() || input.animating() || add_button.animating() ||
                              dialog.animating() || snackbar.animating() || !empty_presence.settled();
             for (const auto& r : rows) {
                 animating = animating || r->animating();

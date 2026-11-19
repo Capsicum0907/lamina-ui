@@ -81,17 +81,25 @@ std::optional<render::Rect> Dialog::icon_bounds() const {
     return render::Rect{icon_origin_.x, icon_origin_.y, t.icon_size, t.icon_size};
 }
 
-void Dialog::set_window(layout::Size window) {
-    window_ = window;
-    const double max_width = std::max(t.min_width, std::min(t.max_width, window.width));
-    const layout::Size s = root_->measure({t.min_width, max_width, 0.0, window.height});
-    surface_ = {(window.width - s.width) / 2.0, (window.height - s.height) / 2.0, s.width, s.height};
+void Dialog::set_area(const render::Rect& area) {
+    area_ = area;
+    const double max_width = std::max(t.min_width, std::min(t.max_width, area.width));
+    const layout::Size s = root_->measure({t.min_width, max_width, 0.0, area.height});
+    surface_ = {area.x + (area.width - s.width) / 2.0, area.y + (area.height - s.height) / 2.0, s.width, s.height};
     root_->arrange(surface_);
 }
 
-void Dialog::open(layout::Size window) {
-    set_window(window);
+void Dialog::set_window(layout::Size window) {
+    set_area({0.0, 0.0, window.width, window.height});
+}
+
+void Dialog::open_in(const render::Rect& area) {
+    set_area(area);
     popup_.open();
+}
+
+void Dialog::open(layout::Size window) {
+    open_in({0.0, 0.0, window.width, window.height});
 }
 
 void Dialog::close() {
@@ -103,7 +111,7 @@ DialogResult Dialog::handle(const input::PointerEvent& e) {
     if (!popup_.is_open()) {
         return DialogResult::none;
     }
-    if (popup_.dismisses(e, surface_)) {
+    if (popup_.dismisses(e, surface_) && contains(area_, e.x_dp, e.y_dp)) {
         close();
         return DialogResult::dismissed;
     }
@@ -150,8 +158,7 @@ void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
         return;
     }
     const double a = opacity();
-    const render::Rect window{0.0, 0.0, window_.width, window_.height};
-    canvas.fill_rect(window, color::with_alpha(scheme[t.scrim], t.scrim_opacity * a));
+    canvas.fill_rect(area_, color::with_alpha(scheme[t.scrim], t.scrim_opacity * a));
     const color::ColorScheme s = color::faded(scheme, a);
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});

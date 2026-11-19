@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -10,6 +11,7 @@
 
 #include "common/canvas.hpp"
 #include "common/caption_cell.hpp"
+#include "common/options.hpp"
 #include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -23,6 +25,7 @@
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina/widgets/title_bar.hpp"
 #include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/resources.hpp"
@@ -100,6 +103,7 @@ const char* checkbox_name(tokens::CheckboxState s) {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
+        const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = sdl3::bundled_icon_font();
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
@@ -268,12 +272,47 @@ int main(int argc, char** argv) {
         auto page = layout::column(std::move(page_children));
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
+        const char* title = "lamina-ui components";
+        sdl3::Window window({title, 1100, examples::window_height_dp(860, want_title_bar), want_title_bar}, examples::window_canvas());
+        widgets::IconButton bar_search({icon(Symbol::search), IconButtonStyle::standard, IconButtonSize::extra_small});
+        widgets::TitleBar title_bar({title, icon_font, layout::row({widgets::centered_node(bar_search)})}, fonts);
+        layout::NodePtr root = page;
+        if (window.client_title_bar()) {
+            controls.add(title_bar);
+            controls.add(bar_search);
+            page->self_align = layout::CrossAlign::stretch;
+            auto framed = layout::column({widgets::node(title_bar), layout::weighted(page, 1.0)});
+            framed->fill_cross(true);
+            root = framed;
+        }
+
         color::ColorScheme scheme = theme.current();
         auto update = [&](const sdl3::Frame& frame) {
-            layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
+            title_bar.set_maximized(frame.maximized);
+            title_bar.set_active(frame.active);
+            layout::run(*root, {0.0, 0.0, frame.width_dp, frame.height_dp});
+            window.set_caption_regions(title_bar.regions(std::array{bar_search.bounds()}));
             scheme = theme.current();
 
             for (const auto& e : frame.pointer) {
+                if (window.client_title_bar()) {
+                    if (bar_search.handle(e)) {
+                        report("Title bar: search");
+                    }
+                    switch (title_bar.handle(e)) {
+                    case widgets::TitleBarAction::minimize:
+                        window.minimize();
+                        break;
+                    case widgets::TitleBarAction::toggle_maximize:
+                        window.toggle_maximize();
+                        break;
+                    case widgets::TitleBarAction::close:
+                        window.close();
+                        break;
+                    case widgets::TitleBarAction::none:
+                        break;
+                    }
+                }
                 if (dark_toggle.handle(e)) {
                     options.dark = dark_toggle.checked();
                     retheme_pending = true;
@@ -318,7 +357,7 @@ int main(int argc, char** argv) {
             return !theme.settled() || controls.animating();
         };
 
-        sdl3::run_app({"lamina-ui components", 1100, 860}, examples::window_canvas(), update, paint);
+        sdl3::run_app(window, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

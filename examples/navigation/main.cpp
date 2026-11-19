@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/canvas.hpp"
+#include "common/options.hpp"
 #include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -22,6 +23,7 @@
 #include "lamina/widgets/overlay_stack.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/tabs.hpp"
+#include "lamina/widgets/title_bar.hpp"
 #include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/app.hpp"
@@ -65,6 +67,7 @@ std::string format_value(const char* name, double v) {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
+        const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = sdl3::bundled_icon_font();
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
@@ -180,9 +183,25 @@ int main(int argc, char** argv) {
         auto main_column = layout::column({layout::weighted(page, 1.0), nav_node});
         main_column->fill_cross(true);
         page->self_align = layout::CrossAlign::stretch;
-        auto root = layout::row({widgets::node(rail), layout::weighted(main_column, 1.0)});
-        root->fill_cross(true);
+        auto body = layout::row({widgets::node(rail), layout::weighted(main_column, 1.0)});
+        body->fill_cross(true);
 
+        const char* title = "lamina-ui navigation";
+        sdl3::Window window({title, 1120, examples::window_height_dp(860, want_title_bar), want_title_bar}, examples::window_canvas());
+        widgets::TitleBar title_bar({title, icon_font}, fonts);
+        layout::NodePtr root = body;
+        if (window.client_title_bar()) {
+            body->self_align = layout::CrossAlign::stretch;
+            auto framed = layout::column({widgets::node(title_bar), layout::weighted(body, 1.0)});
+            framed->fill_cross(true);
+            root = framed;
+        }
+
+        const double bar_height = window.client_title_bar() ? title_bar.height() : 0.0;
+        widgets::WidgetSet chrome;
+        if (window.client_title_bar()) {
+            chrome.add(title_bar);
+        }
         widgets::WidgetSet page_controls;
         page_controls.add(dark_toggle);
         for (widgets::TabRow* t : {&primary_tabs, &secondary_tabs, &leading_tabs}) {
@@ -226,6 +245,23 @@ int main(int argc, char** argv) {
             } else if (r == widgets::DialogResult::dismissed) {
                 report("Dialog: settings kept");
             }
+        };
+
+        auto caption = [&](const input::PointerEvent& e) {
+            switch (title_bar.handle(e)) {
+            case widgets::TitleBarAction::minimize:
+                window.minimize();
+                break;
+            case widgets::TitleBarAction::toggle_maximize:
+                window.toggle_maximize();
+                break;
+            case widgets::TitleBarAction::close:
+                window.close();
+                break;
+            case widgets::TitleBarAction::none:
+                break;
+            }
+            return e.action == input::PointerAction::down && widgets::contains(title_bar.bounds(), e.x_dp, e.y_dp);
         };
 
         auto background = [&](const input::PointerEvent& e) {
@@ -282,16 +318,23 @@ int main(int argc, char** argv) {
         color::ColorScheme scheme = theme.current();
         auto update = [&](const sdl3::Frame& frame) {
             const layout::Size window_size{frame.width_dp, frame.height_dp};
+            const render::Rect body{0.0, bar_height, frame.width_dp, frame.height_dp - bar_height};
             rail.step(frame.dt_seconds);
+            title_bar.set_maximized(frame.maximized);
+            title_bar.set_active(frame.active);
             layout::run(*root, {0.0, 0.0, frame.width_dp, frame.height_dp});
+            window.set_caption_regions(title_bar.regions());
             for (widgets::Dialog* d : {&dialog, &wrap_dialog}) {
                 if (d->visible()) {
-                    d->set_window(window_size);
+                    d->set_area(body);
                 }
             }
             scheme = theme.current();
 
             for (const auto& e : frame.pointer) {
+                if (window.client_title_bar() && caption(e)) {
+                    continue;
+                }
                 if (overlays.handle(e)) {
                     continue;
                 }
@@ -303,10 +346,10 @@ int main(int argc, char** argv) {
                     grouped_menu.open(grouped_button.bounds(), window_size);
                     overlays.push(grouped_menu, on_grouped_menu);
                 } else if (opened == Opened::dialog) {
-                    dialog.open(window_size);
+                    dialog.open_in(body);
                     overlays.push(dialog, on_dialog);
                 } else if (opened == Opened::wrap_dialog) {
-                    wrap_dialog.open(window_size);
+                    wrap_dialog.open_in(body);
                     overlays.push(wrap_dialog, on_wrap_dialog);
                 }
             }
@@ -330,18 +373,20 @@ int main(int argc, char** argv) {
                 l->paint(canvas, scheme);
             }
             theme.step(dt);
+            chrome.step(dt);
             page_controls.step(dt);
             rail_open.step(dt);
             rail_close.step(dt);
             front.step(dt);
+            chrome.paint(canvas, scheme);
             page_controls.paint(canvas, scheme);
             rail_button().paint(canvas, scheme);
             front.paint(canvas, scheme);
-            return !theme.settled() || page_controls.animating() || rail_open.animating() || rail_close.animating() ||
+            return !theme.settled() || chrome.animating() || page_controls.animating() || rail_open.animating() || rail_close.animating() ||
                    rail.animating() || front.animating();
         };
 
-        sdl3::run_app({"lamina-ui navigation", 1120, 860}, examples::window_canvas(), update, paint);
+        sdl3::run_app(window, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

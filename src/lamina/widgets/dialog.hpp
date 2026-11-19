@@ -35,9 +35,12 @@ public:
     Dialog(const Dialog&) = delete;
     Dialog& operator=(const Dialog&) = delete;
 
+    void open_in(const render::Rect& area);
     void open(layout::Size window);
     void close();
+    void set_area(const render::Rect& area);
     void set_window(layout::Size window);
+    render::Rect area() const { return area_; }
     bool is_open() const { return popup_.is_open(); }
     bool visible() const { return popup_.visible(); }
     double opacity() const { return popup_.opacity(); }
@@ -65,7 +68,7 @@ private:
     render::Point icon_origin_{0.0, 0.0};
     std::shared_ptr<layout::Flow> actions_;
     layout::NodePtr root_;
-    layout::Size window_{0.0, 0.0};
+    render::Rect area_{0.0, 0.0, 0.0, 0.0};
     render::Rect surface_{0.0, 0.0, 0.0, 0.0};
     PopupTransition popup_;
 };

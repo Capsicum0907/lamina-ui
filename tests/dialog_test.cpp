@@ -178,3 +178,54 @@ TEST_CASE("buttons that do not fit wrap with confirm on the first line, both at 
     CHECK(dismiss.y == doctest::Approx(confirm.y + confirm.height + 8.0));
     CHECK(dismiss.y + dismiss.height == doctest::Approx(r.y + r.height - 24.0));
 }
+
+TEST_CASE("a dialog opened on a window size covers the whole window") {
+    widgets::Dialog by_size(options(), fonts());
+    widgets::Dialog by_area(options(), fonts());
+    by_size.open(window);
+    by_area.open_in({0.0, 0.0, window.width, window.height});
+    const render::Rect a = by_size.bounds();
+    const render::Rect b = by_area.bounds();
+    CHECK(a.x == b.x);
+    CHECK(a.y == b.y);
+    CHECK(a.width == b.width);
+    CHECK(a.height == b.height);
+    CHECK(by_size.area().width == window.width);
+    CHECK(by_size.area().height == window.height);
+}
+
+TEST_CASE("a dialog given an area centers in it, dims only it and is dismissed only by presses inside it") {
+    constexpr double bar = 40.0;
+    const render::Rect area{0.0, bar, window.width, window.height - bar};
+    widgets::Dialog d(options(), fonts());
+    d.open_in(area);
+    settle(d);
+    const render::Rect r = d.bounds();
+    CHECK(r.x + r.width / 2.0 == doctest::Approx(area.x + area.width / 2.0));
+    CHECK(r.y + r.height / 2.0 == doctest::Approx(area.y + area.height / 2.0));
+
+    thorvg::Canvas canvas(static_cast<int>(window.width), static_cast<int>(window.height));
+    constexpr color::Argb background = 0xffffffff;
+    canvas.clear(background);
+    d.paint(canvas, scheme());
+    CHECK(canvas.pixel(10, static_cast<int>(bar / 2.0)) == background);
+    CHECK(canvas.pixel(10, static_cast<int>(bar + 10.0)) != background);
+
+    CHECK(d.handle({PointerAction::down, 10.0, bar / 2.0}) == DialogResult::none);
+    d.handle({PointerAction::up, 10.0, bar / 2.0});
+    CHECK(d.is_open());
+    CHECK(d.handle({PointerAction::down, 10.0, bar + 10.0}) == DialogResult::dismissed);
+    CHECK_FALSE(d.is_open());
+}
+
+TEST_CASE("set_area moves an open dialog to the new area") {
+    widgets::Dialog d(options(), fonts());
+    d.open(window);
+    const render::Rect area{100.0, 50.0, 400.0, 300.0};
+    d.set_area(area);
+    const render::Rect r = d.bounds();
+    CHECK(r.x + r.width / 2.0 == doctest::Approx(300.0));
+    CHECK(r.y + r.height / 2.0 == doctest::Approx(200.0));
+    CHECK(d.area().x == area.x);
+    CHECK(d.area().y == area.y);
+}

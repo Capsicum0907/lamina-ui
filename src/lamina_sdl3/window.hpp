@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "lamina/input/caption.hpp"
 #include "lamina/input/clipboard.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
@@ -16,6 +17,7 @@ struct WindowOptions {
     std::string title;
     int width_dp;
     int height_dp;
+    bool client_title_bar = false;
 };
 
 struct Frame {
@@ -23,11 +25,15 @@ struct Frame {
     double width_dp;
     double height_dp;
     double scale;
+    bool maximized;
+    bool active;
     std::vector<input::PointerEvent> pointer;
     std::vector<input::WheelEvent> wheel;
     std::vector<input::KeyEvent> keys;
     std::vector<input::TextEvent> text;
 };
+
+bool client_title_bar_supported();
 
 class Window {
 public:
@@ -44,6 +50,12 @@ public:
     input::Clipboard& clipboard();
     render::Canvas& canvas();
     void present();
+
+    bool client_title_bar() const;
+    void set_caption_regions(input::CaptionRegions regions);
+    void minimize();
+    void toggle_maximize();
+    void close();
 
 private:
     struct Impl;
