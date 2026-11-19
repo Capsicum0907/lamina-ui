@@ -565,10 +565,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme, 
     const color::Argb idle_outline = color::mix(scheme[t.outline], scheme[t.hover_outline], hover_.value());
     const color::Argb outline = color::mix(idle_outline, scheme[t.focus_outline], f);
 
-    render::Path ring = render::rounded_rect_path(r, render::uniform_radii(radius));
-    const render::Rect inner{r.x + outline_width, r.y + outline_width, r.width - 2 * outline_width, r.height - 2 * outline_width};
-    ring.append(render::rounded_rect_path(inner, render::uniform_radii(std::max(0.0, radius - outline_width))));
-    canvas.fill_path(ring, outline, render::FillRule::even_odd);
+    canvas.fill_path(ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
 
     const double p = std::clamp(label_progress_.value(), 0.0, 1.0);
     const double small_scale = label_small_.style.size / label_large_.style.size;
