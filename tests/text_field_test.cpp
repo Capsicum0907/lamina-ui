@@ -554,6 +554,16 @@ TEST_CASE("a pause in typing longer than the token starts a new undo step") {
     CHECK(f.text().empty());
 }
 
+TEST_CASE("losing and regaining the focus ends the typing step") {
+    auto f = focused_field();
+    type_keys(f, "ab");
+    f.set_focused(false);
+    f.set_focused(true);
+    type_keys(f, "c");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "ab");
+}
+
 TEST_CASE("a caret move and whitespace break the typing into steps") {
     auto f = focused_field();
     type_keys(f, "one two");

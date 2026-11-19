@@ -132,6 +132,15 @@ TEST_CASE("a pause longer than the limit breaks a step") {
     CHECK(b.text().empty());
 }
 
+TEST_CASE("close_step ends the typing step") {
+    EditBuffer b = buffer();
+    type(b, U"ab");
+    b.close_step();
+    type(b, U"c");
+    CHECK(b.undo());
+    CHECK(b.text() == U"ab");
+}
+
 TEST_CASE("redo replays undone steps until a new edit clears them") {
     EditBuffer b = buffer();
     type(b, U"one two");

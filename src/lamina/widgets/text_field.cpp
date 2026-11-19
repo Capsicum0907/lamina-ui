@@ -146,6 +146,7 @@ void TextField::set_focused(bool focused) {
     }
     focused_ = focused;
     dragging_ = false;
+    buffer_.close_step();
     if (!focused_) {
         buffer_.clear_composition();
         relayout();

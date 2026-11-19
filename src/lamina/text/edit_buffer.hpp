@@ -69,6 +69,7 @@ public:
     bool undo();
     bool redo();
     void advance(double dt_seconds) { history_.advance(dt_seconds); }
+    void close_step() { history_.seal(); }
 
 private:
     EditState state() const;
