@@ -8,14 +8,9 @@
 
 #include "lamina/input/events.hpp"
 #include "lamina/render/geometry.hpp"
+#include "lamina/widgets/protocol.hpp"
 
 namespace lamina::widgets {
-
-template <typename W>
-concept Focusable = requires(W& w, const W& cw, bool focused) {
-    { cw.focused() } -> std::convertible_to<bool>;
-    w.set_focused(focused);
-};
 
 template <typename W>
 concept TextInput = Focusable<W> && requires(const W& w) {
@@ -37,6 +32,8 @@ public:
         remove_id(&widget);
     }
 
+    void clear() { entries_.clear(); }
+
     bool handle(const input::KeyEvent& e);
     bool move_focus(FocusDirection direction);
     void clear_focus();
@@ -50,6 +47,7 @@ private:
         virtual ~Member() = default;
         virtual const void* id() const = 0;
         virtual bool focused() const = 0;
+        virtual bool can_focus() const = 0;
         virtual void set_focused(bool focused) = 0;
         virtual std::optional<render::Rect> caret_area() const = 0;
         virtual std::optional<double> next_wake_seconds() const = 0;
@@ -60,6 +58,13 @@ private:
         explicit Entry(W& w) : widget(w) {}
         const void* id() const override { return &widget; }
         bool focused() const override { return widget.focused(); }
+        bool can_focus() const override {
+            if constexpr (FocusGated<W>) {
+                return widget.can_focus();
+            } else {
+                return true;
+            }
+        }
         void set_focused(bool focused) override { widget.set_focused(focused); }
         std::optional<render::Rect> caret_area() const override {
             if constexpr (TextInput<W>) {

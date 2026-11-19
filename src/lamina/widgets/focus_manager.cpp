@@ -5,25 +5,32 @@
 namespace lamina::widgets {
 
 bool FocusManager::handle(const input::KeyEvent& e) {
-    if (e.key != input::Key::tab) {
+    if (e.key != input::Key::tab || e.ctrl) {
         return false;
     }
     return move_focus(e.shift ? FocusDirection::previous : FocusDirection::next);
 }
 
 bool FocusManager::move_focus(FocusDirection direction) {
-    const auto current = std::find_if(entries_.begin(), entries_.end(), [](const auto& m) { return m->focused(); });
-    if (current == entries_.end()) {
+    const std::size_t n = entries_.size();
+    if (n == 0) {
         return false;
     }
-    const std::size_t n = entries_.size();
-    const std::size_t i = static_cast<std::size_t>(current - entries_.begin());
-    const std::size_t target = direction == FocusDirection::next ? (i + 1) % n : (i + n - 1) % n;
-    if (target != i) {
-        entries_[i]->set_focused(false);
-        entries_[target]->set_focused(true);
+    const auto current = std::find_if(entries_.begin(), entries_.end(), [](const auto& m) { return m->focused(); });
+    const bool forward = direction == FocusDirection::next;
+    std::size_t i = current == entries_.end() ? (forward ? n - 1 : 0) : static_cast<std::size_t>(current - entries_.begin());
+    for (std::size_t tries = 0; tries < n; ++tries) {
+        i = forward ? (i + 1) % n : (i + n - 1) % n;
+        if (!entries_[i]->can_focus()) {
+            continue;
+        }
+        if (current != entries_.end() && current->get() != entries_[i].get()) {
+            (*current)->set_focused(false);
+        }
+        entries_[i]->set_focused(true);
+        return true;
     }
-    return true;
+    return false;
 }
 
 void FocusManager::clear_focus() {

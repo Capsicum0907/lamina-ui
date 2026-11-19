@@ -53,6 +53,20 @@ private:
     bool focused_ = false;
 };
 
+class Gated {
+public:
+    bool focused() const { return focused_; }
+    void set_focused(bool focused) { focused_ = focused; }
+    bool can_focus() const { return enabled; }
+    bool enabled = true;
+
+private:
+    bool focused_ = false;
+};
+
+static_assert(widgets::FocusGated<Gated>);
+static_assert(!widgets::FocusGated<Toggle>);
+
 }
 
 TEST_CASE("Tab moves the focus forward and Shift+Tab backward, wrapping at the ends") {
@@ -69,13 +83,21 @@ TEST_CASE("Tab moves the focus forward and Shift+Tab backward, wrapping at the e
     CHECK(f.focused() == 1);
 }
 
-TEST_CASE("Tab does nothing while nothing has the focus, and other keys are left to the widgets") {
-    Fields f(2);
-    CHECK_FALSE(f.focus.handle(tab));
-    CHECK(f.focused() == -1);
-    f.list[0]->set_focused(true);
-    CHECK_FALSE(f.focus.handle(input::KeyEvent{input::Key::a, false}));
+TEST_CASE("Tab with nothing focused focuses the first widget and Shift+Tab the last; other keys are left to the widgets") {
+    Fields f(3);
+    CHECK(f.focus.handle(tab));
     CHECK(f.focused() == 0);
+    f.focus.clear_focus();
+    CHECK(f.focus.handle(shift_tab));
+    CHECK(f.focused() == 2);
+    CHECK_FALSE(f.focus.handle(input::KeyEvent{input::Key::a, false}));
+    CHECK_FALSE(f.focus.handle(input::KeyEvent{input::Key::tab, false, true}));
+    CHECK(f.focused() == 2);
+}
+
+TEST_CASE("an empty order uses no Tab") {
+    widgets::FocusManager focus;
+    CHECK_FALSE(focus.handle(tab));
 }
 
 TEST_CASE("the focus follows a click on a field, since the fields keep their own focus") {
@@ -134,4 +156,32 @@ TEST_CASE("a removed widget leaves the Tab order and clear_focus drops the focus
     CHECK(f.focused() == 2);
     f.focus.clear_focus();
     CHECK(f.focused() == -1);
+}
+
+TEST_CASE("Tab skips widgets that cannot take the focus now") {
+    Fields f(2);
+    Gated gated;
+    f.focus.remove(*f.list[1]);
+    f.focus.add(gated);
+    f.focus.add(*f.list[1]);
+    gated.enabled = false;
+    f.list[0]->set_focused(true);
+    CHECK(f.focus.handle(tab));
+    CHECK(f.focused() == 1);
+    CHECK_FALSE(gated.focused());
+    CHECK(f.focus.handle(shift_tab));
+    CHECK(f.focused() == 0);
+    gated.enabled = true;
+    CHECK(f.focus.handle(tab));
+    CHECK(gated.focused());
+    CHECK(f.focused() == -1);
+}
+
+TEST_CASE("Tab uses no key when no widget can take the focus") {
+    widgets::FocusManager focus;
+    Gated gated;
+    gated.enabled = false;
+    focus.add(gated);
+    CHECK_FALSE(focus.handle(tab));
+    CHECK_FALSE(gated.focused());
 }
