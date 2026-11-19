@@ -66,6 +66,7 @@ add_library(lamina STATIC
     src/lamina/widgets/navigation_bar.cpp
     src/lamina/widgets/navigation_rail.cpp
     src/lamina/widgets/overlay_stack.cpp
+    src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/slider.cpp
     src/lamina/widgets/surface.cpp
@@ -186,6 +187,7 @@ if(LAMINA_BUILD_TESTS)
         tests/navigation_rail_test.cpp
         tests/overlay_stack_test.cpp
         tests/popup_transition_test.cpp
+        tests/progress_indicator_test.cpp
         tests/protocol_test.cpp
         tests/radio_button_test.cpp
         tests/shapes_test.cpp

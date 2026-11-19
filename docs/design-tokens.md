@@ -402,6 +402,17 @@ C `tokens/DialogTokens.kt` (surface-container-high, extra-large corners, Headlin
 - A headline that wraps to several lines is centered as a block as wide as its longest line. A wrapping Compose `Text` most likely takes the full maximum width, so with an icon its lines would start at the start edge (not verified). Single-line headlines are the same.
 - Compose leaves the enter and exit animation to the platform window. lamina-ui's own animation scales the surface from 0.8 with the default spatial spring and fades it and the scrim with the default effects spring.
 
+### Circular progress indicator
+
+C `tokens/CircularProgressIndicatorTokens.kt` (40 dp, 48 dp for the wavy one, 4 dp indicator and track, 4 dp between them, a 1.6 dp wave amplitude, a 15 dp wavelength), C `tokens/ProgressIndicatorTokens.kt` (primary indicator, secondary-container track) and C `WavyProgressIndicator.kt` with `internal/CircularWavyProgressModifiers.kt`, read into `lamina/tokens/progress_indicator.hpp`.
+
+- The indicator starts at the top and runs clockwise. The track runs from the indicator's end to the top, leaving the gap plus both round caps between them at each end; at zero progress the gaps close and the track is a full circle, as in `CircularProgressDrawingCache.updateDrawPaths`.
+- `WavyProgressIndicatorDefaults.indicatorAmplitude` gives the full wave between 10 % and 95 % progress and none outside; the wave moves one wavelength per second (`waveSpeed = wavelength`).
+- Compose draws the wave by morphing a circle into a star with an inner radius of 0.75, normalised and scaled to the size, so the depth of the wave grows with the diameter: at 48 dp it is about the token's amplitude, but a 300 dp ring would look like a gear. lamina-ui draws the wave as a sine of the arc length around the circle instead, with the amplitude and the wavelength in dp, so it looks the same at any size, and the wavelength does not have to divide the circumference (the ends never meet while the wave is on, so a resize does not make the wave jump).
+- Compose changes the amplitude with 500 ms tweens (standard easing up, emphasized-accelerate down). lamina-ui moves it on the slow effects spring, and a widget that is not wavy (`set_wavy(false)`) flattens its wave, so a paused timer stops animating.
+- Compose's stroke has round caps and a zero-length segment draws nothing. lamina-ui narrows an arc shorter than its thickness in proportion, so a growing indicator or a shrinking track does not appear or vanish as a whole dot.
+- `sample_length` (1 dp) is lamina-ui's own: the arcs are filled as outlines (`render::stroke_path`), sampled every 1 dp along the arc.
+
 ## Open questions
 
 - Components other than those above are not surveyed yet.

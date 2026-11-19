@@ -1,5 +1,6 @@
 #pragma once
 
+#include <span>
 #include <vector>
 
 #include "lamina/render/geometry.hpp"
@@ -30,5 +31,6 @@ private:
 Path rounded_rect_path(const Rect& rect, const CornerRadii& radii);
 Path ring_path(const Rect& rect, double radius, double width);
 Path circle_path(Point center, double radius);
+Path stroke_path(std::span<const Point> centerline, double width);
 
 }
