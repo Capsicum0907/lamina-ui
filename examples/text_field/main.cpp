@@ -39,10 +39,13 @@ int main(int argc, char** argv) {
 
         sdl3::Window window({"lamina-ui text field", 760, 560});
         std::vector<std::unique_ptr<widgets::TextField>> fields;
-        fields.push_back(std::make_unique<widgets::TextField>("\u540d\u524d", fonts, layout.field_width,
-                                                              widgets::TextFieldOptions{false, &window.clipboard()}));
-        fields.push_back(std::make_unique<widgets::TextField>("\u30e1\u30c3\u30bb\u30fc\u30b8", fonts, layout.field_width,
-                                                              widgets::TextFieldOptions{true, &window.clipboard()}));
+        fields.push_back(std::make_unique<widgets::TextField>(
+            widgets::TextFieldOptions{.label = "\u540d\u524d", .multiline = false, .clipboard = &window.clipboard()}, fonts));
+        fields.push_back(std::make_unique<widgets::TextField>(
+            widgets::TextFieldOptions{.label = "\u30e1\u30c3\u30bb\u30fc\u30b8", .multiline = true, .clipboard = &window.clipboard()}, fonts));
+        for (auto& f : fields) {
+            f->set_width(layout.field_width);
+        }
         widgets::Button send({"\u9001\u4fe1", tokens::ButtonStyle::filled, tokens::ButtonSize::medium, tokens::ButtonShape::round}, fonts);
         widgets::Label header("\u6587\u5b57\u306e\u5165\u529b", layout.header_type, layout.text, fonts, false);
         std::vector<std::unique_ptr<widgets::Label>> log;

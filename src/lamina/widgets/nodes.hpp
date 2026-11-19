@@ -31,10 +31,13 @@ inline layout::NodePtr node(Switch& s) { return centered_node(s); }
 inline layout::NodePtr node(Checkbox& c) { return centered_node(c); }
 inline layout::NodePtr node(RadioButton& r) { return centered_node(r); }
 
-inline layout::NodePtr node(TextField& f) {
-    return std::make_shared<layout::Leaf>([&f](const layout::Constraints&) { return layout::Size{f.bounds().width, f.bounds().height}; },
-                                          [&f](const render::Rect& r) { f.set_origin({r.x, r.y}); });
+template <typename W>
+layout::NodePtr top_left_node(W& w) {
+    return std::make_shared<layout::Leaf>([&w](const layout::Constraints&) { return layout::Size{w.width(), w.height()}; },
+                                          [&w](const render::Rect& r) { w.set_origin({r.x, r.y}); });
 }
+
+inline layout::NodePtr node(TextField& f) { return top_left_node(f); }
 
 inline layout::NodePtr node(Label& l) {
     return std::make_shared<layout::Leaf>([&l](const layout::Constraints& c) { return l.measure(c); },

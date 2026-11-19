@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
         widgets::Label right_title("\u53f3\u306e\u5217\uff082\uff09", TypeRole::title_medium, Role::on_surface, fonts);
         widgets::Label right_body("\u91cd\u307f 2 \u306e\u5217\u3067\u3059\u3002\u5de6\u306e 2 \u500d\u306e\u5e45\u3092\u3082\u3089\u3044\u307e\u3059\u3002Text wraps to whatever width the column receives.", TypeRole::body_medium, Role::on_surface_variant, fonts);
 
-        widgets::TextField name("\u540d\u524d", fonts, 0.0);
+        widgets::TextField name({.label = "\u540d\u524d"}, fonts);
         widgets::Button cancel({"\u30ad\u30e3\u30f3\u30bb\u30eb", ButtonStyle::text, ButtonSize::small, ButtonShape::round}, fonts);
         widgets::Button save({"\u4fdd\u5b58", ButtonStyle::filled, ButtonSize::small, ButtonShape::round}, fonts);
 

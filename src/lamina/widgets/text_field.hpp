@@ -11,18 +11,23 @@
 #include "lamina/text/edit_buffer.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/text/line_map.hpp"
+#include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
 
 struct TextFieldOptions {
+    std::string label;
     bool multiline = false;
     input::Clipboard* clipboard = nullptr;
 };
 
 class TextField {
 public:
-    TextField(std::string label, const text::FontStack& fonts, double width, TextFieldOptions options = {});
+    TextField(TextFieldOptions options, const text::FontStack& fonts);
 
+    double width() const { return width_; }
+    double height() const;
+    void set_width(double width);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
     bool focused() const { return focused_; }
@@ -38,7 +43,7 @@ public:
     std::string selected_text() const;
     std::size_t line_count() const { return lines_.size(); }
 
-    void handle(const input::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void handle(const input::TextEvent& event);
 
@@ -76,10 +81,9 @@ private:
     double x_in_line(std::size_t line, std::size_t shown) const;
     Hit hit(double x, double y) const;
 
-    std::string label_text_;
+    TextFieldOptions options_;
     const text::FontStack& fonts_;
     double width_;
-    TextFieldOptions options_;
     render::Point origin_{0.0, 0.0};
 
     text::EditBuffer buffer_;
@@ -93,7 +97,7 @@ private:
     text::TextLine label_small_;
 
     bool focused_ = false;
-    bool hovered_ = false;
+    PressState press_;
     double blink_clock_ = 0.0;
     motion::Animated label_progress_;
     motion::Animated focus_;

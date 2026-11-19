@@ -16,8 +16,15 @@ using input::TextEventKind;
 
 namespace {
 
+widgets::TextField field(widgets::TextFieldOptions options = {}) {
+    options.label = "Label";
+    widgets::TextField f(std::move(options), fonts());
+    f.set_width(300.0);
+    return f;
+}
+
 widgets::TextField focused_field(widgets::TextFieldOptions options = {}) {
-    widgets::TextField f("Label", fonts(), 300.0, options);
+    widgets::TextField f = field(std::move(options));
     f.set_origin({0.0, 0.0});
     f.handle({PointerAction::down, 10.0, 20.0});
     return f;
@@ -38,7 +45,7 @@ input::KeyEvent ctrl(Key key, bool shift = false) {
 }
 
 TEST_CASE("clicking inside focuses and clicking outside blurs") {
-    widgets::TextField f("Label", fonts(), 300.0);
+    widgets::TextField f = field();
     f.handle({PointerAction::down, 10.0, 20.0});
     CHECK(f.focused());
     f.handle({PointerAction::down, 900.0, 900.0});
@@ -173,7 +180,7 @@ TEST_CASE("word movement treats a run of one script as a word") {
 }
 
 TEST_CASE("double click selects a word and dragging selects a range") {
-    widgets::TextField f("Label", fonts(), 300.0);
+    widgets::TextField f = field();
     f.set_text("hello world");
     f.handle({PointerAction::down, 17.0, 28.0, 2});
     CHECK(f.selected_text() == "hello");
@@ -190,7 +197,7 @@ TEST_CASE("double click selects a word and dragging selects a range") {
 
 TEST_CASE("copy, cut and paste go through the clipboard") {
     FakeClipboard clipboard;
-    auto f = focused_field({false, &clipboard});
+    auto f = focused_field({.clipboard = &clipboard});
     f.handle({TextEventKind::commit, "copy me", 0});
     f.handle(ctrl(Key::left, true));
     f.handle(ctrl(Key::c));
@@ -210,14 +217,14 @@ TEST_CASE("copy, cut and paste go through the clipboard") {
 TEST_CASE("pasting keeps newlines in a multi-line field") {
     FakeClipboard clipboard;
     clipboard.contents = "one\r\ntwo\rthree";
-    auto f = focused_field({true, &clipboard});
+    auto f = focused_field({.multiline = true, .clipboard = &clipboard});
     f.handle(ctrl(Key::v));
     CHECK(f.text() == "one\ntwo\nthree");
     CHECK(f.line_count() == 3);
 }
 
 TEST_CASE("enter inserts a newline in a multi-line field and ctrl+enter submits") {
-    auto f = focused_field({true, nullptr});
+    auto f = focused_field({.multiline = true});
     f.handle({TextEventKind::commit, "a", 0});
     CHECK_FALSE(f.handle({Key::enter, false}));
     f.handle({TextEventKind::commit, "b", 0});
@@ -226,7 +233,7 @@ TEST_CASE("enter inserts a newline in a multi-line field and ctrl+enter submits"
 }
 
 TEST_CASE("up and down move between lines keeping the x position") {
-    auto f = focused_field({true, nullptr});
+    auto f = focused_field({.multiline = true});
     f.set_text("abc\ndef\nghi");
     REQUIRE(f.line_count() == 3);
     const double x = f.caret_area().x;
@@ -250,7 +257,7 @@ TEST_CASE("up and down move between lines keeping the x position") {
 }
 
 TEST_CASE("a multi-line field grows with its lines and wraps long text") {
-    auto f = focused_field({true, nullptr});
+    auto f = focused_field({.multiline = true});
     const double one_line = f.bounds().height;
     CHECK(one_line == doctest::Approx(56.0));
     f.set_text("a\nb\nc");
@@ -290,7 +297,7 @@ TEST_CASE("a single-line field scrolls to keep the caret visible and clips its t
 }
 
 TEST_CASE("an IME composition on a later line keeps the caret on that line") {
-    auto f = focused_field({true, nullptr});
+    auto f = focused_field({.multiline = true});
     f.set_text("abc\ndef");
     const double y = f.caret_area().y;
     f.handle({TextEventKind::compose, "\xe3\x81\x8b", 1});
@@ -300,7 +307,7 @@ TEST_CASE("an IME composition on a later line keeps the caret on that line") {
 }
 
 TEST_CASE("end on a soft-wrapped line without spaces stays on that line") {
-    auto f = focused_field({true, nullptr});
+    auto f = focused_field({.multiline = true});
     std::string kana;
     for (int i = 0; i < 60; ++i) {
         kana += "\xe3\x81\x82";
@@ -317,9 +324,43 @@ TEST_CASE("end on a soft-wrapped line without spaces stays on that line") {
 }
 
 TEST_CASE("a trailing space moves the caret in a multi-line field") {
-    auto f = focused_field({true, nullptr});
+    auto f = focused_field({.multiline = true});
     f.handle({TextEventKind::commit, "abc", 0});
     const double x = f.caret_area().x;
     f.handle({TextEventKind::commit, " ", 0});
     CHECK(f.caret_area().x > x);
+}
+
+TEST_CASE("handle reports true only for a press inside the field") {
+    widgets::TextField f = field();
+    CHECK_FALSE(f.handle({PointerAction::move, 10.0, 20.0}));
+    CHECK(f.handle({PointerAction::down, 10.0, 20.0}));
+    CHECK_FALSE(f.handle({PointerAction::up, 10.0, 20.0}));
+    CHECK_FALSE(f.handle({PointerAction::leave, 0.0, 0.0}));
+    CHECK_FALSE(f.handle({PointerAction::down, 900.0, 900.0}));
+    CHECK_FALSE(f.focused());
+}
+
+TEST_CASE("the width is at least the minimum and the bounds follow width and height") {
+    widgets::TextField f({.label = "Label"}, fonts());
+    CHECK(f.width() == doctest::Approx(tokens::outlined_text_field.min_width));
+    f.set_width(10.0);
+    CHECK(f.width() == doctest::Approx(tokens::outlined_text_field.min_width));
+    f.set_width(400.0);
+    f.set_origin({5.0, 7.0});
+    CHECK(f.width() == doctest::Approx(400.0));
+    CHECK(f.height() == doctest::Approx(tokens::outlined_text_field.height));
+    CHECK(f.bounds().x == doctest::Approx(5.0));
+    CHECK(f.bounds().y == doctest::Approx(7.0));
+    CHECK(f.bounds().width == doctest::Approx(f.width()));
+    CHECK(f.bounds().height == doctest::Approx(f.height()));
+}
+
+TEST_CASE("a narrower multi-line field wraps into more lines") {
+    widgets::TextField f({.label = "Label", .multiline = true}, fonts());
+    f.set_width(600.0);
+    f.set_text(std::string(80, 'w'));
+    const std::size_t wide = f.line_count();
+    f.set_width(tokens::outlined_text_field.min_width);
+    CHECK(f.line_count() > wide);
 }

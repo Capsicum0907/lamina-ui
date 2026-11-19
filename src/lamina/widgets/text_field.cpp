@@ -36,23 +36,30 @@ Shortcut shortcut(const input::KeyEvent& e) {
 
 }
 
-TextField::TextField(std::string label, const text::FontStack& fonts, double width, TextFieldOptions options)
-    : label_text_(std::move(label)),
+TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
+    : options_(std::move(options)),
       fonts_(fonts),
-      width_(std::max(width, t.min_width)),
-      options_(options),
-      buffer_(options.multiline),
-      label_large_(text::layout_line(fonts, label_text_, style_of(t.label_type))),
-      label_small_(text::layout_line(fonts, label_text_, style_of(t.minimized_label_type))),
+      width_(t.min_width),
+      buffer_(options_.multiline),
+      label_large_(text::layout_line(fonts, options_.label, style_of(t.label_type))),
+      label_small_(text::layout_line(fonts, options_.label, style_of(t.minimized_label_type))),
       label_progress_(0.0, motion_scheme.fast_spatial()),
       focus_(0.0, motion_scheme.fast_effects()),
       hover_(0.0, motion_scheme.fast_effects()) {
     relayout();
 }
 
+double TextField::height() const {
+    return options_.multiline ? std::max(t.height, content_height() + 2 * t.vertical_padding) : t.height;
+}
+
+void TextField::set_width(double width) {
+    width_ = std::max(width, t.min_width);
+    relayout();
+}
+
 render::Rect TextField::bounds() const {
-    const double height = options_.multiline ? std::max(t.height, content_height() + 2 * t.vertical_padding) : t.height;
-    return {origin_.x, origin_.y, width_, height};
+    return {origin_.x, origin_.y, width(), height()};
 }
 
 double TextField::text_left() const {
@@ -68,7 +75,7 @@ double TextField::content_height() const {
 }
 
 double TextField::input_top() const {
-    return origin_.y + (bounds().height - content_height()) / 2.0;
+    return origin_.y + (height() - content_height()) / 2.0;
 }
 
 std::string TextField::text() const {
@@ -176,13 +183,12 @@ void TextField::copy_selection() const {
     }
 }
 
-void TextField::handle(const input::PointerEvent& e) {
-    const bool over = e.action != input::PointerAction::leave && contains(bounds(), e.x_dp, e.y_dp);
-    hovered_ = over;
-    hover_.animate_to(over ? 1.0 : 0.0);
+bool TextField::handle(const input::PointerEvent& e) {
+    press_.update(e, bounds());
+    hover_.animate_to(press_.hovered ? 1.0 : 0.0);
     if (e.action == input::PointerAction::up) {
         dragging_ = false;
-        return;
+        return false;
     }
     if (e.action == input::PointerAction::move) {
         if (dragging_ && !buffer_.composing()) {
@@ -191,14 +197,14 @@ void TextField::handle(const input::PointerEvent& e) {
             relayout();
             reset_blink();
         }
-        return;
+        return false;
     }
     if (e.action != input::PointerAction::down) {
-        return;
+        return false;
     }
-    if (!over) {
+    if (!press_.hovered) {
         set_focused(false);
-        return;
+        return false;
     }
     set_focused(true);
     if (!buffer_.composing()) {
@@ -215,6 +221,7 @@ void TextField::handle(const input::PointerEvent& e) {
         relayout();
     }
     reset_blink();
+    return true;
 }
 
 bool TextField::handle(const input::KeyEvent& e) {
