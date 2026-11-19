@@ -112,7 +112,7 @@ if(LAMINA_BUILD_SDL3)
 endif()
 
 if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
-    add_library(calculator_engine STATIC examples/calculator/engine.cpp)
+    add_library(calculator_engine STATIC examples/calculator/engine.cpp examples/calculator/keypad_layout.cpp)
     target_include_directories(calculator_engine PUBLIC examples)
     target_compile_features(calculator_engine PUBLIC cxx_std_20)
     lamina_warnings(calculator_engine)
@@ -162,6 +162,7 @@ if(LAMINA_BUILD_TESTS)
         tests/animated_test.cpp
         tests/button_test.cpp
         tests/calculator_engine_test.cpp
+        tests/calculator_layout_test.cpp
         tests/cancel_interaction_test.cpp
         tests/canvas_test.cpp
         tests/checkbox_test.cpp
