@@ -13,6 +13,7 @@
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
+#include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/surface.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
@@ -58,10 +59,6 @@ struct Card {
     bool selected = false;
     render::Rect rect{0.0, 0.0, 0.0, 0.0};
 };
-
-bool contains(const render::Rect& r, double x, double y) {
-    return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
-}
 
 }
 
@@ -127,7 +124,7 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 for (Card& c : cards) {
-                    if (!contains(c.rect, e.x_dp, e.y_dp)) {
+                    if (!widgets::contains(c.rect, e.x_dp, e.y_dp)) {
                         continue;
                     }
                     c.selected = !c.selected;
@@ -144,7 +141,7 @@ int main(int argc, char** argv) {
             for (std::size_t i = 0; i < cards.size(); ++i) {
                 Card& c = cards[i];
                 const render::Rect r = c.rect;
-                c.hover.animate_to(contains(r, pointer_x, pointer_y) ? tokens::state_layer_opacity::hover : 0.0);
+                c.hover.animate_to(widgets::contains(r, pointer_x, pointer_y) ? tokens::state_layer_opacity::hover : 0.0);
                 for (auto* a : {&c.elevation, &c.corner, &c.fill, &c.hover}) {
                     a->step(frame.dt_seconds);
                 }
