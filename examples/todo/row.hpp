@@ -43,6 +43,8 @@ struct RowStyle {
     motion::SpringSpec fade_spring = tokens::motion_scheme.default_effects();
 };
 
+enum class RowPart { check, text, remove };
+
 struct RowAction {
     bool toggled = false;
     bool remove = false;
@@ -73,10 +75,16 @@ public:
     double target_y() const { return target_y_; }
 
     RowAction handle(const input::PointerEvent& event);
+    RowAction handle(const input::KeyEvent& event);
     void cancel_interaction();
 
     bool focused() const;
     void set_focused(bool focused);
+    std::optional<RowPart> focused_part() const;
+    void focus_part(RowPart part);
+    void clear_focus();
+    widgets::Checkbox& checkbox() { return check_; }
+    widgets::IconButton& remove_button() { return remove_; }
     bool editing() const { return editor_.has_value(); }
     void begin_edit(const std::optional<input::PointerEvent>& press);
     widgets::TextField* editor() { return editor_ ? &*editor_ : nullptr; }
@@ -147,7 +155,10 @@ public:
     render::Rect rect() const { return box_.rect(); }
 
     HeaderAction handle(const input::PointerEvent& event);
+    HeaderAction handle(const input::KeyEvent& event);
     void cancel_interaction();
+    widgets::Button& clear_button() { return clear_; }
+    bool shown() const { return presence_.target() > 0.0; }
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

@@ -6,6 +6,7 @@
 #include <numbers>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/tokens/focus.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/text_field.hpp"
 
@@ -26,6 +27,8 @@ std::string title_text(const HeaderStyle& style, std::size_t count) {
 double unit(const motion::Animated& a) {
     return std::clamp(a.value(), 0.0, 1.0);
 }
+
+constexpr double focus_ring_reach = tokens::focus_indicator.outer_offset + tokens::focus_indicator.thickness;
 
 }
 
@@ -107,7 +110,7 @@ void TaskRow::place(const RowPlace& p, bool animate) {
     presence_.animate_to(p.shown ? 1.0 : 0.0);
     if (!p.shown) {
         cancel_interaction();
-        focused_ = false;
+        clear_focus();
     }
 }
 
@@ -117,7 +120,7 @@ void TaskRow::leave() {
     box_.move_to(Box{r.x, r.y, r.width, 0.0}, true);
     presence_.animate_to(0.0);
     cancel_interaction();
-    focused_ = false;
+    clear_focus();
     editor_.reset();
     closing_editor_.reset();
     edit_.snap_to(0.0);
@@ -166,6 +169,16 @@ RowAction TaskRow::handle(const input::PointerEvent& e) {
     return a;
 }
 
+RowAction TaskRow::handle(const input::KeyEvent& e) {
+    RowAction a;
+    if (!shown()) {
+        return a;
+    }
+    a.toggled = check_.handle(e);
+    a.remove = !a.toggled && remove_.handle(e);
+    return a;
+}
+
 void TaskRow::cancel_interaction() {
     press_ = {};
     check_.cancel_interaction();
@@ -185,6 +198,33 @@ void TaskRow::set_focused(bool focused) {
     } else {
         focused_ = focused;
     }
+}
+
+std::optional<RowPart> TaskRow::focused_part() const {
+    if (check_.focused()) {
+        return RowPart::check;
+    }
+    if (remove_.focused()) {
+        return RowPart::remove;
+    }
+    if (focused()) {
+        return RowPart::text;
+    }
+    return std::nullopt;
+}
+
+void TaskRow::focus_part(RowPart part) {
+    switch (part) {
+    case RowPart::check: check_.set_focused(true); break;
+    case RowPart::text: set_focused(true); break;
+    case RowPart::remove: remove_.set_focused(true); break;
+    }
+}
+
+void TaskRow::clear_focus() {
+    check_.set_focused(false);
+    remove_.set_focused(false);
+    set_focused(false);
 }
 
 void TaskRow::begin_edit(const std::optional<input::PointerEvent>& press) {
@@ -218,7 +258,7 @@ std::string TaskRow::end_edit() {
 }
 
 void TaskRow::step(double dt) {
-    const bool show_remove = !leaving_ && !editor_ && (press_.hovered || focused_);
+    const bool show_remove = !leaving_ && !editor_ && (press_.hovered || focused_ || check_.focused() || remove_.focused());
     remove_visibility_.animate_to(show_remove ? 1.0 : 0.0);
     hover_.animate_to(press_.hovered && !editor_ ? 1.0 : 0.0);
     focus_.animate_to(focused_ && !editor_ ? 1.0 : 0.0);
@@ -252,7 +292,8 @@ void TaskRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
         return;
     }
     const color::ColorScheme s = p < 1.0 ? color::faded(scheme, p) : scheme;
-    canvas.push_clip(r);
+    const double reach = moving() ? 0.0 : focus_ring_reach;
+    canvas.push_clip({r.x - reach, r.y - reach, r.width + 2.0 * reach, r.height + 2.0 * reach});
     const double radius = tokens::corner_radius(style_.corner, r.width, r.height);
     if (const double h = unit(hover_); h > 0.0) {
         canvas.fill_rounded_rect(r, render::uniform_radii(radius),
@@ -318,6 +359,7 @@ void SectionHeader::place(const std::optional<Box>& box, const Column& column, b
     if (!box) {
         presence_.animate_to(0.0);
         cancel_interaction();
+        clear_.set_focused(false);
         return;
     }
     if (!placed_ || presence_.value() <= 0.0) {
@@ -327,6 +369,15 @@ void SectionHeader::place(const std::optional<Box>& box, const Column& column, b
         box_.move_to(*box, animate);
     }
     presence_.animate_to(1.0);
+}
+
+HeaderAction SectionHeader::handle(const input::KeyEvent& e) {
+    HeaderAction a;
+    if (presence_.target() <= 0.0) {
+        return a;
+    }
+    a.clear = clear_.handle(e);
+    return a;
 }
 
 HeaderAction SectionHeader::handle(const input::PointerEvent& e) {

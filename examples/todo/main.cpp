@@ -35,6 +35,7 @@
 
 using namespace lamina;
 using examples::todo::ItemId;
+using examples::todo::RowPart;
 using examples::todo::TaskRow;
 using input::Key;
 
@@ -179,6 +180,14 @@ int main(int argc, char** argv) {
             }
             return nullptr;
         };
+        auto focus_holder = [&]() -> TaskRow* {
+            for (auto& r : rows) {
+                if (!r->leaving() && r->focused_part()) {
+                    return r.get();
+                }
+            }
+            return nullptr;
+        };
         auto reveal = [&](TaskRow& r) { scroll.ensure_visible(r.target_y(), r.target_y() + r.target_height()); };
 
         widgets::OverlayStack overlays;
@@ -229,8 +238,40 @@ int main(int argc, char** argv) {
             const std::string text = r.end_edit();
             list.edit(r.id(), text);
         };
+        widgets::FocusManager focus;
+        auto rebuild_focus = [&] {
+            focus.clear();
+            focus.add(input);
+            focus.add(add_button);
+            auto add_row = [&](TaskRow& r) {
+                focus.add(r.checkbox());
+                focus.add(r);
+                focus.add(r.remove_button());
+            };
+            for (const ItemId id : list.active()) {
+                if (TaskRow* r = find_row(id)) {
+                    add_row(*r);
+                }
+            }
+            if (!list.completed().empty()) {
+                focus.add(header.clear_button());
+            }
+            if (expanded) {
+                for (const ItemId id : list.completed()) {
+                    if (TaskRow* r = find_row(id)) {
+                        add_row(*r);
+                    }
+                }
+            }
+        };
+        auto focus_input = [&] {
+            rebuild_focus();
+            focus.clear_focus();
+            input.set_focused(true);
+        };
         auto pass_focus = [&](TaskRow& r) {
-            if (!r.focused()) {
+            const std::optional<RowPart> part = r.focused_part();
+            if (!part) {
                 return;
             }
             const std::vector<TaskRow*> order = display_order();
@@ -241,12 +282,12 @@ int main(int argc, char** argv) {
             } else if (it != order.begin() && it != order.end()) {
                 next = *(it - 1);
             }
-            r.set_focused(false);
+            r.clear_focus();
             if (next) {
-                next->set_focused(true);
+                next->focus_part(*part);
                 reveal(*next);
             } else {
-                input.set_focused(true);
+                focus_input();
             }
         };
         auto remove = [&](TaskRow& r) {
@@ -287,24 +328,17 @@ int main(int argc, char** argv) {
                 reveal(**(it + 1));
             }
         };
-        auto focus_order = [&] {
-            widgets::FocusManager focus;
-            focus.add(input);
-            for (TaskRow* r : display_order()) {
-                focus.add(*r);
-            }
-            return focus;
-        };
         auto start_edit = [&](TaskRow& r, const std::optional<input::PointerEvent>& press) {
             for (auto& other : rows) {
                 if (other.get() != &r && other->editing()) {
                     commit(*other);
                 }
             }
+            rebuild_focus();
+            focus.clear_focus();
             for (auto& other : rows) {
-                other->set_focused(false);
+                other->clear_focus();
             }
-            input.set_focused(false);
             r.begin_edit(press);
         };
 
@@ -438,7 +472,7 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 if (k.key == Key::tab) {
-                    widgets::FocusManager focus = focus_order();
+                    rebuild_focus();
                     if (!focus.handle(k)) {
                         input.set_focused(true);
                     }
@@ -447,7 +481,7 @@ int main(int argc, char** argv) {
                             commit(*r);
                         }
                     }
-                    if (TaskRow* f = focused_row()) {
+                    if (TaskRow* f = focus_holder()) {
                         reveal(*f);
                     }
                     continue;
@@ -458,13 +492,41 @@ int main(int argc, char** argv) {
                     }
                     continue;
                 }
+                if (add_button.handle(k)) {
+                    add_from_input();
+                    continue;
+                }
+                if (header.handle(k).clear) {
+                    dialog.open_in(body);
+                    overlays.push(dialog, on_dialog);
+                    continue;
+                }
+                bool row_used = false;
+                for (TaskRow* r : display_order()) {
+                    const examples::todo::RowAction a = r->handle(k);
+                    if (a.toggled) {
+                        pass_focus(*r);
+                        list.toggle(r->id());
+                    }
+                    if (a.remove) {
+                        remove(*r);
+                    }
+                    if (a.toggled || a.remove) {
+                        row_used = true;
+                        break;
+                    }
+                }
+                if (row_used) {
+                    continue;
+                }
                 if (input.focused()) {
                     if (input.handle(k)) {
                         add_from_input();
                     } else if (k.key == Key::down && !k.ctrl && !k.shift) {
                         const std::vector<TaskRow*> order = display_order();
                         if (!order.empty()) {
-                            input.set_focused(false);
+                            rebuild_focus();
+                            focus.clear_focus();
                             order.front()->set_focused(true);
                             reveal(*order.front());
                         }
@@ -475,7 +537,11 @@ int main(int argc, char** argv) {
                 }
                 TaskRow* f = focused_row();
                 if (!f) {
-                    scroll.handle(k);
+                    if (k.key == Key::escape && (focus_holder() || add_button.focused() || header.clear_button().focused())) {
+                        focus_input();
+                    } else {
+                        scroll.handle(k);
+                    }
                     continue;
                 }
                 switch (k.key) {
@@ -495,10 +561,7 @@ int main(int argc, char** argv) {
                     }
                     break;
                 }
-                case Key::escape:
-                    f->set_focused(false);
-                    input.set_focused(true);
-                    break;
+                case Key::escape: focus_input(); break;
                 default: scroll.handle(k); break;
                 }
             }
