@@ -69,6 +69,8 @@ enum class Key {
     period,
     percent,
     equals,
+    paren_left,
+    paren_right,
 };
 
 constexpr std::optional<Key> key_for_character(char32_t c) {
@@ -86,6 +88,8 @@ constexpr std::optional<Key> key_for_character(char32_t c) {
     case U'.': return Key::period;
     case U'%': return Key::percent;
     case U'=': return Key::equals;
+    case U'(': return Key::paren_left;
+    case U')': return Key::paren_right;
     default: return std::nullopt;
     }
 }

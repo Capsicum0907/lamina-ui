@@ -56,6 +56,8 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_KP_PERIOD: return Key::period;
     case SDLK_KP_PERCENT: return Key::percent;
     case SDLK_KP_EQUALS: return Key::equals;
+    case SDLK_KP_LEFTPAREN: return Key::paren_left;
+    case SDLK_KP_RIGHTPAREN: return Key::paren_right;
     default: break;
     }
     if (k >= SDLK_A && k <= SDLK_Z) {

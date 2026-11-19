@@ -19,6 +19,8 @@ TEST_CASE("key_for_character maps digits, letters and the operator characters") 
     CHECK(key_for_character(U'.') == Key::period);
     CHECK(key_for_character(U'%') == Key::percent);
     CHECK(key_for_character(U'=') == Key::equals);
+    CHECK(key_for_character(U'(') == Key::paren_left);
+    CHECK(key_for_character(U')') == Key::paren_right);
 }
 
 TEST_CASE("key_for_character leaves other characters unmapped") {
