@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/canvas.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
@@ -105,7 +106,7 @@ int main() {
             return !progress.settled();
         };
 
-        sdl3::run_app({"lamina-ui shapes", static_cast<int>(natural.width), static_cast<int>(natural.height)}, update, paint);
+        sdl3::run_app({"lamina-ui shapes", static_cast<int>(natural.width), static_cast<int>(natural.height)}, examples::window_canvas(), update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

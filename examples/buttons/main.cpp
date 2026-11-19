@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/canvas.hpp"
 #include "common/caption_cell.hpp"
 #include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
@@ -157,7 +158,7 @@ int main(int argc, char** argv) {
             return !theme.settled() || controls.animating();
         };
 
-        sdl3::run_app({"lamina-ui buttons", 1000, 760}, update, paint);
+        sdl3::run_app({"lamina-ui buttons", 1000, 760}, examples::window_canvas(), update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

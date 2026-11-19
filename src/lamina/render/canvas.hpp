@@ -31,6 +31,7 @@ public:
 
     virtual int width() const = 0;
     virtual int height() const = 0;
+    virtual void resize(int width, int height) = 0;
     virtual void clear(color::Argb color) = 0;
     virtual PixelView finish() = 0;
 

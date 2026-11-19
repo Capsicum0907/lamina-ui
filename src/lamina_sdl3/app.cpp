@@ -1,5 +1,7 @@
 #include "lamina_sdl3/app.hpp"
 
+#include <utility>
+
 namespace lamina::sdl3 {
 
 void run_app(Window& window, const UpdateFrame& update, const PaintFrame& paint) {
@@ -17,8 +19,9 @@ void run_app(Window& window, const UpdateFrame& update, const PaintFrame& paint)
     }
 }
 
-void run_app(const WindowOptions& options, const UpdateFrame& update, const PaintFrame& paint) {
-    Window window(options);
+void run_app(const WindowOptions& options, std::unique_ptr<render::Canvas> canvas, const UpdateFrame& update,
+             const PaintFrame& paint) {
+    Window window(options, std::move(canvas));
     run_app(window, update, paint);
 }
 

@@ -13,10 +13,9 @@ public:
 
     int width() const override;
     int height() const override;
+    void resize(int width, int height) override;
     void clear(color::Argb color) override;
     render::PixelView finish() override;
-
-    void resize(int width, int height);
 
 protected:
     void fill_device_path(const render::Path& path, color::Argb color, render::FillRule rule) override;

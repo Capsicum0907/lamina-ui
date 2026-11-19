@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "common/canvas.hpp"
 #include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -354,7 +355,7 @@ int main(int argc, char** argv) {
                    rail.animating() || overlays.animating();
         };
 
-        sdl3::run_app({"lamina-ui navigation", 1120, 860}, update, paint);
+        sdl3::run_app({"lamina-ui navigation", 1120, 860}, examples::window_canvas(), update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

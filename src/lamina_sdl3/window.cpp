@@ -3,14 +3,14 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <memory>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 
 #include <SDL3/SDL.h>
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL_main.h>
-
-#include "lamina_thorvg/canvas.hpp"
 
 namespace lamina::sdl3 {
 
@@ -77,7 +77,7 @@ struct Window::Impl {
     SDL_Texture* texture = nullptr;
     int texture_w = 0;
     int texture_h = 0;
-    thorvg::Canvas canvas{1, 1};
+    std::unique_ptr<render::Canvas> canvas;
     Uint64 last_ns = 0;
     double wake_seconds = -1.0;
     bool text_input = false;
@@ -118,7 +118,11 @@ struct Window::Impl {
     }
 };
 
-Window::Window(const WindowOptions& options) : impl_(std::make_unique<Impl>()) {
+Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> canvas) : impl_(std::make_unique<Impl>()) {
+    if (!canvas) {
+        throw std::invalid_argument("lamina::sdl3::Window needs a canvas");
+    }
+    impl_->canvas = std::move(canvas);
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
@@ -214,7 +218,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
     SDL_GetWindowSizeInPixels(impl_->window, &pw, &ph);
     pw = std::max(pw, 1);
     ph = std::max(ph, 1);
-    impl_->canvas.resize(pw, ph);
+    impl_->canvas->resize(pw, ph);
     frame.scale = impl_->scale();
     frame.width_dp = pw / frame.scale;
     frame.height_dp = ph / frame.scale;
@@ -251,11 +255,11 @@ Clipboard& Window::clipboard() {
 }
 
 render::Canvas& Window::canvas() {
-    return impl_->canvas;
+    return *impl_->canvas;
 }
 
 void Window::present() {
-    const render::PixelView view = impl_->canvas.finish();
+    const render::PixelView view = impl_->canvas->finish();
     impl_->ensure_texture(view.width, view.height);
     SDL_UpdateTexture(impl_->texture, nullptr, view.data, static_cast<int>(view.stride));
     SDL_RenderClear(impl_->renderer);

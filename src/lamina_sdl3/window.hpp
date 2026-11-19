@@ -28,7 +28,7 @@ struct Frame {
 
 class Window {
 public:
-    explicit Window(const WindowOptions& options);
+    Window(const WindowOptions& options, std::unique_ptr<render::Canvas> canvas);
     ~Window();
 
     Window(const Window&) = delete;

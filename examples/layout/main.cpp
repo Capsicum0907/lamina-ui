@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/canvas.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/tokens/shape.hpp"
@@ -81,7 +82,7 @@ int main(int argc, char** argv) {
         controls.add(cancel);
         controls.add(save);
 
-        sdl3::Window window({"lamina-ui layout", 900, 640});
+        sdl3::Window window({"lamina-ui layout", 900, 640}, examples::window_canvas());
         auto update = [&](const sdl3::Frame& frame) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
 

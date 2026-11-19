@@ -7,10 +7,7 @@ option(LAMINA_BUILD_SDL3 "Build the SDL3 window (lamina::sdl3)" ON)
 option(LAMINA_BUILD_EXAMPLES "Build the examples" ON)
 option(LAMINA_BUILD_TOOLS "Build the development tools" ON)
 
-if(LAMINA_BUILD_SDL3 AND NOT LAMINA_BUILD_THORVG)
-    message(FATAL_ERROR "LAMINA_BUILD_SDL3 needs LAMINA_BUILD_THORVG: the window draws with the ThorVG canvas")
-endif()
-if(LAMINA_BUILD_EXAMPLES AND NOT LAMINA_BUILD_SDL3)
+if(LAMINA_BUILD_EXAMPLES AND NOT (LAMINA_BUILD_SDL3 AND LAMINA_BUILD_THORVG))
     message(FATAL_ERROR "LAMINA_BUILD_EXAMPLES needs LAMINA_BUILD_SDL3 and LAMINA_BUILD_THORVG; turn LAMINA_BUILD_EXAMPLES off")
 endif()
 if(LAMINA_BUILD_TESTS AND NOT LAMINA_BUILD_THORVG)
@@ -107,7 +104,7 @@ if(LAMINA_BUILD_SDL3)
         src/lamina_sdl3/window.cpp
     )
     add_library(lamina::sdl3 ALIAS lamina_sdl3)
-    target_link_libraries(lamina_sdl3 PUBLIC lamina lamina_thorvg PRIVATE SDL3::SDL3)
+    target_link_libraries(lamina_sdl3 PUBLIC lamina PRIVATE SDL3::SDL3)
     lamina_warnings(lamina_sdl3)
 endif()
 
@@ -121,11 +118,12 @@ endfunction()
 
 if(LAMINA_BUILD_EXAMPLES)
     add_library(lamina_examples_common STATIC
+        examples/common/canvas.cpp
         examples/common/caption_cell.cpp
         examples/common/theme.cpp
     )
     target_include_directories(lamina_examples_common PUBLIC examples)
-    target_link_libraries(lamina_examples_common PUBLIC lamina)
+    target_link_libraries(lamina_examples_common PUBLIC lamina PRIVATE lamina_thorvg)
     lamina_warnings(lamina_examples_common)
     lamina_add_example(playground playground)
     lamina_add_example(buttons buttons)

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "common/canvas.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
@@ -168,7 +169,7 @@ int main(int argc, char** argv) {
             return animating;
         };
 
-        sdl3::run_app({"lamina-ui playground", 960, 600}, update, paint);
+        sdl3::run_app({"lamina-ui playground", 960, 600}, examples::window_canvas(), update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

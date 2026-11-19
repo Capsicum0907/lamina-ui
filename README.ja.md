@@ -17,8 +17,8 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 - `lamina/color/scheme.hpp`：1 色から作る配色。`spec_2021().build(options)` と `spec_2025().build(options)` は、元の色・ライトかダークか・配色の種類（TonalSpot・Expressive・Vibrant など）・コントラストの段階から、2021 年または 2025 年の色の仕様で 53 個の色の役割（primary・primary-dim・surface-container・outline など）を返します。2021 年の仕様は Google の material-color-utilities（`third_party/`）が計算します。2025 年の仕様（`color/spec_2025.cpp`）は、同じライブラリの Java 版の `ColorSpec2025` をスマートフォン向けの部分だけ移したもので、C++ 版の HCT とコントラストの関数の上に作っています。Java 版との照合は `tools/color-dump/` で行います。
 
 - `lamina/render/canvas.hpp`：曲線・角丸の四角・影・座標変換の積み重ねを持つ 2D の描画面。描くのは ThorVG です（`lamina::thorvg`）。ThorVG を選んだ理由は [docs/renderer-comparison.ja.md](docs/renderer-comparison.ja.md) にあります。
-- `lamina_sdl3/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。
-- `lamina_sdl3/app.hpp`：`run_app` がその窓でフレームの繰り返しを回します。毎フレーム、フレームの情報（入力・大きさ・経過時間）を渡して `update` を呼び、`update` が返す背景色で描画面を塗りつぶして dp の縮尺に合わせ、`paint` を呼んで描かせてから画面に出します。`paint` はまだ動いているものがあるかどうかを返し、何も動いていなければ次のフレームはイベントを待ちます。窓を `WindowOptions` から作る形と、作ってある `Window` を受け取る形があり、コールバックの中で窓を使うとき（クリップボード、`set_text_input`、`wake_after`）は後者を使います。`run_app` は例外を捕まえません。例外は呼び出し側に届き、報告のしかたは呼び出し側が決めます。フォントの読み込みのように繰り返しの前の準備で起きた例外も、同じ処理で扱えます。自分で繰り返しを書くときは、これまでどおり `Window` の関数をそのまま使えます。
+- `lamina_sdl3/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。窓は ThorVG に依存しません。描く先の描画面を `std::unique_ptr<render::Canvas>` で受け取り、毎フレーム `Canvas::resize` で窓の画素の大きさに合わせ、`Canvas::finish` が返す画素を 32 ビットの ARGB として画面に送ります。そのため、ARGB の画素に描く描画面であれば何でも差し込めます。見本は `examples::window_canvas()`（`examples/common/canvas.hpp`）が作る ThorVG の描画面を渡しています。
+- `lamina_sdl3/app.hpp`：`run_app` がその窓でフレームの繰り返しを回します。毎フレーム、フレームの情報（入力・大きさ・経過時間）を渡して `update` を呼び、`update` が返す背景色で描画面を塗りつぶして dp の縮尺に合わせ、`paint` を呼んで描かせてから画面に出します。`paint` はまだ動いているものがあるかどうかを返し、何も動いていなければ次のフレームはイベントを待ちます。窓を `WindowOptions` と描画面から作る形と、作ってある `Window` を受け取る形があり、コールバックの中で窓を使うとき（クリップボード、`set_text_input`、`wake_after`）は後者を使います。`run_app` は例外を捕まえません。例外は呼び出し側に届き、報告のしかたは呼び出し側が決めます。フォントの読み込みのように繰り返しの前の準備で起きた例外も、同じ処理で扱えます。自分で繰り返しを書くときは、これまでどおり `Window` の関数をそのまま使えます。
 - `lamina_sdl3/resources.hpp`：実行ファイルの隣の `assets/` フォルダーからファイルを探し、無ければ親のフォルダーを順にさかのぼって探します。そのため、ビルドしたその場所からでも、フォルダーごと別の場所に写しても動きます。`bundled_icon_font()` はそこからアイコンのフォントを読みます。
 - `lamina_sdl3/system_fonts.hpp`：OS のフォントから、日本語の画面の文字に使うフォントを探します。フォントのフォルダーは環境変数（`WINDIR`・`SystemRoot`・`LOCALAPPDATA`）から決め、候補を Noto Sans JP・Yu Gothic UI・Meiryo UI・BIZ UDPゴシック・MS UI Gothic の順に試します。どちらの一覧もヘッダーに置いたデータです。一つも見つからなければ、試したパスを全部並べたエラーを投げます。`font_stack_from_arguments` は、コマンドラインにフォントのファイルが渡されていれば、そちらを使います。
 - `lamina/text/font.hpp`・`layout.hpp`：フォントと、1 行の文字・折り返す段落。文字の並べ方と字形の輪郭はどちらも HarfBuzz から取り、輪郭はほかの図形と同じく描画面で塗るので、FreeType は使いません。可変フォントは文字の段階の太さに合わせて太さを変え、フォントに無い文字は `FontStack` の次のフォントで補います。`FontStack` はフォントを `shared_ptr` で持つので、写しを作っても軽く済みます。部品はこの写しを持つので、部品を作ったときに渡した `FontStack` が部品より先に消えても構いません。フォントを持つ部品は代入もできます。段落は、欧文では空白で、日本語では文字の間で折り返し、。や 」などの約物は行頭に来ないようにします（`text/line_break.hpp`）。単語ごとの移動や選択で使う単語は、同じ種類の文字（英字と数字・漢字・ひらがな・カタカナ・約物）の連なりです（`text/word_boundary.hpp`）。折り返しと単語の種類は、Unicode の範囲を同じ一つの表から取ります（`text/script.hpp`）。入力欄の編集の中身（文字列・選択・IME の変換中の文字・文字や単語や行ごとの移動）は `text::EditBuffer`（`text/edit_buffer.hpp`）で、フォントも描画面も使いません。行は文字の位置の範囲を並べた `text::LineMap`（`text/line_map.hpp`）として受け取り、横の位置は `text::CaretGeometry` という口を通して尋ねます。この口は、入力欄が並べ終えた行を使って実装しています。
@@ -44,7 +44,7 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 - `lamina/widgets/widget_set.hpp`：`WidgetSet` は `step(dt)`・`paint(canvas, scheme)`・`animating()` を持つ部品を種類を問わずまとめて持ち、まとめて進め、加えた順に描き、どれかが動いているかを返します。`add(widget)` はよそにある部品を参照し、`emplace<W>(args...)` は部品をセットの中に作って、ずっと有効な参照を返します。それ以外のことはしません。入力・配置・フォーカスはプログラムの側で扱います。セットを複数持てば、その間に別のものを描けます。ナビゲーションの例では、ページの部品とメニューの間にレールのボタンを描いています。
 - `lamina/motion/animated.hpp`・`lamina/motion/lerp.hpp`・`lamina/color/mix.hpp`：ばねで動く値と、2つの数の間の線形補間と、色の混ぜ合わせ。
 
-ライブラリは CMake のターゲット三つに分かれていて、`src/` の下にターゲットごとのフォルダーがあります。バックエンドの別名 `lamina::thorvg` と `lamina::sdl3` はそのまま名前空間の名前で、本体の名前空間は `lamina` です。`src/lamina/` は本体（`lamina::lamina`：トークン・色・描画面の口・文字・図形・レイアウト・入力のイベント・部品）で、SDL3 も ThorVG も使いません。`src/lamina_thorvg/` は ThorVG で描く描画面（`lamina::thorvg`）、`src/lamina_sdl3/` は窓・素材の探索・OS のフォント（`lamina::sdl3`）です。部品はポインター・キー・文字の入力とクリップボードを `lamina/input/`（`lamina::input`）の形で受け取り、それを作るのは SDL3 の窓です。本体の中では、`tokens/` が値を入れる先のモジュール（`motion::SpringSpec`・`text::TextStyle`・`color::Role`）に依存し、`motion/`・`text/`・`color/` は `tokens/` に依存しません。
+ライブラリは CMake のターゲット三つに分かれていて、`src/` の下にターゲットごとのフォルダーがあります。バックエンドの別名 `lamina::thorvg` と `lamina::sdl3` はそのまま名前空間の名前で、本体の名前空間は `lamina` です。`src/lamina/` は本体（`lamina::lamina`：トークン・色・描画面の口・文字・図形・レイアウト・入力のイベント・部品）で、SDL3 も ThorVG も使いません。`src/lamina_thorvg/` は ThorVG で描く描画面（`lamina::thorvg`）、`src/lamina_sdl3/` は窓・素材の探索・OS のフォント（`lamina::sdl3`）です。二つのバックエンドは本体だけに依存し、互いには依存しません。部品はポインター・キー・文字の入力とクリップボードを `lamina/input/`（`lamina::input`）の形で受け取り、それを作るのは SDL3 の窓です。本体の中では、`tokens/` が値を入れる先のモジュール（`motion::SpringSpec`・`text::TextStyle`・`color::Role`）に依存し、`motion/`・`text/`・`color/` は `tokens/` に依存しません。
 
 色の仕様は `ColorSpec` という口の向こうに置いているので、配色を使う側のコードは仕様によって変わりません。二つの仕様は HCT を共有し、配色の種類ごとに作る色の系列と、役割ごとに明度を選ぶ規則が違います。`examples/buttons` には二つを切り替えるスイッチがあります。
 
@@ -64,7 +64,7 @@ cmake --build --preset release
 ctest --preset release
 ```
 
-CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どちらも既定で有効）で二つのバックエンドを、`LAMINA_BUILD_EXAMPLES`・`LAMINA_BUILD_TOOLS`（どちらも有効）と `LAMINA_BUILD_TESTS`（プリセットで有効）でそれ以外をビルドします。SDL3 の窓と見本には両方のバックエンドが、テストには ThorVG が要ります。これに合わない組み合わせでは、構成の段階でエラーになって止まります。両方のバックエンドを外しても、本体のライブラリと `tools/` の道具はビルドできます。
+CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どちらも既定で有効）で二つのバックエンドを、`LAMINA_BUILD_EXAMPLES`・`LAMINA_BUILD_TOOLS`（どちらも有効）と `LAMINA_BUILD_TESTS`（プリセットで有効）でそれ以外をビルドします。見本には両方のバックエンドが、テストには ThorVG が要ります。これに合わない組み合わせでは、構成の段階でエラーになって止まります。両方のバックエンドを外しても、本体のライブラリと `tools/` の道具はビルドできます。
 
 `build/Release/playground.exe [フォントのファイル...]` を開くと、カードが 6 枚並んだ窓が出ます。カードをクリックすると、浮き上がり・角の丸みの増加・色の変化が、それぞれ expressive の体系のばねで動きます。
 
@@ -72,7 +72,7 @@ CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どち�
 
 `shapes_gallery.exe` 以外の見本は、コマンドラインでフォントのファイルを受け取ります（例：`buttons.exe C:/path/to/font.ttf`）。後ろのファイルは、前のファイルに無い文字を補います。指定しないときは、OS のフォントから最初に見つかった日本語の画面向けのフォントを使い（`lamina_sdl3/system_fonts.hpp`）、一つも無ければ、試したパスを並べたエラーを出して終わります。
 
-見本はそれぞれ一つの `examples/<名前>/main.cpp` で、`sdl3::run_app` で繰り返しを回し、部品があればそれを `widgets::WidgetSet` でまとめて進めて描きます（遊び場と形の一覧は部品を使わず、値を直接動かします）。複数の見本で使うコードは `examples/common/`（`lamina_examples_common` ライブラリ、名前空間 `lamina::examples`）にあります。`caption_cell` は行の横に見出しを置き、`ThemeFade` は今の配色から新しい配色へ、遅い効果のばねで移り変わらせます。`SeedChips` は元の色の丸を並べ、選んだものに輪を付け、新しく選ばれた色を知らせます。
+見本はそれぞれ一つの `examples/<名前>/main.cpp` で、`sdl3::run_app` で繰り返しを回し、部品があればそれを `widgets::WidgetSet` でまとめて進めて描きます（遊び場と形の一覧は部品を使わず、値を直接動かします）。複数の見本で使うコードは `examples/common/`（`lamina_examples_common` ライブラリ、名前空間 `lamina::examples`）にあります。`window_canvas` は見本の窓が描く先の ThorVG の描画面を作り、`caption_cell` は行の横に見出しを置き、`ThemeFade` は今の配色から新しい配色へ、遅い効果のばねで移り変わらせます。`SeedChips` は元の色の丸を並べ、選んだものに輪を付け、新しく選ばれた色を知らせます。
 
 ## 出典
 
