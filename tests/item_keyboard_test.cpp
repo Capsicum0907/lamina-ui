@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "lamina/tokens/focus.hpp"
+#include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/item_focus.hpp"
 #include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
@@ -238,4 +239,55 @@ TEST_CASE("the focused menu item shows the ring until a press inside the menu ta
     m.handle({PointerAction::down, item.x + 4.0, item.y + 4.0});
     CHECK_FALSE(m.focused_item());
     CHECK(ring_pixels(m, 400, 400) == unfocused);
+}
+
+namespace {
+
+widgets::GroupedMenu two_group_menu() {
+    return widgets::GroupedMenu({{{{{"List"}, {"Grid"}}, "Layout", true, widgets::MenuSelection::single},
+                                  {{{"Share"}, {"Settings"}}}}},
+                                fonts());
+}
+
+bool at(const std::optional<widgets::MenuItemIndex>& index, std::size_t group, std::size_t item) {
+    return index && index->group == group && index->item == item;
+}
+
+}
+
+TEST_CASE("grouped menu keys go through the items of every group in order") {
+    auto m = two_group_menu();
+    m.open({20.0, 20.0, 40.0, 40.0}, menu_window, input::InputSource::keyboard);
+    CHECK(at(m.focused_item(), 0, 0));
+    m.handle(down);
+    m.handle(down);
+    CHECK(at(m.focused_item(), 1, 0));
+    m.handle(end);
+    CHECK(at(m.focused_item(), 1, 1));
+    m.handle(down);
+    CHECK(at(m.focused_item(), 0, 0));
+    m.handle(up);
+    CHECK(at(m.focused_item(), 1, 1));
+}
+
+TEST_CASE("Enter on a grouped menu item does what a click does") {
+    auto m = two_group_menu();
+    m.open({20.0, 20.0, 40.0, 40.0}, menu_window);
+    CHECK_FALSE(m.focused_item());
+    const int unfocused = ring_pixels(m, 400, 400);
+    m.handle(down);
+    m.handle(down);
+    CHECK(ring_pixels(m, 400, 400) > unfocused);
+    const widgets::GroupedMenuResponse single = m.handle(input::KeyEvent{Key::enter, false});
+    CHECK(single.consumed);
+    CHECK(at(single.chosen, 0, 1));
+    CHECK(m.selected(0, 1));
+    CHECK(m.is_open());
+    m.handle(down);
+    const widgets::GroupedMenuResponse plain = m.handle(input::KeyEvent{Key::space, false});
+    CHECK(at(plain.chosen, 1, 0));
+    CHECK_FALSE(m.is_open());
+    m.open({20.0, 20.0, 40.0, 40.0}, menu_window, input::InputSource::keyboard);
+    CHECK(m.handle(input::KeyEvent{Key::tab, false}).consumed);
+    CHECK_FALSE(m.is_open());
 }

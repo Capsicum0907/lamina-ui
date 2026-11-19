@@ -14,6 +14,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/popup_transition.hpp"
 
@@ -70,16 +71,18 @@ public:
     bool selected(std::size_t group, std::size_t item) const { return groups_[group].items[item].selected; }
     void set_selected(std::size_t group, std::size_t item, bool selected);
 
-    void open(const render::Rect& anchor, layout::Size window);
+    void open(const render::Rect& anchor, layout::Size window, input::InputSource source = input::InputSource::pointer);
     void close();
     bool is_open() const { return popup_.is_open(); }
     bool visible() const { return popup_.visible(); }
     double scale() const { return popup_.scale(); }
     double opacity() const { return popup_.opacity(); }
     render::Point transform_origin() const { return pivot_; }
+    std::optional<MenuItemIndex> focused_item() const;
+    bool focus_shown() const { return focus_.focused(); }
 
     GroupedMenuResponse handle(const input::PointerEvent& event);
-    bool handle(const input::KeyEvent& event);
+    GroupedMenuResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
@@ -119,6 +122,10 @@ private:
     void retarget_group(std::size_t group);
     void retarget_item(std::size_t group, std::size_t item);
     void choose(std::size_t group, std::size_t item);
+    std::size_t flat_count() const;
+    MenuItemIndex item_at(std::size_t flat) const;
+    void set_active(std::optional<std::size_t> flat);
+    void retarget_state_layers();
 
     text::FontStack fonts_;
     std::vector<Group> groups_;
@@ -126,6 +133,8 @@ private:
     render::Point origin_{0.0, 0.0};
     render::Point pivot_{0.0, 0.0};
     PopupTransition popup_;
+    std::optional<std::size_t> active_;
+    FocusIndicator focus_;
 };
 
 }

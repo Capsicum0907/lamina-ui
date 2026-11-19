@@ -6,6 +6,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/item_focus.hpp"
 #include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/surface.hpp"
 
@@ -183,7 +184,7 @@ void GroupedMenu::choose(std::size_t group, std::size_t item) {
     }
 }
 
-void GroupedMenu::open(const render::Rect& anchor, layout::Size window) {
+void GroupedMenu::open(const render::Rect& anchor, layout::Size window, input::InputSource source) {
     origin_ = menu_position(anchor, window, {width_, height()}, t.window_horizontal_margin, t.window_vertical_margin);
     pivot_ = menu_transform_origin(anchor, bounds());
     if (popup_.open()) {
@@ -198,16 +199,53 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window) {
             }
         }
     }
+    set_active(source == input::InputSource::keyboard && flat_count() > 0 ? std::optional<std::size_t>(0) : std::nullopt);
 }
 
 void GroupedMenu::close() {
     popup_.close();
+    set_active(std::nullopt);
     cancel_interaction();
 }
 
 void GroupedMenu::cancel_interaction() {
     for (Group& g : groups_) {
         cancel_presses(g.items);
+    }
+    retarget_state_layers();
+}
+
+std::size_t GroupedMenu::flat_count() const {
+    std::size_t n = 0;
+    for (const Group& g : groups_) {
+        n += g.items.size();
+    }
+    return n;
+}
+
+MenuItemIndex GroupedMenu::item_at(std::size_t flat) const {
+    std::size_t g = 0;
+    while (flat >= groups_[g].items.size()) {
+        flat -= groups_[g].items.size();
+        ++g;
+    }
+    return {g, flat};
+}
+
+std::optional<MenuItemIndex> GroupedMenu::focused_item() const {
+    return active_ ? std::optional<MenuItemIndex>(item_at(*active_)) : std::nullopt;
+}
+
+void GroupedMenu::set_active(std::optional<std::size_t> flat) {
+    active_ = flat;
+    focus_.set_focused(flat.has_value());
+    retarget_state_layers();
+}
+
+void GroupedMenu::retarget_state_layers() {
+    const std::optional<MenuItemIndex> focused = focused_item();
+    for (std::size_t g = 0; g < groups_.size(); ++g) {
+        widgets::retarget_state_layers(groups_[g].items, focused && focused->group == g ? std::optional<std::size_t>(focused->item) : std::nullopt);
     }
 }
 
@@ -220,6 +258,9 @@ GroupedMenuResponse GroupedMenu::handle(const input::PointerEvent& e) {
         close();
         response.consumed = true;
         return response;
+    }
+    if (e.action == input::PointerAction::down) {
+        set_active(std::nullopt);
     }
     response.consumed = e.action != input::PointerAction::leave;
     for (std::size_t g = 0; g < groups_.size(); ++g) {
@@ -235,25 +276,44 @@ GroupedMenuResponse GroupedMenu::handle(const input::PointerEvent& e) {
             if (item.press.update(e, item_rect(g, i))) {
                 response.chosen = MenuItemIndex{g, i};
             }
-            item.state_layer.animate_to(item.press.state_layer_opacity());
         }
     }
+    retarget_state_layers();
     if (response.chosen) {
         choose(response.chosen->group, response.chosen->item);
     }
     return response;
 }
 
-bool GroupedMenu::handle(const input::KeyEvent& e) {
-    if (popup_.dismisses(e)) {
-        close();
-        return true;
+GroupedMenuResponse GroupedMenu::handle(const input::KeyEvent& e) {
+    GroupedMenuResponse response;
+    if (!popup_.is_open()) {
+        return response;
     }
-    return false;
+    if (closes_menu(e)) {
+        close();
+        response.consumed = true;
+        return response;
+    }
+    if (activates(e, KeyActivation::space_or_enter)) {
+        response.consumed = true;
+        if (active_) {
+            const MenuItemIndex chosen = item_at(*active_);
+            response.chosen = chosen;
+            choose(chosen.group, chosen.item);
+        }
+        return response;
+    }
+    if (const std::optional<std::size_t> target = menu_key_target(e, active_, flat_count())) {
+        set_active(target);
+        response.consumed = true;
+    }
+    return response;
 }
 
 void GroupedMenu::step(double dt) {
     popup_.step(dt);
+    focus_.step(dt);
     for (Group& g : groups_) {
         g.corners.step(dt);
         for (Item& item : g.items) {
@@ -265,7 +325,7 @@ void GroupedMenu::step(double dt) {
 }
 
 bool GroupedMenu::animating() const {
-    if (!popup_.settled()) {
+    if (!popup_.settled() || !focus_.settled()) {
         return true;
     }
     return std::any_of(groups_.begin(), groups_.end(), [](const Group& g) {
@@ -331,6 +391,9 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
                                               color::mix(s[t.trailing_icon], s[t.selected_trailing_icon], k));
             }
         }
+    }
+    if (const std::optional<MenuItemIndex> focused = focused_item()) {
+        focus_.paint_inward(canvas, s, item_rect(focused->group, focused->item), item_radii(focused->group, focused->item));
     }
     canvas.restore();
 }

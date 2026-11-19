@@ -59,15 +59,26 @@ public:
                          render::FillRule::even_odd);
     }
     void paint_inward(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& shape, double radius) const {
+        paint_inward(canvas, scheme, shape, render::uniform_radii(radius));
+    }
+    void paint_inward(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& shape,
+                      const render::CornerRadii& radii) const {
         const double a = amount();
         if (a <= 0.0) {
             return;
         }
         const tokens::FocusIndicatorTokens& t = tokens::focus_indicator;
         const double d = t.inward_offset;
+        const double w = t.thickness;
         const render::Rect outer{shape.x + d, shape.y + d, shape.width - 2.0 * d, shape.height - 2.0 * d};
-        canvas.fill_path(render::ring_path(outer, std::max(0.0, radius - d), t.thickness), color::scale_alpha(scheme[t.color], a),
-                         render::FillRule::even_odd);
+        const render::Rect inner{outer.x + w, outer.y + w, outer.width - 2.0 * w, outer.height - 2.0 * w};
+        auto shrink = [](const render::CornerRadii& r, double by) {
+            return render::CornerRadii{std::max(0.0, r.top_left - by), std::max(0.0, r.top_right - by), std::max(0.0, r.bottom_right - by),
+                                       std::max(0.0, r.bottom_left - by)};
+        };
+        render::Path ring = render::rounded_rect_path(outer, shrink(radii, d));
+        ring.append(render::rounded_rect_path(inner, shrink(radii, d + w)));
+        canvas.fill_path(ring, color::scale_alpha(scheme[t.color], a), render::FillRule::even_odd);
     }
     void paint_circle(render::Canvas& canvas, const color::ColorScheme& scheme, render::Point center, double radius) const {
         paint(canvas, scheme, render::circle_rect(center, radius), radius);
