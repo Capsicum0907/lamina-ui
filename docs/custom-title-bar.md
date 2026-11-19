@@ -10,9 +10,10 @@ This branch (`experiment/custom-title-bar`) lets a lamina-ui app draw its own wi
 components --title-bar
 navigation --title-bar
 calculator --title-bar
+timer --title-bar
 ```
 
-Without the flag the examples keep the system frame. The components example also puts an icon button inside the bar to show app content in the caption area. The calculator paints the bar in its own background color (TitleBarOptions::container), so the window reads as one surface.
+Without the flag the examples keep the system frame. The components example also puts an icon button inside the bar to show app content in the caption area. The calculator and the timer paint the bar in their own background color (TitleBarOptions::container), so each window reads as one surface.
 
 ## Layers
 

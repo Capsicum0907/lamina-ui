@@ -11,6 +11,7 @@
 
 #include "common/animated_box.hpp"
 #include "common/canvas.hpp"
+#include "common/options.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -19,6 +20,7 @@
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/progress_indicator.hpp"
+#include "lamina/widgets/title_bar.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
@@ -63,6 +65,7 @@ constexpr icons::IconStyle filled_icon{.fill = 1.0};
 
 struct Config {
     sdl3::WindowOptions window{"lamina-ui timer", 400, 780};
+    const char* bar_title = "Timer";
     color::SchemeOptions scheme{.seed = color::default_scheme_options.seed, .dark = true, .variant = color::Variant::tonal_spot, .contrast = 0.0};
     color::Role background = color::Role::surface;
     examples::timer::LayoutSettings layout;
@@ -172,6 +175,23 @@ void place(View& v, const examples::timer::Box& b, bool first, bool switched) {
     }
 }
 
+void shift(examples::timer::Box& b, double dy) { b.y += dy; }
+
+void shift(examples::timer::TimerFrame& frame, double dy) {
+    shift(frame.entry.readout, dy);
+    for (examples::timer::Box& b : frame.entry.presets) {
+        shift(b, dy);
+    }
+    for (examples::timer::Box& b : frame.entry.keys) {
+        shift(b, dy);
+    }
+    shift(frame.entry.start, dy);
+    for (examples::timer::Box* b : {&frame.running.ring, &frame.running.time, &frame.running.toggle, &frame.running.add,
+                                    &frame.running.reset}) {
+        shift(*b, dy);
+    }
+}
+
 void scale_about(render::Canvas& canvas, render::Point center, double k) {
     canvas.translate(center.x, center.y);
     canvas.scale(k);
@@ -183,6 +203,7 @@ void scale_about(render::Canvas& canvas, render::Point center, double k) {
 int main(int argc, char** argv) {
     try {
         const Config config;
+        const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = sdl3::bundled_icon_font();
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
@@ -273,11 +294,42 @@ int main(int argc, char** argv) {
             }
         };
 
+        sdl3::WindowOptions window_options = config.window;
+        window_options.height_dp = examples::window_height_dp(config.window.height_dp, want_title_bar);
+        window_options.client_title_bar = want_title_bar;
+        sdl3::Window window(window_options, examples::window_canvas());
+        widgets::TitleBar title_bar({config.bar_title, icon_font, nullptr, config.background}, fonts);
+        const double bar_height = window.client_title_bar() ? title_bar.height() : 0.0;
+
         bool first = true;
         examples::timer::Arrangement arrangement{};
         auto update = [&](const sdl3::Frame& frame) {
             const double now = now_seconds();
-            const examples::timer::TimerFrame placed = layout.place(frame.width_dp, frame.height_dp);
+            if (window.client_title_bar()) {
+                title_bar.set_maximized(frame.maximized);
+                title_bar.set_active(frame.active);
+                title_bar.set_width(frame.width_dp);
+                title_bar.set_origin({0.0, 0.0});
+                window.set_caption_regions(title_bar.regions());
+                for (const auto& e : frame.pointer) {
+                    switch (title_bar.handle(e)) {
+                    case widgets::TitleBarAction::minimize:
+                        window.minimize();
+                        break;
+                    case widgets::TitleBarAction::toggle_maximize:
+                        window.toggle_maximize();
+                        break;
+                    case widgets::TitleBarAction::close:
+                        window.close();
+                        break;
+                    case widgets::TitleBarAction::none:
+                        break;
+                    }
+                }
+                title_bar.step(frame.dt_seconds);
+            }
+            examples::timer::TimerFrame placed = layout.place(frame.width_dp, frame.height_dp - bar_height);
+            shift(placed, bar_height);
             const bool switched = !first && placed.arrangement != arrangement;
             arrangement = placed.arrangement;
             for (std::size_t i = 0; i < pad.size(); ++i) {
@@ -424,7 +476,7 @@ int main(int argc, char** argv) {
         };
 
         auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
-            const render::Point center{frame.width_dp / 2.0, frame.height_dp / 2.0};
+            const render::Point center{frame.width_dp / 2.0, bar_height + (frame.height_dp - bar_height) / 2.0};
             const double o = std::clamp(screen_opacity.value(), 0.0, 1.0);
             const double s = screen_scale.value();
             auto layer = [&](double opacity, double scale, auto&& draw) {
@@ -478,10 +530,14 @@ int main(int argc, char** argv) {
             for (const View* v : {&start, &toggle, &add, &reset}) {
                 animating = animating || v->animating();
             }
+            if (window.client_title_bar()) {
+                title_bar.paint(canvas, scheme);
+                animating = animating || title_bar.animating();
+            }
             return animating;
         };
 
-        sdl3::run_app(config.window, examples::window_canvas(), update, paint);
+        sdl3::run_app(window, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());
