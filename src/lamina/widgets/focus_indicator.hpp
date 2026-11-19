@@ -58,6 +58,17 @@ public:
         canvas.fill_path(render::ring_path(outer, radius + grow, t.thickness), color::scale_alpha(scheme[t.color], a),
                          render::FillRule::even_odd);
     }
+    void paint_inward(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& shape, double radius) const {
+        const double a = amount();
+        if (a <= 0.0) {
+            return;
+        }
+        const tokens::FocusIndicatorTokens& t = tokens::focus_indicator;
+        const double d = t.inward_offset;
+        const render::Rect outer{shape.x + d, shape.y + d, shape.width - 2.0 * d, shape.height - 2.0 * d};
+        canvas.fill_path(render::ring_path(outer, std::max(0.0, radius - d), t.thickness), color::scale_alpha(scheme[t.color], a),
+                         render::FillRule::even_odd);
+    }
     void paint_circle(render::Canvas& canvas, const color::ColorScheme& scheme, render::Point center, double radius) const {
         paint(canvas, scheme, render::circle_rect(center, radius), radius);
     }

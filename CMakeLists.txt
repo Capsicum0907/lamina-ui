@@ -204,6 +204,7 @@ if(LAMINA_BUILD_TESTS)
         tests/icon_test.cpp
         tests/input_test.cpp
         tests/interaction_test.cpp
+        tests/item_keyboard_test.cpp
         tests/keyboard_focus_test.cpp
         tests/layout_test.cpp
         tests/lerp_test.cpp

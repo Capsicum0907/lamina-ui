@@ -41,6 +41,7 @@ struct TabTokens {
     double divider_thickness;
     color::Role divider;
     TypeRole label;
+    double focus_ring_corner;
 };
 
 inline constexpr TabTokens tab_tokens{
@@ -55,6 +56,7 @@ inline constexpr TabTokens tab_tokens{
     .divider_thickness = 1.0,
     .divider = color::Role::outline_variant,
     .label = TypeRole::title_small,
+    .focus_ring_corner = 0.0,
 };
 
 }

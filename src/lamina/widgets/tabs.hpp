@@ -12,6 +12,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/tabs.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
@@ -47,7 +48,11 @@ public:
     render::Rect indicator_rect() const;
     double selection(std::size_t index) const { return tabs_[index].selected.value(); }
 
+    bool focused() const { return focus_.focused(); }
+    void set_focused(bool focused);
+
     bool handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
@@ -66,6 +71,7 @@ private:
     double content_width(const Tab& tab) const;
     double indicator_target_width() const;
     void retarget_indicator();
+    void retarget_state_layers();
     void paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme, const Tab& tab, const render::Rect& r) const;
 
     TabRowOptions options_;
@@ -77,6 +83,7 @@ private:
     bool placed_ = false;
     motion::Animated indicator_offset_;
     motion::Animated indicator_width_;
+    FocusIndicator focus_;
 };
 
 }

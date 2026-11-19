@@ -5,6 +5,7 @@
 
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/item_focus.hpp"
 
 namespace lamina::widgets {
 
@@ -114,18 +115,45 @@ render::Rect TabRow::indicator_rect() const {
     return {x, origin_.y + height_ - style.indicator_height, w, style.indicator_height};
 }
 
+void TabRow::retarget_state_layers() {
+    widgets::retarget_state_layers(tabs_, focus_.focused() ? std::optional<std::size_t>(options_.selected) : std::nullopt);
+}
+
+void TabRow::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    retarget_state_layers();
+}
+
 bool TabRow::handle(const input::PointerEvent& e) {
-    return select_on_click(tabs_, e, options_.selected, [this](std::size_t i) { return tab_rect(i); },
-                           [this](std::size_t i) { select(i); });
+    focus_.release_on_press(e);
+    const bool selected = select_on_click(tabs_, e, options_.selected, [this](std::size_t i) { return tab_rect(i); },
+                                          [this](std::size_t i) { select(i); });
+    retarget_state_layers();
+    return selected;
+}
+
+bool TabRow::handle(const input::KeyEvent& e) {
+    if (!focus_.focused()) {
+        return false;
+    }
+    const std::optional<std::size_t> target = item_key_target(e, options_.selected, tabs_.size(), ItemAxis::horizontal);
+    if (!target || *target == options_.selected) {
+        return false;
+    }
+    select(*target);
+    retarget_state_layers();
+    return true;
 }
 
 void TabRow::cancel_interaction() {
     cancel_presses(tabs_);
+    retarget_state_layers();
 }
 
 void TabRow::step(double dt) {
     indicator_offset_.step(dt);
     indicator_width_.step(dt);
+    focus_.step(dt);
     for (Tab& tab : tabs_) {
         tab.state_layer.step(dt);
         tab.selected.step(dt);
@@ -133,7 +161,7 @@ void TabRow::step(double dt) {
 }
 
 bool TabRow::animating() const {
-    if (!indicator_offset_.settled() || !indicator_width_.settled()) {
+    if (!indicator_offset_.settled() || !indicator_width_.settled() || !focus_.settled()) {
         return true;
     }
     return motion::any_unsettled(tabs_, &Tab::state_layer, &Tab::selected);
@@ -185,6 +213,9 @@ void TabRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.fill_rect(divider, scheme[t.divider]);
     const render::Rect indicator = indicator_rect();
     canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(style.indicator_corner)), scheme[style.indicator]);
+    if (!tabs_.empty()) {
+        focus_.paint_inward(canvas, scheme, tab_rect(options_.selected), t.focus_ring_corner);
+    }
 }
 
 }
