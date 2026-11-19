@@ -402,6 +402,13 @@ C `tokens/DialogTokens.kt` (surface-container-high, extra-large corners, Headlin
 - A headline that wraps to several lines is centered as a block as wide as its longest line. A wrapping Compose `Text` most likely takes the full maximum width, so with an icon its lines would start at the start edge (not verified). Single-line headlines are the same.
 - Compose leaves the enter and exit animation to the platform window. lamina-ui's own animation scales the surface from 0.8 with the default spatial spring and fades it and the scrim with the default effects spring.
 
+### Snackbar
+
+C `tokens/SnackbarTokens.kt` (inverse-surface container, extra-small corners, Level 3, Body M in inverse-on-surface, Label L action in inverse-primary, 48 dp for one line and 68 dp for two), C `Snackbar.kt` (600 dp at most, 12 dp around it, 16 dp before the text, 8 dp after the action, 8 dp between the text and the action, 14 dp above and below the text) and C `SnackbarHost.kt` (4 s short and 10 s long durations; the snackbar scales from 0.8 on the fast spatial spring and fades on the fast effects spring), read into `lamina/tokens/snackbar.hpp`.
+
+- The height counts the lines of the message at the Body M line height (20 dp), so one line is 48 dp and two are 68 dp whatever the font's own ascent and descent.
+- Compose gives a snackbar with an action an indefinite duration by default; lamina-ui uses the short duration unless told otherwise, and holds the time while the pointer is over the snackbar, which Compose does not.
+
 ### Circular progress indicator
 
 C `tokens/CircularProgressIndicatorTokens.kt` (40 dp, 48 dp for the wavy one, 4 dp indicator and track, 4 dp between them, a 1.6 dp wave amplitude, a 15 dp wavelength), C `tokens/ProgressIndicatorTokens.kt` (primary indicator, secondary-container track) and C `WavyProgressIndicator.kt` with `internal/CircularWavyProgressModifiers.kt`, read into `lamina/tokens/progress_indicator.hpp`.

@@ -70,6 +70,7 @@ add_library(lamina STATIC
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/scroll_area.cpp
     src/lamina/widgets/slider.cpp
+    src/lamina/widgets/snackbar.cpp
     src/lamina/widgets/surface.cpp
     src/lamina/widgets/switch.cpp
     src/lamina/widgets/tabs.cpp
@@ -201,6 +202,7 @@ if(LAMINA_BUILD_TESTS)
         tests/scroll_area_test.cpp
         tests/shapes_test.cpp
         tests/slider_test.cpp
+        tests/snackbar_test.cpp
         tests/spring_test.cpp
         tests/support.cpp
         tests/surface_test.cpp

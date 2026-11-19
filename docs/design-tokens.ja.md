@@ -402,6 +402,13 @@ C の `tokens/DialogTokens.kt`（surface-container-high・extra-large の角・H
 - 見出しが複数行に折り返すとき、lamina-ui は最も長い行の幅の塊として中央に置きます。Compose の折り返す文字は与えられた最大の幅を取るはずなので、アイコンがあっても各行は始めの側から並ぶと思われます（未確認）。一行の見出しは同じです。
 - Compose は現れるときと消えるときの動きを OS の窓に任せています。lamina-ui は独自に、面を 0.8 倍から標準の空間のばねで大きくし、面と幕を標準の効果のばねで現します。
 
+### スナックバー
+
+C の `tokens/SnackbarTokens.kt`（面は inverse-surface、角は extra-small、Level 3、知らせは inverse-on-surface の Body M、操作は inverse-primary の Label L、高さは 1 行で 48 dp・2 行で 68 dp）、C の `Snackbar.kt`（幅は最大 600 dp、周りに 12 dp、文字の前に 16 dp、操作の後に 8 dp、文字と操作の間に 8 dp、文字の上下に 14 dp）と C の `SnackbarHost.kt`（短い時間 4 秒・長い時間 10 秒。0.8 倍から速い空間のばねで大きくし、速い効果のばねで現す）を読み、`lamina/tokens/snackbar.hpp` に入れました。
+
+- 高さは知らせの行数に Body M の行の高さ（20 dp）を掛けて決めます。そのため、フォント自身の上下の高さにかかわらず、1 行で 48 dp、2 行で 68 dp です。
+- Compose は、操作のあるスナックバーの時間を既定で無期限にします。lamina-ui は指定がなければ短い時間を使い、ポインターが乗っている間は時間を止めます。Compose はこれをしません。
+
 ### 円形の進み具合の表示
 
 C `tokens/CircularProgressIndicatorTokens.kt`（40 dp、波のある形は 48 dp、表示と下地の太さは 4 dp、間は 4 dp、波の振幅は 1.6 dp、波長は 15 dp）、C `tokens/ProgressIndicatorTokens.kt`（表示は primary、下地は secondary-container）、C `WavyProgressIndicator.kt` と `internal/CircularWavyProgressModifiers.kt` を読み、`lamina/tokens/progress_indicator.hpp` に入れました。
