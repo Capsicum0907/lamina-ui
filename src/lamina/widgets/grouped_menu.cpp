@@ -67,12 +67,18 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
         }
         for (GroupedMenuItem& item : spec.items) {
             std::optional<text::TextLine> label;
+            std::optional<AccessKeyLabel> access;
+            const std::optional<input::Key> key = access_key_for(item.label, item.access_key);
             double w = 2.0 * t.item_horizontal_padding;
             double h = 0.0;
             if (!item.label.empty()) {
                 label = text::layout_line(fonts_, item.label, item_style);
                 w += label->width;
                 h = label->style.line_height;
+                if (key) {
+                    access = access_key_label(fonts_, item.label, *label, *key);
+                    w += access->suffix_width();
+                }
             }
             if (item.leading_icon) {
                 w += t.leading_icon_size + t.icon_text_space;
@@ -85,8 +91,9 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
             content = std::max(content, std::clamp(w, t.item_min_width, t.item_max_width) + 2.0 * t.item_horizontal_inset);
             const double height = std::max(t.item_min_height, h + 2.0 * t.item_vertical_padding);
             const double on = item.selected ? 1.0 : 0.0;
+            access_keys_.push_back(key);
             group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
-                                   std::move(item.trailing_icon), item.selected, gy, height, {},
+                                   std::move(item.trailing_icon), std::move(access), item.selected, gy, height, {},
                                    motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, motion_scheme.fast_effects()),
                                    corner_springs()});
             gy += height;
@@ -199,6 +206,7 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window, input::I
             }
         }
     }
+    access_keys_shown_ = source == input::InputSource::keyboard;
     set_active(source == input::InputSource::keyboard && flat_count() > 0 ? std::optional<std::size_t>(0) : std::nullopt);
 }
 
@@ -230,6 +238,14 @@ MenuItemIndex GroupedMenu::item_at(std::size_t flat) const {
         ++g;
     }
     return {g, flat};
+}
+
+std::optional<input::Key> GroupedMenu::access_key(std::size_t group, std::size_t item) const {
+    std::size_t flat = item;
+    for (std::size_t g = 0; g < group; ++g) {
+        flat += groups_[g].items.size();
+    }
+    return access_keys_[flat];
 }
 
 std::optional<MenuItemIndex> GroupedMenu::focused_item() const {
@@ -307,6 +323,19 @@ GroupedMenuResponse GroupedMenu::handle(const input::KeyEvent& e) {
     if (const std::optional<std::size_t> target = menu_key_target(e, active_, flat_count())) {
         set_active(target);
         response.consumed = true;
+        return response;
+    }
+    if (const std::optional<AccessKeyMatch> match = match_access_key(e, access_keys_, active_)) {
+        response.consumed = true;
+        if (match->unique && e.repeat) {
+            return response;
+        }
+        set_active(match->index);
+        if (match->unique) {
+            const MenuItemIndex chosen = item_at(match->index);
+            response.chosen = chosen;
+            choose(chosen.group, chosen.item);
+        }
     }
     return response;
 }
@@ -381,8 +410,12 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
                 x += t.leading_icon_size + t.icon_text_space;
             }
             if (item.label) {
-                text::draw_line(canvas, fonts_, *item.label, {x, cy - item.label->box_height() / 2.0},
-                                color::mix(s[t.label_color], s[t.selected_label], k));
+                const render::Point top_left{x, cy - item.label->box_height() / 2.0};
+                const color::Argb label_color = color::mix(s[t.label_color], s[t.selected_label], k);
+                text::draw_line(canvas, fonts_, *item.label, top_left, label_color);
+                if (access_keys_shown_ && item.access) {
+                    paint_access_key(canvas, fonts_, *item.access, *item.label, top_left, label_color);
+                }
             }
             if (item.trailing_icon) {
                 const double tx = ir.x + ir.width - t.item_horizontal_padding - t.trailing_icon_size;

@@ -6,6 +6,7 @@
 
 #include "lamina/tokens/access_key.hpp"
 #include "lamina/widgets/access_key.hpp"
+#include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/menu.hpp"
 #include "lamina_thorvg/canvas.hpp"
 #include "support.hpp"
@@ -206,4 +207,84 @@ TEST_CASE("the menu is as wide with its access keys hidden as shown, with room f
     keyed.open(anchor, window, input::InputSource::keyboard);
     CHECK(keyed.bounds().width == by_pointer.width);
     CHECK(keyed.bounds().x == by_pointer.x);
+}
+
+namespace {
+
+widgets::GroupedMenu make_grouped() {
+    return widgets::GroupedMenu({{{{{"List", std::nullopt, std::nullopt, std::nullopt, true}, {"Grid"}}, "Layout", false, widgets::MenuSelection::single},
+                                  {{{"Bookmarked"}, {japanese, std::nullopt, std::nullopt, std::nullopt, false, Key::r}}, {}, false,
+                                   widgets::MenuSelection::multiple},
+                                  {{{"Share"}, {"Settings"}}}}},
+                                fonts());
+}
+
+}
+
+TEST_CASE("the grouped menu's items take access keys across its groups") {
+    auto m = make_grouped();
+    CHECK(m.access_key(0, 0) == Key::l);
+    CHECK(m.access_key(0, 1) == Key::g);
+    CHECK(m.access_key(1, 0) == Key::b);
+    CHECK(m.access_key(1, 1) == Key::r);
+    CHECK(m.access_key(2, 0) == Key::s);
+    CHECK(m.access_key(2, 1) == Key::s);
+}
+
+TEST_CASE("an access key in the grouped menu does what a click on its item does") {
+    auto m = make_grouped();
+    m.open(anchor, window);
+    widgets::GroupedMenuResponse r = m.handle(press(Key::g));
+    CHECK(r.consumed);
+    REQUIRE(r.chosen);
+    CHECK(r.chosen->group == 0);
+    CHECK(r.chosen->item == 1);
+    CHECK(m.is_open());
+    CHECK(m.selected(0, 1));
+    CHECK_FALSE(m.selected(0, 0));
+    CHECK(m.focused_item()->group == 0);
+    CHECK(m.focused_item()->item == 1);
+    m.handle(press(Key::r));
+    CHECK(m.is_open());
+    CHECK(m.selected(1, 1));
+    m.handle(press(Key::r));
+    CHECK_FALSE(m.selected(1, 1));
+    m.handle(KeyEvent{Key::r, false, false, true});
+    CHECK_FALSE(m.selected(1, 1));
+    CHECK_FALSE(m.handle(press(Key::x)).chosen);
+    r = m.handle(press(Key::s));
+    CHECK_FALSE(r.chosen);
+    CHECK(m.focused_item()->group == 2);
+    CHECK(m.focused_item()->item == 0);
+    m.handle(press(Key::s));
+    CHECK(m.focused_item()->item == 1);
+    CHECK(m.is_open());
+    r = m.handle(press(Key::b));
+    REQUIRE(r.chosen);
+    CHECK(m.selected(1, 0));
+    m.close();
+    m.open(anchor, window, input::InputSource::keyboard);
+    CHECK(m.access_keys_shown());
+    r = m.handle(press(Key::l));
+    CHECK(r.chosen->group == 0);
+    CHECK(m.selected(0, 0));
+    CHECK(m.is_open());
+}
+
+TEST_CASE("the grouped menu shows its access keys only when the keyboard opened it, at the same width") {
+    auto keyed = [] {
+        return widgets::GroupedMenu({{{{{long_japanese, std::nullopt, std::nullopt, std::nullopt, false, Key::s}}}}}, fonts());
+    };
+    widgets::GroupedMenu plain({{{{{long_japanese}}}}}, fonts());
+    auto m = keyed();
+    const auto style = tokens::text_style(tokens::type_style(tokens::grouped_menu_tokens.label));
+    CHECK(m.width() == doctest::Approx(plain.width() + text::layout_line(fonts(), "(S)", style).width));
+    m.open(anchor, window);
+    CHECK_FALSE(m.access_keys_shown());
+    const render::Rect by_pointer = m.bounds();
+    m.close();
+    m.open(anchor, window, input::InputSource::keyboard);
+    CHECK(m.access_keys_shown());
+    CHECK(m.bounds().width == by_pointer.width);
+    CHECK(m.bounds().x == by_pointer.x);
 }
