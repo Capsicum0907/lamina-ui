@@ -159,9 +159,7 @@ void TitleBar::paint_glyph(render::Canvas& canvas, const render::Rect& indicator
         canvas.fill_path(render::ring_path(r, t.glyph_corner, t.glyph_stroke), color, render::FillRule::even_odd);
     };
     if (action == TitleBarAction::minimize) {
-        const double y = g.y + box / 2.0;
-        const std::array line{render::Point{g.x + half, y}, render::Point{g.x + box - half, y}};
-        canvas.fill_path(render::stroke_path(line, t.glyph_stroke), color);
+        canvas.fill_rect({g.x, g.y + box / 2.0 - half, box, t.glyph_stroke}, color);
     } else if (!maximized_) {
         outline(g);
     } else {
