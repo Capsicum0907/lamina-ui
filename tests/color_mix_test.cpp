@@ -29,3 +29,15 @@ TEST_CASE("scale_alpha multiplies the existing alpha and keeps the color") {
     CHECK(color::scale_alpha(0x80123456, 1.0) == 0x80123456);
     CHECK(color::scale_alpha(0xff123456, 0.0) == 0x00123456);
 }
+
+TEST_CASE("faded scales the alpha of every role and keeps the colors") {
+    color::ColorScheme scheme{};
+    for (std::size_t i = 0; i < color::role_count; ++i) {
+        scheme.colors[i] = 0xff000000 | static_cast<color::Argb>(i * 0x010203);
+    }
+    const color::ColorScheme half = color::faded(scheme, 0.5);
+    for (std::size_t i = 0; i < color::role_count; ++i) {
+        CHECK(half.colors[i] == color::scale_alpha(scheme.colors[i], 0.5));
+    }
+    CHECK(color::mix(half.colors[1], half.colors[2], 0.3) == color::scale_alpha(color::mix(scheme.colors[1], scheme.colors[2], 0.3), 0.5));
+}

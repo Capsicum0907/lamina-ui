@@ -282,24 +282,22 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const double a = opacity();
     canvas.save();
     popup_.scale_about(canvas, pivot_);
-    const color::Argb shadow = color::scale_alpha(scheme[color::Role::shadow], a);
+    const color::ColorScheme s = color::faded(scheme, a);
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const render::Rect gr = group_rect(g);
-        paint_surface(canvas, gr, group_radii(g), color::scale_alpha(scheme[t.group_container], a),
-                      tokens::elevation_dp[t.elevation], shadow);
+        paint_surface(canvas, gr, group_radii(g), s[t.group_container], tokens::elevation_dp[t.elevation], s[color::Role::shadow]);
     }
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const Group& group = groups_[g];
         const render::Rect gr = group_rect(g);
         if (group.label) {
             const double y = gr.y + group.label_y + (group.label_height - group.label->box_height()) / 2.0;
-            text::draw_line(canvas, fonts_, *group.label, {gr.x + t.group_label_start_padding, y},
-                            color::scale_alpha(scheme[t.group_label_color], a));
+            text::draw_line(canvas, fonts_, *group.label, {gr.x + t.group_label_start_padding, y}, s[t.group_label_color]);
         }
         if (group.divider_y) {
             const render::Rect line{gr.x + t.divider_horizontal_padding, gr.y + *group.divider_y,
                                     gr.width - 2.0 * t.divider_horizontal_padding, t.divider_thickness};
-            canvas.fill_rect(line, color::scale_alpha(scheme[t.divider_color], a));
+            canvas.fill_rect(line, s[t.divider_color]);
         }
         for (std::size_t i = 0; i < group.items.size(); ++i) {
             const Item& item = group.items[i];
@@ -307,8 +305,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
             const render::CornerRadii radii = item_radii(g, i);
             const double k = std::clamp(item.selection.value(), 0.0, 1.0);
             if (k > 0.0) {
-                canvas.fill_path(render::rounded_rect_path(ir, radii),
-                                 color::scale_alpha(color::mix(scheme[t.group_container], scheme[t.selected_container], k), a));
+                canvas.fill_path(render::rounded_rect_path(ir, radii), color::mix(s[t.group_container], s[t.selected_container], k));
             }
             if (item.state_layer.value() > 0.0) {
                 const color::Argb layer = color::mix(scheme[t.state_layer], scheme[t.selected_state_layer], k);
@@ -320,18 +317,18 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
             if (item.leading_icon) {
                 const icons::Icon& icon = item.selected && item.selected_leading_icon ? *item.selected_leading_icon : *item.leading_icon;
                 icon.font.draw(canvas, icon.symbol, {x, cy - t.leading_icon_size / 2.0}, t.leading_icon_size,
-                               color::scale_alpha(color::mix(scheme[t.leading_icon], scheme[t.selected_leading_icon], k), a));
+                               color::mix(s[t.leading_icon], s[t.selected_leading_icon], k));
                 x += t.leading_icon_size + t.icon_text_space;
             }
             if (item.label) {
                 text::draw_line(canvas, fonts_, *item.label, {x, cy - item.label->box_height() / 2.0},
-                                color::scale_alpha(color::mix(scheme[t.label_color], scheme[t.selected_label], k), a));
+                                color::mix(s[t.label_color], s[t.selected_label], k));
             }
             if (item.trailing_icon) {
                 const double tx = ir.x + ir.width - t.item_horizontal_padding - t.trailing_icon_size;
                 item.trailing_icon->font.draw(canvas, item.trailing_icon->symbol, {tx, cy - t.trailing_icon_size / 2.0},
                                               t.trailing_icon_size,
-                                              color::scale_alpha(color::mix(scheme[t.trailing_icon], scheme[t.selected_trailing_icon], k), a));
+                                              color::mix(s[t.trailing_icon], s[t.selected_trailing_icon], k));
             }
         }
     }

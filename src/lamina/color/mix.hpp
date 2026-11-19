@@ -35,6 +35,14 @@ inline ColorScheme mix(const ColorScheme& from, const ColorScheme& to, double t)
     return out;
 }
 
+inline ColorScheme faded(const ColorScheme& scheme, double opacity) {
+    ColorScheme out = scheme;
+    for (Argb& c : out.colors) {
+        c = scale_alpha(c, opacity);
+    }
+    return out;
+}
+
 inline Argb source_over(Argb top, Argb bottom) {
     const double at = alpha(top) / 255.0;
     const double ab = alpha(bottom) / 255.0;

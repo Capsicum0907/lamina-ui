@@ -22,14 +22,6 @@ ButtonOptions action(std::string label) {
 
 }
 
-color::ColorScheme faded(const color::ColorScheme& scheme, double opacity) {
-    color::ColorScheme out = scheme;
-    for (color::Argb& c : out.colors) {
-        c = color::scale_alpha(c, opacity);
-    }
-    return out;
-}
-
 Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
     : headline_({options.headline, t.headline, t.headline_color}, fonts),
       supporting_({options.supporting_text, t.supporting_text, t.supporting_text_color}, fonts),
@@ -160,7 +152,7 @@ void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const double a = opacity();
     const render::Rect window{0.0, 0.0, window_.width, window_.height};
     canvas.fill_rect(window, color::with_alpha(scheme[t.scrim], t.scrim_opacity * a));
-    const color::ColorScheme s = faded(scheme, a);
+    const color::ColorScheme s = color::faded(scheme, a);
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});
     const double radius = tokens::corner_radius(t.corner, surface_.width, surface_.height);

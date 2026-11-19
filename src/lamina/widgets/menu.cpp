@@ -176,10 +176,10 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     const double radius = tokens::corner_radius(t.corner, r.width, r.height);
     canvas.save();
     popup_.scale_about(canvas, pivot_);
-    paint_surface(canvas, r, radius, color::scale_alpha(scheme[t.container], a), tokens::elevation_dp[t.elevation],
-                  color::scale_alpha(scheme[color::Role::shadow], a));
-    const color::Argb label_color = color::scale_alpha(scheme[t.label_color], a);
-    const color::Argb icon_color = color::scale_alpha(scheme[t.leading_icon], a);
+    const color::ColorScheme s = color::faded(scheme, a);
+    paint_surface(canvas, r, radius, s[t.container], tokens::elevation_dp[t.elevation], s[color::Role::shadow]);
+    const color::Argb label_color = s[t.label_color];
+    const color::Argb icon_color = s[t.leading_icon];
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const render::Rect ir = item_rect(i);

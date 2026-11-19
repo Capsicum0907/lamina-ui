@@ -29,8 +29,6 @@ struct DialogOptions {
 
 enum class DialogResult { none, confirmed, dismissed };
 
-color::ColorScheme faded(const color::ColorScheme& scheme, double opacity);
-
 class Dialog {
 public:
     Dialog(DialogOptions options, const text::FontStack& fonts);
