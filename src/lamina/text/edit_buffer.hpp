@@ -6,6 +6,7 @@
 #include <string>
 #include <string_view>
 
+#include "lamina/text/edit_history.hpp"
 #include "lamina/text/line_map.hpp"
 
 namespace lamina::text {
@@ -13,11 +14,12 @@ namespace lamina::text {
 struct EditBufferOptions {
     bool multiline = false;
     bool keeps_tabs = false;
+    EditHistoryLimits history{};
 };
 
 class EditBuffer {
 public:
-    explicit EditBuffer(EditBufferOptions options = {}) : options_(options) {}
+    explicit EditBuffer(EditBufferOptions options = {}) : options_(options), history_(options.history) {}
 
     bool multiline() const { return options_.multiline; }
     bool keeps_tabs() const { return options_.keeps_tabs; }
@@ -53,6 +55,7 @@ public:
     void reset_goal() { goal_x_.reset(); }
 
     void insert(std::u32string_view text);
+    void type(std::u32string_view text);
     void erase_selection();
     void backspace(bool by_word);
     void delete_forward(bool by_word);
@@ -61,9 +64,20 @@ public:
     void commit(std::u32string_view text);
     void clear_composition();
 
+    bool can_undo() const { return history_.can_undo(); }
+    bool can_redo() const { return history_.can_redo(); }
+    bool undo();
+    bool redo();
+    void advance(double dt_seconds) { history_.advance(dt_seconds); }
+
 private:
+    EditState state() const;
+    void restore(const EditState& saved);
+    void record(EditState before, EditGroup group, bool starts_step = false);
+    void place(std::size_t index);
     void replace_selection(std::u32string_view inserted);
     void erase(std::size_t first, std::size_t last);
+    void finish_composition();
     void sync();
 
     EditBufferOptions options_;
@@ -75,6 +89,8 @@ private:
     std::optional<double> goal_x_;
     std::u32string composition_;
     std::size_t composition_cursor_ = 0;
+    EditHistory history_;
+    std::optional<EditState> composition_before_;
 };
 
 }

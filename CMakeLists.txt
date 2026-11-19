@@ -51,6 +51,7 @@ add_library(lamina STATIC
     src/lamina/shapes/to_path.cpp
     src/lamina/text/font.cpp
     src/lamina/text/edit_buffer.cpp
+    src/lamina/text/edit_history.cpp
     src/lamina/text/layout.cpp
     src/lamina/text/line_map.cpp
     src/lamina/text/word_boundary.cpp
@@ -196,6 +197,7 @@ if(LAMINA_BUILD_TESTS)
         tests/color_scheme_test.cpp
         tests/dialog_test.cpp
         tests/edit_buffer_test.cpp
+        tests/edit_history_test.cpp
         tests/focus_indicator_test.cpp
         tests/focus_manager_test.cpp
         tests/font_ownership_test.cpp
