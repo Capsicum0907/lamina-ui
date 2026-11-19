@@ -32,5 +32,7 @@ SDL 3.4 already gives a borderless resizable window the caption, system menu, th
 ## Known limits
 
 - The resize band lies inside the client area (about 8 px at 100 %), so content at the very edge of the window cannot be clicked there.
-- Only Windows 11 was tried. Windows 10 has no rounded corners or Snap Layouts.
+- Only Windows 11 on one 100 % monitor was tried. Not tried: maximizing on a second monitor, moving between monitors with different DPI, Windows 10 (no rounded corners or Snap Layouts there), and the non-Windows build.
+- `Alt+Space` was checked with a posted key message, because another app held that shortcut on the test machine. After a menu opened from the keyboard is closed with one Escape, the next click only leaves menu mode.
 - The caption buttons do not take keyboard focus.
+- The behaviour leans on SDL 3.4 details (the borderless window styles, the maximized client area, dropping the menu key command); an SDL update can change them.
