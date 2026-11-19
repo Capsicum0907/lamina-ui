@@ -5,6 +5,7 @@
 
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/item_focus.hpp"
 
 namespace lamina::widgets {
 
@@ -78,16 +79,52 @@ void NavigationBar::select(std::size_t index) {
     select_navigation_item(items_, options_.selected, index);
 }
 
+void NavigationBar::retarget_state_layers() {
+    widgets::retarget_state_layers(items_, focus_.focused() ? std::optional<std::size_t>(focus_index_) : std::nullopt);
+}
+
+void NavigationBar::set_focused(bool focused) {
+    if (focused && !focus_.focused()) {
+        focus_index_ = options_.selected;
+    }
+    focus_.set_focused(focused);
+    retarget_state_layers();
+}
+
+bool NavigationBar::handle(const input::KeyEvent& e) {
+    if (!focus_.focused()) {
+        return false;
+    }
+    if (focus_.activates(e, KeyActivation::space_or_enter)) {
+        if (focus_index_ == options_.selected) {
+            return false;
+        }
+        select(focus_index_);
+        retarget_state_layers();
+        return true;
+    }
+    if (const std::optional<std::size_t> target = item_key_target(e, focus_index_, items_.size(), ItemAxis::horizontal)) {
+        focus_index_ = *target;
+        retarget_state_layers();
+    }
+    return false;
+}
+
 bool NavigationBar::handle(const input::PointerEvent& e) {
-    return select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
+    focus_.release_on_press(e);
+    const bool selected = select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
                            [this](std::size_t i) { select(i); });
+    retarget_state_layers();
+    return selected;
 }
 
 void NavigationBar::cancel_interaction() {
     cancel_presses(items_);
+    retarget_state_layers();
 }
 
 void NavigationBar::step(double dt) {
+    focus_.step(dt);
     for (Item& item : items_) {
         item.state_layer.step(dt);
         item.indicator.step(dt);
@@ -96,7 +133,7 @@ void NavigationBar::step(double dt) {
 }
 
 bool NavigationBar::animating() const {
-    return motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::color);
+    return !focus_.settled() || motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::color);
 }
 
 void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -123,6 +160,10 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
             text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space},
                             color::mix(scheme[t.inactive_label], scheme[t.active_label], k));
         }
+    }
+    if (!items_.empty()) {
+        const render::Rect pill = full_indicator_rect(focus_index_);
+        focus_.paint(canvas, scheme, pill, pill.height / 2.0);
     }
 }
 

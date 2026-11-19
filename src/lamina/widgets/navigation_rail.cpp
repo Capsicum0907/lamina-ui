@@ -7,6 +7,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/item_focus.hpp"
 
 namespace lamina::widgets {
 
@@ -212,16 +213,52 @@ double NavigationRail::label_opacity(std::size_t index) const {
     return layout_[index].label_opacity;
 }
 
+void NavigationRail::retarget_state_layers() {
+    widgets::retarget_state_layers(items_, focus_.focused() ? std::optional<std::size_t>(focus_index_) : std::nullopt);
+}
+
+void NavigationRail::set_focused(bool focused) {
+    if (focused && !focus_.focused()) {
+        focus_index_ = options_.selected;
+    }
+    focus_.set_focused(focused);
+    retarget_state_layers();
+}
+
+bool NavigationRail::handle(const input::KeyEvent& e) {
+    if (!focus_.focused()) {
+        return false;
+    }
+    if (focus_.activates(e, KeyActivation::space_or_enter)) {
+        if (focus_index_ == options_.selected) {
+            return false;
+        }
+        select(focus_index_);
+        retarget_state_layers();
+        return true;
+    }
+    if (const std::optional<std::size_t> target = item_key_target(e, focus_index_, items_.size(), ItemAxis::vertical)) {
+        focus_index_ = *target;
+        retarget_state_layers();
+    }
+    return false;
+}
+
 bool NavigationRail::handle(const input::PointerEvent& e) {
-    return select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
+    focus_.release_on_press(e);
+    const bool selected = select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
                            [this](std::size_t i) { select(i); });
+    retarget_state_layers();
+    return selected;
 }
 
 void NavigationRail::cancel_interaction() {
     cancel_presses(items_);
+    retarget_state_layers();
 }
 
 void NavigationRail::step(double dt) {
+    focus_.step(dt);
     min_width_.step(dt);
     full_width_.step(dt);
     item_space_.step(dt);
@@ -237,7 +274,7 @@ void NavigationRail::step(double dt) {
 }
 
 bool NavigationRail::animating() const {
-    if (!min_width_.settled() || !full_width_.settled() || !item_space_.settled() || !item_min_height_.settled()) {
+    if (!min_width_.settled() || !full_width_.settled() || !item_space_.settled() || !item_min_height_.settled() || !focus_.settled()) {
         return true;
     }
     return motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::position, &Item::color, &Item::label_mode);
@@ -277,6 +314,10 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
             text::draw_line(canvas, fonts_, line, {label.x, y},
                             color::scale_alpha(c, g.label_opacity));
         }
+    }
+    if (!items_.empty()) {
+        const render::Rect pill = state_layer_rect(focus_index_);
+        focus_.paint(canvas, scheme, pill, std::min(pill.width, pill.height) / 2.0);
     }
     canvas.pop_clip();
 }

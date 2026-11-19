@@ -12,6 +12,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/navigation_rail.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/navigation_item.hpp"
 
@@ -48,7 +49,12 @@ public:
     double label_opacity(std::size_t index) const;
     double icon_position(std::size_t index) const { return items_[index].position.value(); }
 
+    bool focused() const { return focus_.focused(); }
+    void set_focused(bool focused);
+    std::size_t focused_item() const { return focus_index_; }
+
     bool handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
@@ -105,6 +111,10 @@ private:
     layout::Size header_size_{0.0, 0.0};
     double height_ = 0.0;
     render::Point origin_{0.0, 0.0};
+    FocusIndicator focus_;
+    std::size_t focus_index_ = 0;
+
+    void retarget_state_layers();
 };
 
 }

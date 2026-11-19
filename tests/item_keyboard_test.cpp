@@ -1,9 +1,12 @@
 #include <doctest/doctest.h>
 
+#include <utility>
 #include <vector>
 
 #include "lamina/tokens/focus.hpp"
 #include "lamina/widgets/item_focus.hpp"
+#include "lamina/widgets/navigation_bar.hpp"
+#include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/protocol.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina_thorvg/canvas.hpp"
@@ -42,9 +45,64 @@ widgets::TabRow tab_row() {
     return row;
 }
 
+std::vector<widgets::NavigationItem> navigation_items() {
+    std::vector<widgets::NavigationItem> items;
+    for (auto [symbol, label] : {std::pair{icons::Symbol::home, "Home"}, std::pair{icons::Symbol::search, "Search"},
+                                 std::pair{icons::Symbol::settings, "Settings"}}) {
+        items.push_back({icons::Icon{icon_font(), symbol}, label});
+    }
+    return items;
+}
+
+widgets::NavigationBar navigation_bar() {
+    widgets::NavigationBar bar({navigation_items()}, fonts());
+    bar.set_width(360.0);
+    return bar;
+}
+
+widgets::NavigationRail navigation_rail() {
+    widgets::NavigationRail rail({navigation_items()}, fonts());
+    rail.measure({0.0, 400.0, 0.0, 600.0});
+    rail.arrange({0.0, 0.0, rail.width(), 600.0});
+    return rail;
+}
+
+template <typename W>
+void check_item_focus(W w, input::KeyEvent forth, input::KeyEvent back, int width, int height) {
+    CHECK_FALSE(w.handle(forth));
+    CHECK_FALSE(w.handle(input::KeyEvent{Key::space, false}));
+    const int unfocused = ring_pixels(w, width, height);
+    w.set_focused(true);
+    CHECK(w.focused_item() == 0);
+    CHECK(ring_pixels(w, width, height) > unfocused);
+    CHECK_FALSE(w.handle(forth));
+    CHECK(w.focused_item() == 1);
+    CHECK(w.selected() == 0);
+    CHECK(w.handle(input::KeyEvent{Key::enter, false}));
+    CHECK(w.selected() == 1);
+    CHECK_FALSE(w.handle(input::KeyEvent{Key::space, false}));
+    w.handle(back);
+    w.handle(back);
+    CHECK(w.focused_item() == 2);
+    w.handle(home);
+    CHECK(w.focused_item() == 0);
+    w.handle(end);
+    CHECK(w.focused_item() == 2);
+    CHECK(w.handle(input::KeyEvent{Key::space, false}));
+    CHECK(w.selected() == 2);
+    CHECK_FALSE(w.handle(input::KeyEvent{Key::space, false, false, true}));
+    w.set_focused(false);
+    w.set_focused(true);
+    CHECK(w.focused_item() == 2);
+    w.handle({PointerAction::down, 1.0, 1.0});
+    CHECK_FALSE(w.focused());
+}
+
 }
 
 static_assert(widgets::Focusable<widgets::TabRow>);
+static_assert(widgets::Focusable<widgets::NavigationBar>);
+static_assert(widgets::Focusable<widgets::NavigationRail>);
 static_assert(widgets::HandlesKeys<widgets::TabRow>);
 
 TEST_CASE("item keys move along the axis, wrap at the ends and jump with Home and End") {
@@ -94,4 +152,12 @@ TEST_CASE("a focused tab row draws the ring inside the selected tab, and a press
     CHECK(row.selected() == 2);
     row.handle({PointerAction::leave, 0.0, 0.0});
     CHECK(ring_pixels(row, 300, 70) == 0);
+}
+
+TEST_CASE("a navigation bar moves its focus with Left and Right and selects on Space or Enter") {
+    check_item_focus(navigation_bar(), right, left, 360, 64);
+}
+
+TEST_CASE("a navigation rail moves its focus with Up and Down and selects on Space or Enter") {
+    check_item_focus(navigation_rail(), input::KeyEvent{Key::down, false}, input::KeyEvent{Key::up, false}, 120, 600);
 }
