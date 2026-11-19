@@ -25,6 +25,7 @@
 #include "lamina/widgets/snackbar.hpp"
 #include "lamina/widgets/text_field.hpp"
 #include "lamina/widgets/title_bar.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
@@ -35,6 +36,7 @@
 
 using namespace lamina;
 using examples::todo::ItemId;
+using examples::todo::RowAction;
 using examples::todo::RowPart;
 using examples::todo::TaskRow;
 using input::Key;
@@ -120,37 +122,40 @@ int main(int argc, char** argv) {
         widgets::Snackbar snackbar(config.snackbar, fonts);
         widgets::Label empty_label({config.empty_message, config.empty_type, config.empty_color, false}, fonts);
         motion::Animated empty_presence(list.items().empty() ? 1.0 : 0.0, config.fade_spring);
-        std::vector<std::unique_ptr<TaskRow>> rows;
+        widgets::WidgetSet rows;
+        std::function<void(TaskRow&, const RowAction&)> on_row;
         std::vector<ItemId> fresh;
         bool expanded = true;
         input.set_focused(true);
 
-        auto find_row = [&](ItemId id) -> TaskRow* {
-            for (auto& r : rows) {
-                if (r->id() == id && !r->leaving()) {
-                    return r.get();
+        auto first_row = [&](auto&& pick) -> TaskRow* {
+            TaskRow* found = nullptr;
+            rows.for_each<TaskRow>([&](TaskRow& r) {
+                if (!found && pick(r)) {
+                    found = &r;
                 }
-            }
-            return nullptr;
+            });
+            return found;
         };
+        auto find_row = [&](ItemId id) { return first_row([&](const TaskRow& r) { return r.id() == id && !r.leaving(); }); };
         auto sync_rows = [&] {
-            for (auto& r : rows) {
-                if (!r->leaving() && !list.find(r->id())) {
-                    r->leave();
+            rows.for_each<TaskRow>([&](TaskRow& r) {
+                if (!r.leaving() && !list.find(r.id())) {
+                    r.leave();
                 }
-            }
+            });
             for (const examples::todo::Item& item : list.items()) {
                 if (TaskRow* r = find_row(item.id)) {
                     r->sync(item);
                     continue;
                 }
-                const auto ghost = std::find_if(rows.begin(), rows.end(), [&](const auto& r) { return r->id() == item.id; });
-                if (ghost != rows.end()) {
-                    (*ghost)->revive();
-                    (*ghost)->sync(item);
+                if (TaskRow* ghost = first_row([&](const TaskRow& r) { return r.id() == item.id; })) {
+                    ghost->revive();
+                    ghost->sync(item);
                     continue;
                 }
-                rows.push_back(std::make_unique<TaskRow>(item, config.row, fonts, icon_font, &window.clipboard()));
+                rows.emplace_with<TaskRow>([&on_row](TaskRow& r, const RowAction& a) { on_row(r, a); }, item, config.row, fonts, icon_font,
+                                           &window.clipboard());
                 fresh.push_back(item.id);
             }
         };
@@ -172,22 +177,8 @@ int main(int argc, char** argv) {
             }
             return out;
         };
-        auto focused_row = [&]() -> TaskRow* {
-            for (auto& r : rows) {
-                if (!r->leaving() && r->focused()) {
-                    return r.get();
-                }
-            }
-            return nullptr;
-        };
-        auto focus_holder = [&]() -> TaskRow* {
-            for (auto& r : rows) {
-                if (!r->leaving() && r->focused_part()) {
-                    return r.get();
-                }
-            }
-            return nullptr;
-        };
+        auto focused_row = [&] { return first_row([](const TaskRow& r) { return !r.leaving() && r.focused(); }); };
+        auto focus_holder = [&] { return first_row([](const TaskRow& r) { return !r.leaving() && r.focused_part().has_value(); }); };
         auto reveal = [&](TaskRow& r) { scroll.ensure_visible(r.target_y(), r.target_y() + r.target_height()); };
 
         widgets::OverlayStack overlays;
@@ -196,9 +187,7 @@ int main(int argc, char** argv) {
             add_button.cancel_interaction();
             header.cancel_interaction();
             scroll.cancel_interaction();
-            for (auto& r : rows) {
-                r->cancel_interaction();
-            }
+            rows.cancel_interaction();
         }};
         overlays.add_base(base);
 
@@ -330,17 +319,36 @@ int main(int argc, char** argv) {
             }
         };
         auto start_edit = [&](TaskRow& r, const std::optional<input::PointerEvent>& press) {
-            for (auto& other : rows) {
-                if (other.get() != &r && other->editing()) {
-                    commit(*other);
+            rows.for_each<TaskRow>([&](TaskRow& other) {
+                if (&other != &r && other.editing()) {
+                    commit(other);
                 }
-            }
+            });
             rebuild_focus();
             focus.clear_focus();
-            for (auto& other : rows) {
-                other->clear_focus();
-            }
+            rows.for_each<TaskRow>([](TaskRow& other) { other.clear_focus(); });
             r.begin_edit(press);
+        };
+        auto commit_unfocused = [&] {
+            rows.for_each<TaskRow>([&](TaskRow& r) {
+                if (r.editing() && !r.editor()->focused()) {
+                    commit(r);
+                }
+            });
+        };
+        on_row = [&](TaskRow& r, const RowAction& a) {
+            if (a.toggled) {
+                if (r.editing()) {
+                    commit(r);
+                }
+                list.toggle(r.id());
+            }
+            if (a.remove) {
+                remove(r);
+            }
+            if (a.edit) {
+                start_edit(r, a.edit);
+            }
         };
 
         auto save_if_changed = [&] {
@@ -388,9 +396,7 @@ int main(int argc, char** argv) {
                 title_bar.step(frame.dt_seconds);
             }
             const examples::todo::Column column = layout.column(frame.width_dp);
-            for (auto& r : rows) {
-                r->set_column(column);
-            }
+            rows.for_each<TaskRow>([&](TaskRow& r) { r.set_column(column); });
 
             for (const auto& e : frame.pointer) {
                 if (window.client_title_bar() && e.action == input::PointerAction::down && e.y_dp < bar_height) {
@@ -400,11 +406,11 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 if (e.action == input::PointerAction::down) {
-                    for (auto& r : rows) {
-                        if (!r->editing()) {
-                            r->set_focused(false);
+                    rows.for_each<TaskRow>([](TaskRow& r) {
+                        if (!r.editing()) {
+                            r.set_focused(false);
                         }
-                    }
+                    });
                 }
                 input.handle(e);
                 if (add_button.handle(e)) {
@@ -424,31 +430,9 @@ int main(int argc, char** argv) {
                     dialog.open_in(body);
                     overlays.push(dialog, on_dialog);
                 }
-                std::vector<TaskRow*> snapshot;
-                for (auto& r : rows) {
-                    snapshot.push_back(r.get());
-                }
-                for (TaskRow* r : snapshot) {
-                    const examples::todo::RowAction a = r->handle(c);
-                    if (a.toggled) {
-                        if (r->editing()) {
-                            commit(*r);
-                        }
-                        list.toggle(r->id());
-                    }
-                    if (a.remove) {
-                        remove(*r);
-                    }
-                    if (a.edit) {
-                        start_edit(*r, a.edit);
-                    }
-                }
+                rows.handle(c);
             }
-            for (auto& r : rows) {
-                if (r->editing() && !r->editor()->focused()) {
-                    commit(*r);
-                }
-            }
+            commit_unfocused();
             for (const auto& w : frame.wheel) {
                 if (!dialog.is_open()) {
                     scroll.handle(w);
@@ -463,12 +447,7 @@ int main(int argc, char** argv) {
                     undo();
                     continue;
                 }
-                TaskRow* editing = nullptr;
-                for (auto& r : rows) {
-                    if (r->editing() && r->editor()->focused()) {
-                        editing = r.get();
-                    }
-                }
+                TaskRow* editing = first_row([](const TaskRow& r) { return r.editing() && r.editor()->focused(); });
                 if (editing && k.key == Key::escape) {
                     editing->end_edit();
                     continue;
@@ -478,11 +457,7 @@ int main(int argc, char** argv) {
                     if (!focus.handle(k)) {
                         input.set_focused(true);
                     }
-                    for (auto& r : rows) {
-                        if (r->editing() && !r->editor()->focused()) {
-                            commit(*r);
-                        }
-                    }
+                    commit_unfocused();
                     if (TaskRow* f = focus_holder()) {
                         reveal(*f);
                     }
@@ -572,21 +547,19 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 input.handle(t);
-                for (auto& r : rows) {
-                    if (r->editing()) {
-                        r->editor()->handle(t);
+                rows.for_each<TaskRow>([&](TaskRow& r) {
+                    if (r.editing()) {
+                        r.editor()->handle(t);
                     }
-                }
+                });
             }
 
             save_if_changed();
             sync_rows();
-            for (auto& r : rows) {
-                r->set_column(column);
-            }
+            rows.for_each<TaskRow>([&](TaskRow& r) { r.set_column(column); });
 
-            const std::size_t editing_count =
-                static_cast<std::size_t>(std::count_if(rows.begin(), rows.end(), [](const auto& r) { return r->editing(); }));
+            std::size_t editing_count = 0;
+            rows.for_each<TaskRow>([&](const TaskRow& r) { editing_count += r.editing() ? 1 : 0; });
             const bool structural =
                 list.revision() != placed_revision || expanded != placed_expanded || editing_count != placed_editing;
             placed_revision = list.revision();
@@ -645,17 +618,17 @@ int main(int argc, char** argv) {
             }
             if (const auto e = scroll.rehover()) {
                 header.handle(*e);
-                for (auto& r : rows) {
-                    r->handle(*e);
-                }
+                rows.handle(*e);
             }
             first = false;
 
             const double dt = frame.dt_seconds;
-            for (auto& r : rows) {
-                r->step(dt);
-            }
-            std::erase_if(rows, [](const auto& r) { return r->gone(); });
+            rows.step(dt);
+            rows.for_each<TaskRow>([&](TaskRow& r) {
+                if (r.gone()) {
+                    rows.remove(r);
+                }
+            });
             rebuild_focus();
             header.step(dt);
             scroll.step(dt);
@@ -676,12 +649,12 @@ int main(int argc, char** argv) {
                 caret = input.caret_area();
                 wake_at(input.next_blink_seconds());
             }
-            for (auto& r : rows) {
-                if (r->editing() && r->editor()->focused()) {
-                    caret = scroll.to_window(r->editor()->caret_area());
-                    wake_at(r->editor()->next_blink_seconds());
+            rows.for_each<TaskRow>([&](const TaskRow& r) {
+                if (r.editing() && r.editor()->focused()) {
+                    caret = scroll.to_window(r.editor()->caret_area());
+                    wake_at(r.editor()->next_blink_seconds());
                 }
-            }
+            });
             wake_at(scroll.next_wake_seconds());
             wake_at(snackbar.next_wake_seconds());
             window.set_text_input(dialog.is_open() ? std::nullopt : caret);
@@ -697,21 +670,22 @@ int main(int argc, char** argv) {
 
             scroll.begin_content(canvas);
             header.paint(canvas, scheme);
-            for (const auto& r : rows) {
-                if (r->leaving()) {
-                    r->paint(canvas, scheme);
+            const widgets::WidgetSet& painted = rows;
+            painted.for_each<TaskRow>([&](const TaskRow& r) {
+                if (r.leaving()) {
+                    r.paint(canvas, scheme);
                 }
-            }
-            for (const auto& r : rows) {
-                if (!r->leaving() && !r->moving()) {
-                    r->paint(canvas, scheme);
+            });
+            painted.for_each<TaskRow>([&](const TaskRow& r) {
+                if (!r.leaving() && !r.moving()) {
+                    r.paint(canvas, scheme);
                 }
-            }
-            for (const auto& r : rows) {
-                if (!r->leaving() && r->moving()) {
-                    r->paint(canvas, scheme);
+            });
+            painted.for_each<TaskRow>([&](const TaskRow& r) {
+                if (!r.leaving() && r.moving()) {
+                    r.paint(canvas, scheme);
                 }
-            }
+            });
             scroll.end_content(canvas);
             scroll.paint(canvas, scheme);
 
@@ -735,19 +709,16 @@ int main(int argc, char** argv) {
             dialog.paint(canvas, scheme);
 
             bool animating = (window.client_title_bar() && title_bar.animating()) || header.animating() || scroll.animating() || input.animating() || add_button.animating() ||
-                             dialog.animating() || snackbar.animating() || !empty_presence.settled();
-            for (const auto& r : rows) {
-                animating = animating || r->animating();
-            }
+                             dialog.animating() || snackbar.animating() || !empty_presence.settled() || rows.animating();
             return animating;
         };
 
         sdl3::run_app(window, update, paint);
-        for (auto& r : rows) {
-            if (r->editing()) {
-                commit(*r);
+        rows.for_each<TaskRow>([&](TaskRow& r) {
+            if (r.editing()) {
+                commit(r);
             }
-        }
+        });
         save_if_changed();
         return 0;
     } catch (const std::exception& ex) {
