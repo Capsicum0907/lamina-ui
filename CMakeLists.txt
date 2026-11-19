@@ -51,7 +51,9 @@ add_library(lamina STATIC
     src/lamina/shapes/shapes.cpp
     src/lamina/shapes/to_path.cpp
     src/lamina/text/font.cpp
+    src/lamina/text/edit_buffer.cpp
     src/lamina/text/layout.cpp
+    src/lamina/text/line_map.cpp
     src/lamina/text/word_boundary.cpp
     src/lamina/layout/layout.cpp
     src/lamina/widgets/button.cpp
@@ -145,6 +147,7 @@ if(LAMINA_BUILD_TESTS)
         tests/color_mix_test.cpp
         tests/color_scheme_test.cpp
         tests/dialog_test.cpp
+        tests/edit_buffer_test.cpp
         tests/grouped_menu_test.cpp
         tests/icon_button_test.cpp
         tests/icon_test.cpp

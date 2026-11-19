@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -10,7 +8,9 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/text/edit_buffer.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/text/line_map.hpp"
 
 namespace lamina::widgets {
 
@@ -32,8 +32,8 @@ public:
 
     std::string text() const;
     void set_text(std::string_view utf8);
-    std::size_t cursor() const { return cursor_; }
-    std::size_t anchor() const { return anchor_; }
+    std::size_t cursor() const { return buffer_.cursor(); }
+    std::size_t anchor() const { return buffer_.anchor(); }
     void select(std::size_t anchor, std::size_t cursor);
     std::string selected_text() const;
     std::size_t line_count() const { return lines_.size(); }
@@ -54,6 +54,16 @@ private:
         bool upstream;
     };
 
+    class Geometry final : public text::CaretGeometry {
+    public:
+        explicit Geometry(const TextField& field) : field_(field) {}
+        double x_at(std::size_t line, std::size_t index) const override { return field_.x_in_line(line, index); }
+        std::size_t index_at(std::size_t line, double x) const override;
+
+    private:
+        const TextField& field_;
+    };
+
     void relayout();
     void reset_blink();
     void update_scroll();
@@ -62,24 +72,9 @@ private:
     double input_top() const;
     double content_height() const;
 
-    bool has_selection() const { return cursor_ != anchor_; }
-    std::size_t selection_start() const { return std::min(cursor_, anchor_); }
-    std::size_t selection_end() const { return std::max(cursor_, anchor_); }
-    void move_to(std::size_t index, bool extend, bool upstream = false);
-    void replace_selection(std::u32string_view inserted);
-    void erase(std::size_t first, std::size_t last);
     void copy_selection() const;
-    void select_word_at(std::size_t index);
-    std::u32string normalize(std::u32string_view input) const;
-
-    std::size_t shown_index(std::size_t index) const;
-    std::size_t caret_index() const;
-    std::size_t line_of(std::size_t shown, bool upstream) const;
-    std::size_t line_limit(std::size_t line) const;
-    bool wraps_at(std::size_t line, std::size_t shown) const;
     double x_in_line(std::size_t line, std::size_t shown) const;
     Hit hit(double x, double y) const;
-    Hit vertical(int direction);
 
     std::string label_text_;
     const text::FontStack& fonts_;
@@ -87,16 +82,9 @@ private:
     TextFieldOptions options_;
     render::Point origin_{0.0, 0.0};
 
-    std::u32string text_;
-    std::size_t cursor_ = 0;
-    std::size_t anchor_ = 0;
-    bool upstream_ = false;
-    std::optional<double> goal_x_;
-    std::u32string composition_;
-    std::size_t composition_cursor_ = 0;
-    std::size_t composition_first_ = 0;
-    std::u32string shown_;
+    text::EditBuffer buffer_;
     std::vector<text::TextLine> lines_;
+    text::LineMap line_map_;
     std::vector<double> line_tops_;
     double scroll_x_ = 0.0;
     bool dragging_ = false;

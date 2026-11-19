@@ -4,7 +4,6 @@
 #include <cmath>
 
 #include "lamina/color/mix.hpp"
-#include "lamina/text/word_boundary.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -19,9 +18,6 @@ using tokens::motion_scheme;
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
 }
-
-constexpr char32_t first_printable = U' ';
-constexpr char32_t delete_char = U'\x7f';
 
 enum class Shortcut { none, select_all, copy, cut, paste };
 
@@ -45,6 +41,7 @@ TextField::TextField(std::string label, const text::FontStack& fonts, double wid
       fonts_(fonts),
       width_(std::max(width, t.min_width)),
       options_(options),
+      buffer_(options.multiline),
       label_large_(text::layout_line(fonts, label_text_, style_of(t.label_type))),
       label_small_(text::layout_line(fonts, label_text_, style_of(t.minimized_label_type))),
       label_progress_(0.0, motion_scheme.fast_spatial()),
@@ -75,29 +72,21 @@ double TextField::input_top() const {
 }
 
 std::string TextField::text() const {
-    return text::encode_utf8(text_);
+    return text::encode_utf8(buffer_.text());
 }
 
 void TextField::set_text(std::string_view utf8) {
-    text_ = normalize(text::decode_utf8(utf8));
-    cursor_ = text_.size();
-    anchor_ = cursor_;
-    upstream_ = false;
-    goal_x_.reset();
-    composition_.clear();
+    buffer_.set_text(text::decode_utf8(utf8));
     relayout();
 }
 
 void TextField::select(std::size_t anchor, std::size_t cursor) {
-    anchor_ = std::min(anchor, text_.size());
-    cursor_ = std::min(cursor, text_.size());
-    upstream_ = false;
-    goal_x_.reset();
+    buffer_.select(anchor, cursor);
     relayout();
 }
 
 std::string TextField::selected_text() const {
-    return text::encode_utf8(std::u32string_view(text_).substr(selection_start(), selection_end() - selection_start()));
+    return text::encode_utf8(buffer_.selected());
 }
 
 void TextField::set_focused(bool focused) {
@@ -107,52 +96,33 @@ void TextField::set_focused(bool focused) {
     focused_ = focused;
     dragging_ = false;
     if (!focused_) {
-        composition_.clear();
+        buffer_.clear_composition();
         relayout();
     }
     reset_blink();
     focus_.animate_to(focused_ ? 1.0 : 0.0);
-    label_progress_.animate_to(focused_ || !text_.empty() ? 1.0 : 0.0);
-}
-
-std::u32string TextField::normalize(std::u32string_view input) const {
-    std::u32string out;
-    out.reserve(input.size());
-    for (std::size_t i = 0; i < input.size(); ++i) {
-        char32_t c = input[i];
-        if (c == U'\r') {
-            if (i + 1 < input.size() && input[i + 1] == U'\n') {
-                continue;
-            }
-            c = U'\n';
-        }
-        if (c == U'\n') {
-            out.push_back(options_.multiline ? U'\n' : U' ');
-        } else if (c == U'\t') {
-            out.push_back(U' ');
-        } else if (c >= first_printable && c != delete_char) {
-            out.push_back(c);
-        }
-    }
-    return out;
+    label_progress_.animate_to(focused_ || !buffer_.text().empty() ? 1.0 : 0.0);
 }
 
 void TextField::relayout() {
-    shown_ = text_.substr(0, cursor_) + composition_ + text_.substr(cursor_);
-    composition_first_ = cursor_;
     const text::TextStyle style = style_of(t.input_type);
-    const std::string utf8 = text::encode_utf8(shown_);
+    const std::u32string_view shown = buffer_.shown();
+    const std::string utf8 = text::encode_utf8(shown);
     if (options_.multiline) {
         lines_ = text::layout_paragraph(fonts_, utf8, style, inner_width()).lines;
     } else {
         lines_.assign(1, text::layout_line(fonts_, utf8, style));
     }
+    std::vector<text::LineSpan> spans;
+    spans.reserve(lines_.size());
     line_tops_.assign(1, 0.0);
     for (const text::TextLine& line : lines_) {
+        spans.push_back({line.first, line.last});
         line_tops_.push_back(line_tops_.back() + line.box_height());
     }
+    line_map_ = text::LineMap(shown, std::move(spans));
     update_scroll();
-    label_progress_.animate_to(focused_ || !text_.empty() || !composition_.empty() ? 1.0 : 0.0);
+    label_progress_.animate_to(focused_ || !buffer_.text().empty() || buffer_.composing() ? 1.0 : 0.0);
 }
 
 void TextField::update_scroll() {
@@ -160,8 +130,8 @@ void TextField::update_scroll() {
         scroll_x_ = 0.0;
         return;
     }
-    const std::size_t caret = caret_index();
-    const double x = x_in_line(line_of(caret, false), caret);
+    const std::size_t caret = buffer_.caret();
+    const double x = x_in_line(line_map_.line_of(caret, false), caret);
     const double visible = inner_width();
     if (x - scroll_x_ > visible) {
         scroll_x_ = x - visible;
@@ -176,45 +146,18 @@ void TextField::reset_blink() {
     blink_clock_ = 0.0;
 }
 
-std::size_t TextField::shown_index(std::size_t index) const {
-    return index < composition_first_ ? index : index + composition_.size();
-}
-
-std::size_t TextField::caret_index() const {
-    return composition_.empty() ? cursor_ : composition_first_ + composition_cursor_;
-}
-
-std::size_t TextField::line_limit(std::size_t line) const {
-    std::size_t end = line + 1 < lines_.size() ? lines_[line + 1].first : shown_.size();
-    if (end > lines_[line].last && shown_[end - 1] == U'\n') {
-        --end;
-    }
-    return end;
-}
-
-bool TextField::wraps_at(std::size_t line, std::size_t shown) const {
-    return line + 1 < lines_.size() && lines_[line + 1].first == shown && line_limit(line) == shown;
-}
-
-std::size_t TextField::line_of(std::size_t shown, bool upstream) const {
-    std::size_t k = 0;
-    while (k + 1 < lines_.size() && lines_[k + 1].first <= shown) {
-        ++k;
-    }
-    if (upstream && k > 0 && wraps_at(k - 1, shown)) {
-        --k;
-    }
-    return k;
-}
-
 double TextField::x_in_line(std::size_t line, std::size_t shown) const {
     const text::TextLine& l = lines_[line];
     if (shown <= l.last) {
         return text::caret_x(l, shown);
     }
-    const std::size_t end = std::min(shown, line_limit(line));
-    const std::u32string_view run = std::u32string_view(shown_).substr(l.first, end - l.first);
+    const std::size_t end = std::min(shown, line_map_.limit(line));
+    const std::u32string_view run = buffer_.shown().substr(l.first, end - l.first);
     return text::layout_line(fonts_, text::encode_utf8(run), l.style).width;
+}
+
+std::size_t TextField::Geometry::index_at(std::size_t line, double x) const {
+    return text::index_at(field_.lines_[line], x);
 }
 
 TextField::Hit TextField::hit(double x, double y) const {
@@ -224,59 +167,13 @@ TextField::Hit TextField::hit(double x, double y) const {
         ++k;
     }
     const std::size_t index = text::index_at(lines_[k], x - text_left() + scroll_x_);
-    return {index, wraps_at(k, index)};
-}
-
-TextField::Hit TextField::vertical(int direction) {
-    const std::size_t k = line_of(cursor_, upstream_);
-    if (!goal_x_) {
-        goal_x_ = x_in_line(k, cursor_);
-    }
-    if (direction < 0 && k == 0) {
-        return {0, false};
-    }
-    if (direction > 0 && k + 1 >= lines_.size()) {
-        return {text_.size(), false};
-    }
-    const std::size_t target = direction < 0 ? k - 1 : k + 1;
-    const std::size_t index = text::index_at(lines_[target], *goal_x_);
-    return {index, wraps_at(target, index)};
-}
-
-void TextField::move_to(std::size_t index, bool extend, bool upstream) {
-    cursor_ = std::min(index, text_.size());
-    if (!extend) {
-        anchor_ = cursor_;
-    }
-    upstream_ = upstream;
-}
-
-void TextField::replace_selection(std::u32string_view inserted) {
-    const std::size_t first = selection_start();
-    text_.replace(first, selection_end() - first, inserted);
-    move_to(first + inserted.size(), false);
-}
-
-void TextField::erase(std::size_t first, std::size_t last) {
-    text_.erase(first, last - first);
-    move_to(first, false);
+    return {index, line_map_.wraps_at(k, index)};
 }
 
 void TextField::copy_selection() const {
-    if (options_.clipboard && has_selection()) {
+    if (options_.clipboard && buffer_.has_selection()) {
         options_.clipboard->set_text(selected_text());
     }
-}
-
-void TextField::select_word_at(std::size_t index) {
-    if (text_.empty()) {
-        move_to(0, false);
-        return;
-    }
-    const text::TextRange word = text::word_at(text_, index);
-    anchor_ = word.first;
-    cursor_ = word.last;
-    upstream_ = false;
 }
 
 void TextField::handle(const input::PointerEvent& e) {
@@ -288,9 +185,9 @@ void TextField::handle(const input::PointerEvent& e) {
         return;
     }
     if (e.action == input::PointerAction::move) {
-        if (dragging_ && composition_.empty()) {
+        if (dragging_ && !buffer_.composing()) {
             const Hit h = hit(e.x_dp, e.y_dp);
-            move_to(h.index, true, h.upstream);
+            buffer_.move_to(h.index, true, h.upstream);
             relayout();
             reset_blink();
         }
@@ -304,79 +201,53 @@ void TextField::handle(const input::PointerEvent& e) {
         return;
     }
     set_focused(true);
-    if (composition_.empty()) {
+    if (!buffer_.composing()) {
         const Hit h = hit(e.x_dp, e.y_dp);
         if (e.clicks == 2) {
-            select_word_at(h.index);
+            buffer_.select_word_at(h.index);
         } else if (e.clicks >= 3) {
-            anchor_ = 0;
-            move_to(text_.size(), true);
+            buffer_.select_all();
         } else {
-            move_to(h.index, false, h.upstream);
+            buffer_.move_to(h.index, false, h.upstream);
         }
         dragging_ = e.clicks <= 1;
-        goal_x_.reset();
+        buffer_.reset_goal();
         relayout();
     }
     reset_blink();
 }
 
 bool TextField::handle(const input::KeyEvent& e) {
-    if (!focused_ || !composition_.empty()) {
+    if (!focused_ || buffer_.composing()) {
         return false;
     }
     bool submit = false;
     switch (e.key) {
     case input::Key::backspace:
-        if (has_selection()) {
-            replace_selection({});
-        } else if (cursor_ > 0) {
-            erase(e.ctrl ? text::previous_word(text_, cursor_) : cursor_ - 1, cursor_);
-        }
+        buffer_.backspace(e.ctrl);
         break;
     case input::Key::delete_forward:
-        if (has_selection()) {
-            replace_selection({});
-        } else if (cursor_ < text_.size()) {
-            erase(cursor_, e.ctrl ? text::next_word(text_, cursor_) : cursor_ + 1);
-        }
+        buffer_.delete_forward(e.ctrl);
         break;
     case input::Key::left:
-        if (has_selection() && !e.shift && !e.ctrl) {
-            move_to(selection_start(), false);
-        } else {
-            move_to(e.ctrl ? text::previous_word(text_, cursor_) : (cursor_ > 0 ? cursor_ - 1 : 0), e.shift);
-        }
+        buffer_.move_left(e.shift, e.ctrl);
         break;
     case input::Key::right:
-        if (has_selection() && !e.shift && !e.ctrl) {
-            move_to(selection_end(), false);
-        } else {
-            move_to(e.ctrl ? text::next_word(text_, cursor_) : cursor_ + 1, e.shift);
-        }
+        buffer_.move_right(e.shift, e.ctrl);
         break;
     case input::Key::up:
-    case input::Key::down: {
-        const Hit h = vertical(e.key == input::Key::up ? -1 : 1);
-        move_to(h.index, e.shift, h.upstream);
+    case input::Key::down:
+        buffer_.move_vertical(line_map_, Geometry(*this), e.key == input::Key::up ? -1 : 1, e.shift);
         break;
-    }
     case input::Key::home:
-        move_to(e.ctrl ? 0 : lines_[line_of(cursor_, upstream_)].first, e.shift);
+        buffer_.move_home(line_map_, e.shift, e.ctrl);
         break;
-    case input::Key::end: {
-        if (e.ctrl) {
-            move_to(text_.size(), e.shift);
-            break;
-        }
-        const std::size_t k = line_of(cursor_, upstream_);
-        const std::size_t limit = line_limit(k);
-        move_to(limit, e.shift, wraps_at(k, limit));
+    case input::Key::end:
+        buffer_.move_end(line_map_, e.shift, e.ctrl);
         break;
-    }
     case input::Key::enter:
         if (options_.multiline && !e.ctrl) {
-            replace_selection(U"\n");
+            buffer_.insert(U"\n");
         } else {
             submit = true;
         }
@@ -391,28 +262,27 @@ bool TextField::handle(const input::KeyEvent& e) {
         case Shortcut::none:
             return false;
         case Shortcut::select_all:
-            anchor_ = 0;
-            move_to(text_.size(), true);
+            buffer_.select_all();
             break;
         case Shortcut::copy:
             copy_selection();
             break;
         case Shortcut::cut:
             copy_selection();
-            if (has_selection()) {
-                replace_selection({});
+            if (buffer_.has_selection()) {
+                buffer_.erase_selection();
             }
             break;
         case Shortcut::paste:
             if (options_.clipboard) {
-                replace_selection(normalize(text::decode_utf8(options_.clipboard->text())));
+                buffer_.insert(text::decode_utf8(options_.clipboard->text()));
             }
             break;
         }
         break;
     }
     if (e.key != input::Key::up && e.key != input::Key::down) {
-        goal_x_.reset();
+        buffer_.reset_goal();
     }
     relayout();
     reset_blink();
@@ -424,17 +294,11 @@ void TextField::handle(const input::TextEvent& e) {
         return;
     }
     if (e.kind == input::TextEventKind::commit) {
-        composition_.clear();
-        replace_selection(normalize(text::decode_utf8(e.text)));
+        buffer_.commit(text::decode_utf8(e.text));
     } else {
-        std::u32string composing = text::decode_utf8(e.text);
-        if (!composing.empty() && has_selection()) {
-            replace_selection({});
-        }
-        composition_ = std::move(composing);
-        composition_cursor_ = std::clamp<std::size_t>(static_cast<std::size_t>(std::max(0, e.cursor)), 0, composition_.size());
+        buffer_.compose(text::decode_utf8(e.text), e.cursor);
     }
-    goal_x_.reset();
+    buffer_.reset_goal();
     relayout();
     reset_blink();
 }
@@ -458,8 +322,8 @@ double TextField::next_blink_seconds() const {
 }
 
 render::Rect TextField::caret_area() const {
-    const std::size_t caret = caret_index();
-    const std::size_t k = line_of(caret, composition_.empty() && upstream_);
+    const std::size_t caret = buffer_.caret();
+    const std::size_t k = line_map_.line_of(caret, !buffer_.composing() && buffer_.upstream());
     const double x = text_left() + x_in_line(k, caret) - scroll_x_;
     return {x, input_top() + line_tops_[k], t.caret_width, line_tops_[k + 1] - line_tops_[k]};
 }
@@ -498,13 +362,13 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme, 
     const double left = text_left() - scroll_x_;
     const double top = input_top();
 
-    if (focused_ && has_selection()) {
+    if (focused_ && buffer_.has_selection()) {
         const color::Argb selection = color::with_alpha(scheme[t.selection], t.selection_opacity);
-        const std::size_t first = shown_index(selection_start());
-        const std::size_t last = shown_index(selection_end());
+        const std::size_t first = buffer_.shown_index(buffer_.selection_start());
+        const std::size_t last = buffer_.shown_index(buffer_.selection_end());
         for (std::size_t k = 0; k < lines_.size(); ++k) {
             const std::size_t a = std::max(first, lines_[k].first);
-            const std::size_t b = std::min(last, line_limit(k));
+            const std::size_t b = std::min(last, line_map_.limit(k));
             if (a >= b) {
                 continue;
             }
@@ -519,9 +383,11 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme, 
         text::draw_line(canvas, fonts_, lines_[k], {left, top + line_tops_[k]}, scheme[t.input]);
     }
 
-    for (std::size_t k = 0; !composition_.empty() && k < lines_.size(); ++k) {
-        const std::size_t a = std::max(composition_first_, lines_[k].first);
-        const std::size_t b = std::min(composition_first_ + composition_.size(), line_limit(k));
+    const std::size_t composition_first = buffer_.composition_first();
+    const std::size_t composition_end = composition_first + buffer_.composition().size();
+    for (std::size_t k = 0; buffer_.composing() && k < lines_.size(); ++k) {
+        const std::size_t a = std::max(composition_first, lines_[k].first);
+        const std::size_t b = std::min(composition_end, line_map_.limit(k));
         if (a >= b) {
             continue;
         }
