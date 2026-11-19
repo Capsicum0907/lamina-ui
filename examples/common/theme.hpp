@@ -10,6 +10,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 
 namespace lamina::examples {
 
@@ -46,13 +47,19 @@ public:
 
     const ChipStyle& style() const { return style_; }
     std::vector<layout::NodePtr> nodes();
+    bool focused() const { return focus_.focused(); }
+    void set_focused(bool focused) { focus_.set_focused(focused); }
     std::optional<color::Argb> handle(const input::PointerEvent& e);
+    std::optional<color::Argb> handle(const input::KeyEvent& e);
+    void step(double dt_seconds) { focus_.step(dt_seconds); }
+    bool animating() const { return !focus_.settled(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
     ChipStyle style_;
     std::array<render::Rect, theme_seeds.size()> rects_{};
     std::size_t selected_ = 0;
+    widgets::FocusIndicator focus_;
 };
 
 }

@@ -300,6 +300,7 @@ int main(int argc, char** argv) {
                 item->join(focus);
             }
         }
+        focus.add(chips);
         focus.add(dark_toggle);
 
         color::ColorScheme scheme = theme.current();
@@ -356,6 +357,10 @@ int main(int argc, char** argv) {
                     options.dark = dark_toggle.checked();
                     retheme_pending = true;
                 }
+                if (const auto seed = chips.handle(k)) {
+                    options.seed = *seed;
+                    retheme_pending = true;
+                }
                 for (auto& row : rows) {
                     for (auto& item : row.items) {
                         if (item->handle(k) && item->on_click) {
@@ -385,11 +390,12 @@ int main(int argc, char** argv) {
                                layout.symbol_size, scheme[layout.caption]);
             }
             theme_caption.paint(canvas, scheme);
+            chips.step(frame.dt_seconds);
             chips.paint(canvas, scheme);
             theme.step(frame.dt_seconds);
             controls.step(frame.dt_seconds);
             controls.paint(canvas, scheme);
-            return !theme.settled() || controls.animating();
+            return !theme.settled() || controls.animating() || chips.animating();
         };
 
         sdl3::run_app(window, update, paint);
