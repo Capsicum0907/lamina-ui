@@ -11,12 +11,14 @@
 #include "calculator/engine.hpp"
 #include "calculator/keypad_layout.hpp"
 #include "common/canvas.hpp"
+#include "common/options.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/title_bar.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
@@ -54,6 +56,7 @@ constexpr std::size_t key_count = 32;
 
 struct Config {
     sdl3::WindowOptions window{"lamina-ui calculator", 400, 780};
+    const char* bar_title = "Calculator";
     color::SchemeOptions scheme{.seed = color::default_scheme_options.seed, .dark = true, .variant = color::Variant::tonal_spot, .contrast = 0.0};
     color::Role background = color::Role::surface;
     examples::calculator::LayoutSettings layout;
@@ -183,6 +186,7 @@ struct KeyView {
 int main(int argc, char** argv) {
     try {
         const Config config;
+        const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = sdl3::bundled_icon_font();
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
@@ -224,11 +228,45 @@ int main(int argc, char** argv) {
         };
         refresh();
 
+        sdl3::WindowOptions window_options = config.window;
+        window_options.height_dp = examples::window_height_dp(config.window.height_dp, want_title_bar);
+        window_options.client_title_bar = want_title_bar;
+        sdl3::Window window(window_options, examples::window_canvas());
+        widgets::TitleBar title_bar({config.bar_title, icon_font, nullptr, config.background}, fonts);
+        const double bar_height = window.client_title_bar() ? title_bar.height() : 0.0;
+
         bool first = true;
         examples::calculator::Arrangement arrangement{};
         bool scientific = false;
         auto update = [&](const sdl3::Frame& frame) {
-            const examples::calculator::KeypadFrame placed = layout.place(frame.width_dp, frame.height_dp, placements);
+            if (window.client_title_bar()) {
+                title_bar.set_maximized(frame.maximized);
+                title_bar.set_active(frame.active);
+                title_bar.set_width(frame.width_dp);
+                title_bar.set_origin({0.0, 0.0});
+                window.set_caption_regions(title_bar.regions());
+                for (const auto& e : frame.pointer) {
+                    switch (title_bar.handle(e)) {
+                    case widgets::TitleBarAction::minimize:
+                        window.minimize();
+                        break;
+                    case widgets::TitleBarAction::toggle_maximize:
+                        window.toggle_maximize();
+                        break;
+                    case widgets::TitleBarAction::close:
+                        window.close();
+                        break;
+                    case widgets::TitleBarAction::none:
+                        break;
+                    }
+                }
+                title_bar.step(frame.dt_seconds);
+            }
+            examples::calculator::KeypadFrame placed = layout.place(frame.width_dp, frame.height_dp - bar_height, placements);
+            placed.display.y += bar_height;
+            for (examples::calculator::Box& b : placed.keys) {
+                b.y += bar_height;
+            }
             const bool switched = !first && (placed.arrangement != arrangement || placed.scientific != scientific);
             arrangement = placed.arrangement;
             scientific = placed.scientific;
@@ -309,6 +347,10 @@ int main(int argc, char** argv) {
         auto paint = [&](render::Canvas& canvas, const sdl3::Frame&) {
             display.paint(canvas, scheme);
             bool animating = display.animating() || !display_box.settled();
+            if (window.client_title_bar()) {
+                title_bar.paint(canvas, scheme);
+                animating = animating || title_bar.animating();
+            }
             for (const KeyView& k : keys) {
                 const double opacity = k.opacity.value();
                 if (opacity > 0.0) {
@@ -319,7 +361,7 @@ int main(int argc, char** argv) {
             return animating;
         };
 
-        sdl3::run_app(config.window, examples::window_canvas(), update, paint);
+        sdl3::run_app(window, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());
