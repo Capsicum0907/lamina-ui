@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
                 l->paint(canvas, scheme);
             }
             name.step(frame.dt_seconds);
-            name.paint(canvas, scheme, scheme[style.card]);
+            name.paint(canvas, scheme);
             animating = name.animating();
             if (name.focused()) {
                 window.wake_after(name.next_blink_seconds());

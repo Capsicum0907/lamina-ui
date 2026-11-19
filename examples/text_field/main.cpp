@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
             animating = false;
             for (auto& f : fields) {
                 f->step(frame.dt_seconds);
-                f->paint(canvas, scheme, background);
+                f->paint(canvas, scheme);
                 animating = animating || f->animating();
                 if (f->focused()) {
                     window.wake_after(f->next_blink_seconds());

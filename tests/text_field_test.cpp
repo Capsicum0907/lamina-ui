@@ -282,7 +282,7 @@ TEST_CASE("a single-line field scrolls to keep the caret visible and clips its t
     const color::Argb background = scheme[color::Role::surface];
     thorvg::Canvas canvas(600, 80);
     canvas.clear(background);
-    f.paint(canvas, scheme, background);
+    f.paint(canvas, scheme);
     const int row = static_cast<int>(f.caret_area().y + f.caret_area().height / 2.0);
     bool inside_drawn = false;
     for (int x = 20; x < static_cast<int>(r.width) - 20; ++x) {
@@ -363,4 +363,22 @@ TEST_CASE("a narrower multi-line field wraps into more lines") {
     const std::size_t wide = f.line_count();
     f.set_width(tokens::outlined_text_field.min_width);
     CHECK(f.line_count() > wide);
+}
+
+TEST_CASE("the floating label leaves a gap in the outline without painting over it") {
+    widgets::TextField f = field();
+    f.set_origin({10.0, 20.0});
+    f.set_text("filled");
+    settle(f);
+    const color::Argb clear = 0xff102030;
+    thorvg::Canvas canvas(400, 100);
+    canvas.clear(clear);
+    f.paint(canvas, scheme());
+    const auto& t = tokens::outlined_text_field;
+    const int row = 20;
+    const int gap_left = static_cast<int>(10.0 + t.padding - t.label_gap_padding);
+    CHECK(canvas.pixel(gap_left + 1, row) == clear);
+    CHECK(canvas.pixel(gap_left - 4, row) != clear);
+    CHECK(canvas.pixel(300, row) != clear);
+    CHECK(canvas.pixel(300, row + 2) == clear);
 }

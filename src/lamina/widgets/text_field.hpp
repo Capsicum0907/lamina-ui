@@ -51,7 +51,7 @@ public:
     bool animating() const;
     double next_blink_seconds() const;
     render::Rect caret_area() const;
-    void paint(render::Canvas& canvas, const color::ColorScheme& scheme, color::Argb background) const;
+    void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
     struct Hit {

@@ -19,6 +19,46 @@ text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
 }
 
+void append_segments(render::Path& out, const render::Path& contour) {
+    const std::vector<render::PathVerb>& verbs = contour.verbs();
+    const std::vector<render::Point>& points = contour.points();
+    std::size_t i = 1;
+    for (std::size_t v = 1; v < verbs.size(); ++v) {
+        switch (verbs[v]) {
+        case render::PathVerb::line:
+            out.line_to(points[i++]);
+            break;
+        case render::PathVerb::cubic:
+            out.cubic_to(points[i], points[i + 1], points[i + 2]);
+            i += 3;
+            break;
+        case render::PathVerb::move:
+        case render::PathVerb::close:
+            break;
+        }
+    }
+}
+
+render::Path notched_ring_path(const render::Rect& r, double radius, double width, double gap_left, double gap_right) {
+    const double straight = std::max(radius, width);
+    const double a = std::max(gap_left, r.x + straight);
+    const double b = std::min(gap_right, r.x + r.width - straight);
+    if (a >= b) {
+        return ring_path(r, radius, width);
+    }
+    const render::Rect inner{r.x + width, r.y + width, r.width - 2 * width, r.height - 2 * width};
+    const render::Affine mirror{-1.0, 0.0, 0.0, 1.0, 2 * inner.x + inner.width, 0.0};
+    render::Path p;
+    p.move_to({b, r.y});
+    append_segments(p, render::rounded_rect_path(r, render::uniform_radii(radius)));
+    p.line_to({a, r.y});
+    p.line_to({a, inner.y});
+    append_segments(p, render::rounded_rect_path(inner, render::uniform_radii(std::max(0.0, radius - width))).transformed(mirror));
+    p.line_to({b, inner.y});
+    p.close();
+    return p;
+}
+
 enum class Shortcut { none, select_all, copy, cut, paste };
 
 Shortcut shortcut(const input::KeyEvent& e) {
@@ -335,7 +375,7 @@ render::Rect TextField::caret_area() const {
     return {x, input_top() + line_tops_[k], t.caret_width, line_tops_[k + 1] - line_tops_[k]};
 }
 
-void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme, color::Argb background) const {
+void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect r = bounds();
     const double radius = tokens::corner_radius(t.corner, r.width, r.height);
     const double f = focus_.value();
@@ -343,15 +383,15 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme, 
     const color::Argb idle_outline = color::mix(scheme[t.outline], scheme[t.hover_outline], hover_.value());
     const color::Argb outline = color::mix(idle_outline, scheme[t.focus_outline], f);
 
-    canvas.fill_path(ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
-
     const double p = std::clamp(label_progress_.value(), 0.0, 1.0);
     const double small_scale = label_small_.style.size / label_large_.style.size;
     const double scale = 1.0 + (small_scale - 1.0) * p;
     if (p > 0.0) {
-        const double gap = (label_large_.width * scale + 2 * t.label_gap_padding) ;
-        canvas.fill_rounded_rect({text_left() - t.label_gap_padding, r.y - t.focus_outline_width, gap, 2 * t.focus_outline_width},
-                                 render::uniform_radii(0.0), background);
+        const double gap_left = text_left() - t.label_gap_padding;
+        const double gap_right = gap_left + label_large_.width * scale + 2 * t.label_gap_padding;
+        canvas.fill_path(notched_ring_path(r, radius, outline_width, gap_left, gap_right), outline, render::FillRule::even_odd);
+    } else {
+        canvas.fill_path(ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
     }
 
     const double rest_top = r.y + (t.height - label_large_.box_height()) / 2.0;
