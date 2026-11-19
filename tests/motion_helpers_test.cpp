@@ -2,6 +2,7 @@
 
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/tokens/motion.hpp"
 
 using namespace lamina;
 

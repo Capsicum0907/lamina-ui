@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
             theme.snap_to(0.0);
             theme.animate_to(1.0);
         };
-        const auto caption_style = text::text_style(tokens::type_style(layout.caption_type));
+        const auto caption_style = tokens::text_style(tokens::type_style(layout.caption_type));
 
         const std::pair<ButtonStyle, const char*> styles[] = {
             {ButtonStyle::filled, "Filled"},     {ButtonStyle::tonal, "Tonal"}, {ButtonStyle::outlined, "Outlined"},

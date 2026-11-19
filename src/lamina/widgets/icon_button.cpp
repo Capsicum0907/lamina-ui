@@ -10,9 +10,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr tokens::SpringSpec shape_spring =
+constexpr motion::SpringSpec shape_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 }

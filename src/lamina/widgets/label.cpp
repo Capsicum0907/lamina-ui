@@ -5,7 +5,7 @@
 namespace lamina::widgets {
 
 Label::Label(std::string text, tokens::TypeRole type, color::Role color, const text::FontStack& fonts, bool wrap)
-    : text_(std::move(text)), style_(text::text_style(tokens::type_style(type))), color_(color), fonts_(fonts), wrap_(wrap) {}
+    : text_(std::move(text)), style_(tokens::text_style(tokens::type_style(type))), color_(color), fonts_(fonts), wrap_(wrap) {}
 
 void Label::set_text(std::string text) {
     text_ = std::move(text);

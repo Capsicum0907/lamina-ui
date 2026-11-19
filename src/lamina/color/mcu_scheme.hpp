@@ -2,8 +2,11 @@
 
 #include <memory>
 
-#include "cpp/dynamiccolor/dynamic_scheme.h"
 #include "lamina/color/scheme.hpp"
+
+namespace material_color_utilities {
+struct DynamicScheme;
+}
 
 namespace lamina::color::detail {
 

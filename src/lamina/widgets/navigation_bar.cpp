@@ -11,11 +11,11 @@ namespace {
 
 constexpr const tokens::NavigationBarTokens& t = tokens::navigation_bar_tokens;
 
-constexpr tokens::SpringSpec indicator_spring =
+constexpr motion::SpringSpec indicator_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec color_spring =
+constexpr motion::SpringSpec color_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 double label_height(const text::TextLine& line) {
@@ -35,7 +35,7 @@ icons::IconStyle mix_style(const icons::IconStyle& a, const icons::IconStyle& b,
 
 NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)), fonts_(fonts) {
-    const auto style = text::text_style(tokens::type_style(t.label));
+    const auto style = tokens::text_style(tokens::type_style(t.label));
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         std::optional<text::TextLine> label;
         if (!options_.items[i].label.empty()) {

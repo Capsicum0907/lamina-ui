@@ -14,16 +14,16 @@ namespace {
 
 const auto& t = tokens::outlined_text_field;
 
-tokens::SpringSpec label_spring() {
+motion::SpringSpec label_spring() {
     return tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
 }
 
-tokens::SpringSpec effects_spring() {
+motion::SpringSpec effects_spring() {
     return tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return text::text_style(tokens::type_style(role));
+    return tokens::text_style(tokens::type_style(role));
 }
 
 bool inside(const render::Rect& r, double x, double y) {

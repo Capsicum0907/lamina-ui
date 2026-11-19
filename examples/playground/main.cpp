@@ -74,9 +74,9 @@ int main(int argc, char** argv) {
     try {
         const Layout layout;
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const auto header_style = text::text_style(tokens::type_style(layout.header_type));
-        const auto title_style = text::text_style(tokens::type_style(layout.title_type));
-        const auto body_style = text::text_style(tokens::type_style(layout.body_type));
+        const auto header_style = tokens::text_style(tokens::type_style(layout.header_type));
+        const auto title_style = tokens::text_style(tokens::type_style(layout.title_type));
+        const auto body_style = tokens::text_style(tokens::type_style(layout.body_type));
         const auto header_line = text::layout_line(fonts, header_text, header_style);
         double body_width = -1.0;
         text::TextBlock body_block;

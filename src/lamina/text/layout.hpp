@@ -4,23 +4,12 @@
 #include <string_view>
 #include <vector>
 
-#include "lamina/color/scheme.hpp"
+#include "lamina/color/argb.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/font.hpp"
-#include "lamina/tokens/typography.hpp"
+#include "lamina/text/style.hpp"
 
 namespace lamina::text {
-
-struct TextStyle {
-    double size;
-    double line_height;
-    int weight;
-    double tracking;
-};
-
-constexpr TextStyle text_style(const tokens::TypeStyle& t) {
-    return {t.size_sp, t.line_height_sp, t.weight, t.tracking_sp};
-}
 
 struct PositionedGlyph {
     std::size_t font;

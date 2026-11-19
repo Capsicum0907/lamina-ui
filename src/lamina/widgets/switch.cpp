@@ -12,11 +12,11 @@ namespace {
 
 constexpr const tokens::SwitchTokens& t = tokens::switch_tokens;
 
-constexpr tokens::SpringSpec thumb_spring =
+constexpr motion::SpringSpec thumb_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec color_spring =
+constexpr motion::SpringSpec color_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 constexpr double travel = t.track_width - t.track_height;

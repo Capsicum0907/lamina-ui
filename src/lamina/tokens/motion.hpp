@@ -3,22 +3,19 @@
 #include <array>
 #include <cstddef>
 
-namespace lamina::tokens {
+#include "lamina/motion/spring.hpp"
 
-struct SpringSpec {
-    double damping_ratio;
-    double stiffness;
-};
+namespace lamina::tokens {
 
 enum class SpringSpeed : std::size_t { fast, standard, slow };
 
 enum class SpringKind { spatial, effects };
 
 struct MotionScheme {
-    std::array<SpringSpec, 3> spatial;
-    std::array<SpringSpec, 3> effects;
+    std::array<motion::SpringSpec, 3> spatial;
+    std::array<motion::SpringSpec, 3> effects;
 
-    constexpr SpringSpec spring(SpringKind kind, SpringSpeed speed) const {
+    constexpr motion::SpringSpec spring(SpringKind kind, SpringSpeed speed) const {
         const auto& table = kind == SpringKind::spatial ? spatial : effects;
         return table[static_cast<std::size_t>(speed)];
     }

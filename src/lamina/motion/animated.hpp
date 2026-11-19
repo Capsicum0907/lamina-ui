@@ -6,14 +6,14 @@ namespace lamina::motion {
 
 class Animated {
 public:
-    Animated(double value, tokens::SpringSpec spec) : state_{value, 0.0}, target_(value), spec_(spec) {}
+    Animated(double value, motion::SpringSpec spec) : state_{value, 0.0}, target_(value), spec_(spec) {}
 
     void animate_to(double target) { target_ = target; }
     void snap_to(double value) {
         state_ = {value, 0.0};
         target_ = value;
     }
-    void set_spec(tokens::SpringSpec spec) { spec_ = spec; }
+    void set_spec(motion::SpringSpec spec) { spec_ = spec; }
 
     void step(double dt_seconds) {
         if (settled()) {
@@ -32,7 +32,7 @@ public:
 private:
     SpringState state_;
     double target_;
-    tokens::SpringSpec spec_;
+    motion::SpringSpec spec_;
 };
 
 }

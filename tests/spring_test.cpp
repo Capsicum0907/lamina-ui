@@ -1,12 +1,15 @@
 #include <doctest/doctest.h>
 
+#include <algorithm>
 #include <cmath>
+#include <initializer_list>
 
 #include "lamina/motion/spring.hpp"
+#include "lamina/tokens/motion.hpp"
 
 using namespace lamina;
+using motion::SpringSpec;
 using motion::SpringState;
-using tokens::SpringSpec;
 
 namespace {
 

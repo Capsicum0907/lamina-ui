@@ -4,7 +4,7 @@
 
 namespace lamina::motion {
 
-SpringState advance(const tokens::SpringSpec& spec, SpringState state, double target, double t) {
+SpringState advance(const SpringSpec& spec, SpringState state, double target, double t) {
     const double y0 = state.value - target;
     const double v0 = state.velocity;
     const double zeta = spec.damping_ratio;

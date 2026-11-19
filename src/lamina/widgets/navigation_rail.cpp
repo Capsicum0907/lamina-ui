@@ -12,11 +12,11 @@ namespace {
 
 constexpr const tokens::NavigationRailTokens& t = tokens::navigation_rail_tokens;
 
-constexpr tokens::SpringSpec spatial_spring =
+constexpr motion::SpringSpec spatial_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec color_spring =
+constexpr motion::SpringSpec color_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 double lerp(double a, double b, double k) {
@@ -42,8 +42,8 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
       item_space_(options_.expanded ? t.expanded_item_space : t.collapsed_item_space, spatial_spring),
       item_min_height_(options_.expanded ? t.expanded_item_min_height : t.collapsed_item_min_height, spatial_spring),
       max_width_(t.expanded_max_width) {
-    const auto top_style = text::text_style(tokens::type_style(t.top_label));
-    const auto start_style = text::text_style(tokens::type_style(t.start_label));
+    const auto top_style = tokens::text_style(tokens::type_style(t.top_label));
+    const auto start_style = tokens::text_style(tokens::type_style(t.start_label));
     const double mode = options_.expanded ? 1.0 : 0.0;
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         const double on = i == options_.selected ? 1.0 : 0.0;

@@ -2,11 +2,10 @@
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
+
+#include "lamina/color/argb.hpp"
 
 namespace lamina::color {
-
-using Argb = std::uint32_t;
 
 enum class Role : std::size_t {
     background,

@@ -12,12 +12,12 @@ namespace lamina::widgets {
 
 namespace {
 
-const tokens::SpringSpec& shape_spring() {
+const motion::SpringSpec& shape_spring() {
     static const auto spec = tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
     return spec;
 }
 
-const tokens::SpringSpec& state_spring() {
+const motion::SpringSpec& state_spring() {
     static const auto spec = tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
     return spec;
 }
@@ -28,7 +28,7 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
       label_(text::layout_line(fonts, options_.label,
-                               text::text_style(tokens::type_style(tokens::button_size(options_.size).label)))),
+                               tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)))),
       width_(0.0),
       corner_(0.0, shape_spring()),
       state_layer_(0.0, state_spring()),

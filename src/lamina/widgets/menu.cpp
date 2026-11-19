@@ -14,11 +14,11 @@ namespace {
 
 constexpr const tokens::MenuTokens& t = tokens::menu_tokens;
 
-constexpr tokens::SpringSpec scale_spring =
+constexpr motion::SpringSpec scale_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec alpha_spring =
+constexpr motion::SpringSpec alpha_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 template <std::size_t N>
@@ -85,7 +85,7 @@ render::Point menu_transform_origin(const render::Rect& anchor, const render::Re
 
 Menu::Menu(MenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), scale_(t.closed_scale, scale_spring), alpha_(0.0, alpha_spring) {
-    const auto style = text::text_style(tokens::type_style(t.label));
+    const auto style = tokens::text_style(tokens::type_style(t.label));
     double content = 0.0;
     for (auto& item : options.items) {
         std::optional<text::TextLine> label;

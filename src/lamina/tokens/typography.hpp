@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 
+#include "lamina/text/style.hpp"
+
 namespace lamina::tokens {
 
 enum class TypeRole : std::size_t {
@@ -72,6 +74,10 @@ constexpr TypeStyle type_style(TypeRole role, bool emphasized = false) {
         style.weight = emphasized_weight[i];
     }
     return style;
+}
+
+constexpr text::TextStyle text_style(const TypeStyle& t) {
+    return {t.size_sp, t.line_height_sp, t.weight, t.tracking_sp};
 }
 
 }

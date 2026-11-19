@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "lamina/color/scheme.hpp"
+#include "lamina/color/argb.hpp"
 #include "lamina/render/geometry.hpp"
 #include "lamina/render/path.hpp"
 

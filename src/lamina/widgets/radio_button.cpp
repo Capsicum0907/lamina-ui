@@ -9,11 +9,11 @@ namespace {
 
 constexpr const tokens::RadioButtonTokens& t = tokens::radio_button_tokens;
 
-constexpr tokens::SpringSpec dot_spring =
+constexpr motion::SpringSpec dot_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec color_spring =
+constexpr motion::SpringSpec color_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 double target_dot(bool selected) {

@@ -14,13 +14,13 @@ namespace {
 
 constexpr const tokens::CheckboxTokens& t = tokens::checkbox_tokens;
 
-constexpr tokens::SpringSpec check_spring =
+constexpr motion::SpringSpec check_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec box_in_spring =
+constexpr motion::SpringSpec box_in_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec box_out_spring =
+constexpr motion::SpringSpec box_out_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 struct Vec {

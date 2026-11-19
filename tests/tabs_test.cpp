@@ -103,7 +103,7 @@ TEST_CASE("clicking a tab selects it and the indicator slides there with a sprin
 
 TEST_CASE("the primary indicator matches the label width, at least 24 dp, centered on the tab") {
     auto row = make(TabStyle::primary);
-    const auto label = text::layout_line(fonts(), "Two", text::text_style(tokens::type_style(tokens::TypeRole::title_small)));
+    const auto label = text::layout_line(fonts(), "Two", tokens::text_style(tokens::type_style(tokens::TypeRole::title_small)));
     row.select(1);
     settle(row);
     const render::Rect r = row.indicator_rect();

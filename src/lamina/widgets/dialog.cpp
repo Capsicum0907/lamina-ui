@@ -15,9 +15,9 @@ namespace {
 
 constexpr const tokens::DialogTokens& t = tokens::dialog_tokens;
 
-constexpr tokens::SpringSpec scale_spring =
+constexpr motion::SpringSpec scale_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec alpha_spring =
+constexpr motion::SpringSpec alpha_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
 
 ButtonOptions action(std::string label) {

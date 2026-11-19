@@ -14,15 +14,15 @@ namespace {
 
 constexpr const tokens::GroupedMenuTokens& t = tokens::grouped_menu_tokens;
 
-constexpr tokens::SpringSpec scale_spring =
+constexpr motion::SpringSpec scale_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec alpha_spring =
+constexpr motion::SpringSpec alpha_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec morph_spring =
+constexpr motion::SpringSpec morph_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec color_spring =
+constexpr motion::SpringSpec color_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 render::CornerRadii radii_of(const tokens::Corners& c, double w, double h) {
@@ -97,8 +97,8 @@ tokens::Corners menu_item_corners(std::size_t index, std::size_t count) {
 
 GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), scale_(t.closed_scale, scale_spring), alpha_(0.0, alpha_spring) {
-    const auto item_style = text::text_style(tokens::type_style(t.label));
-    const auto group_label_style = text::text_style(tokens::type_style(t.group_label));
+    const auto item_style = tokens::text_style(tokens::type_style(t.label));
+    const auto group_label_style = tokens::text_style(tokens::type_style(t.group_label));
     double content = 0.0;
     double y = 0.0;
     for (std::size_t g = 0; g < options.groups.size(); ++g) {

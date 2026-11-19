@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
         std::size_t seed_index = 0;
         bool retheme_pending = false;
 
-        const auto caption_style = text::text_style(tokens::type_style(layout.caption_type));
+        const auto caption_style = tokens::text_style(tokens::type_style(layout.caption_type));
         widgets::Label status("\u2014", layout.caption_type, layout.caption, fonts, false);
         auto report = [&](std::string s) { status.set_text(std::move(s)); };
 

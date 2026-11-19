@@ -42,7 +42,7 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 - `lamina/layout/layout.hpp`：Compose と同じ考え方の行と列。部品は、まず制約の中で大きさを測り、次に置かれます。行と列には、間隔・余白・並ぶ向きの寄せ方（始め・中央・終わり・均等割り）・交わる向きの寄せ方（始め・中央・終わり・引き伸ばし）と、余った幅を比で分ける重みがあります。`layout::flow` は子を一行に並べ、次の子が収まらなければ新しい行に移ります。並べ始めは始めの側で、`FlowDirection::end_to_start` なら終わりの側です。引き伸ばしの行は、`fill_cross` で全部の高さを求めない限り、いちばん高い子の高さになります。`lamina/widgets/nodes.hpp` は、ボタン・アイコンボタン・FAB・スイッチ・チェックボックス・ラジオボタン・入力欄・`Label`（`widgets/label.hpp`、折り返す文字）を配置の部品に変えます。`build/Release/layout_demo.exe` は、窓の大きさを変えるとその場で組み直します。
 - `lamina/motion/animated.hpp`・`lamina/color/mix.hpp`：ばねで動く値と、色の混ぜ合わせ。
 
-ライブラリは CMake のターゲット三つに分かれていて、`src/` の下にターゲットごとのフォルダーがあります。ターゲットの名前はそのまま名前空間の名前です。`src/lamina/` は本体（`lamina::lamina`：トークン・色・描画面の口・文字・図形・レイアウト・入力のイベント・部品）で、SDL3 も ThorVG も使いません。`src/lamina_thorvg/` は ThorVG で描く描画面（`lamina::thorvg`）、`src/lamina_sdl3/` は窓・素材の探索・OS のフォント（`lamina::sdl3`）です。部品はポインター・キー・文字の入力とクリップボードを `lamina/input/`（`lamina::input`）の形で受け取り、それを作るのは SDL3 の窓です。
+ライブラリは CMake のターゲット三つに分かれていて、`src/` の下にターゲットごとのフォルダーがあります。ターゲットの名前はそのまま名前空間の名前です。`src/lamina/` は本体（`lamina::lamina`：トークン・色・描画面の口・文字・図形・レイアウト・入力のイベント・部品）で、SDL3 も ThorVG も使いません。`src/lamina_thorvg/` は ThorVG で描く描画面（`lamina::thorvg`）、`src/lamina_sdl3/` は窓・素材の探索・OS のフォント（`lamina::sdl3`）です。部品はポインター・キー・文字の入力とクリップボードを `lamina/input/`（`lamina::input`）の形で受け取り、それを作るのは SDL3 の窓です。本体の中では、`tokens/` が値を入れる先のモジュール（`motion::SpringSpec`・`text::TextStyle`・`color::Role`）に依存し、`motion/`・`text/`・`color/` は `tokens/` に依存しません。
 
 色の仕様は `ColorSpec` という口の向こうに置いているので、配色を使う側のコードは仕様によって変わりません。二つの仕様は HCT を共有し、配色の種類ごとに作る色の系列と、役割ごとに明度を選ぶ規則が違います。`examples/buttons` には二つを切り替えるスイッチがあります。
 

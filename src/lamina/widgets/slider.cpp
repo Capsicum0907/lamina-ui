@@ -12,7 +12,7 @@ namespace {
 
 constexpr const tokens::SliderTokens& t = tokens::slider_tokens;
 
-constexpr tokens::SpringSpec handle_spring =
+constexpr motion::SpringSpec handle_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
 
 render::Path track_path(const render::Rect& r, double start_radius, double end_radius) {

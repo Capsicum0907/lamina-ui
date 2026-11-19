@@ -11,13 +11,13 @@ namespace {
 
 constexpr const tokens::TabTokens& t = tokens::tab_tokens;
 
-constexpr tokens::SpringSpec indicator_spring =
+constexpr motion::SpringSpec indicator_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec fade_in_spring =
+constexpr motion::SpringSpec fade_in_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr tokens::SpringSpec fade_out_spring =
+constexpr motion::SpringSpec fade_out_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr tokens::SpringSpec state_spring =
+constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
 double line_box(const text::TextLine& line) {
@@ -28,7 +28,7 @@ double line_box(const text::TextLine& line) {
 
 TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
     : options_(std::move(options)), fonts_(fonts), indicator_offset_(0.0, indicator_spring), indicator_width_(0.0, indicator_spring) {
-    const auto style = text::text_style(tokens::type_style(t.label));
+    const auto style = tokens::text_style(tokens::type_style(t.label));
     bool stacked = false;
     for (std::size_t i = 0; i < options_.tabs.size(); ++i) {
         const TabItem& item = options_.tabs[i];
