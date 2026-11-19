@@ -17,6 +17,10 @@ struct TitleBarTokens {
     double indicator_width;
     double indicator_height;
     double icon_size;
+    double glyph_box;
+    double glyph_stroke;
+    double glyph_corner;
+    double restore_offset;
     CornerSize indicator_corner;
     CornerSize pressed_corner;
     TypeRole title;
@@ -27,9 +31,6 @@ struct TitleBarTokens {
     color::Role state_layer;
     color::Role close_container;
     color::Role close_icon;
-    icons::Symbol minimize_symbol;
-    icons::Symbol maximize_symbol;
-    icons::Symbol restore_symbol;
     icons::Symbol close_symbol;
 };
 
@@ -43,6 +44,10 @@ inline constexpr TitleBarTokens title_bar_tokens{
     .indicator_width = 40.0,
     .indicator_height = 32.0,
     .icon_size = 20.0,
+    .glyph_box = 8.0,
+    .glyph_stroke = 1.5,
+    .glyph_corner = 1.5,
+    .restore_offset = 2.0,
     .indicator_corner = CornerSize::full,
     .pressed_corner = CornerSize::small,
     .title = TypeRole::title_small,
@@ -53,9 +58,6 @@ inline constexpr TitleBarTokens title_bar_tokens{
     .state_layer = color::Role::on_surface,
     .close_container = color::Role::error,
     .close_icon = color::Role::on_error,
-    .minimize_symbol = icons::Symbol::remove,
-    .maximize_symbol = icons::Symbol::crop_square,
-    .restore_symbol = icons::Symbol::filter_none,
     .close_symbol = icons::Symbol::close,
 };
 

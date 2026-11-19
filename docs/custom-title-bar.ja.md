@@ -19,7 +19,7 @@ todo --title-bar
 ## 層の分け方
 
 - `lamina/input/caption.hpp`（中核。描画の土台に依存しません）：`CaptionRegions` は、帯のつかんで動かせる範囲、三つのボタンの矩形、帯の中に置いたアプリの部品の矩形を dp で持ちます。`hit_test` は点がどれに当たるかを返します。ボタンとアプリの部品は、つかむ範囲より優先します。
-- `lamina/widgets/title_bar.hpp`：`TitleBar` は、題名、差し込む部品（任意）、最小化・最大化（元に戻す）・閉じるのボタンを並べ、配色から描き、`regions(interactive)` で範囲を返します。`handle` は `TitleBarAction` を返し、どう動くかはアプリが決めます。大きさ・色・記号は `lamina/tokens/title_bar.hpp` にあります。
+- `lamina/widgets/title_bar.hpp`：`TitleBar` は、題名、差し込む部品（任意）、最小化・最大化（元に戻す）・閉じるのボタンを並べ、配色から描き、`regions(interactive)` で範囲を返します。`handle` は `TitleBarAction` を返し、どう動くかはアプリが決めます。大きさ・色・記号は `lamina/tokens/title_bar.hpp` にあります。閉じるボタンは Material Symbols の `close` を `icon_size` の大きさで描きます。最小化・最大化・元に戻すは、一辺 `glyph_box` の正方形の中に太さ `glyph_stroke` の線で描く図形で、描かれた部分の大きさを閉じるボタンの印にそろえています（半分以上塗られた画素で 8 × 8 dp）。Material Symbols のこれらの記号は、枠の中で占める割合がそれぞれ違い、大きく見えていました。
 - `lamina_sdl3`：`WindowOptions::client_title_bar` で自前のタイトルバーを頼みます。`Window::client_title_bar()` は有効かどうかを返し、`set_caption_regions` は毎フレーム範囲を受け取り、`minimize`・`toggle_maximize`・`close` が操作を行います。`Frame` には `maximized` と `active` を足しました。
 - Win32 のコードはすべて `lamina_sdl3/caption_frame_win32.cpp` にあります。ほかの環境では `caption_frame_none.cpp` が「使えない」と答え、ウィンドウは OS の枠のままです。
 

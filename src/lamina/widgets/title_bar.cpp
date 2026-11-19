@@ -1,6 +1,7 @@
 #include "lamina/widgets/title_bar.hpp"
 
 #include <algorithm>
+#include <array>
 #include <utility>
 
 #include "lamina/color/mix.hpp"
@@ -142,13 +143,39 @@ void TitleBar::paint_button(render::Canvas& canvas, const color::ColorScheme& sc
     if (color::alpha(fill) != 0) {
         canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(b.corner.value())), fill);
     }
-    icons::Symbol symbol = title_bar_tokens.close_symbol;
-    if (b.action == TitleBarAction::minimize) {
-        symbol = title_bar_tokens.minimize_symbol;
-    } else if (b.action == TitleBarAction::toggle_maximize) {
-        symbol = maximized_ ? title_bar_tokens.restore_symbol : title_bar_tokens.maximize_symbol;
+    paint_glyph(canvas, indicator, b.action, content);
+}
+
+void TitleBar::paint_glyph(render::Canvas& canvas, const render::Rect& indicator, TitleBarAction action, color::Argb color) const {
+    const auto& t = title_bar_tokens;
+    if (action == TitleBarAction::close) {
+        icons::draw_centered(canvas, {options_.icons, t.close_symbol}, indicator, t.icon_size, color);
+        return;
     }
-    icons::draw_centered(canvas, {options_.icons, symbol}, indicator, title_bar_tokens.icon_size, content);
+    const double box = t.glyph_box;
+    const double half = t.glyph_stroke / 2.0;
+    const render::Rect g{indicator.x + (indicator.width - box) / 2.0, indicator.y + (indicator.height - box) / 2.0, box, box};
+    auto outline = [&](const render::Rect& r) {
+        canvas.fill_path(render::ring_path(r, t.glyph_corner, t.glyph_stroke), color, render::FillRule::even_odd);
+    };
+    if (action == TitleBarAction::minimize) {
+        const double y = g.y + box / 2.0;
+        const std::array line{render::Point{g.x + half, y}, render::Point{g.x + box - half, y}};
+        canvas.fill_path(render::stroke_path(line, t.glyph_stroke), color);
+    } else if (!maximized_) {
+        outline(g);
+    } else {
+        const double offset = t.restore_offset;
+        const double inner = box - offset;
+        outline({g.x, g.y + offset, inner, inner});
+        const render::Rect back{g.x + offset, g.y, inner, inner};
+        canvas.push_clip({g.x, g.y, box, offset});
+        outline(back);
+        canvas.pop_clip();
+        canvas.push_clip({g.x + inner, g.y + offset, offset, inner - offset});
+        outline(back);
+        canvas.pop_clip();
+    }
 }
 
 void TitleBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {

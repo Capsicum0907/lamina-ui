@@ -61,6 +61,7 @@ private:
     };
 
     void retarget(Button& button);
+    void paint_glyph(render::Canvas& canvas, const render::Rect& indicator, TitleBarAction action, color::Argb color) const;
     void paint_button(render::Canvas& canvas, const color::ColorScheme& scheme, const Button& button) const;
 
     TitleBarOptions options_;
