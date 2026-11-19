@@ -53,9 +53,10 @@ enum class Symbol : char32_t {
     menu_open = 0xe9bd,
     view_list = 0xe8ef,
     grid_view = 0xe9b0,
+    backspace = 0xe14a,
 };
 
-inline constexpr std::array<Symbol, 47> all_symbols{
+inline constexpr std::array<Symbol, 48> all_symbols{
     Symbol::add,
     Symbol::remove,
     Symbol::close,
@@ -103,6 +104,7 @@ inline constexpr std::array<Symbol, 47> all_symbols{
     Symbol::menu_open,
     Symbol::view_list,
     Symbol::grid_view,
+    Symbol::backspace,
 };
 
 inline constexpr const char* symbols_font_file = "MaterialSymbolsRounded-subset.ttf";
