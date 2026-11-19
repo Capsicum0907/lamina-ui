@@ -39,12 +39,36 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_KP_ENTER: return Key::enter;
     case SDLK_ESCAPE: return Key::escape;
     case SDLK_TAB: return Key::tab;
+    case SDLK_KP_0: return Key::digit_0;
+    case SDLK_KP_1: return Key::digit_1;
+    case SDLK_KP_2: return Key::digit_2;
+    case SDLK_KP_3: return Key::digit_3;
+    case SDLK_KP_4: return Key::digit_4;
+    case SDLK_KP_5: return Key::digit_5;
+    case SDLK_KP_6: return Key::digit_6;
+    case SDLK_KP_7: return Key::digit_7;
+    case SDLK_KP_8: return Key::digit_8;
+    case SDLK_KP_9: return Key::digit_9;
+    case SDLK_KP_PLUS: return Key::plus;
+    case SDLK_KP_MINUS: return Key::minus;
+    case SDLK_KP_MULTIPLY: return Key::asterisk;
+    case SDLK_KP_DIVIDE: return Key::slash;
+    case SDLK_KP_PERIOD: return Key::period;
+    case SDLK_KP_PERCENT: return Key::percent;
+    case SDLK_KP_EQUALS: return Key::equals;
     default: break;
     }
     if (k >= SDLK_A && k <= SDLK_Z) {
         return static_cast<Key>(static_cast<SDL_Keycode>(Key::a) + (k - SDLK_A));
     }
     return std::nullopt;
+}
+
+std::optional<Key> key_of(const SDL_KeyboardEvent& e) {
+    if (const auto key = to_key(e.key)) {
+        return key;
+    }
+    return input::key_for_character(static_cast<char32_t>(SDL_GetKeyFromScancode(e.scancode, e.mod & SDL_KMOD_SHIFT, false)));
 }
 
 bool ctrl_held(SDL_Keymod mod) {
@@ -191,7 +215,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
             }
             break;
         case SDL_EVENT_KEY_DOWN:
-            if (const auto key = to_key(e.key.key)) {
+            if (const auto key = key_of(e.key)) {
                 frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod)});
             }
             break;

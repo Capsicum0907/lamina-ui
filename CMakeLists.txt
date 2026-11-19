@@ -163,6 +163,7 @@ if(LAMINA_BUILD_TESTS)
         tests/grouped_menu_test.cpp
         tests/icon_button_test.cpp
         tests/icon_test.cpp
+        tests/input_test.cpp
         tests/interaction_test.cpp
         tests/layout_test.cpp
         tests/lerp_test.cpp
