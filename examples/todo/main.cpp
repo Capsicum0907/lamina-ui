@@ -51,6 +51,7 @@ struct Config {
     std::string organization = "lamina-ui";
     std::string application = "todo";
     std::string file_name = "todo.txt";
+    std::string data_dir_option = "--data-dir";
     examples::todo::LayoutSettings layout;
     examples::todo::RowStyle row;
     examples::todo::HeaderStyle header;
@@ -96,7 +97,13 @@ int main(int argc, char** argv) {
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = sdl3::bundled_icon_font();
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
-        const std::filesystem::path file = sdl3::preference_directory(config.organization, config.application) / config.file_name;
+        const std::optional<std::string> data_dir = examples::take_option(argc, argv, config.data_dir_option);
+        if (data_dir) {
+            std::filesystem::create_directories(*data_dir);
+        }
+        const std::filesystem::path directory =
+            data_dir ? std::filesystem::path(*data_dir) : sdl3::preference_directory(config.organization, config.application);
+        const std::filesystem::path file = directory / config.file_name;
 
         examples::todo::LoadReport load_report;
         const std::optional<std::string> saved = examples::todo::read_file(file);
