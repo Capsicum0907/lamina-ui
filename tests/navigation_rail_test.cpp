@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <optional>
 
 #include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/nodes.hpp"
@@ -139,6 +140,19 @@ TEST_CASE("expanding the rail springs its width to 220 dp and moves the labels b
     settle(rail);
     CHECK(rail.width() == doctest::Approx(96.0));
     CHECK(rail.item_rect(0).height == doctest::Approx(64.0));
+}
+
+TEST_CASE("a copied rail keeps its layout after the original is gone") {
+    std::optional<widgets::NavigationRail> original(make());
+    original->set_expanded(true);
+    settle(*original);
+    const render::Rect label = original->label_rect(1);
+    const render::Rect item = original->item_rect(2);
+    widgets::NavigationRail copy = *original;
+    original.reset();
+    CHECK(copy.label_rect(1).width == label.width);
+    CHECK(copy.label_rect(1).y == label.y);
+    CHECK(copy.item_rect(2).y == item.y);
 }
 
 TEST_CASE("the rail is a layout node whose width follows its animation") {

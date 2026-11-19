@@ -78,14 +78,15 @@ private:
         double indicator_width;
         render::Point icon;
         render::Point label;
-        const text::TextLine* line;
+        bool start_label;
         double label_opacity;
     };
 
     Geometry geometry(std::size_t index, double item_max_width) const;
-    double item_top(std::size_t index) const;
+    const text::TextLine& label_line(std::size_t index) const;
     double header_offset() const;
     void update_width();
+    void update_layout();
 
     NavigationRailOptions options_;
     text::FontStack fonts_;
@@ -99,6 +100,8 @@ private:
     double current_width_ = 0.0;
     double max_expanded_width_ = 0.0;
     double item_max_width_ = 0.0;
+    std::vector<Geometry> layout_;
+    std::vector<double> item_tops_;
     layout::Size header_size_{0.0, 0.0};
     double height_ = 0.0;
     render::Point origin_{0.0, 0.0};

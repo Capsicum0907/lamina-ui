@@ -44,7 +44,8 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
     const bool top = !options_.expanded;
     const double p = std::max(0.0, item.position.value());
     const double pd = std::clamp(p, 0.0, 1.0);
-    const text::TextLine& line = p < t.label_switch_progress ? item.top_label : item.start_label;
+    const bool start_label = p >= t.label_switch_progress;
+    const text::TextLine& line = start_label ? item.start_label : item.top_label;
     const double lw = line.width;
     const double lh = line.style.line_height;
     const double icon = t.icon_size;
@@ -86,7 +87,7 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
         ripple_w * std::max(0.0, item.indicator.value()),
         {start + pad_h, icon_y},
         {start + (first_half ? label_x_top : label_x_start * p), first_half ? label_y_top : label_y_start},
-        &line,
+        start_label,
         std::min(1.0, fade * fade),
     };
 }
@@ -98,12 +99,19 @@ double NavigationRail::header_offset() const {
     return header_size_.height + t.header_space;
 }
 
-double NavigationRail::item_top(std::size_t index) const {
+const text::TextLine& NavigationRail::label_line(std::size_t index) const {
+    return layout_[index].start_label ? items_[index].start_label : items_[index].top_label;
+}
+
+void NavigationRail::update_layout() {
+    layout_.clear();
+    item_tops_.clear();
     double y = t.top_space + header_offset();
-    for (std::size_t i = 0; i < index; ++i) {
-        y += geometry(i, item_max_width_).height + item_space_.value();
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        layout_.push_back(geometry(i, item_max_width_));
+        item_tops_.push_back(y);
+        y += layout_.back().height + item_space_.value();
     }
-    return y;
 }
 
 void NavigationRail::update_width() {
@@ -132,6 +140,7 @@ void NavigationRail::update_width() {
     }
     current_width_ = width;
     width_ = width;
+    update_layout();
 }
 
 layout::Size NavigationRail::measure(const layout::Constraints& c) {
@@ -170,36 +179,37 @@ void NavigationRail::select(std::size_t index) {
 }
 
 render::Rect NavigationRail::item_rect(std::size_t index) const {
-    const Geometry g = geometry(index, item_max_width_);
-    return {origin_.x, origin_.y + item_top(index), g.width, g.height};
+    const Geometry& g = layout_[index];
+    return {origin_.x, origin_.y + item_tops_[index], g.width, g.height};
 }
 
 render::Rect NavigationRail::indicator_rect(std::size_t index) const {
     const render::Rect r = item_rect(index);
-    const Geometry g = geometry(index, item_max_width_);
+    const Geometry& g = layout_[index];
     return {r.x + g.content_x + t.item_horizontal_padding, r.y + g.content_y, g.indicator_width, g.ripple_height};
 }
 
 render::Rect NavigationRail::state_layer_rect(std::size_t index) const {
     const render::Rect r = item_rect(index);
-    const Geometry g = geometry(index, item_max_width_);
+    const Geometry& g = layout_[index];
     return {r.x + g.content_x + t.item_horizontal_padding, r.y + g.content_y, g.ripple_width, g.ripple_height};
 }
 
 render::Rect NavigationRail::icon_rect(std::size_t index) const {
     const render::Rect r = item_rect(index);
-    const Geometry g = geometry(index, item_max_width_);
+    const Geometry& g = layout_[index];
     return {r.x + g.content_x + g.icon.x, r.y + g.content_y + g.icon.y, t.icon_size, t.icon_size};
 }
 
 render::Rect NavigationRail::label_rect(std::size_t index) const {
     const render::Rect r = item_rect(index);
-    const Geometry g = geometry(index, item_max_width_);
-    return {r.x + g.content_x + g.label.x, r.y + g.content_y + g.label.y, g.line->width, g.line->style.line_height};
+    const Geometry& g = layout_[index];
+    const text::TextLine& line = label_line(index);
+    return {r.x + g.content_x + g.label.x, r.y + g.content_y + g.label.y, line.width, line.style.line_height};
 }
 
 double NavigationRail::label_opacity(std::size_t index) const {
-    return geometry(index, item_max_width_).label_opacity;
+    return layout_[index].label_opacity;
 }
 
 bool NavigationRail::handle(const input::PointerEvent& e) {
@@ -240,7 +250,7 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const NavigationItem& spec = options_.items[i];
-        const Geometry g = geometry(i, item_max_width_);
+        const Geometry& g = layout_[i];
         const render::Rect indicator = indicator_rect(i);
         const double progress = std::clamp(item.indicator.value(), 0.0, 1.0);
         if (progress > 0.0 && indicator.width > 0.0) {
@@ -262,8 +272,9 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
             const double mode = std::clamp(item.label_mode.value(), 0.0, 1.0);
             const color::Argb active = color::mix(scheme[t.top_active_label], scheme[t.start_active_label], mode);
             const color::Argb c = color::mix(scheme[t.inactive_label], active, k);
-            const double y = label.y + (label.height - g.line->box_height()) / 2.0;
-            text::draw_line(canvas, fonts_, *g.line, {label.x, y},
+            const text::TextLine& line = label_line(i);
+            const double y = label.y + (label.height - line.box_height()) / 2.0;
+            text::draw_line(canvas, fonts_, line, {label.x, y},
                             color::scale_alpha(c, g.label_opacity));
         }
     }
