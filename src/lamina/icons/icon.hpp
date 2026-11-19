@@ -47,4 +47,9 @@ struct Icon {
     Symbol symbol;
 };
 
+void draw_centered(render::Canvas& canvas, const Icon& icon, const render::Rect& rect, double size, color::Argb color,
+                   const IconStyle& style = {});
+void draw_centered(render::Canvas& canvas, const Icon& icon, render::Point center, double size, color::Argb color,
+                   const IconStyle& style = {});
+
 }

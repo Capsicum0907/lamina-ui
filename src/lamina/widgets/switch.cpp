@@ -113,8 +113,7 @@ void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     }
     if (const auto& icon = current_icon()) {
         const color::Argb icon_color = color::mix(scheme[t.unchecked.icon], scheme[t.checked.icon], p);
-        icon->font.draw(canvas, icon->symbol, {center.x - t.icon_size / 2.0, center.y - t.icon_size / 2.0}, t.icon_size,
-                        icon_color);
+        icons::draw_centered(canvas, *icon, center, t.icon_size, icon_color);
     }
 }
 

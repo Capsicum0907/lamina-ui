@@ -31,8 +31,6 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
-    double target_elevation() const;
-
     FabOptions options_;
     render::Point origin_{0.0, 0.0};
     PressState press_;

@@ -37,6 +37,17 @@ Ink ink(render::Canvas& canvas, color::Argb background) {
     return out;
 }
 
+bool same_pixels(render::Canvas& a, render::Canvas& b) {
+    for (int y = 0; y < a.height(); ++y) {
+        for (int x = 0; x < a.width(); ++x) {
+            if (a.pixel(x, y) != b.pixel(x, y)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 }
 
 TEST_CASE("every symbol of the table is in the subset font") {
@@ -111,4 +122,21 @@ TEST_CASE("mixing icon styles interpolates the axes and switches the optical siz
     CHECK(quarter.grade == 50.0);
     CHECK(quarter.optical_size == 24.0);
     CHECK(icons::mix(a, b, 0.5).optical_size == 48.0);
+}
+
+TEST_CASE("draw_centered puts the icon box in the middle of a rect or around a point") {
+    const icons::Icon icon{icon_font(), Symbol::settings};
+    thorvg::Canvas expected(64, 64);
+    expected.clear(0xffffffff);
+    icon_font().draw(expected, Symbol::settings, {16.0, 12.0}, 32.0, 0xff000000);
+
+    thorvg::Canvas in_rect(64, 64);
+    in_rect.clear(0xffffffff);
+    icons::draw_centered(in_rect, icon, render::Rect{8.0, 4.0, 48.0, 48.0}, 32.0, 0xff000000);
+    CHECK(same_pixels(expected, in_rect));
+
+    thorvg::Canvas at_point(64, 64);
+    at_point.clear(0xffffffff);
+    icons::draw_centered(at_point, icon, render::Point{32.0, 28.0}, 32.0, 0xff000000);
+    CHECK(same_pixels(expected, at_point));
 }

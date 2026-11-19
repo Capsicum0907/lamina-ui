@@ -72,17 +72,11 @@ double Button::target_state_layer() const {
     return press_.state_layer_opacity();
 }
 
-double Button::target_elevation() const {
-    const auto& style = tokens::button_style(options_.style);
-    const std::size_t level = press_.pressed ? style.pressed_elevation : press_.hovered ? style.hovered_elevation : style.elevation;
-    return tokens::elevation_dp[level];
-}
-
 bool Button::handle(const input::PointerEvent& e) {
     const bool clicked = press_.update(e, bounds());
     corner_.animate_to(press_.pressed ? pressed_corner() : rest_corner());
     state_layer_.animate_to(target_state_layer());
-    elevation_.animate_to(target_elevation());
+    elevation_.animate_to(state_elevation(tokens::button_style(options_.style), press_));
     return clicked;
 }
 

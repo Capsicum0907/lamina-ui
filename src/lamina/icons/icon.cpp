@@ -48,4 +48,15 @@ void IconFont::draw(render::Canvas& canvas, Symbol symbol, render::Point top_lef
     canvas.fill_path(path(symbol, top_left, size, style), color);
 }
 
+void draw_centered(render::Canvas& canvas, const Icon& icon, const render::Rect& rect, double size, color::Argb color,
+                   const IconStyle& style) {
+    icon.font.draw(canvas, icon.symbol, {rect.x + (rect.width - size) / 2.0, rect.y + (rect.height - size) / 2.0}, size, color,
+                   style);
+}
+
+void draw_centered(render::Canvas& canvas, const Icon& icon, render::Point center, double size, color::Argb color,
+                   const IconStyle& style) {
+    icon.font.draw(canvas, icon.symbol, {center.x - size / 2.0, center.y - size / 2.0}, size, color, style);
+}
+
 }

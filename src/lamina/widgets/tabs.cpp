@@ -174,7 +174,7 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
         return;
     }
     if (tab.icon) {
-        tab.icon->font.draw(canvas, tab.icon->symbol, {cx - t.icon_size / 2.0, cy - t.icon_size / 2.0}, t.icon_size, content);
+        icons::draw_centered(canvas, *tab.icon, render::Point{cx, cy}, t.icon_size, content);
     }
     if (tab.label) {
         text::draw_line(canvas, fonts_, *tab.label, {cx - tab.label->width / 2.0, cy - tab.label->box_height() / 2.0}, content);

@@ -139,10 +139,8 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
                              color::with_alpha(scheme[t.state_layer], item.state_layer.value()));
         }
         const double k = item.color.value();
-        const render::Point icon_at{full.x + (full.width - t.icon_size) / 2.0, full.y + (full.height - t.icon_size) / 2.0};
-        spec.icon.font.draw(canvas, spec.icon.symbol, icon_at, t.icon_size,
-                            color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k),
-                            icons::mix(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
+        icons::draw_centered(canvas, spec.icon, full, t.icon_size, color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k),
+                             icons::mix(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
         if (item.label) {
             const double x = full.x + (full.width - item.label->width) / 2.0;
             text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space},

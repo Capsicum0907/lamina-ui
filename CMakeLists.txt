@@ -159,6 +159,7 @@ if(LAMINA_BUILD_TESTS)
         tests/slider_test.cpp
         tests/spring_test.cpp
         tests/support.cpp
+        tests/surface_test.cpp
         tests/switch_test.cpp
         tests/tabs_test.cpp
         tests/text_field_test.cpp

@@ -41,7 +41,6 @@ private:
     double rest_corner() const;
     double pressed_corner() const;
     double target_state_layer() const;
-    double target_elevation() const;
 
     ButtonOptions options_;
     const text::FontStack& fonts_;
