@@ -73,6 +73,7 @@ enum class Key {
     paren_right,
     caret,
     exclamation,
+    space,
 };
 
 constexpr std::optional<Key> key_for_character(char32_t c) {

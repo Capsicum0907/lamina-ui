@@ -402,6 +402,17 @@ C の `tokens/DialogTokens.kt`（surface-container-high・extra-large の角・H
 - 見出しが複数行に折り返すとき、lamina-ui は最も長い行の幅の塊として中央に置きます。Compose の折り返す文字は与えられた最大の幅を取るはずなので、アイコンがあっても各行は始めの側から並ぶと思われます（未確認）。一行の見出しは同じです。
 - Compose は現れるときと消えるときの動きを OS の窓に任せています。lamina-ui は独自に、面を 0.8 倍から標準の空間のばねで大きくし、面と幕を標準の効果のばねで現します。
 
+### 円形の進み具合の表示
+
+C `tokens/CircularProgressIndicatorTokens.kt`（40 dp、波のある形は 48 dp、表示と下地の太さは 4 dp、間は 4 dp、波の振幅は 1.6 dp、波長は 15 dp）、C `tokens/ProgressIndicatorTokens.kt`（表示は primary、下地は secondary-container）、C `WavyProgressIndicator.kt` と `internal/CircularWavyProgressModifiers.kt` を読み、`lamina/tokens/progress_indicator.hpp` に入れました。
+
+- 表示は上から始まり、時計回りに伸びます。下地は表示の終わりから上まで続き、両端で表示との間に、すき間と両側の丸い端の分をあけます。進み具合が 0 のときはすき間が閉じ、下地は一周の円になります。`CircularProgressDrawingCache.updateDrawPaths` と同じです。
+- `WavyProgressIndicatorDefaults.indicatorAmplitude` は、進み具合が 10 % から 95 % の間で波を最大にし、その外では波をなくします。波は 1 秒に 1 波長進みます（`waveSpeed = wavelength`）。
+- Compose は、円を内側の半径 0.75 の星形へ変形させ、正規化して大きさに合わせることで波を描きます。そのため波の深さは直径の決まった割合になり、直径とともに大きくなります（lamina-ui では Compose の形を描いて比べてはいません）。lamina-ui は代わりに、円周に沿った長さの正弦で波を描き、振幅と波長を dp で持ちます。どの大きさでも同じに見え、波長が円周を割り切らなくてもかまいません（波があるときは両端が出会わないので、大きさを変えても波は跳びません）。
+- Compose は振幅を 500 ms の補間（増えるときは standard、減るときは emphasized-accelerate）で変えます。lamina-ui は遅い効果のばねで動かし、波を止めた部品（`set_wavy(false)`）は波を平らにするので、一時停止したタイマーは動きを止めます。
+- Compose の線は端が丸く、長さ 0 の区間は何も描きません。lamina-ui は太さより短い弧を長さに合わせて細くするので、伸び始める表示や縮み切る下地が、点ごと急に現れたり消えたりしません。
+- `sample_length`（1 dp）は lamina-ui 独自の値です。弧は輪郭として塗る（`render::stroke_path`）ので、弧に沿って 1 dp ごとに点を取ります。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。

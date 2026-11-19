@@ -1,6 +1,8 @@
 #include "lamina/render/path.hpp"
 
 #include <algorithm>
+#include <cstddef>
+#include <vector>
 
 namespace lamina::render {
 
@@ -85,6 +87,52 @@ Path ring_path(const Rect& r, double radius, double width) {
 
 Path circle_path(Point center, double radius) {
     return rounded_rect_path(circle_rect(center, radius), uniform_radii(radius));
+}
+
+namespace {
+
+Point tangent_at(std::span<const Point> c, std::size_t i) {
+    const std::size_t a = i == 0 ? 0 : i - 1;
+    const std::size_t b = i + 1 == c.size() ? i : i + 1;
+    return unit(c[b] - c[a]);
+}
+
+void round_cap(Path& p, Point center, Point normal, Point forward, double h) {
+    const double k = quarter_circle_handle * h;
+    const Point tip = center + forward * h;
+    const Point end = center - normal * h;
+    p.cubic_to(center + normal * h + forward * k, tip + normal * k, tip);
+    p.cubic_to(tip - normal * k, end + forward * k, end);
+}
+
+}
+
+Path stroke_path(std::span<const Point> c, double width) {
+    Path p;
+    const double h = width / 2.0;
+    if (c.empty() || h <= 0.0) {
+        return p;
+    }
+    if (c.size() == 1) {
+        return circle_path(c[0], h);
+    }
+    std::vector<Point> normals;
+    normals.reserve(c.size());
+    for (std::size_t i = 0; i < c.size(); ++i) {
+        normals.push_back(left_normal(tangent_at(c, i)));
+    }
+    p.move_to(c[0] + normals[0] * h);
+    for (std::size_t i = 1; i < c.size(); ++i) {
+        p.line_to(c[i] + normals[i] * h);
+    }
+    const std::size_t last = c.size() - 1;
+    round_cap(p, c[last], normals[last], tangent_at(c, last), h);
+    for (std::size_t i = last; i-- > 0;) {
+        p.line_to(c[i] - normals[i] * h);
+    }
+    round_cap(p, c[0], -normals[0], -tangent_at(c, 0), h);
+    p.close();
+    return p;
 }
 
 }

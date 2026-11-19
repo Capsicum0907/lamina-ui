@@ -66,6 +66,7 @@ add_library(lamina STATIC
     src/lamina/widgets/navigation_bar.cpp
     src/lamina/widgets/navigation_rail.cpp
     src/lamina/widgets/overlay_stack.cpp
+    src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/slider.cpp
     src/lamina/widgets/surface.cpp
@@ -123,6 +124,10 @@ if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
     target_include_directories(calculator_engine PUBLIC examples)
     target_compile_features(calculator_engine PUBLIC cxx_std_20)
     lamina_warnings(calculator_engine)
+    add_library(timer_engine STATIC examples/timer/engine.cpp examples/timer/layout.cpp)
+    target_include_directories(timer_engine PUBLIC examples)
+    target_compile_features(timer_engine PUBLIC cxx_std_20)
+    lamina_warnings(timer_engine)
 endif()
 
 function(lamina_add_example name dir)
@@ -153,6 +158,9 @@ if(LAMINA_BUILD_EXAMPLES)
     lamina_add_example(calculator calculator)
     target_sources(calculator PRIVATE examples/calculator/display.cpp)
     target_link_libraries(calculator PRIVATE calculator_engine)
+    lamina_add_example(timer timer)
+    target_sources(timer PRIVATE examples/timer/readout.cpp)
+    target_link_libraries(timer PRIVATE timer_engine)
 endif()
 
 if(LAMINA_BUILD_TOOLS)
@@ -194,6 +202,7 @@ if(LAMINA_BUILD_TESTS)
         tests/navigation_rail_test.cpp
         tests/overlay_stack_test.cpp
         tests/popup_transition_test.cpp
+        tests/progress_indicator_test.cpp
         tests/protocol_test.cpp
         tests/radio_button_test.cpp
         tests/shapes_test.cpp
@@ -206,11 +215,13 @@ if(LAMINA_BUILD_TESTS)
         tests/text_field_test.cpp
         tests/title_bar_test.cpp
         tests/text_test.cpp
+        tests/timer_engine_test.cpp
+        tests/timer_layout_test.cpp
         tests/tokens_test.cpp
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
     )
-    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg calculator_engine mcu::mcu doctest::doctest)
+    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg calculator_engine timer_engine mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
     target_compile_definitions(lamina_tests PRIVATE LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts")
     target_compile_definitions(lamina_tests PRIVATE LAMINA_ICONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/icons")
