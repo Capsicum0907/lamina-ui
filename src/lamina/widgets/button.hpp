@@ -15,7 +15,7 @@
 namespace lamina::widgets {
 
 struct ButtonColors {
-    color::Role container;
+    std::optional<color::Role> container;
     color::Role content;
 };
 

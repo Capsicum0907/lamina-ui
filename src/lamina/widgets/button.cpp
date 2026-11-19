@@ -143,7 +143,7 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const auto& size = tokens::button_size(options_.size);
     const render::Rect r = bounds();
     const double radius = corner();
-    const std::optional<color::Role> container = options_.colors ? std::optional(options_.colors->container) : style.container;
+    const std::optional<color::Role> container = options_.colors ? options_.colors->container : style.container;
     const color::Argb label_color = scheme[options_.colors ? options_.colors->content : style.label];
     const render::Path shape = render::rounded_rect_path(r, render::uniform_radii(radius));
 

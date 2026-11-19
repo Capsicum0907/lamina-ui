@@ -122,6 +122,23 @@ TEST_CASE("ButtonOptions::colors replaces the style's container and content role
     CHECK(canvas.pixel(40, 30) == scheme()[color::Role::tertiary_container]);
 }
 
+TEST_CASE("ButtonColors without a container keeps the button transparent") {
+    widgets::ButtonOptions options{"Undo", ButtonStyle::text, ButtonSize::small, ButtonShape::square};
+    options.colors = widgets::ButtonColors{std::nullopt, color::Role::inverse_primary};
+    widgets::Button b(options, fonts());
+    b.set_origin({10.0, 10.0});
+    thorvg::Canvas canvas(200, 80);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, scheme());
+    CHECK(canvas.pixel(12, 12) == 0xffffffff);
+    CHECK(count_color(canvas, scheme()[color::Role::inverse_primary]) > 0);
+    b.handle(input::PointerEvent{input::PointerAction::move, 20.0, 20.0});
+    settle(b);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, scheme());
+    CHECK(canvas.pixel(12, 30) != 0xffffffff);
+}
+
 TEST_CASE("set_label relays out the label and refits an unsized button") {
     auto b = make(ButtonStyle::filled, ButtonSize::small, ButtonShape::round, "A");
     const double narrow = b.width();
