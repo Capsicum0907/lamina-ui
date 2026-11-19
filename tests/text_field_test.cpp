@@ -122,6 +122,20 @@ TEST_CASE("select all, then backspace or delete removes only the selection") {
     CHECK(f.text().empty());
 }
 
+TEST_CASE("letters that are not shortcuts leave the field alone") {
+    auto f = focused_field();
+    f.handle({TextEventKind::commit, "abc", 0});
+    f.handle({Key::left, true});
+    f.step(0.3);
+    const double blink = f.next_blink_seconds();
+    CHECK_FALSE(f.handle(ctrl(Key::b)));
+    CHECK_FALSE(f.handle({Key::q, false}));
+    CHECK_FALSE(f.handle({Key::v, false}));
+    CHECK(f.text() == "abc");
+    CHECK(f.selected_text() == "c");
+    CHECK(f.next_blink_seconds() == blink);
+}
+
 TEST_CASE("an IME composition replaces the selection") {
     auto f = focused_field();
     f.handle({TextEventKind::commit, "abc", 0});

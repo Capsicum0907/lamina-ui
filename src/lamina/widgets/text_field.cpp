@@ -114,8 +114,19 @@ std::size_t previous_word(std::u32string_view s, std::size_t i) {
     return i;
 }
 
-bool is_letter_key(input::Key k) {
-    return k == input::Key::a || k == input::Key::c || k == input::Key::v || k == input::Key::x;
+enum class Shortcut { none, select_all, copy, cut, paste };
+
+Shortcut shortcut(const input::KeyEvent& e) {
+    if (!e.ctrl) {
+        return Shortcut::none;
+    }
+    switch (e.key) {
+    case input::Key::a: return Shortcut::select_all;
+    case input::Key::c: return Shortcut::copy;
+    case input::Key::x: return Shortcut::cut;
+    case input::Key::v: return Shortcut::paste;
+    default: return Shortcut::none;
+    }
 }
 
 }
@@ -414,9 +425,6 @@ bool TextField::handle(const input::KeyEvent& e) {
     if (!focused_ || !composition_.empty()) {
         return false;
     }
-    if (is_letter_key(e.key) && !e.ctrl) {
-        return false;
-    }
     bool submit = false;
     switch (e.key) {
     case input::Key::backspace:
@@ -478,22 +486,28 @@ bool TextField::handle(const input::KeyEvent& e) {
         return false;
     case input::Key::tab:
         return false;
-    case input::Key::a:
-        anchor_ = 0;
-        move_to(text_.size(), true);
-        break;
-    case input::Key::c:
-        copy_selection();
-        break;
-    case input::Key::x:
-        copy_selection();
-        if (has_selection()) {
-            replace_selection({});
-        }
-        break;
-    case input::Key::v:
-        if (options_.clipboard) {
-            replace_selection(normalize(text::decode_utf8(options_.clipboard->text())));
+    default:
+        switch (shortcut(e)) {
+        case Shortcut::none:
+            return false;
+        case Shortcut::select_all:
+            anchor_ = 0;
+            move_to(text_.size(), true);
+            break;
+        case Shortcut::copy:
+            copy_selection();
+            break;
+        case Shortcut::cut:
+            copy_selection();
+            if (has_selection()) {
+                replace_selection({});
+            }
+            break;
+        case Shortcut::paste:
+            if (options_.clipboard) {
+                replace_selection(normalize(text::decode_utf8(options_.clipboard->text())));
+            }
+            break;
         }
         break;
     }

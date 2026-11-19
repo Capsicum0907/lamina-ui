@@ -39,12 +39,12 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_KP_ENTER: return Key::enter;
     case SDLK_ESCAPE: return Key::escape;
     case SDLK_TAB: return Key::tab;
-    case SDLK_A: return Key::a;
-    case SDLK_C: return Key::c;
-    case SDLK_V: return Key::v;
-    case SDLK_X: return Key::x;
-    default: return std::nullopt;
+    default: break;
     }
+    if (k >= SDLK_A && k <= SDLK_Z) {
+        return static_cast<Key>(static_cast<SDL_Keycode>(Key::a) + (k - SDLK_A));
+    }
+    return std::nullopt;
 }
 
 bool ctrl_held(SDL_Keymod mod) {
