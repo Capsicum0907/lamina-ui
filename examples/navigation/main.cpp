@@ -220,8 +220,33 @@ int main(int argc, char** argv) {
         front.add(wrap_dialog);
 
         widgets::FocusManager focus;
-        focus.add(continuous);
-        focus.add(stepped);
+        auto rebuild_focus = [&] {
+            focus.clear();
+            focus.add(rail_button());
+            focus.add(rail);
+            focus.add(dark_toggle);
+            for (widgets::TabRow* t : {&primary_tabs, &secondary_tabs, &leading_tabs}) {
+                focus.add(*t);
+            }
+            focus.add(continuous);
+            focus.add(stepped);
+            for (widgets::Button* b : {&menu_button, &grouped_button, &dialog_button, &wrap_button}) {
+                focus.add(*b);
+            }
+            focus.add(nav);
+        };
+        rebuild_focus();
+        auto toggle_rail = [&] {
+            const bool had_focus = rail_button().focused();
+            rail.set_expanded(!rail.expanded());
+            rail_open.cancel_interaction();
+            rail_close.cancel_interaction();
+            rail_open.set_focused(false);
+            rail_close.set_focused(false);
+            rail_button().set_focused(had_focus);
+            rebuild_focus();
+            report(rail.expanded() ? "Rail: expanded" : "Rail: collapsed");
+        };
 
         widgets::OverlayStack overlays;
         overlays.set_focus(focus);
@@ -293,10 +318,7 @@ int main(int argc, char** argv) {
                 report("Destination: " + destinations[nav.selected()]);
             }
             if (rail_button().handle(e)) {
-                rail.set_expanded(!rail.expanded());
-                rail_open.cancel_interaction();
-                rail_close.cancel_interaction();
-                report(rail.expanded() ? "Rail: expanded" : "Rail: collapsed");
+                toggle_rail();
             }
             if (rail.handle(e)) {
                 report("Section: " + sections[rail.selected()]);
@@ -311,6 +333,50 @@ int main(int argc, char** argv) {
                 return Opened::dialog;
             }
             if (wrap_button.handle(e)) {
+                return Opened::wrap_dialog;
+            }
+            return Opened::none;
+        };
+
+        auto background_key = [&](const input::KeyEvent& k) {
+            if (rail_button().handle(k)) {
+                toggle_rail();
+            }
+            if (rail.handle(k)) {
+                report("Section: " + sections[rail.selected()]);
+            }
+            if (dark_toggle.handle(k)) {
+                options.dark = dark_toggle.checked();
+                theme.fade_to(color::spec_2021().build(options));
+            }
+            if (primary_tabs.handle(k)) {
+                report("Primary tab: " + std::to_string(primary_tabs.selected() + 1));
+            }
+            if (secondary_tabs.handle(k)) {
+                report("Secondary tab: " + std::to_string(secondary_tabs.selected() + 1));
+            }
+            if (leading_tabs.handle(k)) {
+                report("Leading tab: " + std::to_string(leading_tabs.selected() + 1));
+            }
+            for (widgets::Slider* s : {&continuous, &stepped}) {
+                if (s->handle(k)) {
+                    continuous_caption.set_text(format_value("Slider", continuous.value()));
+                    stepped_caption.set_text(format_value("Steps", stepped.value()));
+                }
+            }
+            if (nav.handle(k)) {
+                report("Destination: " + destinations[nav.selected()]);
+            }
+            if (menu_button.handle(k)) {
+                return Opened::menu;
+            }
+            if (grouped_button.handle(k)) {
+                return Opened::grouped_menu;
+            }
+            if (dialog_button.handle(k)) {
+                return Opened::dialog;
+            }
+            if (wrap_button.handle(k)) {
                 return Opened::wrap_dialog;
             }
             return Opened::none;
@@ -332,6 +398,21 @@ int main(int argc, char** argv) {
             }
             scheme = theme.current();
 
+            auto open = [&](Opened opened, input::InputSource source) {
+                if (opened == Opened::menu) {
+                    menu.open(menu_button.bounds(), window_size, source);
+                    overlays.push(menu, on_menu);
+                } else if (opened == Opened::grouped_menu) {
+                    grouped_menu.open(grouped_button.bounds(), window_size, source);
+                    overlays.push(grouped_menu, on_grouped_menu);
+                } else if (opened == Opened::dialog) {
+                    dialog.open_in(body, source);
+                    overlays.push(dialog, on_dialog);
+                } else if (opened == Opened::wrap_dialog) {
+                    wrap_dialog.open_in(body, source);
+                    overlays.push(wrap_dialog, on_wrap_dialog);
+                }
+            };
             for (const auto& e : frame.pointer) {
                 if (window.client_title_bar() && caption(e)) {
                     continue;
@@ -339,31 +420,13 @@ int main(int argc, char** argv) {
                 if (overlays.handle(e)) {
                     continue;
                 }
-                const Opened opened = background(e);
-                if (opened == Opened::menu) {
-                    menu.open(menu_button.bounds(), window_size);
-                    overlays.push(menu, on_menu);
-                } else if (opened == Opened::grouped_menu) {
-                    grouped_menu.open(grouped_button.bounds(), window_size);
-                    overlays.push(grouped_menu, on_grouped_menu);
-                } else if (opened == Opened::dialog) {
-                    dialog.open_in(body);
-                    overlays.push(dialog, on_dialog);
-                } else if (opened == Opened::wrap_dialog) {
-                    wrap_dialog.open_in(body);
-                    overlays.push(wrap_dialog, on_wrap_dialog);
-                }
+                open(background(e), input::InputSource::pointer);
             }
             for (const auto& k : frame.keys) {
                 if (overlays.handle(k) || focus.handle(k)) {
                     continue;
                 }
-                for (widgets::Slider* s : {&continuous, &stepped}) {
-                    if (s->handle(k)) {
-                        continuous_caption.set_text(format_value("Slider", continuous.value()));
-                        stepped_caption.set_text(format_value("Steps", stepped.value()));
-                    }
-                }
+                open(background_key(k), input::InputSource::keyboard);
             }
             return scheme[color::Role::surface];
         };
