@@ -1,16 +1,14 @@
-#include <cmath>
 #include <cstdio>
 #include <exception>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "lamina/color/mix.hpp"
+#include "common/caption_cell.hpp"
+#include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
-#include "lamina/motion/animated.hpp"
 #include "lamina/text/layout.hpp"
-#include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
@@ -35,25 +33,12 @@ struct Layout {
     color::Role caption = color::Role::on_surface_variant;
     tokens::TypeRole header_type = tokens::TypeRole::headline_small;
     tokens::TypeRole caption_type = tokens::TypeRole::label_large;
-    double chip = 32.0;
-    double chip_gap = 12.0;
-    color::Role chip_ring = color::Role::on_surface;
-    double chip_ring_width = 2.0;
 };
-
-const std::vector<color::Argb> seeds{0xff6750a4, 0xff006a6a, 0xffb3261e, 0xff7d5260, 0xff386a20};
 
 struct Row {
     std::unique_ptr<widgets::Label> caption;
     std::vector<widgets::Button*> buttons;
 };
-
-layout::NodePtr caption_cell(widgets::Label& caption, double width, double height, double line_height) {
-    caption.measure({});
-    return layout::fixed({width, height}, [&caption, line_height](const render::Rect& r) {
-        caption.set_origin({r.x, r.y + (r.height - line_height) / 2.0});
-    });
-}
 
 }
 
@@ -62,19 +47,12 @@ int main(int argc, char** argv) {
         const Layout layout;
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         color::SchemeOptions options = color::default_scheme_options;
-        color::ColorScheme from = color::spec_2021().build(options);
-        color::ColorScheme to = from;
-        motion::Animated theme(1.0, tokens::motion_scheme.slow_effects());
-        std::size_t seed_index = 0;
+        examples::ThemeFade theme(color::spec_2021().build(options));
+        examples::SeedChips chips;
         widgets::Button dark_toggle({"ダーク", ButtonStyle::outlined, ButtonSize::extra_small, ButtonShape::round}, fonts);
         widgets::Switch spec_switch;
         widgets::Label spec_label("2025", layout.caption_type, layout.caption, fonts, false);
-        auto retheme = [&](const color::ColorScheme& current) {
-            from = current;
-            to = (spec_switch.checked() ? color::spec_2025() : color::spec_2021()).build(options);
-            theme.snap_to(0.0);
-            theme.animate_to(1.0);
-        };
+        auto retheme = [&] { theme.fade_to((spec_switch.checked() ? color::spec_2025() : color::spec_2021()).build(options)); };
         const auto caption_style = tokens::text_style(tokens::type_style(layout.caption_type));
 
         const std::pair<ButtonStyle, const char*> styles[] = {
@@ -118,55 +96,45 @@ int main(int argc, char** argv) {
             }
             auto buttons_row = layout::row(std::move(items));
             buttons_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
-            auto r = layout::row({caption_cell(*row.caption, layout.label_width, caption_style.line_height, caption_style.line_height), buttons_row});
+            auto r = layout::row({examples::caption_cell(*row.caption, layout.label_width, caption_style.line_height, caption_style.line_height), buttons_row});
             r->cross_align(layout::CrossAlign::center);
             page_children.push_back(r);
         }
-        std::vector<render::Rect> chip_rects(seeds.size());
-        std::vector<layout::NodePtr> chips;
-        for (std::size_t i = 0; i < seeds.size(); ++i) {
-            chips.push_back(layout::fixed({layout.chip, layout.chip}, [&chip_rects, i](const render::Rect& r) { chip_rects[i] = r; }));
-        }
-        chips.push_back(widgets::node(dark_toggle));
-        chips.push_back(widgets::node(spec_label));
-        chips.push_back(widgets::node(spec_switch));
-        auto chips_row = layout::row(std::move(chips));
-        chips_row->spacing(layout.chip_gap).cross_align(layout::CrossAlign::center);
-        auto theme_row = layout::row({caption_cell(theme_caption, layout.label_width, layout.chip, caption_style.line_height), chips_row});
+        std::vector<layout::NodePtr> theme_controls = chips.nodes();
+        theme_controls.push_back(widgets::node(dark_toggle));
+        theme_controls.push_back(widgets::node(spec_label));
+        theme_controls.push_back(widgets::node(spec_switch));
+        auto chips_row = layout::row(std::move(theme_controls));
+        chips_row->spacing(chips.style().gap).cross_align(layout::CrossAlign::center);
+        auto theme_row = layout::row(
+            {examples::caption_cell(theme_caption, layout.label_width, chips.style().size, caption_style.line_height), chips_row});
         theme_row->cross_align(layout::CrossAlign::center);
         page_children.push_back(theme_row);
         auto page = layout::column(std::move(page_children));
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
-        color::ColorScheme scheme = from;
+        color::ColorScheme scheme = theme.current();
         auto update = [&](const sdl3::Frame& frame) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
-            scheme = color::mix(from, to, theme.value());
+            scheme = theme.current();
 
             for (const auto& e : frame.pointer) {
                 if (dark_toggle.handle(e)) {
                     options.dark = !options.dark;
-                    retheme(scheme);
+                    retheme();
                 }
                 if (spec_switch.handle(e)) {
-                    retheme(scheme);
+                    retheme();
                 }
-                if (e.action == input::PointerAction::up) {
-                    for (std::size_t i = 0; i < seeds.size(); ++i) {
-                        const double cx = chip_rects[i].x + chip_rects[i].width / 2.0;
-                        const double cy = chip_rects[i].y + chip_rects[i].height / 2.0;
-                        if (std::hypot(e.x_dp - cx, e.y_dp - cy) <= layout.chip / 2.0 && i != seed_index) {
-                            seed_index = i;
-                            options.seed = seeds[i];
-                            retheme(scheme);
-                        }
-                    }
+                if (const auto seed = chips.handle(e)) {
+                    options.seed = *seed;
+                    retheme();
                 }
                 for (auto& row : rows) {
                     for (auto& b : row.buttons) {
                         if (b->handle(e)) {
                             ++clicks;
-                            counter.set_text("押した回数: " + std::to_string(clicks));
+                            counter.set_text("\u62bc\u3057\u305f\u56de\u6570: " + std::to_string(clicks));
                         }
                     }
                 }
@@ -182,18 +150,7 @@ int main(int argc, char** argv) {
             }
             theme_caption.paint(canvas, scheme);
             spec_label.paint(canvas, scheme);
-            for (std::size_t i = 0; i < seeds.size(); ++i) {
-                const render::Rect c = chip_rects[i];
-                if (i == seed_index) {
-                    const render::Rect ring{c.x - 2 * layout.chip_ring_width, c.y - 2 * layout.chip_ring_width,
-                                            c.width + 4 * layout.chip_ring_width, c.height + 4 * layout.chip_ring_width};
-                    canvas.fill_rounded_rect(ring, render::uniform_radii(ring.width / 2.0), scheme[layout.chip_ring]);
-                    const render::Rect gap{c.x - layout.chip_ring_width, c.y - layout.chip_ring_width,
-                                           c.width + 2 * layout.chip_ring_width, c.height + 2 * layout.chip_ring_width};
-                    canvas.fill_rounded_rect(gap, render::uniform_radii(gap.width / 2.0), scheme[color::Role::surface]);
-                }
-                canvas.fill_rounded_rect(c, render::uniform_radii(layout.chip / 2.0), seeds[i]);
-            }
+            chips.paint(canvas, scheme);
             theme.step(frame.dt_seconds);
             controls.step(frame.dt_seconds);
             controls.paint(canvas, scheme);

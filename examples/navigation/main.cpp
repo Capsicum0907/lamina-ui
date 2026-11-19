@@ -5,12 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "lamina/color/mix.hpp"
+#include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/layout/layout.hpp"
-#include "lamina/motion/animated.hpp"
-#include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/dialog.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
@@ -71,9 +69,7 @@ int main(int argc, char** argv) {
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
 
         color::SchemeOptions options = color::default_scheme_options;
-        color::ColorScheme from = color::spec_2021().build(options);
-        color::ColorScheme to = from;
-        motion::Animated theme(1.0, tokens::motion_scheme.slow_effects());
+        examples::ThemeFade theme(color::spec_2021().build(options));
 
         widgets::Label header("Navigation", layout.header_type, layout.text, fonts, false);
         widgets::Label status("—", layout.caption_type, layout.caption, fonts, false);
@@ -206,10 +202,7 @@ int main(int argc, char** argv) {
         auto background = [&](const input::PointerEvent& e) {
             if (dark_toggle.handle(e)) {
                 options.dark = dark_toggle.checked();
-                from = color::mix(from, to, theme.value());
-                to = color::spec_2021().build(options);
-                theme.snap_to(0.0);
-                theme.animate_to(1.0);
+                theme.fade_to(color::spec_2021().build(options));
             }
             if (primary_tabs.handle(e)) {
                 report("Primary tab: " + std::to_string(primary_tabs.selected() + 1));
@@ -257,7 +250,7 @@ int main(int argc, char** argv) {
             return Overlay::none;
         };
 
-        color::ColorScheme scheme = from;
+        color::ColorScheme scheme = theme.current();
         auto update = [&](const sdl3::Frame& frame) {
             const layout::Size window_size{frame.width_dp, frame.height_dp};
             rail.step(frame.dt_seconds);
@@ -267,7 +260,7 @@ int main(int argc, char** argv) {
                     d->set_window(window_size);
                 }
             }
-            scheme = color::mix(from, to, theme.value());
+            scheme = theme.current();
 
             for (const auto& e : frame.pointer) {
                 if (dialog.is_open()) {

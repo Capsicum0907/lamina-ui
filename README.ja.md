@@ -72,6 +72,8 @@ CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どち�
 
 `shapes_gallery.exe` 以外の見本は、コマンドラインでフォントのファイルを受け取ります（例：`buttons.exe C:/path/to/font.ttf`）。後ろのファイルは、前のファイルに無い文字を補います。指定しないときは、OS のフォントから最初に見つかった日本語の画面向けのフォントを使い（`lamina_sdl3/system_fonts.hpp`）、一つも無ければ、試したパスを並べたエラーを出して終わります。
 
+見本はそれぞれ一つの `examples/<名前>/main.cpp` で、`sdl3::run_app` で繰り返しを回し、部品があればそれを `widgets::WidgetSet` でまとめて進めて描きます（遊び場と形の一覧は部品を使わず、値を直接動かします）。複数の見本で使うコードは `examples/common/`（`lamina_examples_common` ライブラリ、名前空間 `lamina::examples`）にあります。`caption_cell` は行の横に見出しを置き、`ThemeFade` は今の配色から新しい配色へ、遅い効果のばねで移り変わらせます。`SeedChips` は元の色の丸を並べ、選んだものに輪を付け、新しく選ばれた色を知らせます。
+
 ## 出典
 
 `tests/fixtures/fonts/` のテスト用フォントは、Noto Sans JP と Oswald の一部を取り出して名前を変えたもので、SIL Open Font License 1.1 に従います（ライセンスの文書を同じ場所に置いています）。

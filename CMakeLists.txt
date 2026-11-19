@@ -113,13 +113,20 @@ endif()
 
 function(lamina_add_example name dir)
     add_executable(${name} examples/${dir}/main.cpp)
-    target_link_libraries(${name} PRIVATE lamina lamina_sdl3)
+    target_link_libraries(${name} PRIVATE lamina lamina_sdl3 lamina_examples_common)
     lamina_warnings(${name})
     add_custom_command(TARGET ${name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:${name}>/assets")
 endfunction()
 
 if(LAMINA_BUILD_EXAMPLES)
+    add_library(lamina_examples_common STATIC
+        examples/common/caption_cell.cpp
+        examples/common/theme.cpp
+    )
+    target_include_directories(lamina_examples_common PUBLIC examples)
+    target_link_libraries(lamina_examples_common PUBLIC lamina)
+    lamina_warnings(lamina_examples_common)
     lamina_add_example(playground playground)
     lamina_add_example(buttons buttons)
     lamina_add_example(text_field text_field)

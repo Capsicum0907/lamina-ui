@@ -63,10 +63,6 @@ bool contains(const render::Rect& r, double x, double y) {
     return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 }
 
-double corner_dp(CornerSize size) {
-    return tokens::corner_radius_dp[static_cast<std::size_t>(size)];
-}
-
 }
 
 int main(int argc, char** argv) {
@@ -90,7 +86,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < layout.columns * layout.rows; ++i) {
             cards.push_back({
                 motion::Animated(tokens::elevation_dp[layout.rest_elevation], spatial),
-                motion::Animated(corner_dp(layout.rest_corner), spatial_fast),
+                motion::Animated(tokens::corner_radius(layout.rest_corner, 0.0, 0.0), spatial_fast),
                 motion::Animated(0.0, effects),
                 motion::Animated(0.0, effects_fast),
             });
@@ -136,7 +132,7 @@ int main(int argc, char** argv) {
                     }
                     c.selected = !c.selected;
                     c.elevation.animate_to(tokens::elevation_dp[c.selected ? layout.raised_elevation : layout.rest_elevation]);
-                    c.corner.animate_to(corner_dp(c.selected ? layout.raised_corner : layout.rest_corner));
+                    c.corner.animate_to(tokens::corner_radius(c.selected ? layout.raised_corner : layout.rest_corner, c.rect.width, c.rect.height));
                     c.fill.animate_to(c.selected ? 1.0 : 0.0);
                 }
             }

@@ -72,6 +72,8 @@ The build copies `assets/` next to each example. An example runs from `build/Rel
 
 Every example except `shapes_gallery.exe` takes font files on the command line, for example `buttons.exe C:/path/to/font.ttf`; later files fill in characters the earlier ones lack. Without arguments, an example uses the first Japanese UI font it finds among the system fonts (`lamina_sdl3/system_fonts.hpp`), and exits with an error that lists the paths it tried if there is none.
 
+Each example is one `examples/<name>/main.cpp` that runs its loop with `sdl3::run_app` and, when it has widgets, steps and paints them through `widgets::WidgetSet` (the playground and the shapes gallery animate plain values instead). Code that several examples share is in `examples/common/` (the `lamina_examples_common` library, namespace `lamina::examples`): `caption_cell` places a caption beside a row, `ThemeFade` cross-fades from the current scheme to a new one on the slow effects spring, and `SeedChips` draws the seed color chips, rings the chosen one and reports a newly chosen seed.
+
 ## Attribution
 
 The test fonts in `tests/fixtures/fonts/` are subsets of Noto Sans JP and Oswald, renamed, under the SIL Open Font License 1.1 (license files next to them).
