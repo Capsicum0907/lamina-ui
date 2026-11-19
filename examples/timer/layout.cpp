@@ -82,10 +82,13 @@ EntryFrame TimerLayout::entry_landscape(double width, double height) const {
     const double start_width = s.start_width_ratio * d;
     const double presets_width = std::min(left_width, pad_width);
     const double presets_x = s.margin + (left_width - presets_width) / 2.0;
-    frame.start = {s.margin + (left_width - start_width) / 2.0, pad_y + pad_height - start_height, start_width, start_height};
-    const double presets_y = frame.start.y - s.gap - s.preset_height;
+    const double below = 2.0 * s.gap + s.preset_height + start_height;
+    const double readout_height = std::clamp(pad_height - below, 0.0, s.readout_max_height);
+    const double top = pad_y + (pad_height - readout_height - below) / 2.0;
+    frame.readout = {s.margin, top, left_width, readout_height};
+    const double presets_y = top + readout_height + s.gap;
     place_presets(frame, presets_x, presets_y, presets_width);
-    frame.readout = {s.margin, pad_y, left_width, std::max(0.0, presets_y - s.gap - pad_y)};
+    frame.start = {s.margin + (left_width - start_width) / 2.0, presets_y + s.preset_height + s.gap, start_width, start_height};
     return frame;
 }
 

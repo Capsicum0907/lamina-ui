@@ -24,6 +24,7 @@ struct LayoutSettings {
     double margin = 16.0;
     double gap = 12.0;
     double readout_min_height = 112.0;
+    double readout_max_height = 160.0;
     double preset_height = 48.0;
     double max_key = 112.0;
     double start_height_ratio = 0.8;

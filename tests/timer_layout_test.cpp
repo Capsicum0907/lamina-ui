@@ -62,7 +62,10 @@ TEST_CASE("the landscape entry puts the keypad on the right and the readout, pre
     CHECK(e.readout.x + e.readout.width <= e.keys[0].x);
     CHECK(e.start.x + e.start.width <= e.keys[0].x);
     CHECK(e.presets[3].x + e.presets[3].width <= e.keys[0].x);
-    CHECK(e.start.y + e.start.height == doctest::Approx(e.keys[11].y + e.keys[11].height));
+    CHECK(e.readout.height <= layout.settings().readout_max_height + 1e-9);
+    CHECK(e.presets[0].y == doctest::Approx(e.readout.y + e.readout.height + 12.0));
+    CHECK(e.start.y == doctest::Approx(e.presets[0].y + e.presets[0].height + 12.0));
+    CHECK((e.readout.y + e.start.y + e.start.height) / 2.0 == doctest::Approx(250.0));
     for (const Box& k : e.keys) {
         CHECK(inside(k, 900.0, 500.0));
     }
