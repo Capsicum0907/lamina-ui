@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 
 #include "lamina/color/scheme.hpp"
@@ -26,6 +27,7 @@ public:
     void set_origin(render::Point origin) { origin_ = origin; }
     void arrange(const render::Rect& r) { origin_ = {r.x, r.y}; }
     render::Rect bounds() const { return {origin_.x, origin_.y, block_.width, block_.height}; }
+    std::size_t line_count() const { return block_.lines.size(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:

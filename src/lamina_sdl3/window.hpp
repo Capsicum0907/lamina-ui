@@ -28,6 +28,7 @@ struct Frame {
     bool maximized;
     bool active;
     std::vector<input::PointerEvent> pointer;
+    std::vector<input::WheelEvent> wheel;
     std::vector<input::KeyEvent> keys;
     std::vector<input::TextEvent> text;
 };

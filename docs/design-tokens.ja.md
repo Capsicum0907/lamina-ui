@@ -402,6 +402,13 @@ C の `tokens/DialogTokens.kt`（surface-container-high・extra-large の角・H
 - 見出しが複数行に折り返すとき、lamina-ui は最も長い行の幅の塊として中央に置きます。Compose の折り返す文字は与えられた最大の幅を取るはずなので、アイコンがあっても各行は始めの側から並ぶと思われます（未確認）。一行の見出しは同じです。
 - Compose は現れるときと消えるときの動きを OS の窓に任せています。lamina-ui は独自に、面を 0.8 倍から標準の空間のばねで大きくし、面と幕を標準の効果のばねで現します。
 
+### スナックバー
+
+C の `tokens/SnackbarTokens.kt`（面は inverse-surface、角は extra-small、Level 3、知らせは inverse-on-surface の Body M、操作は inverse-primary の Label L、高さは 1 行で 48 dp・2 行で 68 dp）、C の `Snackbar.kt`（幅は最大 600 dp、周りに 12 dp、文字の前に 16 dp、操作の後に 8 dp、文字と操作の間に 8 dp、文字の上下に 14 dp）と C の `SnackbarHost.kt`（短い時間 4 秒・長い時間 10 秒。0.8 倍から速い空間のばねで大きくし、速い効果のばねで現す）を読み、`lamina/tokens/snackbar.hpp` に入れました。
+
+- 高さは知らせの行数に Body M の行の高さ（20 dp）を掛けて決めます。そのため、フォント自身の上下の高さにかかわらず、1 行で 48 dp、2 行で 68 dp です。
+- Compose は、操作のあるスナックバーの時間を既定で無期限にします。lamina-ui は指定がなければ短い時間を使い、ポインターが乗っている間は時間を止めます。Compose はこれをしません。
+
 ### 円形の進み具合の表示
 
 C `tokens/CircularProgressIndicatorTokens.kt`（40 dp、波のある形は 48 dp、表示と下地の太さは 4 dp、間は 4 dp、波の振幅は 1.6 dp、波長は 15 dp）、C `tokens/ProgressIndicatorTokens.kt`（表示は primary、下地は secondary-container）、C `WavyProgressIndicator.kt` と `internal/CircularWavyProgressModifiers.kt` を読み、`lamina/tokens/progress_indicator.hpp` に入れました。
@@ -412,6 +419,13 @@ C `tokens/CircularProgressIndicatorTokens.kt`（40 dp、波のある形は 48 dp
 - Compose は振幅を 500 ms の補間（増えるときは standard、減るときは emphasized-accelerate）で変えます。lamina-ui は遅い効果のばねで動かし、波を止めた部品（`set_wavy(false)`）は波を平らにするので、一時停止したタイマーは動きを止めます。
 - Compose の線は端が丸く、長さ 0 の区間は何も描きません。lamina-ui は太さより短い弧を長さに合わせて細くするので、伸び始める表示や縮み切る下地が、点ごと急に現れたり消えたりしません。
 - `sample_length`（1 dp）は lamina-ui 独自の値です。弧は輪郭として塗る（`render::stroke_path`）ので、弧に沿って 1 dp ごとに点を取ります。
+
+### スクロールする範囲
+
+Material 3 にはスクロールバーの定めがなく、Compose Material 3 にもありません。`lamina/tokens/scroll_area.hpp` の値はすべて lamina-ui 独自のもので、出典から読んだものはありません。
+
+- 送る量は標準の効果のばねで動かします。臨界減衰なので行き過ぎません。Expressive の空間のばねは行き過ぎるので、中身の端を越えて送ってしまいます。
+- ホイール 1 ノッチで 64 dp、Page Up と Page Down で画面に残す 48 dp、幅 4 dp のつまみ（ポインターを乗せると 8 dp）、端から 2 dp、長さは 16 dp 以上、`on_surface` の 38 %（乗せると 50 %）、バーの上とみなす終わりの側の帯 12 dp、送り終えてから消えるまで 1 秒です。
 
 ## 未決の件
 

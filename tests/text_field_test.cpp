@@ -382,3 +382,19 @@ TEST_CASE("the floating label leaves a gap in the outline without painting over 
     CHECK(canvas.pixel(300, row) != clear);
     CHECK(canvas.pixel(300, row + 2) == clear);
 }
+
+TEST_CASE("a field without a label keeps its outline whole") {
+    widgets::TextField f({}, fonts());
+    f.set_width(300.0);
+    f.set_origin({10.0, 20.0});
+    f.handle({PointerAction::down, 50.0, 40.0});
+    f.set_text("filled");
+    settle(f);
+    const color::Argb clear = 0xff102030;
+    thorvg::Canvas canvas(400, 100);
+    canvas.clear(clear);
+    f.paint(canvas, scheme());
+    const auto& t = tokens::outlined_text_field;
+    const int gap_left = static_cast<int>(10.0 + t.padding - t.label_gap_padding);
+    CHECK(canvas.pixel(gap_left + 1, 20) == scheme()[t.focus_outline]);
+}

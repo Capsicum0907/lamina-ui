@@ -45,6 +45,8 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_ESCAPE: return Key::escape;
     case SDLK_TAB: return Key::tab;
     case SDLK_SPACE: return Key::space;
+    case SDLK_PAGEUP: return Key::page_up;
+    case SDLK_PAGEDOWN: return Key::page_down;
     case SDLK_KP_0: return Key::digit_0;
     case SDLK_KP_1: return Key::digit_1;
     case SDLK_KP_2: return Key::digit_2;
@@ -112,6 +114,7 @@ struct Window::Impl {
     std::unique_ptr<render::Canvas> canvas;
     Uint64 last_ns = 0;
     double wake_seconds = -1.0;
+    double frame_limit_seconds = max_frame_seconds;
     bool text_input = false;
     SdlClipboard clipboard;
     std::function<void(const Frame&)> live_redraw;
@@ -123,7 +126,8 @@ struct Window::Impl {
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
-        frame.dt_seconds = std::min(max_frame_seconds, static_cast<double>(now - last_ns) / nanoseconds_per_second);
+        frame.dt_seconds = std::min(frame_limit_seconds, static_cast<double>(now - last_ns) / nanoseconds_per_second);
+        frame_limit_seconds = max_frame_seconds;
         last_ns = now;
         int pw = 0;
         int ph = 0;
@@ -265,15 +269,17 @@ bool Window::next_frame(Frame& frame, bool animating) {
         return false;
     }
     frame.pointer.clear();
+    frame.wheel.clear();
     frame.keys.clear();
     frame.text.clear();
     if (!animating) {
         if (impl_->wake_seconds >= 0.0) {
             SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(impl_->wake_seconds * milliseconds_per_second)));
+            impl_->frame_limit_seconds = std::max(max_frame_seconds, impl_->wake_seconds);
         } else {
             SDL_WaitEvent(nullptr);
+            impl_->last_ns = SDL_GetTicksNS();
         }
-        impl_->last_ns = SDL_GetTicksNS();
     }
     impl_->wake_seconds = -1.0;
     SDL_Event e;
@@ -302,6 +308,11 @@ bool Window::next_frame(Frame& frame, bool animating) {
                 frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y)});
             }
             break;
+        case SDL_EVENT_MOUSE_WHEEL: {
+            const float flip = e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f;
+            frame.wheel.push_back({impl_->to_dp(e.wheel.mouse_x), impl_->to_dp(e.wheel.mouse_y), flip * e.wheel.x, -flip * e.wheel.y});
+            break;
+        }
         case SDL_EVENT_KEY_DOWN:
             if (const auto key = key_of(e.key)) {
                 frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod)});
