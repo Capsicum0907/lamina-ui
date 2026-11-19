@@ -1,0 +1,36 @@
+# 自前で描くタイトルバー（試作）
+
+[English](custom-title-bar.md)
+
+このブランチ（`experiment/custom-title-bar`）では、lamina-ui のアプリが Windows でウィンドウのタイトルバーを自分で描きます。ウィンドウとしての振る舞いは Windows のものをそのまま使います。Material 3 にはデスクトップのタイトルバーの決まりがありません。いちばん近い Google の設計は Android のデスクトップ表示で、アプリがキャプションの帯の下まで描き、その上にキャプションのボタンが載ります。ここではボタンも含めて帯全体を lamina が描きます。
+
+## 試し方
+
+```
+components --title-bar
+navigation --title-bar
+```
+
+指定しなければ、例はこれまでどおり Windows の枠を使います。components の例は、帯の中にアプリのアイコンボタンも置いています。
+
+## 層の分け方
+
+- `lamina/input/caption.hpp`（中核。描画の土台に依存しません）：`CaptionRegions` は、帯のつかんで動かせる範囲、三つのボタンの矩形、帯の中に置いたアプリの部品の矩形を dp で持ちます。`hit_test` は点がどれに当たるかを返します。ボタンとアプリの部品は、つかむ範囲より優先します。
+- `lamina/widgets/title_bar.hpp`：`TitleBar` は、題名、差し込む部品（任意）、最小化・最大化（元に戻す）・閉じるのボタンを並べ、配色から描き、`regions(interactive)` で範囲を返します。`handle` は `TitleBarAction` を返し、どう動くかはアプリが決めます。大きさ・色・記号は `lamina/tokens/title_bar.hpp` にあります。
+- `lamina_sdl3`：`WindowOptions::client_title_bar` で自前のタイトルバーを頼みます。`Window::client_title_bar()` は有効かどうかを返し、`set_caption_regions` は毎フレーム範囲を受け取り、`minimize`・`toggle_maximize`・`close` が操作を行います。`Frame` には `maximized` と `active` を足しました。
+- Win32 のコードはすべて `lamina_sdl3/caption_frame_win32.cpp` にあります。ほかの環境では `caption_frame_none.cpp` が「使えない」と答え、ウィンドウは OS の枠のままです。
+
+## Windows に任せる所と lamina が行う所
+
+SDL 3.4 は、枠なしで大きさを変えられるウィンドウに、キャプション・システムメニュー・太い枠・最大化ボタンの属性を付けます。クライアント領域をウィンドウ全体に広げ、最大化したときは作業領域に合わせ、大きさを変えている間も描き直します。このブランチは、ウィンドウの処理を一段かぶせて次を行います。
+
+- `WM_NCHITTEST` に答えます。縁は大きさの変更（ウィンドウの DPI に合わせた枠の幅を使い、最大化中は除きます）、最大化ボタンの上は `HTMAXBUTTON`（Windows 11 のスナップレイアウトが出ます）、つかむ範囲は `HTCAPTION`、それ以外は `HTCLIENT` です。ドラッグでの移動、ダブルクリックでの最大化、画面端へのスナップ、影は Windows が行います。
+- 最大化ボタンの上のクライアント外のマウスの知らせを lamina のポインタの出来事に直し、ほかのボタンと同じように反応させます。
+- つかむ範囲を右クリックするとシステムメニューを開きます。`Alt+Space` もメニューまで通します（SDL はそのままだとこのメニューの命令を捨てます）。
+- DWM に角を丸めるよう頼みます。
+
+## 分かっている制限
+
+- 大きさを変える帯はクライアント領域の内側にあります（100 % で約 8 px）。ウィンドウの縁ぎりぎりの部品は、そこではクリックできません。
+- 試したのは Windows 11 だけです。Windows 10 には角の丸めもスナップレイアウトもありません。
+- キャプションのボタンはキーボードのフォーカスを受けません。
