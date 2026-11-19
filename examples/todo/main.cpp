@@ -456,14 +456,19 @@ int main(int argc, char** argv) {
                     }
                     continue;
                 }
-                if (k.ctrl && k.key == Key::z) {
+                TaskRow* editing = first_row([](const TaskRow& r) { return r.editing() && r.editor()->focused(); });
+                widgets::TextField* typing = editing ? editing->editor() : input.focused() ? &input : nullptr;
+                if (typing && typing->handles_history_key(k)) {
+                    typing->handle(k);
+                    continue;
+                }
+                if (k.ctrl && !k.shift && k.key == Key::z) {
                     undo();
                     if (snackbar_focused && !snackbar.focused()) {
                         focus_input();
                     }
                     continue;
                 }
-                TaskRow* editing = first_row([](const TaskRow& r) { return r.editing() && r.editor()->focused(); });
                 if (editing && k.key == Key::escape) {
                     editing->end_edit();
                     continue;
