@@ -57,6 +57,7 @@ add_library(lamina STATIC
     src/lamina/widgets/checkbox.cpp
     src/lamina/widgets/dialog.cpp
     src/lamina/widgets/fab.cpp
+    src/lamina/widgets/focus_manager.cpp
     src/lamina/widgets/grouped_menu.cpp
     src/lamina/widgets/icon_button.cpp
     src/lamina/widgets/label.cpp
@@ -156,6 +157,7 @@ if(LAMINA_BUILD_TESTS)
         tests/color_scheme_test.cpp
         tests/dialog_test.cpp
         tests/edit_buffer_test.cpp
+        tests/focus_manager_test.cpp
         tests/font_ownership_test.cpp
         tests/grouped_menu_test.cpp
         tests/icon_button_test.cpp
