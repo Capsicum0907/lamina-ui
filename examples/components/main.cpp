@@ -273,7 +273,7 @@ int main(int argc, char** argv) {
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
         const char* title = "lamina-ui components";
-        sdl3::Window window({title, 1100, 860, want_title_bar}, examples::window_canvas());
+        sdl3::Window window({title, 1100, examples::window_height_dp(860, want_title_bar), want_title_bar}, examples::window_canvas());
         widgets::IconButton bar_search({icon(Symbol::search), IconButtonStyle::standard, IconButtonSize::extra_small});
         widgets::TitleBar title_bar({title, icon_font, layout::row({widgets::centered_node(bar_search)})}, fonts);
         layout::NodePtr root = page;

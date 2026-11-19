@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
         body->fill_cross(true);
 
         const char* title = "lamina-ui navigation";
-        sdl3::Window window({title, 1120, 860, want_title_bar}, examples::window_canvas());
+        sdl3::Window window({title, 1120, examples::window_height_dp(860, want_title_bar), want_title_bar}, examples::window_canvas());
         widgets::TitleBar title_bar({title, icon_font}, fonts);
         layout::NodePtr root = body;
         if (window.client_title_bar()) {
