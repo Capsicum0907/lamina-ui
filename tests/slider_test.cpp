@@ -97,12 +97,14 @@ TEST_CASE("the handle narrows at once while dragged") {
 
 TEST_CASE("arrow keys move by a step, or by a hundredth when continuous") {
     auto continuous = make({0.5});
+    continuous.set_focused(true);
     CHECK(continuous.handle(input::KeyEvent{Key::right, false}));
     CHECK(continuous.value() == doctest::Approx(0.51));
     continuous.handle(input::KeyEvent{Key::home, false});
     CHECK(continuous.value() == 0.0);
     CHECK_FALSE(continuous.handle(input::KeyEvent{Key::left, false}));
     auto stepped = make({0.0, 0.0, 1.0, 4});
+    stepped.set_focused(true);
     stepped.handle(input::KeyEvent{Key::right, false});
     CHECK(stepped.value() == doctest::Approx(0.2));
     stepped.handle(input::KeyEvent{Key::end, false});
@@ -120,4 +122,46 @@ TEST_CASE("the slider paints the active track, the gap, the handle and the inact
     CHECK(canvas.pixel(107, 22) == 0xffffffff);
     CHECK(canvas.pixel(160, 22) == scheme()[color::Role::secondary_container]);
     CHECK(canvas.pixel(194, 22) == scheme()[color::Role::primary]);
+}
+
+TEST_CASE("the slider takes keys only while it has the keyboard focus") {
+    auto s = make({0.5});
+    CHECK_FALSE(s.handle(input::KeyEvent{Key::right, false}));
+    CHECK(s.value() == 0.5);
+    s.set_focused(true);
+    CHECK(s.handle(input::KeyEvent{Key::up, false}));
+    CHECK(s.value() == doctest::Approx(0.51));
+    CHECK(s.handle(input::KeyEvent{Key::down, false}));
+    CHECK(s.handle(input::KeyEvent{Key::down, false}));
+    CHECK(s.value() == doctest::Approx(0.49));
+}
+
+TEST_CASE("Page Up and Page Down take a tenth of the intervals, from one to ten steps") {
+    auto continuous = make({0.5});
+    continuous.set_focused(true);
+    CHECK(continuous.handle(input::KeyEvent{Key::page_up, false}));
+    CHECK(continuous.value() == doctest::Approx(0.6));
+    continuous.handle(input::KeyEvent{Key::page_down, false});
+    continuous.handle(input::KeyEvent{Key::page_down, false});
+    CHECK(continuous.value() == doctest::Approx(0.4));
+    auto stepped = make({0.0, 0.0, 1.0, 4});
+    stepped.set_focused(true);
+    stepped.handle(input::KeyEvent{Key::page_up, false});
+    CHECK(stepped.value() == doctest::Approx(0.2));
+    auto fine = make({0.0, 0.0, 300.0, 299});
+    fine.set_focused(true);
+    fine.handle(input::KeyEvent{Key::page_up, false});
+    CHECK(fine.value() == doctest::Approx(10.0));
+}
+
+TEST_CASE("focus narrows the handle and draws the ring around it until a press takes the focus away") {
+    auto s = make({0.5});
+    s.set_focused(true);
+    CHECK(s.handle_width() == doctest::Approx(tokens::slider_tokens.pressed_handle_width));
+    settle(s);
+    CHECK_FALSE(s.animating());
+    s.handle({PointerAction::down, 100.0, 22.0});
+    CHECK_FALSE(s.focused());
+    s.handle({PointerAction::up, 100.0, 22.0});
+    CHECK(s.handle_width() == doctest::Approx(tokens::slider_tokens.handle_width));
 }

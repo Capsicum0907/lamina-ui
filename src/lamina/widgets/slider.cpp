@@ -111,7 +111,17 @@ double Slider::value_at(double x) const {
     return snapped(options_.min + (options_.max - options_.min) * f);
 }
 
+void Slider::update_handle_width() {
+    handle_width_ = dragging_ || focus_.focused() ? t.pressed_handle_width : t.handle_width;
+}
+
+void Slider::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    update_handle_width();
+}
+
 bool Slider::handle(const input::PointerEvent& e) {
+    focus_.release_on_press(e);
     const double before = options_.value;
     switch (e.action) {
     case input::PointerAction::down:
@@ -135,26 +145,38 @@ bool Slider::handle(const input::PointerEvent& e) {
         dragging_ = false;
         break;
     }
-    handle_width_ = dragging_ ? t.pressed_handle_width : t.handle_width;
+    update_handle_width();
     return options_.value != before;
 }
 
 void Slider::cancel_interaction() {
     dragging_ = false;
-    handle_width_ = t.handle_width;
+    update_handle_width();
 }
 
 bool Slider::handle(const input::KeyEvent& e) {
+    if (!focus_.focused()) {
+        return false;
+    }
     const double range = std::abs(options_.max - options_.min);
     const int intervals = options_.steps > 0 ? options_.steps + 1 : t.keyboard_steps_when_continuous;
     const double delta = range / intervals;
+    const double page = std::clamp(intervals / t.keyboard_page_divisor, 1, t.keyboard_page_max_steps) * delta;
     const double before = options_.value;
     switch (e.key) {
     case input::Key::left:
+    case input::Key::down:
         set_value(options_.value - delta);
         break;
     case input::Key::right:
+    case input::Key::up:
         set_value(options_.value + delta);
+        break;
+    case input::Key::page_down:
+        set_value(options_.value - page);
+        break;
+    case input::Key::page_up:
+        set_value(options_.value + page);
         break;
     case input::Key::home:
         set_value(options_.min);
@@ -203,6 +225,7 @@ void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const double w = handle_width_;
     const render::Rect handle{handle_center_x() - w / 2.0, origin_.y, w, height()};
     canvas.fill_path(render::rounded_rect_path(handle, render::uniform_radii(w / 2.0)), scheme[t.handle]);
+    focus_.paint(canvas, scheme, handle, w / 2.0);
 }
 
 }

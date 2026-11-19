@@ -345,8 +345,8 @@ C `tokens/SliderTokens.kt` (16 dp track, 4 × 44 dp handle, 2 dp pressed handle,
 - The track runs from half the handle width to the other end minus half the handle width. The gap on each side of the handle is half the 4 dp handle box plus 6 dp, so it does not change while the handle narrows. The corners next to the handle are 2 dp (`TrackInsideCornerSize`), the outer ones half the track height.
 - The pointer sets the value linearly over that range, and the value then snaps to the nearest step. With steps, the handle and ticks are drawn inset by the track's corner radius except on the first and last step, as `SliderImpl` places them.
 - The tick colors are crossed in `SliderDefaults.colors`: a tick on the active part is secondary-container, a tick on the inactive part is primary. The last tick, where the stop indicator sits, and ticks inside the handle gap are not drawn. The stop indicator is the active track color.
-- Pressing or dragging narrows the handle to half its width (`ThumbContent`). Compose switches the width at once, and so does lamina-ui. Focus, which also narrows the handle in Compose, is not implemented.
-- Keys: Left/Right move by one step, or by 1 % of the range without steps; Home and End go to the ends. Page Up/Down are not implemented.
+- Pressing or dragging narrows the handle to half its width (`ThumbContent`). Compose switches the width at once, and so does lamina-ui. Keyboard focus narrows it too, as in Compose (any focus, press or drag interaction halves `thumbSize`).
+- Keys, from `slideOnKeyEvents` in C `Slider.kt`: one step, or 1 % of the range without steps (`actualSteps` 100); Page Up/Down move `(actualSteps / 10).coerceIn(1, 10)` steps; Home and End go to the ends (`slider_tokens.keyboard_*`). A horizontal Compose slider takes only Left and Right; lamina-ui also takes Up and Down, as material-web's slider does through the native `<input type=range>` (W `slider/internal/slider.ts`, read at `9d2f79851cae`, adds no key handling of its own). material-web draws the focus ring around the handle (`md-focus-ring` inside the handle element), and lamina-ui does too.
 
 ### Tabs
 

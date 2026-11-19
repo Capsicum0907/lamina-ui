@@ -48,9 +48,10 @@ static_assert(Cancellable<Button> && Cancellable<IconButton> && Cancellable<Fab>
               Cancellable<NavigationRail> && Cancellable<TextField> && Cancellable<Dialog> && Cancellable<WidgetSet>);
 static_assert(HandlesKeys<Button> && !HandlesText<Button> && !HandlesText<Slider>);
 static_assert(Focusable<Button> && Focusable<IconButton> && Focusable<Fab> && Focusable<Switch> && Focusable<Checkbox> &&
-              Focusable<RadioButton> && Focusable<TextField>);
+              Focusable<RadioButton> && Focusable<TextField> && Focusable<Slider> && Focusable<TabRow> &&
+              Focusable<NavigationBar> && Focusable<NavigationRail>);
 static_assert(HandlesKeys<IconButton> && HandlesKeys<Fab> && HandlesKeys<Switch> && HandlesKeys<Checkbox> && HandlesKeys<RadioButton>);
-static_assert(!Focusable<Label> && !Focusable<Slider> && !Focusable<Dialog>);
+static_assert(!Focusable<Label> && !Focusable<Dialog>);
 
 namespace {
 

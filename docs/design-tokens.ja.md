@@ -345,8 +345,8 @@ C の `tokens/SliderTokens.kt`（通り道 16 dp・つまみ 4 × 44 dp・押し
 - 通り道は、つまみの幅の半分の所から、反対の端よりつまみの幅の半分だけ手前まで伸びます。つまみの両側の隙間は 4 dp のつまみの箱の半分に 6 dp を足した幅なので、つまみが細くなっても変わりません。つまみの側の角は 2 dp（`TrackInsideCornerSize`）、外側の角は通り道の高さの半分です。
 - ポインターはこの範囲で値を比例して決め、そのあと値をいちばん近い段に寄せます。段があるときは、最初と最後の段を除いて、つまみと目盛りを通り道の角の半径だけ内側に描きます。`SliderImpl` の置き方と同じです。
 - 目盛りの色は `SliderDefaults.colors` で入れ違いになっています。動いた側の目盛りは secondary-container、残りの側の目盛りは primary です。終わりの印と重なる最後の目盛りと、つまみの隙間に入る目盛りは描きません。終わりの印は動いた側の通り道の色です。
-- 押している間とドラッグの間、つまみは幅が半分になります（`ThumbContent`）。Compose と同じく、lamina-ui も幅を一度に変えます。Compose では焦点が当たったときにも細くなりますが、焦点は作っていません。
-- キー：左右の矢印で 1 段、段が無ければ範囲の 1 % 動き、`Home` と `End` で両端へ移ります。`Page Up` と `Page Down` は作っていません。
+- 押している間とドラッグの間、つまみは幅が半分になります（`ThumbContent`）。Compose と同じく、lamina-ui も幅を一度に変えます。Compose と同じく、キーボードのフォーカスがあるときも細くなります（Compose はフォーカス・押下・ドラッグのどれがあっても `thumbSize` を半分にします）。
+- キーは C `Slider.kt` の `slideOnKeyEvents` に従います。1 段、段が無ければ範囲の 1 %（`actualSteps` が 100）動き、`Page Up` と `Page Down` で `(actualSteps / 10).coerceIn(1, 10)` 段動き、`Home` と `End` で両端へ移ります（`slider_tokens.keyboard_*`）。横向きの Compose のスライダーは左右の矢印しか受けませんが、lamina-ui は上下の矢印も受けます。material-web のスライダーが標準の `<input type=range>` を通して受けるのと同じです（W `slider/internal/slider.ts`。`9d2f79851cae` で読みました。独自のキーの処理はありません）。material-web はフォーカスの輪をつまみの周りに描き（つまみの要素の中の `md-focus-ring`）、lamina-ui も同じです。
 
 ### タブ
 

@@ -14,6 +14,8 @@ struct SliderTokens {
     double stop_indicator_size;
     double tick_size;
     int keyboard_steps_when_continuous;
+    int keyboard_page_divisor;
+    int keyboard_page_max_steps;
     color::Role active_track;
     color::Role inactive_track;
     color::Role handle;
@@ -32,6 +34,8 @@ inline constexpr SliderTokens slider_tokens{
     .stop_indicator_size = 4.0,
     .tick_size = 4.0,
     .keyboard_steps_when_continuous = 100,
+    .keyboard_page_divisor = 10,
+    .keyboard_page_max_steps = 10,
     .active_track = color::Role::primary,
     .inactive_track = color::Role::secondary_container,
     .handle = color::Role::primary,

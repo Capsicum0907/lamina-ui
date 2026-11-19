@@ -6,6 +6,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/slider.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 
 namespace lamina::widgets {
 
@@ -34,11 +35,14 @@ public:
     double handle_center_x() const;
     std::vector<double> tick_centers() const;
 
+    bool focused() const { return focus_.focused(); }
+    void set_focused(bool focused);
+
     bool handle(const input::PointerEvent& event);
     void cancel_interaction();
     bool handle(const input::KeyEvent& event);
-    void step(double) {}
-    bool animating() const { return false; }
+    void step(double dt_seconds) { focus_.step(dt_seconds); }
+    bool animating() const { return !focus_.settled(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
@@ -48,12 +52,14 @@ private:
     double snapped(double value) const;
     double value_at(double x) const;
     bool on_first_or_last_tick() const;
+    void update_handle_width();
 
     SliderOptions options_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};
     bool dragging_ = false;
     double handle_width_ = tokens::slider_tokens.handle_width;
+    FocusIndicator focus_;
 };
 
 }

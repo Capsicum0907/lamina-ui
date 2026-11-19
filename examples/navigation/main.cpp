@@ -13,6 +13,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/dialog.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
@@ -93,7 +94,6 @@ int main(int argc, char** argv) {
                                      fonts);
         widgets::Slider continuous({0.4});
         widgets::Slider stepped({60.0, 0.0, 100.0, 4});
-        widgets::Slider* focused_slider = &continuous;
 
         widgets::Button menu_button({"Options", tokens::ButtonStyle::outlined, tokens::ButtonSize::small, tokens::ButtonShape::round,
                                      icon(Symbol::more_vert)},
@@ -219,7 +219,12 @@ int main(int argc, char** argv) {
         front.add(dialog);
         front.add(wrap_dialog);
 
+        widgets::FocusManager focus;
+        focus.add(continuous);
+        focus.add(stepped);
+
         widgets::OverlayStack overlays;
+        overlays.set_focus(focus);
         overlays.add_base(page_controls, nav, rail, rail_open, rail_close);
         auto on_menu = [&](const widgets::MenuResponse& r) {
             if (r.chosen) {
@@ -280,12 +285,8 @@ int main(int argc, char** argv) {
             }
             for (widgets::Slider* s : {&continuous, &stepped}) {
                 if (s->handle(e)) {
-                    focused_slider = s;
                     continuous_caption.set_text(format_value("Slider", continuous.value()));
                     stepped_caption.set_text(format_value("Steps", stepped.value()));
-                }
-                if (s->dragging()) {
-                    focused_slider = s;
                 }
             }
             if (nav.handle(e)) {
@@ -354,12 +355,14 @@ int main(int argc, char** argv) {
                 }
             }
             for (const auto& k : frame.keys) {
-                if (overlays.handle(k)) {
+                if (overlays.handle(k) || focus.handle(k)) {
                     continue;
                 }
-                if (focused_slider->handle(k)) {
-                    continuous_caption.set_text(format_value("Slider", continuous.value()));
-                    stepped_caption.set_text(format_value("Steps", stepped.value()));
+                for (widgets::Slider* s : {&continuous, &stepped}) {
+                    if (s->handle(k)) {
+                        continuous_caption.set_text(format_value("Slider", continuous.value()));
+                        stepped_caption.set_text(format_value("Steps", stepped.value()));
+                    }
                 }
             }
             return scheme[color::Role::surface];
