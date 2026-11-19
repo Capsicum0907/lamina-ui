@@ -8,6 +8,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/text_field.hpp"
@@ -50,8 +51,10 @@ int main(int argc, char** argv) {
         }
         widgets::Button send({"\u9001\u4fe1", tokens::ButtonStyle::filled, tokens::ButtonSize::medium, tokens::ButtonShape::round}, fonts);
         widgets::WidgetSet controls;
+        widgets::FocusManager focus;
         for (auto& f : fields) {
             controls.add(*f);
+            focus.add(*f);
         }
         controls.add(send);
         widgets::Label header({"\u6587\u5b57\u306e\u5165\u529b", layout.header_type, layout.text, false}, fonts);
@@ -102,19 +105,13 @@ int main(int argc, char** argv) {
                 }
             }
             for (const auto& k : frame.keys) {
-                for (std::size_t i = 0; i < fields.size(); ++i) {
-                    if (!fields[i]->focused()) {
-                        continue;
-                    }
-                    if (k.key == input::Key::tab) {
-                        fields[i]->set_focused(false);
-                        fields[(i + 1) % fields.size()]->set_focused(true);
-                        break;
-                    }
-                    if (fields[i]->handle(k)) {
+                if (focus.handle(k)) {
+                    continue;
+                }
+                for (auto& f : fields) {
+                    if (f->handle(k)) {
                         submit();
                     }
-                    break;
                 }
             }
             for (const auto& t : frame.text) {
@@ -124,19 +121,7 @@ int main(int argc, char** argv) {
             }
 
             place(frame);
-
-            const widgets::TextField* focused = nullptr;
-            for (auto& f : fields) {
-                if (f->focused()) {
-                    focused = f.get();
-                }
-            }
-            if (focused) {
-                const render::Rect area = focused->caret_area();
-                window.set_text_input(&area);
-            } else {
-                window.set_text_input(nullptr);
-            }
+            window.set_text_input(focus.caret_area());
             return scheme[layout.background];
         };
 
@@ -144,10 +129,8 @@ int main(int argc, char** argv) {
             header.paint(canvas, scheme);
             controls.step(frame.dt_seconds);
             controls.paint(canvas, scheme);
-            for (auto& f : fields) {
-                if (f->focused()) {
-                    window.wake_after(f->next_blink_seconds());
-                }
+            if (const auto wake = focus.next_wake_seconds()) {
+                window.wake_after(*wake);
             }
             for (const auto& l : log) {
                 l->paint(canvas, scheme);

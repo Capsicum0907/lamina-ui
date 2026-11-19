@@ -9,6 +9,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/surface.hpp"
@@ -83,6 +84,8 @@ int main(int argc, char** argv) {
         controls.add(name);
         controls.add(cancel);
         controls.add(save);
+        widgets::FocusManager focus;
+        focus.add(name);
 
         sdl3::Window window({"lamina-ui layout", 900, 640}, examples::window_canvas());
         auto update = [&](const sdl3::Frame& frame) {
@@ -94,17 +97,14 @@ int main(int argc, char** argv) {
                 save.handle(e);
             }
             for (const auto& k : frame.keys) {
-                name.handle(k);
+                if (!focus.handle(k)) {
+                    name.handle(k);
+                }
             }
             for (const auto& t : frame.text) {
                 name.handle(t);
             }
-            if (name.focused()) {
-                const render::Rect area = name.caret_area();
-                window.set_text_input(&area);
-            } else {
-                window.set_text_input(nullptr);
-            }
+            window.set_text_input(focus.caret_area());
             return scheme[style.page];
         };
 
@@ -119,8 +119,8 @@ int main(int argc, char** argv) {
             }
             controls.step(frame.dt_seconds);
             controls.paint(canvas, scheme);
-            if (name.focused()) {
-                window.wake_after(name.next_blink_seconds());
+            if (const auto wake = focus.next_wake_seconds()) {
+                window.wake_after(*wake);
             }
             return controls.animating();
         };

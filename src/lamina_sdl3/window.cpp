@@ -231,7 +231,7 @@ void Window::wake_after(double seconds) {
     }
 }
 
-void Window::set_text_input(const render::Rect* area) {
+void Window::set_text_input(const std::optional<render::Rect>& area) {
     if (!area) {
         if (impl_->text_input) {
             SDL_StopTextInput(impl_->window);

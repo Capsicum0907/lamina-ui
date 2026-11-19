@@ -19,6 +19,7 @@
 #include "lamina/widgets/navigation_bar.hpp"
 #include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/nodes.hpp"
+#include "lamina/widgets/overlay_stack.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/widget_set.hpp"
@@ -28,11 +29,10 @@
 
 using namespace lamina;
 using icons::Symbol;
-using input::PointerAction;
 
 namespace {
 
-enum class Overlay { none, menu, grouped_menu, dialog, wrap_dialog };
+enum class Opened { none, menu, grouped_menu, dialog, wrap_dialog };
 
 struct Layout {
     double margin = 32.0;
@@ -193,12 +193,40 @@ int main(int argc, char** argv) {
         for (widgets::Button* b : {&menu_button, &grouped_button, &dialog_button, &wrap_button}) {
             page_controls.add(*b);
         }
-        widgets::WidgetSet overlays;
-        overlays.add(nav);
-        overlays.add(menu);
-        overlays.add(grouped_menu);
-        overlays.add(dialog);
-        overlays.add(wrap_dialog);
+        widgets::WidgetSet front;
+        front.add(nav);
+        front.add(menu);
+        front.add(grouped_menu);
+        front.add(dialog);
+        front.add(wrap_dialog);
+
+        widgets::OverlayStack overlays;
+        overlays.add_base(page_controls, nav, rail, rail_open, rail_close);
+        auto on_menu = [&](const widgets::MenuResponse& r) {
+            if (r.chosen) {
+                report("Menu: " + menu_labels[*r.chosen]);
+            }
+        };
+        auto on_grouped_menu = [&](const widgets::GroupedMenuResponse& r) {
+            if (r.chosen) {
+                const auto [g, i] = *r.chosen;
+                report("Menu: " + grouped_labels[g][i] + (grouped_menu.selected(g, i) ? " (on)" : ""));
+            }
+        };
+        auto on_dialog = [&](widgets::DialogResult r) {
+            if (r == widgets::DialogResult::confirmed) {
+                report("Dialog: discarded");
+            } else if (r == widgets::DialogResult::dismissed) {
+                report("Dialog: cancelled");
+            }
+        };
+        auto on_wrap_dialog = [&](widgets::DialogResult r) {
+            if (r == widgets::DialogResult::confirmed) {
+                report("Dialog: settings reset");
+            } else if (r == widgets::DialogResult::dismissed) {
+                report("Dialog: settings kept");
+            }
+        };
 
         auto background = [&](const input::PointerEvent& e) {
             if (dark_toggle.handle(e)) {
@@ -237,18 +265,18 @@ int main(int argc, char** argv) {
                 report("Section: " + sections[rail.selected()]);
             }
             if (menu_button.handle(e)) {
-                return Overlay::menu;
+                return Opened::menu;
             }
             if (grouped_button.handle(e)) {
-                return Overlay::grouped_menu;
+                return Opened::grouped_menu;
             }
             if (dialog_button.handle(e)) {
-                return Overlay::dialog;
+                return Opened::dialog;
             }
             if (wrap_button.handle(e)) {
-                return Overlay::wrap_dialog;
+                return Opened::wrap_dialog;
             }
-            return Overlay::none;
+            return Opened::none;
         };
 
         color::ColorScheme scheme = theme.current();
@@ -264,71 +292,29 @@ int main(int argc, char** argv) {
             scheme = theme.current();
 
             for (const auto& e : frame.pointer) {
-                if (dialog.is_open()) {
-                    const auto result = dialog.handle(e);
-                    if (result == widgets::DialogResult::confirmed) {
-                        report("Dialog: discarded");
-                    } else if (result == widgets::DialogResult::dismissed) {
-                        report("Dialog: cancelled");
-                    }
+                if (overlays.handle(e)) {
                     continue;
                 }
-                if (wrap_dialog.is_open()) {
-                    const auto result = wrap_dialog.handle(e);
-                    if (result == widgets::DialogResult::confirmed) {
-                        report("Dialog: settings reset");
-                    } else if (result == widgets::DialogResult::dismissed) {
-                        report("Dialog: settings kept");
-                    }
-                    continue;
-                }
-                if (grouped_menu.is_open()) {
-                    const auto response = grouped_menu.handle(e);
-                    if (response.chosen) {
-                        const auto [g, i] = *response.chosen;
-                        report("Menu: " + grouped_labels[g][i] + (grouped_menu.selected(g, i) ? " (on)" : ""));
-                    }
-                    if (response.consumed) {
-                        continue;
-                    }
-                }
-                if (menu.is_open()) {
-                    const auto response = menu.handle(e);
-                    if (response.chosen) {
-                        report("Menu: " + menu_labels[*response.chosen]);
-                    }
-                    if (response.consumed) {
-                        continue;
-                    }
-                }
-                const Overlay opened = background(e);
-                if (opened != Overlay::none) {
-                    background({PointerAction::leave, 0.0, 0.0});
-                }
-                if (opened == Overlay::menu) {
+                const Opened opened = background(e);
+                if (opened == Opened::menu) {
                     menu.open(menu_button.bounds(), window_size);
-                } else if (opened == Overlay::grouped_menu) {
+                    overlays.push(menu, on_menu);
+                } else if (opened == Opened::grouped_menu) {
                     grouped_menu.open(grouped_button.bounds(), window_size);
-                } else if (opened == Overlay::dialog) {
+                    overlays.push(grouped_menu, on_grouped_menu);
+                } else if (opened == Opened::dialog) {
                     dialog.open(window_size);
-                } else if (opened == Overlay::wrap_dialog) {
+                    overlays.push(dialog, on_dialog);
+                } else if (opened == Opened::wrap_dialog) {
                     wrap_dialog.open(window_size);
+                    overlays.push(wrap_dialog, on_wrap_dialog);
                 }
             }
             for (const auto& k : frame.keys) {
-                if (dialog.is_open()) {
-                    if (dialog.handle(k) == widgets::DialogResult::dismissed) {
-                        report("Dialog: cancelled");
-                    }
-                } else if (wrap_dialog.is_open()) {
-                    if (wrap_dialog.handle(k) == widgets::DialogResult::dismissed) {
-                        report("Dialog: settings kept");
-                    }
-                } else if (grouped_menu.is_open()) {
-                    grouped_menu.handle(k);
-                } else if (menu.is_open()) {
-                    menu.handle(k);
-                } else if (focused_slider->handle(k)) {
+                if (overlays.handle(k)) {
+                    continue;
+                }
+                if (focused_slider->handle(k)) {
                     continuous_caption.set_text(format_value("Slider", continuous.value()));
                     stepped_caption.set_text(format_value("Steps", stepped.value()));
                 }
@@ -347,12 +333,12 @@ int main(int argc, char** argv) {
             page_controls.step(dt);
             rail_open.step(dt);
             rail_close.step(dt);
-            overlays.step(dt);
+            front.step(dt);
             page_controls.paint(canvas, scheme);
             rail_button().paint(canvas, scheme);
-            overlays.paint(canvas, scheme);
+            front.paint(canvas, scheme);
             return !theme.settled() || page_controls.animating() || rail_open.animating() || rail_close.animating() ||
-                   rail.animating() || overlays.animating();
+                   rail.animating() || front.animating();
         };
 
         sdl3::run_app({"lamina-ui navigation", 1120, 860}, examples::window_canvas(), update, paint);

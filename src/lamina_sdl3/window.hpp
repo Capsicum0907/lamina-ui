@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -36,7 +37,7 @@ public:
 
     bool next_frame(Frame& frame, bool animating);
     void wake_after(double seconds);
-    void set_text_input(const render::Rect* caret_area_dp);
+    void set_text_input(const std::optional<render::Rect>& caret_area_dp);
     input::Clipboard& clipboard();
     render::Canvas& canvas();
     void present();
