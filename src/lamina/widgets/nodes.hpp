@@ -18,17 +18,13 @@
 
 namespace lamina::widgets {
 
-inline layout::NodePtr node(Button& b) {
-    return std::make_shared<layout::Leaf>([&b](const layout::Constraints&) { return layout::Size{b.width(), b.height()}; },
-                                          [&b](const render::Rect& r) { b.set_origin({r.x, r.y + (r.height - b.height()) / 2.0}); });
-}
-
 template <typename W>
 layout::NodePtr centered_node(W& w) {
     return std::make_shared<layout::Leaf>([&w](const layout::Constraints&) { return layout::Size{w.width(), w.height()}; },
                                           [&w](const render::Rect& r) { w.set_origin({r.x, r.y + (r.height - w.height()) / 2.0}); });
 }
 
+inline layout::NodePtr node(Button& b) { return centered_node(b); }
 inline layout::NodePtr node(IconButton& b) { return centered_node(b); }
 inline layout::NodePtr node(Fab& f) { return centered_node(f); }
 inline layout::NodePtr node(Switch& s) { return centered_node(s); }
