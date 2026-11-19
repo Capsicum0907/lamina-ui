@@ -463,6 +463,9 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 if (k.ctrl && !k.shift && k.key == Key::z) {
+                    if (k.repeat) {
+                        continue;
+                    }
                     undo();
                     if (snackbar_focused && !snackbar.focused()) {
                         focus_input();
