@@ -23,7 +23,7 @@ widgets::NavigationRailOptions options() {
 
 widgets::NavigationRail make(widgets::NavigationRailOptions o = options()) {
     widgets::NavigationRail rail(std::move(o), fonts());
-    rail.measure_width(800.0);
+    rail.measure({0.0, 800.0});
     rail.arrange({0.0, 0.0, rail.width(), 600.0});
     return rail;
 }

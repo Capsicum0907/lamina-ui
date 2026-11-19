@@ -2,6 +2,7 @@
 #include "lamina/widgets/navigation_rail.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
@@ -133,10 +134,10 @@ void NavigationRail::update_width() {
     width_ = width;
 }
 
-double NavigationRail::measure_width(double max_width) {
-    max_width_ = max_width;
+layout::Size NavigationRail::measure(const layout::Constraints& c) {
+    max_width_ = c.max_width;
     update_width();
-    return width_;
+    return {width_, std::isfinite(c.max_height) ? c.max_height : height_};
 }
 
 void NavigationRail::arrange(const render::Rect& rect) {

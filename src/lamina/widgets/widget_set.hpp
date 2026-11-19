@@ -3,23 +3,25 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/widgets/protocol.hpp"
 
 namespace lamina::widgets {
 
 class WidgetSet {
 public:
-    template <typename W>
+    template <Paintable W>
     W& add(W& widget) {
         entries_.push_back(std::make_unique<Entry<W&>>(widget));
         return widget;
     }
 
-    template <typename W, typename... Args>
+    template <Paintable W, typename... Args>
     W& emplace(Args&&... args) {
         auto entry = std::make_unique<Entry<W>>(std::forward<Args>(args)...);
         W& widget = entry->widget;
@@ -58,9 +60,20 @@ private:
     struct Entry final : Member {
         template <typename... Args>
         explicit Entry(Args&&... args) : widget(std::forward<Args>(args)...) {}
-        void step(double dt_seconds) override { widget.step(dt_seconds); }
+        using Widget = std::remove_reference_t<Held>;
+        void step(double dt_seconds) override {
+            if constexpr (Steppable<Widget>) {
+                widget.step(dt_seconds);
+            }
+        }
         void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override { widget.paint(canvas, scheme); }
-        bool animating() const override { return widget.animating(); }
+        bool animating() const override {
+            if constexpr (Steppable<Widget>) {
+                return widget.animating();
+            } else {
+                return false;
+            }
+        }
         Held widget;
     };
 

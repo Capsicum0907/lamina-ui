@@ -6,6 +6,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/clipboard.hpp"
 #include "lamina/input/events.hpp"
+#include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/edit_buffer.hpp"
@@ -29,6 +30,8 @@ public:
     double height() const;
     void set_width(double width);
     void set_origin(render::Point origin) { origin_ = origin; }
+    layout::Size measure(const layout::Constraints&) const { return {width_, height()}; }
+    void arrange(const render::Rect& r) { origin_ = {r.x, r.y}; }
     render::Rect bounds() const;
     bool focused() const { return focused_; }
     void set_focused(bool focused);

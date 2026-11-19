@@ -24,6 +24,7 @@ public:
     void set_text(std::string text);
     layout::Size measure(const layout::Constraints& c);
     void set_origin(render::Point origin) { origin_ = origin; }
+    void arrange(const render::Rect& r) { origin_ = {r.x, r.y}; }
     render::Rect bounds() const { return {origin_.x, origin_.y, block_.width, block_.height}; }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 

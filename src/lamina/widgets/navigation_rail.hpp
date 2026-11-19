@@ -30,7 +30,7 @@ public:
 
     double width() const { return width_; }
     double height() const { return height_; }
-    double measure_width(double max_width);
+    layout::Size measure(const layout::Constraints& c);
     void arrange(const render::Rect& rect);
     render::Rect bounds() const;
 
