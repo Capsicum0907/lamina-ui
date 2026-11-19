@@ -10,6 +10,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/menu.hpp"
@@ -78,11 +79,13 @@ private:
     };
 
     void set_active(std::optional<std::size_t> index);
+    void reveal_access_keys();
 
     text::FontStack fonts_;
     std::vector<Item> items_;
     std::vector<std::optional<input::Key>> access_keys_;
     bool access_keys_shown_ = false;
+    motion::Animated access_keys_fade_{0.0, tokens::motion_scheme.fast_effects()};
     std::optional<std::size_t> active_;
     FocusIndicator focus_;
     double width_ = 0.0;

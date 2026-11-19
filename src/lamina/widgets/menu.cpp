@@ -120,6 +120,7 @@ void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSou
     pivot_ = menu_transform_origin(anchor, bounds());
     popup_.open();
     access_keys_shown_ = source == input::InputSource::keyboard;
+    access_keys_fade_.snap_to(access_keys_shown_ ? 1.0 : 0.0);
     set_active(source == input::InputSource::keyboard && !items_.empty() ? std::optional<std::size_t>(0) : std::nullopt);
 }
 
@@ -181,12 +182,14 @@ MenuResponse Menu::handle(const input::KeyEvent& e) {
         return response;
     }
     if (const std::optional<std::size_t> target = menu_key_target(e, active_, items_.size())) {
+        reveal_access_keys();
         set_active(target);
         response.consumed = true;
         return response;
     }
     if (const std::optional<AccessKeyMatch> match = match_access_key(e, access_keys_, active_)) {
         response.consumed = true;
+        reveal_access_keys();
         if (match->unique && e.repeat) {
             return response;
         }
@@ -199,16 +202,22 @@ MenuResponse Menu::handle(const input::KeyEvent& e) {
     return response;
 }
 
+void Menu::reveal_access_keys() {
+    access_keys_shown_ = true;
+    access_keys_fade_.animate_to(1.0);
+}
+
 void Menu::step(double dt) {
     popup_.step(dt);
     focus_.step(dt);
+    access_keys_fade_.step(dt);
     for (Item& item : items_) {
         item.state_layer.step(dt);
     }
 }
 
 bool Menu::animating() const {
-    if (!popup_.settled() || !focus_.settled()) {
+    if (!popup_.settled() || !focus_.settled() || !access_keys_fade_.settled()) {
         return true;
     }
     return std::any_of(items_.begin(), items_.end(), [](const Item& item) { return !item.state_layer.settled(); });
@@ -242,8 +251,9 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
         if (item.label) {
             const render::Point top_left{x, cy - item.label->box_height() / 2.0};
             text::draw_line(canvas, fonts_, *item.label, top_left, label_color);
-            if (access_keys_shown_ && item.access) {
-                paint_access_key(canvas, fonts_, *item.access, *item.label, top_left, label_color);
+            if (item.access && access_keys_fade_.value() > 0.0) {
+                paint_access_key(canvas, fonts_, *item.access, *item.label, top_left,
+                                 color::scale_alpha(label_color, std::clamp(access_keys_fade_.value(), 0.0, 1.0)));
             }
         }
     }

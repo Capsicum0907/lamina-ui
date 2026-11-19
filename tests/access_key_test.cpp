@@ -174,7 +174,7 @@ TEST_CASE("a key no item has, a modified key or a held key does nothing") {
     CHECK(m.focused_item() == 0u);
 }
 
-TEST_CASE("the menu shows its access keys only when the keyboard opened it") {
+TEST_CASE("the menu shows its access keys at once when the keyboard opened it, and hides them when the pointer did") {
     auto m = make();
     m.open(anchor, window, input::InputSource::keyboard);
     CHECK(m.access_keys_shown());
@@ -194,6 +194,36 @@ TEST_CASE("the menu shows its access keys only when the keyboard opened it") {
     keyed.open(anchor, window, input::InputSource::keyboard);
     plain.open(anchor, window, input::InputSource::keyboard);
     CHECK(paint(keyed) != paint(plain));
+}
+
+TEST_CASE("a pointer-opened menu fades its access keys in once a key moves within it") {
+    widgets::Menu keyed({{{japanese, std::nullopt, Key::s}, {"Copy"}}}, fonts());
+    widgets::Menu plain({{{japanese}, {"Copy", std::nullopt, Key::j}}}, fonts());
+    keyed.open(anchor, window);
+    plain.open(anchor, window);
+    settle(keyed);
+    settle(plain);
+    CHECK_FALSE(keyed.access_keys_shown());
+    CHECK(keyed.handle(press(Key::down)).consumed);
+    CHECK(keyed.access_keys_shown());
+    CHECK(keyed.animating());
+    CHECK(paint(keyed) != paint(plain));
+}
+
+TEST_CASE("an access key pressed in a pointer-opened menu shows the access keys") {
+    auto m = make();
+    m.open(anchor, window);
+    m.handle(press(Key::s));
+    CHECK(m.access_keys_shown());
+}
+
+TEST_CASE("the grouped menu fades its access keys in once a key moves within it") {
+    widgets::GroupedMenu m({{{{{long_japanese, std::nullopt, std::nullopt, std::nullopt, false, Key::s}}}}}, fonts());
+    m.open(anchor, window);
+    CHECK_FALSE(m.access_keys_shown());
+    m.handle(press(Key::down));
+    CHECK(m.access_keys_shown());
+    CHECK(m.animating());
 }
 
 TEST_CASE("the menu is as wide with its access keys hidden as shown, with room for the brackets") {

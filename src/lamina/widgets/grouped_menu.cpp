@@ -207,6 +207,7 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window, input::I
         }
     }
     access_keys_shown_ = source == input::InputSource::keyboard;
+    access_keys_fade_.snap_to(access_keys_shown_ ? 1.0 : 0.0);
     set_active(source == input::InputSource::keyboard && flat_count() > 0 ? std::optional<std::size_t>(0) : std::nullopt);
 }
 
@@ -321,12 +322,14 @@ GroupedMenuResponse GroupedMenu::handle(const input::KeyEvent& e) {
         return response;
     }
     if (const std::optional<std::size_t> target = menu_key_target(e, active_, flat_count())) {
+        reveal_access_keys();
         set_active(target);
         response.consumed = true;
         return response;
     }
     if (const std::optional<AccessKeyMatch> match = match_access_key(e, access_keys_, active_)) {
         response.consumed = true;
+        reveal_access_keys();
         if (match->unique && e.repeat) {
             return response;
         }
@@ -340,9 +343,15 @@ GroupedMenuResponse GroupedMenu::handle(const input::KeyEvent& e) {
     return response;
 }
 
+void GroupedMenu::reveal_access_keys() {
+    access_keys_shown_ = true;
+    access_keys_fade_.animate_to(1.0);
+}
+
 void GroupedMenu::step(double dt) {
     popup_.step(dt);
     focus_.step(dt);
+    access_keys_fade_.step(dt);
     for (Group& g : groups_) {
         g.corners.step(dt);
         for (Item& item : g.items) {
@@ -354,7 +363,7 @@ void GroupedMenu::step(double dt) {
 }
 
 bool GroupedMenu::animating() const {
-    if (!popup_.settled() || !focus_.settled()) {
+    if (!popup_.settled() || !focus_.settled() || !access_keys_fade_.settled()) {
         return true;
     }
     return std::any_of(groups_.begin(), groups_.end(), [](const Group& g) {
@@ -413,8 +422,9 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
                 const render::Point top_left{x, cy - item.label->box_height() / 2.0};
                 const color::Argb label_color = color::mix(s[t.label_color], s[t.selected_label], k);
                 text::draw_line(canvas, fonts_, *item.label, top_left, label_color);
-                if (access_keys_shown_ && item.access) {
-                    paint_access_key(canvas, fonts_, *item.access, *item.label, top_left, label_color);
+                if (item.access && access_keys_fade_.value() > 0.0) {
+                    paint_access_key(canvas, fonts_, *item.access, *item.label, top_left,
+                                 color::scale_alpha(label_color, std::clamp(access_keys_fade_.value(), 0.0, 1.0)));
                 }
             }
             if (item.trailing_icon) {

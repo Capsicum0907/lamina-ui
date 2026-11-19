@@ -10,6 +10,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/motion/animated_radii.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
@@ -130,6 +131,7 @@ private:
     std::size_t flat_count() const;
     MenuItemIndex item_at(std::size_t flat) const;
     void set_active(std::optional<std::size_t> flat);
+    void reveal_access_keys();
     void retarget_state_layers();
 
     text::FontStack fonts_;
@@ -141,6 +143,7 @@ private:
     std::optional<std::size_t> active_;
     std::vector<std::optional<input::Key>> access_keys_;
     bool access_keys_shown_ = false;
+    motion::Animated access_keys_fade_{0.0, tokens::motion_scheme.fast_effects()};
     FocusIndicator focus_;
 };
 
