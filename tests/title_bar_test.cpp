@@ -30,6 +30,7 @@ render::Point center(const render::Rect& r) {
 }
 
 constexpr double ink_tolerance = 1.0;
+constexpr int visible_coverage_divisor = 8;
 
 int channel_distance(color::Argb a, color::Argb b) {
     int d = 0;
@@ -40,14 +41,14 @@ int channel_distance(color::Argb a, color::Argb b) {
 }
 
 render::Rect ink_box(render::Canvas& canvas, const render::Rect& cell, color::Argb background, color::Argb ink) {
-    const int half_coverage = channel_distance(ink, background) / 2;
+    const int visible_coverage = channel_distance(ink, background) / visible_coverage_divisor;
     int left = static_cast<int>(cell.x + cell.width);
     int top = static_cast<int>(cell.y + cell.height);
     int right = static_cast<int>(cell.x);
     int bottom = static_cast<int>(cell.y);
     for (int y = static_cast<int>(cell.y); y < static_cast<int>(cell.y + cell.height); ++y) {
         for (int x = static_cast<int>(cell.x); x < static_cast<int>(cell.x + cell.width); ++x) {
-            if (channel_distance(canvas.pixel(x, y), background) > half_coverage) {
+            if (channel_distance(canvas.pixel(x, y), background) > visible_coverage) {
                 left = std::min(left, x);
                 top = std::min(top, y);
                 right = std::max(right, x + 1);

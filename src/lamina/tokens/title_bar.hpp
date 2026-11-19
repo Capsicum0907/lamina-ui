@@ -44,7 +44,7 @@ inline constexpr TitleBarTokens title_bar_tokens{
     .indicator_width = 40.0,
     .indicator_height = 32.0,
     .icon_size = 20.0,
-    .glyph_box = 8.0,
+    .glyph_box = 10.0,
     .glyph_stroke = 1.5,
     .glyph_corner = 1.5,
     .restore_offset = 2.0,
