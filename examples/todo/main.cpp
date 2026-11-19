@@ -264,6 +264,7 @@ int main(int argc, char** argv) {
                 }
             }
         };
+        overlays.set_focus(focus);
         auto focus_input = [&] {
             rebuild_focus();
             focus.clear_focus();
@@ -360,6 +361,7 @@ int main(int argc, char** argv) {
         std::size_t placed_editing = 0;
 
         auto update = [&](const sdl3::Frame& frame) {
+            rebuild_focus();
             const double body_height = frame.height_dp - bar_height;
             const render::Rect body{0.0, bar_height, frame.width_dp, body_height};
             if (window.client_title_bar()) {
@@ -497,7 +499,7 @@ int main(int argc, char** argv) {
                     continue;
                 }
                 if (header.handle(k).clear) {
-                    dialog.open_in(body);
+                    dialog.open_in(body, input::InputSource::keyboard);
                     overlays.push(dialog, on_dialog);
                     continue;
                 }
@@ -654,6 +656,7 @@ int main(int argc, char** argv) {
                 r->step(dt);
             }
             std::erase_if(rows, [](const auto& r) { return r->gone(); });
+            rebuild_focus();
             header.step(dt);
             scroll.step(dt);
             input.step(dt);
