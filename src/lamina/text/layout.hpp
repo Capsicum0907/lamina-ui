@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <string_view>
 #include <vector>
@@ -28,6 +29,8 @@ struct TextLine {
     double baseline;
     std::size_t first;
     std::size_t last;
+
+    double box_height() const { return std::max(style.line_height, ascent + descent); }
 };
 
 struct TextBlock {

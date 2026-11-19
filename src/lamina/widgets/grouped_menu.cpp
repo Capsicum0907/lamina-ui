@@ -66,10 +66,6 @@ std::array<motion::Animated, 4> springs() {
             motion::Animated(0.0, morph_spring)};
 }
 
-double text_box(const text::TextLine& line) {
-    return std::max(line.style.line_height, line.ascent + line.descent);
-}
-
 color::Argb faded(color::Argb c, double alpha) {
     return color::with_alpha(c, alpha * static_cast<double>(c >> 24) / 255.0);
 }
@@ -365,7 +361,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
         const Group& group = groups_[g];
         const render::Rect gr = group_rect(g);
         if (group.label) {
-            const double y = gr.y + group.label_y + (group.label_height - text_box(*group.label)) / 2.0;
+            const double y = gr.y + group.label_y + (group.label_height - group.label->box_height()) / 2.0;
             text::draw_line(canvas, fonts_, *group.label, {gr.x + t.group_label_start_padding, y},
                             faded(scheme[t.group_label_color], a));
         }
@@ -396,7 +392,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
                 x += t.leading_icon_size + t.icon_text_space;
             }
             if (item.label) {
-                text::draw_line(canvas, fonts_, *item.label, {x, cy - text_box(*item.label) / 2.0},
+                text::draw_line(canvas, fonts_, *item.label, {x, cy - item.label->box_height() / 2.0},
                                 faded(color::mix(scheme[t.label_color], scheme[t.selected_label], k), a));
             }
             if (item.trailing_icon) {

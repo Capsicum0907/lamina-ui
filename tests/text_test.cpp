@@ -73,6 +73,13 @@ TEST_CASE("the baseline centers the text in the line height") {
     CHECK(line.baseline - line.ascent == doctest::Approx(24.0 - line.baseline - line.descent));
 }
 
+TEST_CASE("the line box is the line height unless the font extents are taller") {
+    const TextLine roomy{{}, body, 0.0, 14.0, 4.0, 0.0, 0, 0};
+    CHECK(roomy.box_height() == 24.0);
+    const TextLine tall{{}, body, 0.0, 20.0, 8.0, 0.0, 0, 0};
+    CHECK(tall.box_height() == 28.0);
+}
+
 TEST_CASE("drawn text covers pixels inside the line box only") {
     const FontStack fonts({sans});
     const TextLine line = layout_line(fonts, "\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e", {32.0, 48.0, 400, 0.0});

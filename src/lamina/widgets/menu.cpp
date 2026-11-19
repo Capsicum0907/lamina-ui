@@ -223,8 +223,7 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
             x += t.icon_size + t.icon_text_space;
         }
         if (item.label) {
-            const double box = std::max(item.label->style.line_height, item.label->ascent + item.label->descent);
-            text::draw_line(canvas, fonts_, *item.label, {x, cy - box / 2.0}, label_color);
+            text::draw_line(canvas, fonts_, *item.label, {x, cy - item.label->box_height() / 2.0}, label_color);
         }
     }
     canvas.restore();

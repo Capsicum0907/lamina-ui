@@ -42,8 +42,7 @@ TextLine shape_range(const FontStack& fonts, std::u32string_view text, std::size
         x -= style.tracking;
     }
     line.width = std::max(0.0, x);
-    const double box = std::max(style.line_height, line.ascent + line.descent);
-    line.baseline = (box - (line.ascent + line.descent)) / 2.0 + line.ascent;
+    line.baseline = (line.box_height() - (line.ascent + line.descent)) / 2.0 + line.ascent;
     return line;
 }
 
@@ -117,7 +116,7 @@ TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const 
 
     for (const TextLine& line : block.lines) {
         block.width = std::max(block.width, line.width);
-        block.height += std::max(style.line_height, line.ascent + line.descent);
+        block.height += line.box_height();
     }
     return block;
 }
@@ -171,7 +170,7 @@ void draw_block(render::Canvas& canvas, const FontStack& fonts, const TextBlock&
     double y = top_left.y;
     for (const TextLine& line : block.lines) {
         draw_line(canvas, fonts, line, {top_left.x, y}, color);
-        y += std::max(line.style.line_height, line.ascent + line.descent);
+        y += line.box_height();
     }
 }
 

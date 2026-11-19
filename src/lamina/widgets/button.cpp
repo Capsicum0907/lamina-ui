@@ -114,14 +114,13 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
         canvas.fill_path(ring_path(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
     }
 
-    const double line_box = std::max(label_.style.line_height, label_.ascent + label_.descent);
     double x = r.x + (r.width - content_width()) / 2.0;
     if (options_.leading_icon) {
         const auto& icon = *options_.leading_icon;
         icon.font.draw(canvas, icon.symbol, {x, r.y + (r.height - size.icon_size) / 2.0}, size.icon_size, label_color);
         x += size.icon_size + size.icon_label_space;
     }
-    text::draw_line(canvas, fonts_, label_, {x, r.y + (r.height - line_box) / 2.0}, label_color);
+    text::draw_line(canvas, fonts_, label_, {x, r.y + (r.height - label_.box_height()) / 2.0}, label_color);
 }
 
 }

@@ -29,10 +29,6 @@ icons::IconStyle mix_style(const icons::IconStyle& a, const icons::IconStyle& b,
             k < 0.5 ? a.optical_size : b.optical_size};
 }
 
-double text_box(const text::TextLine& line) {
-    return std::max(line.style.line_height, line.ascent + line.descent);
-}
-
 }
 
 NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontStack& fonts)
@@ -297,7 +293,7 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
             const double mode = std::clamp(item.label_mode.value(), 0.0, 1.0);
             const color::Argb active = color::mix(scheme[t.top_active_label], scheme[t.start_active_label], mode);
             const color::Argb c = color::mix(scheme[t.inactive_label], active, k);
-            const double y = label.y + (label.height - text_box(*g.line)) / 2.0;
+            const double y = label.y + (label.height - g.line->box_height()) / 2.0;
             text::draw_line(canvas, fonts_, *g.line, {label.x, y},
                             color::with_alpha(c, g.label_opacity * static_cast<double>(c >> 24) / 255.0));
         }

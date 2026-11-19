@@ -21,10 +21,6 @@ constexpr motion::SpringSpec fade_out_spring =
 constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
-double line_box(const text::TextLine& line) {
-    return std::max(line.style.line_height, line.ascent + line.descent);
-}
-
 }
 
 TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
@@ -173,7 +169,7 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
         const double total = t.icon_size + t.leading_icon_text_space + tab.label->width;
         const double x = cx - total / 2.0;
         tab.icon->font.draw(canvas, tab.icon->symbol, {x, cy - t.icon_size / 2.0}, t.icon_size, content);
-        text::draw_line(canvas, fonts_, *tab.label, {x + t.icon_size + t.leading_icon_text_space, cy - line_box(*tab.label) / 2.0},
+        text::draw_line(canvas, fonts_, *tab.label, {x + t.icon_size + t.leading_icon_text_space, cy - tab.label->box_height() / 2.0},
                         content);
         return;
     }
@@ -181,7 +177,7 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
         tab.icon->font.draw(canvas, tab.icon->symbol, {cx - t.icon_size / 2.0, cy - t.icon_size / 2.0}, t.icon_size, content);
     }
     if (tab.label) {
-        text::draw_line(canvas, fonts_, *tab.label, {cx - tab.label->width / 2.0, cy - line_box(*tab.label) / 2.0}, content);
+        text::draw_line(canvas, fonts_, *tab.label, {cx - tab.label->width / 2.0, cy - tab.label->box_height() / 2.0}, content);
     }
 }
 

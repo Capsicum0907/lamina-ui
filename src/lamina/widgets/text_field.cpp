@@ -30,10 +30,6 @@ bool inside(const render::Rect& r, double x, double y) {
     return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 }
 
-double line_box(const text::TextLine& line) {
-    return std::max(line.style.line_height, line.ascent + line.descent);
-}
-
 enum class WordClass { space, newline, punctuation, hiragana, katakana, han, word };
 
 struct ClassRange {
@@ -240,7 +236,7 @@ void TextField::relayout() {
     }
     line_tops_.assign(1, 0.0);
     for (const text::TextLine& line : lines_) {
-        line_tops_.push_back(line_tops_.back() + line_box(line));
+        line_tops_.push_back(line_tops_.back() + line.box_height());
     }
     update_scroll();
     label_progress_.animate_to(focused_ || !text_.empty() || !composition_.empty() ? 1.0 : 0.0);
@@ -586,8 +582,8 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme, 
                                  render::uniform_radii(0.0), background);
     }
 
-    const double rest_top = r.y + (t.height - line_box(label_large_)) / 2.0;
-    const double float_top = r.y - line_box(label_large_) * scale / 2.0;
+    const double rest_top = r.y + (t.height - label_large_.box_height()) / 2.0;
+    const double float_top = r.y - label_large_.box_height() * scale / 2.0;
     const double label_top = rest_top + (float_top - rest_top) * p;
     const color::Argb idle_label = color::mix(scheme[t.label], scheme[t.hover_label], hover_.value());
     const color::Argb label_color = color::mix(idle_label, scheme[t.focus_label], f);
