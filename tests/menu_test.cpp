@@ -95,7 +95,7 @@ TEST_CASE("a press outside the menu or Escape closes it without choosing") {
     CHECK_FALSE(outside.chosen);
     CHECK_FALSE(m.is_open());
     m.open(anchor, window);
-    CHECK(m.handle(input::KeyEvent{input::Key::escape, false}));
+    CHECK(m.handle(input::KeyEvent{input::Key::escape, false}).consumed);
     CHECK_FALSE(m.is_open());
 }
 

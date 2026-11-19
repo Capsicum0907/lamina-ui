@@ -26,6 +26,7 @@ struct MenuTokens {
     double window_vertical_margin;
     double window_horizontal_margin;
     double closed_scale;
+    double focus_ring_corner;
 };
 
 inline constexpr MenuTokens menu_tokens{
@@ -46,6 +47,7 @@ inline constexpr MenuTokens menu_tokens{
     .window_vertical_margin = 48.0,
     .window_horizontal_margin = 0.0,
     .closed_scale = 0.8,
+    .focus_ring_corner = 0.0,
 };
 
 }

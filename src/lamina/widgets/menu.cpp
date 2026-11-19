@@ -7,6 +7,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/item_focus.hpp"
 #include "lamina/widgets/surface.hpp"
 
 namespace lamina::widgets {
@@ -106,19 +107,28 @@ render::Rect Menu::item_rect(std::size_t index) const {
     return {origin_.x, origin_.y + t.vertical_padding + t.item_height * static_cast<double>(index), width_, t.item_height};
 }
 
-void Menu::open(const render::Rect& anchor, layout::Size window) {
+void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSource source) {
     origin_ = menu_position(anchor, window, {width_, height()});
     pivot_ = menu_transform_origin(anchor, bounds());
     popup_.open();
+    set_active(source == input::InputSource::keyboard && !items_.empty() ? std::optional<std::size_t>(0) : std::nullopt);
 }
 
 void Menu::close() {
     popup_.close();
+    set_active(std::nullopt);
     cancel_interaction();
+}
+
+void Menu::set_active(std::optional<std::size_t> index) {
+    active_ = index;
+    focus_.set_focused(index.has_value());
+    retarget_state_layers(items_, active_);
 }
 
 void Menu::cancel_interaction() {
     cancel_presses(items_);
+    retarget_state_layers(items_, active_);
 }
 
 MenuResponse Menu::handle(const input::PointerEvent& e) {
@@ -131,37 +141,53 @@ MenuResponse Menu::handle(const input::PointerEvent& e) {
         response.consumed = true;
         return response;
     }
-    response.consumed = e.action != input::PointerAction::leave;
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        Item& item = items_[i];
-        if (item.press.update(e, item_rect(i))) {
-            response.chosen = i;
-        }
-        item.state_layer.animate_to(item.press.state_layer_opacity());
+    if (e.action == input::PointerAction::down) {
+        set_active(std::nullopt);
     }
+    response.consumed = e.action != input::PointerAction::leave;
+    response.chosen = update_presses(items_, e, [this](std::size_t i) { return item_rect(i); });
+    retarget_state_layers(items_, active_);
     if (response.chosen) {
         close();
     }
     return response;
 }
 
-bool Menu::handle(const input::KeyEvent& e) {
-    if (popup_.dismisses(e)) {
-        close();
-        return true;
+MenuResponse Menu::handle(const input::KeyEvent& e) {
+    MenuResponse response;
+    if (!popup_.is_open()) {
+        return response;
     }
-    return false;
+    if (closes_menu(e)) {
+        close();
+        response.consumed = true;
+        return response;
+    }
+    if (activates(e, KeyActivation::space_or_enter)) {
+        response.consumed = true;
+        if (active_) {
+            response.chosen = active_;
+            close();
+        }
+        return response;
+    }
+    if (const std::optional<std::size_t> target = menu_key_target(e, active_, items_.size())) {
+        set_active(target);
+        response.consumed = true;
+    }
+    return response;
 }
 
 void Menu::step(double dt) {
     popup_.step(dt);
+    focus_.step(dt);
     for (Item& item : items_) {
         item.state_layer.step(dt);
     }
 }
 
 bool Menu::animating() const {
-    if (!popup_.settled()) {
+    if (!popup_.settled() || !focus_.settled()) {
         return true;
     }
     return std::any_of(items_.begin(), items_.end(), [](const Item& item) { return !item.state_layer.settled(); });
@@ -195,6 +221,9 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
         if (item.label) {
             text::draw_line(canvas, fonts_, *item.label, {x, cy - item.label->box_height() / 2.0}, label_color);
         }
+    }
+    if (active_) {
+        focus_.paint_inward(canvas, s, item_rect(*active_), t.focus_ring_corner);
     }
     canvas.restore();
 }

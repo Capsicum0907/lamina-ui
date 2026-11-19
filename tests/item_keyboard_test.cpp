@@ -5,6 +5,7 @@
 
 #include "lamina/tokens/focus.hpp"
 #include "lamina/widgets/item_focus.hpp"
+#include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
 #include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/protocol.hpp"
@@ -160,4 +161,81 @@ TEST_CASE("a navigation bar moves its focus with Left and Right and selects on S
 
 TEST_CASE("a navigation rail moves its focus with Up and Down and selects on Space or Enter") {
     check_item_focus(navigation_rail(), input::KeyEvent{Key::down, false}, input::KeyEvent{Key::up, false}, 120, 600);
+}
+
+namespace {
+
+constexpr layout::Size menu_window{400.0, 400.0};
+constexpr input::KeyEvent down{Key::down, false};
+constexpr input::KeyEvent up{Key::up, false};
+
+widgets::Menu three_item_menu() {
+    return widgets::Menu({{{"Edit"}, {"Share"}, {"Copy"}}}, fonts());
+}
+
+}
+
+static_assert(widgets::HandlesKeys<widgets::Menu>);
+
+TEST_CASE("a menu opened by the pointer focuses no item until an arrow key, then moves and wraps") {
+    auto m = three_item_menu();
+    m.open({20.0, 20.0, 40.0, 40.0}, menu_window);
+    CHECK_FALSE(m.focused_item());
+    CHECK_FALSE(m.handle(input::KeyEvent{Key::enter, false}).chosen);
+    CHECK(m.is_open());
+    CHECK(m.handle(down).consumed);
+    CHECK(m.focused_item() == 0u);
+    CHECK(m.focus_shown());
+    m.handle(up);
+    CHECK(m.focused_item() == 2u);
+    m.handle(down);
+    CHECK(m.focused_item() == 0u);
+    m.handle(end);
+    CHECK(m.focused_item() == 2u);
+    m.handle(home);
+    CHECK(m.focused_item() == 0u);
+
+    auto from_end = three_item_menu();
+    from_end.open({20.0, 20.0, 40.0, 40.0}, menu_window);
+    from_end.handle(up);
+    CHECK(from_end.focused_item() == 2u);
+}
+
+TEST_CASE("a menu opened from the keyboard focuses its first item, and Enter or Space chooses it and closes") {
+    auto m = three_item_menu();
+    m.open({20.0, 20.0, 40.0, 40.0}, menu_window, input::InputSource::keyboard);
+    CHECK(m.focused_item() == 0u);
+    m.handle(down);
+    CHECK_FALSE(m.handle(input::KeyEvent{Key::space, false, false, true}).chosen);
+    const widgets::MenuResponse r = m.handle(input::KeyEvent{Key::space, false});
+    CHECK(r.consumed);
+    CHECK(r.chosen == 1u);
+    CHECK_FALSE(m.is_open());
+    CHECK_FALSE(m.focused_item());
+
+    m.open({20.0, 20.0, 40.0, 40.0}, menu_window, input::InputSource::keyboard);
+    CHECK(m.handle(input::KeyEvent{Key::enter, false}).chosen == 0u);
+}
+
+TEST_CASE("Escape and Tab close a menu without choosing") {
+    for (const Key key : {Key::escape, Key::tab}) {
+        auto m = three_item_menu();
+        m.open({20.0, 20.0, 40.0, 40.0}, menu_window, input::InputSource::keyboard);
+        const widgets::MenuResponse r = m.handle(input::KeyEvent{key, false});
+        CHECK(r.consumed);
+        CHECK_FALSE(r.chosen);
+        CHECK_FALSE(m.is_open());
+    }
+}
+
+TEST_CASE("the focused menu item shows the ring until a press inside the menu takes the keyboard focus away") {
+    auto m = three_item_menu();
+    m.open({20.0, 20.0, 40.0, 40.0}, menu_window);
+    const int unfocused = ring_pixels(m, 400, 400);
+    m.handle(down);
+    CHECK(ring_pixels(m, 400, 400) > unfocused);
+    const render::Rect item = m.item_rect(2);
+    m.handle({PointerAction::down, item.x + 4.0, item.y + 4.0});
+    CHECK_FALSE(m.focused_item());
+    CHECK(ring_pixels(m, 400, 400) == unfocused);
 }

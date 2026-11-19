@@ -32,6 +32,26 @@ constexpr std::optional<std::size_t> item_key_target(const input::KeyEvent& e, s
     return std::nullopt;
 }
 
+constexpr bool closes_menu(const input::KeyEvent& e) {
+    return e.key == input::Key::escape || e.key == input::Key::tab;
+}
+
+constexpr std::optional<std::size_t> menu_key_target(const input::KeyEvent& e, std::optional<std::size_t> active, std::size_t count) {
+    if (active) {
+        return item_key_target(e, *active, count, ItemAxis::vertical);
+    }
+    if (count == 0 || e.ctrl) {
+        return std::nullopt;
+    }
+    if (e.key == input::Key::down || e.key == input::Key::home) {
+        return 0;
+    }
+    if (e.key == input::Key::up || e.key == input::Key::end) {
+        return count - 1;
+    }
+    return std::nullopt;
+}
+
 template <typename Items>
 void retarget_state_layers(Items& items, std::optional<std::size_t> focused) {
     for (std::size_t i = 0; i < items.size(); ++i) {

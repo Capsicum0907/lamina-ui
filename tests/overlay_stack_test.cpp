@@ -198,7 +198,7 @@ TEST_CASE("an overlay removed from its own result handler leaves the stack after
     auto menu = make_menu();
     menu.open({20.0, 20.0, 40.0, 40.0}, window);
     int calls = 0;
-    stack.push(menu, [&](bool) {
+    stack.push(menu, [&](const widgets::MenuResponse&) {
         ++calls;
         stack.remove(menu);
     });
