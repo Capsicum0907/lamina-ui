@@ -13,6 +13,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/menu.hpp"
+#include "lamina/widgets/access_key.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/popup_transition.hpp"
@@ -22,6 +23,7 @@ namespace lamina::widgets {
 struct MenuItem {
     std::string label;
     std::optional<icons::Icon> leading_icon = std::nullopt;
+    std::optional<input::Key> access_key = std::nullopt;
 };
 
 struct MenuOptions {
@@ -56,6 +58,8 @@ public:
     render::Point transform_origin() const { return pivot_; }
     std::optional<std::size_t> focused_item() const { return active_; }
     bool focus_shown() const { return focus_.focused(); }
+    std::optional<input::Key> access_key(std::size_t index) const { return access_keys_[index]; }
+    bool access_keys_shown() const { return access_keys_shown_; }
 
     MenuResponse handle(const input::PointerEvent& event);
     MenuResponse handle(const input::KeyEvent& event);
@@ -68,6 +72,7 @@ private:
     struct Item {
         std::optional<text::TextLine> label;
         std::optional<icons::Icon> icon;
+        std::optional<AccessKeyLabel> access;
         PressState press;
         motion::Animated state_layer;
     };
@@ -76,6 +81,8 @@ private:
 
     text::FontStack fonts_;
     std::vector<Item> items_;
+    std::vector<std::optional<input::Key>> access_keys_;
+    bool access_keys_shown_ = false;
     std::optional<std::size_t> active_;
     FocusIndicator focus_;
     double width_ = 0.0;

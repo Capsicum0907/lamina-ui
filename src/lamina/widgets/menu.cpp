@@ -81,16 +81,24 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
     double content = 0.0;
     for (auto& item : options.items) {
         std::optional<text::TextLine> label;
+        std::optional<AccessKeyLabel> access;
+        const std::optional<input::Key> key = access_key_for(item.label, item.access_key);
         double w = 2.0 * t.item_horizontal_padding;
         if (!item.label.empty()) {
             label = text::layout_line(fonts_, item.label, style);
             w += label->width;
+            if (key) {
+                access = access_key_label(fonts_, item.label, *label, *key);
+                w += access->suffix_width();
+            }
         }
         if (item.leading_icon) {
             w += t.icon_size + t.icon_text_space;
         }
         content = std::max(content, w);
-        items_.push_back({std::move(label), std::move(item.leading_icon), {}, motion::Animated(0.0, motion_scheme.fast_effects())});
+        access_keys_.push_back(key);
+        items_.push_back({std::move(label), std::move(item.leading_icon), std::move(access), {},
+                          motion::Animated(0.0, motion_scheme.fast_effects())});
     }
     width_ = std::clamp(content, t.item_min_width, t.item_max_width);
 }
@@ -111,6 +119,7 @@ void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSou
     origin_ = menu_position(anchor, window, {width_, height()});
     pivot_ = menu_transform_origin(anchor, bounds());
     popup_.open();
+    access_keys_shown_ = source == input::InputSource::keyboard;
     set_active(source == input::InputSource::keyboard && !items_.empty() ? std::optional<std::size_t>(0) : std::nullopt);
 }
 
@@ -174,6 +183,18 @@ MenuResponse Menu::handle(const input::KeyEvent& e) {
     if (const std::optional<std::size_t> target = menu_key_target(e, active_, items_.size())) {
         set_active(target);
         response.consumed = true;
+        return response;
+    }
+    if (const std::optional<AccessKeyMatch> match = match_access_key(e, access_keys_, active_)) {
+        response.consumed = true;
+        if (match->unique && e.repeat) {
+            return response;
+        }
+        set_active(match->index);
+        if (match->unique) {
+            response.chosen = match->index;
+            close();
+        }
     }
     return response;
 }
@@ -219,7 +240,11 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
             x += t.icon_size + t.icon_text_space;
         }
         if (item.label) {
-            text::draw_line(canvas, fonts_, *item.label, {x, cy - item.label->box_height() / 2.0}, label_color);
+            const render::Point top_left{x, cy - item.label->box_height() / 2.0};
+            text::draw_line(canvas, fonts_, *item.label, top_left, label_color);
+            if (access_keys_shown_ && item.access) {
+                paint_access_key(canvas, fonts_, *item.access, *item.label, top_left, label_color);
+            }
         }
     }
     if (active_) {
