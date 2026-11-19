@@ -15,6 +15,7 @@
 #include "lamina/tokens/dialog.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/label.hpp"
+#include "lamina/widgets/popup_transition.hpp"
 
 namespace lamina::widgets {
 
@@ -39,10 +40,10 @@ public:
     void open(layout::Size window);
     void close();
     void set_window(layout::Size window);
-    bool is_open() const { return open_; }
-    bool visible() const;
-    double opacity() const;
-    double scale() const { return scale_.value(); }
+    bool is_open() const { return popup_.is_open(); }
+    bool visible() const { return popup_.visible(); }
+    double opacity() const { return popup_.opacity(); }
+    double scale() const { return popup_.scale(); }
     render::Rect bounds() const { return surface_; }
     render::Rect confirm_bounds() const { return confirm_.bounds(); }
     std::optional<render::Rect> dismiss_bounds() const;
@@ -67,9 +68,7 @@ private:
     layout::NodePtr root_;
     layout::Size window_{0.0, 0.0};
     render::Rect surface_{0.0, 0.0, 0.0, 0.0};
-    bool open_ = false;
-    motion::Animated scale_;
-    motion::Animated alpha_;
+    PopupTransition popup_;
 };
 
 }

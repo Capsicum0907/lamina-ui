@@ -15,6 +15,7 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/widgets/interaction.hpp"
+#include "lamina/widgets/popup_transition.hpp"
 
 namespace lamina::widgets {
 
@@ -71,10 +72,10 @@ public:
 
     void open(const render::Rect& anchor, layout::Size window);
     void close();
-    bool is_open() const { return open_; }
-    bool visible() const;
-    double scale() const { return scale_.value(); }
-    double opacity() const;
+    bool is_open() const { return popup_.is_open(); }
+    bool visible() const { return popup_.visible(); }
+    double scale() const { return popup_.scale(); }
+    double opacity() const { return popup_.opacity(); }
     render::Point transform_origin() const { return pivot_; }
 
     GroupedMenuResponse handle(const input::PointerEvent& event);
@@ -125,9 +126,7 @@ private:
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};
     render::Point pivot_{0.0, 0.0};
-    bool open_ = false;
-    motion::Animated scale_;
-    motion::Animated alpha_;
+    PopupTransition popup_;
 };
 
 }

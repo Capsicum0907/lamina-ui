@@ -154,6 +154,7 @@ if(LAMINA_BUILD_TESTS)
         tests/motion_tokens_test.cpp
         tests/navigation_bar_test.cpp
         tests/navigation_rail_test.cpp
+        tests/popup_transition_test.cpp
         tests/radio_button_test.cpp
         tests/shapes_test.cpp
         tests/slider_test.cpp

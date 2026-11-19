@@ -81,7 +81,7 @@ render::Point menu_transform_origin(const render::Rect& anchor, const render::Re
 }
 
 Menu::Menu(MenuOptions options, const text::FontStack& fonts)
-    : fonts_(fonts), scale_(t.closed_scale, scale_spring), alpha_(0.0, alpha_spring) {
+    : fonts_(fonts), popup_(t.closed_scale, scale_spring, alpha_spring) {
     const auto style = tokens::text_style(tokens::type_style(t.label));
     double content = 0.0;
     for (auto& item : options.items) {
@@ -115,40 +115,23 @@ render::Rect Menu::item_rect(std::size_t index) const {
 void Menu::open(const render::Rect& anchor, layout::Size window) {
     origin_ = menu_position(anchor, window, {width_, height()});
     pivot_ = menu_transform_origin(anchor, bounds());
-    if (!visible()) {
-        scale_.snap_to(t.closed_scale);
-        alpha_.snap_to(0.0);
-    }
-    open_ = true;
-    scale_.animate_to(1.0);
-    alpha_.animate_to(1.0);
+    popup_.open();
 }
 
 void Menu::close() {
-    open_ = false;
-    scale_.animate_to(t.closed_scale);
-    alpha_.animate_to(0.0);
+    popup_.close();
     for (Item& item : items_) {
         item.press = {};
         item.state_layer.animate_to(0.0);
     }
 }
 
-bool Menu::visible() const {
-    return open_ || !alpha_.settled() || alpha_.value() > 0.0;
-}
-
-double Menu::opacity() const {
-    return std::clamp(alpha_.value(), 0.0, 1.0);
-}
-
 MenuResponse Menu::handle(const input::PointerEvent& e) {
     MenuResponse response;
-    if (!open_) {
+    if (!popup_.is_open()) {
         return response;
     }
-    const bool inside = contains(bounds(), e.x_dp, e.y_dp);
-    if (e.action == input::PointerAction::down && !inside) {
+    if (popup_.dismisses(e, bounds())) {
         close();
         response.consumed = true;
         return response;
@@ -168,7 +151,7 @@ MenuResponse Menu::handle(const input::PointerEvent& e) {
 }
 
 bool Menu::handle(const input::KeyEvent& e) {
-    if (open_ && e.key == input::Key::escape) {
+    if (popup_.dismisses(e)) {
         close();
         return true;
     }
@@ -176,15 +159,14 @@ bool Menu::handle(const input::KeyEvent& e) {
 }
 
 void Menu::step(double dt) {
-    scale_.step(dt);
-    alpha_.step(dt);
+    popup_.step(dt);
     for (Item& item : items_) {
         item.state_layer.step(dt);
     }
 }
 
 bool Menu::animating() const {
-    if (!scale_.settled() || !alpha_.settled()) {
+    if (!popup_.settled()) {
         return true;
     }
     return std::any_of(items_.begin(), items_.end(), [](const Item& item) { return !item.state_layer.settled(); });
@@ -198,9 +180,7 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     const render::Rect r = bounds();
     const double radius = tokens::corner_radius(t.corner, r.width, r.height);
     canvas.save();
-    canvas.translate(pivot_.x, pivot_.y);
-    canvas.scale(scale_.value());
-    canvas.translate(-pivot_.x, -pivot_.y);
+    popup_.scale_about(canvas, pivot_);
     paint_surface(canvas, r, radius, color::scale_alpha(scheme[t.container], a), tokens::elevation_dp[t.elevation],
                   color::scale_alpha(scheme[color::Role::shadow], a));
     const color::Argb label_color = color::scale_alpha(scheme[t.label_color], a);

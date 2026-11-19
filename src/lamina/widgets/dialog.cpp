@@ -39,8 +39,7 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
       supporting_(options.supporting_text, t.supporting_text, t.supporting_text_color, fonts),
       confirm_(action(options.confirm_label), fonts),
       icon_(std::move(options.icon)),
-      scale_(t.closed_scale, scale_spring),
-      alpha_(0.0, alpha_spring) {
+      popup_(t.closed_scale, scale_spring, alpha_spring) {
     if (!options.dismiss_label.empty()) {
         dismiss_.emplace(action(options.dismiss_label), fonts);
     }
@@ -104,38 +103,22 @@ void Dialog::set_window(layout::Size window) {
 
 void Dialog::open(layout::Size window) {
     set_window(window);
-    if (!visible()) {
-        scale_.snap_to(t.closed_scale);
-        alpha_.snap_to(0.0);
-    }
-    open_ = true;
-    scale_.animate_to(1.0);
-    alpha_.animate_to(1.0);
+    popup_.open();
 }
 
 void Dialog::close() {
-    open_ = false;
-    scale_.animate_to(t.closed_scale);
-    alpha_.animate_to(0.0);
+    popup_.close();
     confirm_.handle({input::PointerAction::leave, 0.0, 0.0});
     if (dismiss_) {
         dismiss_->handle({input::PointerAction::leave, 0.0, 0.0});
     }
 }
 
-bool Dialog::visible() const {
-    return open_ || !alpha_.settled() || alpha_.value() > 0.0;
-}
-
-double Dialog::opacity() const {
-    return std::clamp(alpha_.value(), 0.0, 1.0);
-}
-
 DialogResult Dialog::handle(const input::PointerEvent& e) {
-    if (!open_) {
+    if (!popup_.is_open()) {
         return DialogResult::none;
     }
-    if (e.action == input::PointerAction::down && !contains(surface_, e.x_dp, e.y_dp)) {
+    if (popup_.dismisses(e, surface_)) {
         close();
         return DialogResult::dismissed;
     }
@@ -151,7 +134,7 @@ DialogResult Dialog::handle(const input::PointerEvent& e) {
 }
 
 DialogResult Dialog::handle(const input::KeyEvent& e) {
-    if (open_ && e.key == input::Key::escape) {
+    if (popup_.dismisses(e)) {
         close();
         return DialogResult::dismissed;
     }
@@ -159,8 +142,7 @@ DialogResult Dialog::handle(const input::KeyEvent& e) {
 }
 
 void Dialog::step(double dt) {
-    scale_.step(dt);
-    alpha_.step(dt);
+    popup_.step(dt);
     confirm_.step(dt);
     if (dismiss_) {
         dismiss_->step(dt);
@@ -168,7 +150,7 @@ void Dialog::step(double dt) {
 }
 
 bool Dialog::animating() const {
-    return !scale_.settled() || !alpha_.settled() || confirm_.animating() || (dismiss_ && dismiss_->animating());
+    return !popup_.settled() || confirm_.animating() || (dismiss_ && dismiss_->animating());
 }
 
 void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -180,12 +162,8 @@ void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.fill_path(render::rounded_rect_path(window, render::uniform_radii(0.0)),
                      color::with_alpha(scheme[t.scrim], t.scrim_opacity * a));
     const color::ColorScheme s = faded(scheme, a);
-    const double cx = surface_.x + surface_.width / 2.0;
-    const double cy = surface_.y + surface_.height / 2.0;
     canvas.save();
-    canvas.translate(cx, cy);
-    canvas.scale(scale_.value());
-    canvas.translate(-cx, -cy);
+    popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});
     const double radius = tokens::corner_radius(t.corner, surface_.width, surface_.height);
     canvas.fill_path(render::rounded_rect_path(surface_, render::uniform_radii(radius)), s[t.container]);
     if (icon_) {

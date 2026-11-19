@@ -89,7 +89,7 @@ tokens::Corners menu_item_corners(std::size_t index, std::size_t count) {
 }
 
 GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& fonts)
-    : fonts_(fonts), scale_(t.closed_scale, scale_spring), alpha_(0.0, alpha_spring) {
+    : fonts_(fonts), popup_(t.closed_scale, scale_spring, alpha_spring) {
     const auto item_style = tokens::text_style(tokens::type_style(t.label));
     const auto group_label_style = tokens::text_style(tokens::type_style(t.group_label));
     double content = 0.0;
@@ -231,9 +231,7 @@ void GroupedMenu::choose(std::size_t group, std::size_t item) {
 void GroupedMenu::open(const render::Rect& anchor, layout::Size window) {
     origin_ = menu_position(anchor, window, {width_, height()}, t.window_horizontal_margin, t.window_vertical_margin);
     pivot_ = menu_transform_origin(anchor, bounds());
-    if (!visible()) {
-        scale_.snap_to(t.closed_scale);
-        alpha_.snap_to(0.0);
+    if (popup_.open()) {
         for (std::size_t g = 0; g < groups_.size(); ++g) {
             groups_[g].hovered = false;
             groups_[g].has_been_hovered = false;
@@ -245,15 +243,10 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window) {
             }
         }
     }
-    open_ = true;
-    scale_.animate_to(1.0);
-    alpha_.animate_to(1.0);
 }
 
 void GroupedMenu::close() {
-    open_ = false;
-    scale_.animate_to(t.closed_scale);
-    alpha_.animate_to(0.0);
+    popup_.close();
     for (Group& g : groups_) {
         for (Item& item : g.items) {
             item.press = {};
@@ -262,20 +255,12 @@ void GroupedMenu::close() {
     }
 }
 
-bool GroupedMenu::visible() const {
-    return open_ || !alpha_.settled() || alpha_.value() > 0.0;
-}
-
-double GroupedMenu::opacity() const {
-    return std::clamp(alpha_.value(), 0.0, 1.0);
-}
-
 GroupedMenuResponse GroupedMenu::handle(const input::PointerEvent& e) {
     GroupedMenuResponse response;
-    if (!open_) {
+    if (!popup_.is_open()) {
         return response;
     }
-    if (e.action == input::PointerAction::down && !contains(bounds(), e.x_dp, e.y_dp)) {
+    if (popup_.dismisses(e, bounds())) {
         close();
         response.consumed = true;
         return response;
@@ -304,7 +289,7 @@ GroupedMenuResponse GroupedMenu::handle(const input::PointerEvent& e) {
 }
 
 bool GroupedMenu::handle(const input::KeyEvent& e) {
-    if (open_ && e.key == input::Key::escape) {
+    if (popup_.dismisses(e)) {
         close();
         return true;
     }
@@ -312,8 +297,7 @@ bool GroupedMenu::handle(const input::KeyEvent& e) {
 }
 
 void GroupedMenu::step(double dt) {
-    scale_.step(dt);
-    alpha_.step(dt);
+    popup_.step(dt);
     for (Group& g : groups_) {
         for (motion::Animated& c : g.corners) {
             c.step(dt);
@@ -329,7 +313,7 @@ void GroupedMenu::step(double dt) {
 }
 
 bool GroupedMenu::animating() const {
-    if (!scale_.settled() || !alpha_.settled()) {
+    if (!popup_.settled()) {
         return true;
     }
     return std::any_of(groups_.begin(), groups_.end(), [](const Group& g) {
@@ -345,9 +329,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     }
     const double a = opacity();
     canvas.save();
-    canvas.translate(pivot_.x, pivot_.y);
-    canvas.scale(scale_.value());
-    canvas.translate(-pivot_.x, -pivot_.y);
+    popup_.scale_about(canvas, pivot_);
     const color::Argb shadow = color::scale_alpha(scheme[color::Role::shadow], a);
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const render::Rect gr = group_rect(g);
