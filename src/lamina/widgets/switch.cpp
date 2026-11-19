@@ -12,13 +12,7 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::SwitchTokens& t = tokens::switch_tokens;
-
-constexpr motion::SpringSpec thumb_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec color_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 constexpr double travel = t.track_width - t.track_height;
 
@@ -26,10 +20,10 @@ constexpr double travel = t.track_width - t.track_height;
 
 Switch::Switch(SwitchOptions options)
     : options_(std::move(options)),
-      offset_(options_.checked ? travel : 0.0, thumb_spring),
-      thumb_size_(0.0, thumb_spring),
-      state_layer_(0.0, state_spring),
-      checked_(options_.checked ? 1.0 : 0.0, color_spring) {
+      offset_(options_.checked ? travel : 0.0, motion_scheme.fast_spatial()),
+      thumb_size_(0.0, motion_scheme.fast_spatial()),
+      state_layer_(0.0, motion_scheme.fast_effects()),
+      checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()) {
     thumb_size_.snap_to(target_thumb_size());
 }
 

@@ -11,18 +11,15 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr motion::SpringSpec shape_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 }
 
 IconButton::IconButton(IconButtonOptions options)
     : options_(std::move(options)),
-      corner_(0.0, shape_spring),
-      state_layer_(0.0, state_spring),
-      checked_(options_.checked ? 1.0 : 0.0, shape_spring) {
+      corner_(0.0, motion_scheme.default_effects()),
+      state_layer_(0.0, motion_scheme.fast_effects()),
+      checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()) {
     corner_.snap_to(target_corner());
 }
 

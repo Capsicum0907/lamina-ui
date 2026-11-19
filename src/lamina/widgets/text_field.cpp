@@ -14,14 +14,7 @@ namespace lamina::widgets {
 namespace {
 
 const auto& t = tokens::outlined_text_field;
-
-motion::SpringSpec label_spring() {
-    return tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-}
-
-motion::SpringSpec effects_spring() {
-    return tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-}
+using tokens::motion_scheme;
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
@@ -131,9 +124,9 @@ TextField::TextField(std::string label, const text::FontStack& fonts, double wid
       options_(options),
       label_large_(text::layout_line(fonts, label_text_, style_of(t.label_type))),
       label_small_(text::layout_line(fonts, label_text_, style_of(t.minimized_label_type))),
-      label_progress_(0.0, label_spring()),
-      focus_(0.0, effects_spring()),
-      hover_(0.0, effects_spring()) {
+      label_progress_(0.0, motion_scheme.fast_spatial()),
+      focus_(0.0, motion_scheme.fast_effects()),
+      hover_(0.0, motion_scheme.fast_effects()) {
     relayout();
 }
 

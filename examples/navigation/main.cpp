@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
         color::SchemeOptions options = color::default_scheme_options;
         color::ColorScheme from = color::spec_2021().build(options);
         color::ColorScheme to = from;
-        motion::Animated theme(1.0, tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::slow));
+        motion::Animated theme(1.0, tokens::motion_scheme.slow_effects());
 
         widgets::Label header("Navigation", layout.header_type, layout.text, fonts, false);
         widgets::Label status("—", layout.caption_type, layout.caption, fonts, false);

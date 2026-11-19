@@ -9,13 +9,7 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::RadioButtonTokens& t = tokens::radio_button_tokens;
-
-constexpr motion::SpringSpec dot_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec color_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 double target_dot(bool selected) {
     return selected ? t.dot_size / 2.0 : 0.0;
@@ -25,9 +19,9 @@ double target_dot(bool selected) {
 
 RadioButton::RadioButton(RadioButtonOptions options)
     : options_(options),
-      dot_radius_(target_dot(options_.selected), dot_spring),
-      selected_(options_.selected ? 1.0 : 0.0, color_spring),
-      state_layer_(0.0, state_spring) {}
+      dot_radius_(target_dot(options_.selected), motion_scheme.fast_spatial()),
+      selected_(options_.selected ? 1.0 : 0.0, motion_scheme.default_effects()),
+      state_layer_(0.0, motion_scheme.fast_effects()) {}
 
 double RadioButton::width() const {
     return t.state_layer_size;

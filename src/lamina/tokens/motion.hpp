@@ -19,6 +19,13 @@ struct MotionScheme {
         const auto& table = kind == SpringKind::spatial ? spatial : effects;
         return table[static_cast<std::size_t>(speed)];
     }
+
+    constexpr motion::SpringSpec fast_spatial() const { return spring(SpringKind::spatial, SpringSpeed::fast); }
+    constexpr motion::SpringSpec default_spatial() const { return spring(SpringKind::spatial, SpringSpeed::standard); }
+    constexpr motion::SpringSpec slow_spatial() const { return spring(SpringKind::spatial, SpringSpeed::slow); }
+    constexpr motion::SpringSpec fast_effects() const { return spring(SpringKind::effects, SpringSpeed::fast); }
+    constexpr motion::SpringSpec default_effects() const { return spring(SpringKind::effects, SpringSpeed::standard); }
+    constexpr motion::SpringSpec slow_effects() const { return spring(SpringKind::effects, SpringSpeed::slow); }
 };
 
 inline constexpr MotionScheme standard_motion{
@@ -30,6 +37,8 @@ inline constexpr MotionScheme expressive_motion{
     .spatial = {{{0.6, 800.0}, {0.8, 380.0}, {0.8, 200.0}}},
     .effects = {{{1.0, 3800.0}, {1.0, 1600.0}, {1.0, 800.0}}},
 };
+
+inline constexpr const MotionScheme& motion_scheme = expressive_motion;
 
 struct CubicBezier {
     double x1;

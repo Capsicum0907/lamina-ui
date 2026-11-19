@@ -11,20 +11,18 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::TabTokens& t = tokens::tab_tokens;
+using tokens::motion_scheme;
 
-constexpr motion::SpringSpec indicator_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec fade_in_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec fade_out_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+constexpr motion::SpringSpec fade_in_spring = motion_scheme.default_effects();
+constexpr motion::SpringSpec fade_out_spring = motion_scheme.fast_effects();
 
 }
 
 TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
-    : options_(std::move(options)), fonts_(fonts), indicator_offset_(0.0, indicator_spring), indicator_width_(0.0, indicator_spring) {
+    : options_(std::move(options)),
+      fonts_(fonts),
+      indicator_offset_(0.0, motion_scheme.default_spatial()),
+      indicator_width_(0.0, motion_scheme.default_spatial()) {
     const auto style = tokens::text_style(tokens::type_style(t.label));
     bool stacked = false;
     for (std::size_t i = 0; i < options_.tabs.size(); ++i) {
@@ -35,7 +33,8 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
         }
         stacked = stacked || (label && item.icon && options_.icon_position == TabIconPosition::top);
         const double on = i == options_.selected ? 1.0 : 0.0;
-        tabs_.push_back({std::move(label), item.icon, {}, motion::Animated(0.0, state_spring), motion::Animated(on, fade_in_spring)});
+        tabs_.push_back(
+            {std::move(label), item.icon, {}, motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, fade_in_spring)});
     }
     height_ = stacked ? t.icon_and_label_height : t.height;
 }

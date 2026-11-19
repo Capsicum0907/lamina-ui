@@ -14,17 +14,7 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::GroupedMenuTokens& t = tokens::grouped_menu_tokens;
-
-constexpr motion::SpringSpec scale_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec alpha_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec morph_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec color_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 render::CornerRadii radii_of(const tokens::Corners& c, double w, double h) {
     return {tokens::corner_radius(c.top_start, w, h), tokens::corner_radius(c.top_end, w, h),
@@ -62,8 +52,8 @@ bool springs_settled(const Springs& s) {
 }
 
 std::array<motion::Animated, 4> springs() {
-    return {motion::Animated(0.0, morph_spring), motion::Animated(0.0, morph_spring), motion::Animated(0.0, morph_spring),
-            motion::Animated(0.0, morph_spring)};
+    const motion::SpringSpec spec = motion_scheme.fast_spatial();
+    return {motion::Animated(0.0, spec), motion::Animated(0.0, spec), motion::Animated(0.0, spec), motion::Animated(0.0, spec)};
 }
 
 }
@@ -89,7 +79,7 @@ tokens::Corners menu_item_corners(std::size_t index, std::size_t count) {
 }
 
 GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& fonts)
-    : fonts_(fonts), popup_(t.closed_scale, scale_spring, alpha_spring) {
+    : fonts_(fonts), popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     const auto item_style = tokens::text_style(tokens::type_style(t.label));
     const auto group_label_style = tokens::text_style(tokens::type_style(t.group_label));
     double content = 0.0;
@@ -131,8 +121,9 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
             const double height = std::max(t.item_min_height, h + 2.0 * t.item_vertical_padding);
             const double on = item.selected ? 1.0 : 0.0;
             group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
-                                   std::move(item.trailing_icon), item.selected, gy, height, {}, motion::Animated(0.0, state_spring),
-                                   motion::Animated(on, color_spring), springs()});
+                                   std::move(item.trailing_icon), item.selected, gy, height, {},
+                                   motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, motion_scheme.fast_effects()),
+                                   springs()});
             gy += height;
         }
         group.height = gy + t.group_vertical_padding;

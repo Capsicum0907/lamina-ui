@@ -11,9 +11,7 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::SliderTokens& t = tokens::slider_tokens;
-
-constexpr motion::SpringSpec handle_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 render::Path track_path(const render::Rect& r, double start_radius, double end_radius) {
     return render::rounded_rect_path(r, {start_radius, end_radius, end_radius, start_radius});
@@ -21,7 +19,7 @@ render::Path track_path(const render::Rect& r, double start_radius, double end_r
 
 }
 
-Slider::Slider(SliderOptions options) : options_(options), handle_width_(t.handle_width, handle_spring) {
+Slider::Slider(SliderOptions options) : options_(options), handle_width_(t.handle_width, motion_scheme.fast_spatial()) {
     options_.value = snapped(options_.value);
 }
 

@@ -12,23 +12,17 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::NavigationRailTokens& t = tokens::navigation_rail_tokens;
-
-constexpr motion::SpringSpec spatial_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec color_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 }
 
 NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      min_width_(options_.expanded ? t.expanded_min_width : t.collapsed_width, spatial_spring),
-      full_width_(options_.expanded ? t.expanded_max_width : t.collapsed_width, spatial_spring),
-      item_space_(options_.expanded ? t.expanded_item_space : t.collapsed_item_space, spatial_spring),
-      item_min_height_(options_.expanded ? t.expanded_item_min_height : t.collapsed_item_min_height, spatial_spring),
+      min_width_(options_.expanded ? t.expanded_min_width : t.collapsed_width, motion_scheme.default_spatial()),
+      full_width_(options_.expanded ? t.expanded_max_width : t.collapsed_width, motion_scheme.default_spatial()),
+      item_space_(options_.expanded ? t.expanded_item_space : t.collapsed_item_space, motion_scheme.default_spatial()),
+      item_min_height_(options_.expanded ? t.expanded_item_min_height : t.collapsed_item_min_height, motion_scheme.default_spatial()),
       max_width_(t.expanded_max_width) {
     const auto top_style = tokens::text_style(tokens::type_style(t.top_label));
     const auto start_style = tokens::text_style(tokens::type_style(t.start_label));
@@ -36,9 +30,10 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         const double on = i == options_.selected ? 1.0 : 0.0;
         items_.push_back({text::layout_line(fonts_, options_.items[i].label, top_style),
-                          text::layout_line(fonts_, options_.items[i].label, start_style), {}, motion::Animated(0.0, state_spring),
-                          motion::Animated(on, spatial_spring), motion::Animated(mode, spatial_spring),
-                          motion::Animated(on, color_spring), motion::Animated(mode, color_spring)});
+                          text::layout_line(fonts_, options_.items[i].label, start_style), {},
+                          motion::Animated(0.0, motion_scheme.fast_effects()),
+                          motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(mode, motion_scheme.default_spatial()),
+                          motion::Animated(on, motion_scheme.default_effects()), motion::Animated(mode, motion_scheme.default_effects())});
     }
     update_width();
 }

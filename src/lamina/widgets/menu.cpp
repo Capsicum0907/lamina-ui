@@ -14,13 +14,7 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::MenuTokens& t = tokens::menu_tokens;
-
-constexpr motion::SpringSpec scale_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec alpha_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 template <std::size_t N>
 double pick(const std::array<double, N>& candidates, double size, double space, double margin) {
@@ -81,7 +75,7 @@ render::Point menu_transform_origin(const render::Rect& anchor, const render::Re
 }
 
 Menu::Menu(MenuOptions options, const text::FontStack& fonts)
-    : fonts_(fonts), popup_(t.closed_scale, scale_spring, alpha_spring) {
+    : fonts_(fonts), popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     const auto style = tokens::text_style(tokens::type_style(t.label));
     double content = 0.0;
     for (auto& item : options.items) {
@@ -95,7 +89,7 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
             w += t.icon_size + t.icon_text_space;
         }
         content = std::max(content, w);
-        items_.push_back({std::move(label), std::move(item.leading_icon), {}, motion::Animated(0.0, state_spring)});
+        items_.push_back({std::move(label), std::move(item.leading_icon), {}, motion::Animated(0.0, motion_scheme.fast_effects())});
     }
     width_ = std::clamp(content, t.item_min_width, t.item_max_width);
 }

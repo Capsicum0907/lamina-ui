@@ -14,11 +14,7 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::DialogTokens& t = tokens::dialog_tokens;
-
-constexpr motion::SpringSpec scale_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec alpha_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
+using tokens::motion_scheme;
 
 ButtonOptions action(std::string label) {
     return {std::move(label), t.action_style, t.action_size};
@@ -39,7 +35,7 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
       supporting_(options.supporting_text, t.supporting_text, t.supporting_text_color, fonts),
       confirm_(action(options.confirm_label), fonts),
       icon_(std::move(options.icon)),
-      popup_(t.closed_scale, scale_spring, alpha_spring) {
+      popup_(t.closed_scale, motion_scheme.default_spatial(), motion_scheme.default_effects()) {
     if (!options.dismiss_label.empty()) {
         dismiss_.emplace(action(options.dismiss_label), fonts);
     }

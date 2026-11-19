@@ -20,8 +20,6 @@
 using namespace lamina;
 using color::Role;
 using tokens::CornerSize;
-using tokens::SpringKind;
-using tokens::SpringSpeed;
 
 namespace {
 
@@ -82,11 +80,10 @@ int main(int argc, char** argv) {
         double body_width = -1.0;
         text::TextBlock body_block;
         std::vector<text::TextLine> titles;
-        const auto& motion_scheme = tokens::expressive_motion;
-        const auto spatial = motion_scheme.spring(SpringKind::spatial, SpringSpeed::standard);
-        const auto spatial_fast = motion_scheme.spring(SpringKind::spatial, SpringSpeed::fast);
-        const auto effects = motion_scheme.spring(SpringKind::effects, SpringSpeed::standard);
-        const auto effects_fast = motion_scheme.spring(SpringKind::effects, SpringSpeed::fast);
+        const auto spatial = tokens::motion_scheme.default_spatial();
+        const auto spatial_fast = tokens::motion_scheme.fast_spatial();
+        const auto effects = tokens::motion_scheme.default_effects();
+        const auto effects_fast = tokens::motion_scheme.fast_effects();
         const auto scheme = color::spec_2021().build(color::default_scheme_options);
 
         std::vector<Card> cards;

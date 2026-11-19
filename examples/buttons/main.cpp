@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
         color::SchemeOptions options = color::default_scheme_options;
         color::ColorScheme from = color::spec_2021().build(options);
         color::ColorScheme to = from;
-        motion::Animated theme(1.0, tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::slow));
+        motion::Animated theme(1.0, tokens::motion_scheme.slow_effects());
         std::size_t seed_index = 0;
         widgets::Button dark_toggle({"ダーク", ButtonStyle::outlined, ButtonSize::extra_small, ButtonShape::round}, fonts);
         widgets::Switch spec_switch;

@@ -10,7 +10,7 @@ lamina-ui is not affiliated with or endorsed by Google. "Material Design" is Goo
 
 Early. So far there are the design-value layer, a 2D canvas, text, shapes, icons, an SDL3 window, a layout system, and these components: button, icon button, FAB, switch, checkbox, radio button, text field, slider, tabs, navigation bar, navigation rail, menu (classic and grouped) and dialog. Every example places its components with the layout system.
 
-- `lamina/tokens/motion.hpp`: the spring, easing and duration tokens of the standard and expressive motion schemes.
+- `lamina/tokens/motion.hpp`: the spring, easing and duration tokens of the standard and expressive motion schemes. Each scheme names its six springs by role, as Compose's `MotionScheme` does (`fast_spatial()`, `default_spatial()`, `slow_spatial()`, `fast_effects()`, `default_effects()`, `slow_effects()`). Every widget takes its springs from `tokens::motion_scheme`, which refers to the expressive scheme.
 - `lamina/motion/spring.hpp`: a damped spring with a closed-form solution. `advance` moves a value toward its target by any time step, and the result does not depend on how the time is split into frames. `is_settled` tells when the motion has come to rest.
 
 - `lamina/tokens/shape.hpp`, `typography.hpp`, `elevation.hpp`, `interaction.hpp`: the corner-radius scale, the type scale (with the emphasized weights), elevation levels, and the state-layer opacities with the minimum touch target. These foundation tokens are shared by all components; the tokens of one component are in the `tokens/` file with its widget's name (`tokens/grouped_menu.hpp` for `widgets/grouped_menu.hpp`).

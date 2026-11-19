@@ -48,7 +48,7 @@ int main() {
         std::size_t current = 0;
         std::size_t previous = 0;
         auto morph = std::make_unique<shapes::Morph>(shapes::material_shape(all[previous]), shapes::material_shape(all[current]));
-        motion::Animated progress(1.0, tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard));
+        motion::Animated progress(1.0, tokens::motion_scheme.default_spatial());
         std::size_t hovered = all.size();
 
         std::vector<render::Rect> cells(all.size());

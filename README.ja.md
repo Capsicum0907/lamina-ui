@@ -10,7 +10,7 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 
 作り始めたところです。今あるのは、設計の値の層・2D の描画・文字・形・アイコン・SDL3 の窓・配置の仕組みと、部品（ボタン・アイコンボタン・FAB・スイッチ・チェックボックス・ラジオボタン・入力欄・スライダー・タブ・ナビゲーションバー・ナビゲーションレール・メニュー（従来のものと、まとまりに分けたもの）・ダイアログ）です。どの見本も、部品の位置を配置の仕組みで決めています。
 
-- `lamina/tokens/motion.hpp`：standard と expressive の二つの動きの体系の、ばね・緩急・時間のトークン。
+- `lamina/tokens/motion.hpp`：standard と expressive の二つの動きの体系の、ばね・緩急・時間のトークン。どちらの体系も、Compose の `MotionScheme` と同じく6つのばねに役割の名前を付けています（`fast_spatial()`・`default_spatial()`・`slow_spatial()`・`fast_effects()`・`default_effects()`・`slow_effects()`）。部品はどれも `tokens::motion_scheme` からばねを取り、これは expressive の体系を指しています。
 - `lamina/motion/spring.hpp`：減衰するばね。解を式で直接求めます。`advance` は値を目標に向けて好きな時間だけ進めます。時間をどうコマに分けても結果は変わりません。`is_settled` は動きが止まったかを判定します。
 
 - `lamina/tokens/shape.hpp`・`typography.hpp`・`elevation.hpp`・`interaction.hpp`：角の丸めの段階、文字の段階（強調の太さを含む）、高さの段階、状態の重ねの不透明度と押せる範囲の最小の大きさ。これらの基礎のトークンはすべての部品で共有します。一つの部品のトークンは、その部品と同じ名前の `tokens/` のファイルにあります（`widgets/grouped_menu.hpp` には `tokens/grouped_menu.hpp`）。

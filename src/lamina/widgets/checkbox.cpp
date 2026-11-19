@@ -15,15 +15,10 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::CheckboxTokens& t = tokens::checkbox_tokens;
+using tokens::motion_scheme;
 
-constexpr motion::SpringSpec check_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec box_in_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec box_out_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+constexpr motion::SpringSpec box_in_spring = motion_scheme.default_effects();
+constexpr motion::SpringSpec box_out_spring = motion_scheme.fast_effects();
 
 struct Vec {
     double x;
@@ -125,10 +120,10 @@ render::Path check_mark_path(const render::Rect& box, double draw_fraction, doub
 
 Checkbox::Checkbox(CheckboxOptions options)
     : options_(options),
-      check_fraction_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, check_spring),
-      gravitation_(options_.state == tokens::CheckboxState::indeterminate ? 1.0 : 0.0, check_spring),
+      check_fraction_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, motion_scheme.default_spatial()),
+      gravitation_(options_.state == tokens::CheckboxState::indeterminate ? 1.0 : 0.0, motion_scheme.default_spatial()),
       checked_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, box_in_spring),
-      state_layer_(0.0, state_spring) {}
+      state_layer_(0.0, motion_scheme.fast_effects()) {}
 
 double Checkbox::width() const {
     return t.state_layer_size;

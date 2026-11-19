@@ -11,13 +11,7 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::NavigationBarTokens& t = tokens::navigation_bar_tokens;
-
-constexpr motion::SpringSpec indicator_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::spatial, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec color_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::standard);
-constexpr motion::SpringSpec state_spring =
-    tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
+using tokens::motion_scheme;
 
 double label_height(const text::TextLine& line) {
     return line.style.line_height;
@@ -34,8 +28,8 @@ NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack
             label = text::layout_line(fonts_, options_.items[i].label, style);
         }
         const double on = i == options_.selected ? 1.0 : 0.0;
-        items_.push_back({std::move(label), {}, motion::Animated(0.0, state_spring), motion::Animated(on, indicator_spring),
-                          motion::Animated(on, color_spring)});
+        items_.push_back({std::move(label), {}, motion::Animated(0.0, motion_scheme.fast_effects()),
+                          motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(on, motion_scheme.default_effects())});
     }
 }
 
