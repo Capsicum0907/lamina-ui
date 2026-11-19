@@ -101,11 +101,12 @@ int main(int argc, char** argv) {
         widgets::Button dialog_button({"Delete draft", tokens::ButtonStyle::filled, tokens::ButtonSize::small, tokens::ButtonShape::round,
                                        icon(Symbol::delete_)},
                                       fonts);
-        const std::vector<std::string> menu_labels{"Edit", "Share", "Copy", "Settings"};
+        const std::vector<std::string> menu_labels{"Edit", "Share", "Copy", "Settings", "ダウンロード"};
         widgets::Menu menu({{{menu_labels[0], icon(Symbol::edit)},
                              {menu_labels[1], icon(Symbol::share)},
                              {menu_labels[2], icon(Symbol::content_copy)},
-                             {menu_labels[3], icon(Symbol::settings)}}},
+                             {menu_labels[3], icon(Symbol::settings)},
+                             {menu_labels[4], icon(Symbol::download), input::Key::d}}},
                            fonts);
         widgets::Button grouped_button({"View", tokens::ButtonStyle::outlined, tokens::ButtonSize::small, tokens::ButtonShape::round,
                                         icon(Symbol::view_list)},
@@ -118,11 +119,12 @@ int main(int argc, char** argv) {
                "Layout",
                true,
                widgets::MenuSelection::single},
-              {{{"Bookmarked", icon(Symbol::bookmark), std::nullopt, icon(Symbol::check)}, {"Starred", icon(Symbol::star)}},
+              {{{"Bookmarked", icon(Symbol::bookmark), std::nullopt, icon(Symbol::check)},
+                {"Starred", icon(Symbol::star), std::nullopt, std::nullopt, false, input::Key::r}},
                {},
                false,
                widgets::MenuSelection::multiple},
-              {{{"Share", icon(Symbol::share)}, {"Settings", icon(Symbol::settings)}}}}},
+              {{{"Share", icon(Symbol::share), std::nullopt, std::nullopt, false, input::Key::h}, {"Settings", icon(Symbol::settings)}}}}},
             fonts);
         const std::vector<std::vector<std::string>> grouped_labels{{"List", "Grid"}, {"Bookmarked", "Starred"}, {"Share", "Settings"}};
         widgets::Dialog dialog({"Discard draft?", "This draft will be deleted from this device and cannot be restored.", "Discard", "Cancel",
