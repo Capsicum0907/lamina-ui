@@ -40,9 +40,12 @@ public:
     render::Rect bounds() const { return surface_; }
     std::optional<render::Rect> action_bounds() const;
     double remaining_seconds() const { return remaining_; }
+    bool focused() const { return action_ && action_->focused(); }
+    void set_focused(bool focused);
+    bool can_focus() const { return popup_.is_open() && action_.has_value(); }
 
     SnackbarResponse handle(const input::PointerEvent& event);
-    bool handle(const input::KeyEvent& event);
+    SnackbarResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;

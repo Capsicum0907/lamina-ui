@@ -40,6 +40,13 @@ void Snackbar::show(std::string message) {
 void Snackbar::dismiss() {
     popup_.close();
     cancel_interaction();
+    set_focused(false);
+}
+
+void Snackbar::set_focused(bool focused) {
+    if (action_) {
+        action_->set_focused(focused && popup_.is_open());
+    }
 }
 
 void Snackbar::set_area(const render::Rect& area) {
@@ -81,8 +88,12 @@ SnackbarResponse Snackbar::handle(const input::PointerEvent& e) {
     return {false, hovered_};
 }
 
-bool Snackbar::handle(const input::KeyEvent&) {
-    return false;
+SnackbarResponse Snackbar::handle(const input::KeyEvent& e) {
+    if (!popup_.is_open() || !action_ || !action_->handle(e)) {
+        return {};
+    }
+    dismiss();
+    return {true, true};
 }
 
 void Snackbar::cancel_interaction() {
@@ -97,7 +108,7 @@ void Snackbar::step(double dt) {
     if (action_) {
         action_->step(dt);
     }
-    if (popup_.is_open() && !hovered_) {
+    if (popup_.is_open() && !hovered_ && !focused()) {
         remaining_ -= dt;
         if (remaining_ <= 0.0) {
             remaining_ = 0.0;
@@ -111,7 +122,7 @@ bool Snackbar::animating() const {
 }
 
 double Snackbar::next_wake_seconds() const {
-    if (!popup_.is_open() || hovered_) {
+    if (!popup_.is_open() || hovered_ || focused()) {
         return -1.0;
     }
     return remaining_;

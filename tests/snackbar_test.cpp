@@ -148,3 +148,45 @@ TEST_CASE("the snackbar paints its inverse surface") {
     CHECK(canvas.pixel(static_cast<int>(b.x + 6.0), static_cast<int>(b.y + b.height / 2.0)) == scheme()[t.container]);
     CHECK(count_color(canvas, scheme()[t.action_color]) > 0);
 }
+
+static_assert(lamina::widgets::FocusGated<Snackbar>);
+
+TEST_CASE("a snackbar's action takes the keyboard focus only while the snackbar is shown") {
+    Snackbar s({"Undo"}, fonts());
+    CHECK_FALSE(s.can_focus());
+    open(s);
+    CHECK(s.can_focus());
+    s.set_focused(true);
+    CHECK(s.focused());
+    Snackbar plain({}, fonts());
+    open(plain);
+    CHECK_FALSE(plain.can_focus());
+}
+
+TEST_CASE("the time does not run while the action has the focus, and Space or Enter on it acts like a click") {
+    Snackbar s({"Undo"}, fonts());
+    open(s);
+    s.set_focused(true);
+    CHECK(s.next_wake_seconds() < 0.0);
+    for (int i = 0; i < 600; ++i) {
+        s.step(1.0 / 60.0);
+    }
+    CHECK(s.is_open());
+    CHECK_FALSE(s.handle(input::KeyEvent{input::Key::a, false}).action);
+    const widgets::SnackbarResponse r = s.handle(input::KeyEvent{input::Key::enter, false});
+    CHECK(r.action);
+    CHECK(r.consumed);
+    CHECK_FALSE(s.is_open());
+    CHECK_FALSE(s.focused());
+}
+
+TEST_CASE("a snackbar ignores keys while its action has no focus, and dismissing drops the focus") {
+    Snackbar s({"Undo"}, fonts());
+    open(s);
+    CHECK_FALSE(s.handle(input::KeyEvent{input::Key::space, false}).action);
+    s.set_focused(true);
+    s.dismiss();
+    CHECK_FALSE(s.focused());
+    s.set_focused(true);
+    CHECK_FALSE(s.focused());
+}
