@@ -1,31 +1,15 @@
 #include <doctest/doctest.h>
 
-#include <string>
-
 #include "lamina/widgets/dialog.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
+using namespace lamina::test;
 using input::PointerAction;
 using widgets::DialogResult;
 
 namespace {
-
-const text::FontStack& fonts() {
-    static const text::FontStack stack({text::Font::from_file(std::string(LAMINA_TEST_FONTS_DIR) + "/lamina-test-sans.ttf")});
-    return stack;
-}
-
-const color::ColorScheme& scheme() {
-    static const color::ColorScheme s = color::spec_2021().build(color::default_scheme_options);
-    return s;
-}
-
-void settle(widgets::Dialog& d) {
-    for (int i = 0; i < 240; ++i) {
-        d.step(1.0 / 60.0);
-    }
-}
 
 constexpr layout::Size window{800.0, 600.0};
 
@@ -120,11 +104,6 @@ TEST_CASE("an open dialog paints the scrim and its container") {
 }
 
 namespace {
-
-const icons::IconFont& icon_font() {
-    static const icons::IconFont font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
-    return font;
-}
 
 widgets::DialogOptions with_icon() {
     widgets::DialogOptions o = options();

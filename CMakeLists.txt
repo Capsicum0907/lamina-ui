@@ -137,8 +137,11 @@ endif()
 if(LAMINA_BUILD_TESTS)
     find_package(doctest CONFIG REQUIRED)
     add_executable(lamina_tests
+        tests/animated_test.cpp
         tests/button_test.cpp
         tests/canvas_test.cpp
+        tests/checkbox_test.cpp
+        tests/color_mix_test.cpp
         tests/color_scheme_test.cpp
         tests/dialog_test.cpp
         tests/grouped_menu_test.cpp
@@ -147,14 +150,15 @@ if(LAMINA_BUILD_TESTS)
         tests/layout_test.cpp
         tests/main.cpp
         tests/menu_test.cpp
-        tests/motion_helpers_test.cpp
         tests/motion_tokens_test.cpp
         tests/navigation_bar_test.cpp
         tests/navigation_rail_test.cpp
-        tests/selection_controls_test.cpp
+        tests/radio_button_test.cpp
         tests/shapes_test.cpp
         tests/slider_test.cpp
         tests/spring_test.cpp
+        tests/support.cpp
+        tests/switch_test.cpp
         tests/tabs_test.cpp
         tests/text_field_test.cpp
         tests/text_test.cpp

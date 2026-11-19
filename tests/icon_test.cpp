@@ -1,26 +1,17 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
-#include <string>
 
 #include "lamina/icons/icon.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
+using namespace lamina::test;
 using icons::Symbol;
 
 namespace {
-
-const icons::IconFont& icon_font() {
-    static const icons::IconFont font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
-    return font;
-}
-
-const text::FontStack& fonts() {
-    static const text::FontStack stack({text::Font::from_file(std::string(LAMINA_TEST_FONTS_DIR) + "/lamina-test-sans.ttf")});
-    return stack;
-}
 
 struct Ink {
     int count = 0;

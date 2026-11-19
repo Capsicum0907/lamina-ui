@@ -1,43 +1,14 @@
 #include <doctest/doctest.h>
 
-#include <string>
-
 #include "lamina/widgets/tabs.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
-using input::PointerAction;
+using namespace lamina::test;
 using tokens::TabStyle;
 
 namespace {
-
-const text::FontStack& fonts() {
-    static const text::FontStack stack({text::Font::from_file(std::string(LAMINA_TEST_FONTS_DIR) + "/lamina-test-sans.ttf")});
-    return stack;
-}
-
-const icons::IconFont& icon_font() {
-    static const icons::IconFont font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
-    return font;
-}
-
-const color::ColorScheme& scheme() {
-    static const color::ColorScheme s = color::spec_2021().build(color::default_scheme_options);
-    return s;
-}
-
-void settle(widgets::TabRow& row) {
-    for (int i = 0; i < 240; ++i) {
-        row.step(1.0 / 60.0);
-    }
-}
-
-bool click(widgets::TabRow& row, double x, double y) {
-    row.handle({PointerAction::down, x, y});
-    const bool changed = row.handle({PointerAction::up, x, y});
-    row.handle({PointerAction::leave, 0.0, 0.0});
-    return changed;
-}
 
 widgets::TabRow make(TabStyle style, bool icons = false) {
     std::vector<widgets::TabItem> items;

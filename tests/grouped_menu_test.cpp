@@ -1,40 +1,19 @@
 #include <doctest/doctest.h>
 
-#include <string>
-
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
+using namespace lamina::test;
 using input::PointerAction;
 using widgets::MenuSelection;
 
 namespace {
 
-const text::FontStack& fonts() {
-    static const text::FontStack stack({text::Font::from_file(std::string(LAMINA_TEST_FONTS_DIR) + "/lamina-test-sans.ttf")});
-    return stack;
-}
-
-const icons::IconFont& icon_font() {
-    static const icons::IconFont font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
-    return font;
-}
-
-const color::ColorScheme& scheme() {
-    static const color::ColorScheme s = color::spec_2021().build(color::default_scheme_options);
-    return s;
-}
-
 icons::Icon icon(icons::Symbol s) {
     return {icon_font(), s};
-}
-
-void settle(widgets::GroupedMenu& m) {
-    for (int i = 0; i < 240; ++i) {
-        m.step(1.0 / 60.0);
-    }
 }
 
 widgets::GroupedMenu make() {

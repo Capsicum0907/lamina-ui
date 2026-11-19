@@ -3,8 +3,10 @@
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
+using namespace lamina::test;
 using input::PointerAction;
 using tokens::IconButtonSize;
 using tokens::IconButtonStyle;
@@ -12,20 +14,8 @@ using tokens::IconButtonWidth;
 
 namespace {
 
-const icons::IconFont& icon_font() {
-    static const icons::IconFont font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
-    return font;
-}
-
 icons::Icon icon(icons::Symbol s = icons::Symbol::favorite) {
     return {icon_font(), s};
-}
-
-template <typename W>
-void settle(W& w) {
-    for (int i = 0; i < 240; ++i) {
-        w.step(1.0 / 60.0);
-    }
 }
 
 }

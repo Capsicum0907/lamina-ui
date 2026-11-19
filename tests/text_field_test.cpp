@@ -6,18 +6,15 @@
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/widgets/text_field.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
+using namespace lamina::test;
 using input::Key;
 using input::PointerAction;
 using input::TextEventKind;
 
 namespace {
-
-const text::FontStack& fonts() {
-    static const text::FontStack stack({text::Font::from_file(std::string(LAMINA_TEST_FONTS_DIR) + "/lamina-test-sans.ttf")});
-    return stack;
-}
 
 widgets::TextField focused_field(widgets::TextFieldOptions options = {}) {
     widgets::TextField f("Label", fonts(), 300.0, options);

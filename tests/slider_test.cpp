@@ -2,23 +2,14 @@
 
 #include "lamina/widgets/slider.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
+using namespace lamina::test;
 using input::Key;
 using input::PointerAction;
 
 namespace {
-
-const color::ColorScheme& scheme() {
-    static const color::ColorScheme s = color::spec_2021().build(color::default_scheme_options);
-    return s;
-}
-
-void settle(widgets::Slider& s) {
-    for (int i = 0; i < 240; ++i) {
-        s.step(1.0 / 60.0);
-    }
-}
 
 widgets::Slider make(widgets::SliderOptions options) {
     widgets::Slider s(options);

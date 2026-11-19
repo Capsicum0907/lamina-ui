@@ -1,11 +1,11 @@
 #include <doctest/doctest.h>
 
-#include <string>
-
 #include "lamina/widgets/button.hpp"
 #include "lamina_thorvg/canvas.hpp"
+#include "support.hpp"
 
 using namespace lamina;
+using namespace lamina::test;
 using input::PointerAction;
 using tokens::ButtonShape;
 using tokens::ButtonSize;
@@ -13,21 +13,10 @@ using tokens::ButtonStyle;
 
 namespace {
 
-const text::FontStack& fonts() {
-    static const text::FontStack stack({text::Font::from_file(std::string(LAMINA_TEST_FONTS_DIR) + "/lamina-test-sans.ttf")});
-    return stack;
-}
-
 widgets::Button make(ButtonStyle style, ButtonSize size, ButtonShape shape, const char* label = "Send") {
     widgets::Button b({label, style, size, shape}, fonts());
     b.set_origin({10.0, 10.0});
     return b;
-}
-
-void settle(widgets::Button& b) {
-    for (int i = 0; i < 240; ++i) {
-        b.step(1.0 / 60.0);
-    }
 }
 
 }
