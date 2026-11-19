@@ -3,26 +3,18 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
-#include "lamina/tokens/motion.hpp"
 
 namespace lamina::examples::calculator {
-
-namespace {
-
-using tokens::motion_scheme;
-
-}
 
 Display::Display(DisplayStyle style, const text::FontStack& fonts)
     : style_(style),
       fonts_(fonts),
       text_style_(tokens::text_style(tokens::type_style(style.focused_type))),
       secondary_ratio_(tokens::type_style(style.secondary_type).size_sp / tokens::type_style(style.focused_type).size_sp),
-      lines_{Line{{}, text::layout_line(fonts, "", text_style_), true, motion::Animated(1.0, motion_scheme.default_effects()),
-                  motion::Animated(1.0, motion_scheme.default_effects())},
-             Line{{}, text::layout_line(fonts, "", text_style_), false,
-                  motion::Animated(secondary_ratio_, motion_scheme.default_effects()),
-                  motion::Animated(0.0, motion_scheme.default_effects())}} {}
+      lines_{Line{{}, text::layout_line(fonts, "", text_style_), true, motion::Animated(1.0, style.size_spring),
+                  motion::Animated(1.0, style.color_spring)},
+             Line{{}, text::layout_line(fonts, "", text_style_), false, motion::Animated(secondary_ratio_, style.size_spring),
+                  motion::Animated(0.0, style.color_spring)}} {}
 
 void Display::show(const std::string& formula, const std::string& result, bool result_focused, bool error) {
     const std::array<const std::string*, 2> texts{&formula, &result};

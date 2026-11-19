@@ -7,6 +7,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/typography.hpp"
 
 namespace lamina::examples::calculator {
@@ -20,6 +21,8 @@ struct DisplayStyle {
     double min_fit = 0.45;
     double line_gap = 8.0;
     double inset = 16.0;
+    motion::SpringSpec size_spring = tokens::motion_scheme.default_spatial();
+    motion::SpringSpec color_spring = tokens::motion_scheme.slow_effects();
 };
 
 class Display {
