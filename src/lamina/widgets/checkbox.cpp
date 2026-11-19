@@ -139,18 +139,36 @@ void Checkbox::set_state(tokens::CheckboxState next) {
     }
 }
 
+void Checkbox::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
+}
+
+void Checkbox::toggle() {
+    set_state(options_.state == tokens::CheckboxState::on ? tokens::CheckboxState::off : tokens::CheckboxState::on);
+}
+
 bool Checkbox::handle(const input::PointerEvent& e) {
+    focus_.release_on_press(e);
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
-        set_state(options_.state == tokens::CheckboxState::on ? tokens::CheckboxState::off : tokens::CheckboxState::on);
+        toggle();
     }
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
     return clicked;
+}
+
+bool Checkbox::handle(const input::KeyEvent& e) {
+    if (!focus_.activates(e, KeyActivation::space)) {
+        return false;
+    }
+    toggle();
+    return true;
 }
 
 void Checkbox::cancel_interaction() {
     press_ = {};
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
 void Checkbox::step(double dt) {
@@ -166,11 +184,12 @@ void Checkbox::step(double dt) {
     gravitation_.step(dt);
     checked_.step(dt);
     state_layer_.step(dt);
+    focus_.step(dt);
 }
 
 bool Checkbox::animating() const {
     return snap_off_in_ >= 0.0 || !check_fraction_.settled() || !gravitation_.settled() || !checked_.settled() ||
-           !state_layer_.settled();
+           !state_layer_.settled() || !focus_.settled();
 }
 
 void Checkbox::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -198,6 +217,8 @@ void Checkbox::paint(render::Canvas& canvas, const color::ColorScheme& scheme) c
         canvas.fill_path(render::circle_path({r.x + r.width / 2.0, r.y + r.height / 2.0}, t.state_layer_size / 2.0),
                          color::with_alpha(scheme[t.state_layer], state_layer_.value()));
     }
+    const render::Rect r = bounds();
+    focus_.paint_circle(canvas, scheme, {r.x + r.width / 2.0, r.y + r.height / 2.0}, t.state_layer_size / 2.0);
 }
 
 }

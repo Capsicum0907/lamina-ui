@@ -32,26 +32,37 @@ render::Rect Fab::bounds() const {
     return {origin_.x, origin_.y, width(), height()};
 }
 
+void Fab::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
+}
+
 bool Fab::handle(const input::PointerEvent& e) {
+    focus_.release_on_press(e);
     const bool clicked = press_.update(e, bounds());
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
     elevation_.animate_to(state_elevation(tokens::fab_style(options_.style), press_));
     return clicked;
 }
 
+bool Fab::handle(const input::KeyEvent& e) {
+    return focus_.activates(e, KeyActivation::space_or_enter);
+}
+
 void Fab::cancel_interaction() {
     press_ = {};
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
     elevation_.animate_to(state_elevation(tokens::fab_style(options_.style), press_));
 }
 
 void Fab::step(double dt) {
     state_layer_.step(dt);
     elevation_.step(dt);
+    focus_.step(dt);
 }
 
 bool Fab::animating() const {
-    return !state_layer_.settled() || !elevation_.settled();
+    return !state_layer_.settled() || !elevation_.settled() || !focus_.settled();
 }
 
 void Fab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -62,6 +73,7 @@ void Fab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const 
     const color::Argb content = scheme[style.content];
     const color::Argb fill = color::state_layer(scheme[style.container], content, state_layer_.value());
     paint_surface(canvas, r, radius, fill, elevation_.value(), scheme[color::Role::shadow]);
+    focus_.paint(canvas, scheme, r, radius);
     icons::draw_centered(canvas, options_.icon, r, size.icon_size, content);
 }
 

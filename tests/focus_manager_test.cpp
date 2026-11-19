@@ -13,7 +13,7 @@ using namespace lamina::test;
 using input::PointerAction;
 
 static_assert(widgets::TextInput<widgets::TextField>);
-static_assert(!widgets::Focusable<widgets::Button>);
+static_assert(widgets::Focusable<widgets::Button>);
 
 namespace {
 

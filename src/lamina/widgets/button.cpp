@@ -105,7 +105,7 @@ double Button::corner() const {
 }
 
 double Button::target_state_layer() const {
-    return press_.state_layer_opacity();
+    return focus_.state_layer_opacity(press_.state_layer_opacity());
 }
 
 void Button::retarget() {
@@ -114,10 +114,20 @@ void Button::retarget() {
     elevation_.animate_to(state_elevation(tokens::button_style(options_.style), press_));
 }
 
+void Button::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    retarget();
+}
+
 bool Button::handle(const input::PointerEvent& e) {
+    focus_.release_on_press(e);
     const bool clicked = press_.update(e, bounds());
     retarget();
     return clicked;
+}
+
+bool Button::handle(const input::KeyEvent& e) {
+    return focus_.activates(e, KeyActivation::space_or_enter);
 }
 
 void Button::cancel_interaction() {
@@ -131,11 +141,12 @@ void Button::step(double dt) {
     icon_fade_.step(dt);
     state_layer_.step(dt);
     elevation_.step(dt);
+    focus_.step(dt);
 }
 
 bool Button::animating() const {
     return !press_amount_.settled() || !squareness_.settled() || !icon_fade_.settled() || !state_layer_.settled() ||
-           !elevation_.settled();
+           !elevation_.settled() || !focus_.settled();
 }
 
 void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -156,6 +167,8 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     if (style.outline) {
         canvas.fill_path(render::ring_path(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
     }
+
+    focus_.paint(canvas, scheme, r, radius);
 
     double x = r.x + (r.width - content_width()) / 2.0;
     if (options_.leading_icon) {

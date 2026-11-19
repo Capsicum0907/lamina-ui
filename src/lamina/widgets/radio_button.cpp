@@ -41,28 +41,43 @@ void RadioButton::set_selected(bool selected) {
     selected_.animate_to(selected ? 1.0 : 0.0);
 }
 
+void RadioButton::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
+}
+
 bool RadioButton::handle(const input::PointerEvent& e) {
+    focus_.release_on_press(e);
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         set_selected(true);
     }
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
     return clicked;
+}
+
+bool RadioButton::handle(const input::KeyEvent& e) {
+    if (!focus_.activates(e, KeyActivation::space)) {
+        return false;
+    }
+    set_selected(true);
+    return true;
 }
 
 void RadioButton::cancel_interaction() {
     press_ = {};
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
 void RadioButton::step(double dt) {
     dot_radius_.step(dt);
     selected_.step(dt);
     state_layer_.step(dt);
+    focus_.step(dt);
 }
 
 bool RadioButton::animating() const {
-    return !dot_radius_.settled() || !selected_.settled() || !state_layer_.settled();
+    return !dot_radius_.settled() || !selected_.settled() || !state_layer_.settled() || !focus_.settled();
 }
 
 void RadioButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -81,6 +96,7 @@ void RadioButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme
         canvas.fill_path(render::circle_path(center, t.state_layer_size / 2.0),
                          color::with_alpha(scheme[t.state_layer], state_layer_.value()));
     }
+    focus_.paint_circle(canvas, scheme, center, t.state_layer_size / 2.0);
 }
 
 }

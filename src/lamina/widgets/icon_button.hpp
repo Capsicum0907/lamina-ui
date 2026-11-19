@@ -7,6 +7,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/icon_button.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
@@ -33,7 +34,11 @@ public:
     bool checked() const { return options_.checked; }
     void set_checked(bool checked);
 
+    bool focused() const { return focus_.focused(); }
+    void set_focused(bool focused);
+
     bool handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
@@ -46,6 +51,7 @@ private:
     IconButtonOptions options_;
     render::Point origin_{0.0, 0.0};
     PressState press_;
+    FocusIndicator focus_;
     motion::Animated corner_;
     motion::Animated state_layer_;
     motion::Animated checked_;

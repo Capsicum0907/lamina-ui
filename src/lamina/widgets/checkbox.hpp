@@ -5,6 +5,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/checkbox.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
@@ -29,16 +30,23 @@ public:
     void set_state(tokens::CheckboxState state);
     double check_fraction() const { return check_fraction_.value(); }
 
+    bool focused() const { return focus_.focused(); }
+    void set_focused(bool focused);
+
     bool handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    void toggle();
+
     CheckboxOptions options_;
     render::Point origin_{0.0, 0.0};
     PressState press_;
+    FocusIndicator focus_;
     motion::Animated check_fraction_;
     motion::Animated gravitation_;
     motion::Animated checked_;

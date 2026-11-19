@@ -49,7 +49,7 @@ double IconButton::target_corner() const {
 
 void IconButton::retarget() {
     corner_.animate_to(target_corner());
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
     checked_.animate_to(options_.checked ? 1.0 : 0.0);
 }
 
@@ -58,13 +58,30 @@ void IconButton::set_checked(bool checked) {
     retarget();
 }
 
+void IconButton::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    retarget();
+}
+
 bool IconButton::handle(const input::PointerEvent& e) {
+    focus_.release_on_press(e);
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked && options_.toggleable) {
         options_.checked = !options_.checked;
     }
     retarget();
     return clicked;
+}
+
+bool IconButton::handle(const input::KeyEvent& e) {
+    if (!focus_.activates(e, KeyActivation::space_or_enter)) {
+        return false;
+    }
+    if (options_.toggleable) {
+        options_.checked = !options_.checked;
+    }
+    retarget();
+    return true;
 }
 
 void IconButton::cancel_interaction() {
@@ -76,10 +93,11 @@ void IconButton::step(double dt) {
     corner_.step(dt);
     state_layer_.step(dt);
     checked_.step(dt);
+    focus_.step(dt);
 }
 
 bool IconButton::animating() const {
-    return !corner_.settled() || !state_layer_.settled() || !checked_.settled();
+    return !corner_.settled() || !state_layer_.settled() || !checked_.settled() || !focus_.settled();
 }
 
 void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -102,6 +120,7 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     if (color::alpha(outline) != 0) {
         canvas.fill_path(render::ring_path(r, radius, size.outline_width), outline, render::FillRule::even_odd);
     }
+    focus_.paint(canvas, scheme, r, radius);
     icons::draw_centered(canvas, options_.icon, r, size.icon_size, content);
 }
 

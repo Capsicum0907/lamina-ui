@@ -57,7 +57,7 @@ double Switch::target_thumb_size() const {
 void Switch::retarget() {
     offset_.animate_to(options_.checked ? travel : 0.0);
     thumb_size_.animate_to(target_thumb_size());
-    state_layer_.animate_to(press_.state_layer_opacity());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
     checked_.animate_to(options_.checked ? 1.0 : 0.0);
 }
 
@@ -66,13 +66,28 @@ void Switch::set_checked(bool checked) {
     retarget();
 }
 
+void Switch::set_focused(bool focused) {
+    focus_.set_focused(focused);
+    retarget();
+}
+
 bool Switch::handle(const input::PointerEvent& e) {
+    focus_.release_on_press(e);
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         options_.checked = !options_.checked;
     }
     retarget();
     return clicked;
+}
+
+bool Switch::handle(const input::KeyEvent& e) {
+    if (!focus_.activates(e, KeyActivation::space)) {
+        return false;
+    }
+    options_.checked = !options_.checked;
+    retarget();
+    return true;
 }
 
 void Switch::cancel_interaction() {
@@ -85,10 +100,11 @@ void Switch::step(double dt) {
     thumb_size_.step(dt);
     state_layer_.step(dt);
     checked_.step(dt);
+    focus_.step(dt);
 }
 
 bool Switch::animating() const {
-    return !offset_.settled() || !thumb_size_.settled() || !state_layer_.settled() || !checked_.settled();
+    return !offset_.settled() || !thumb_size_.settled() || !state_layer_.settled() || !checked_.settled() || !focus_.settled();
 }
 
 void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -102,6 +118,8 @@ void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     if (color::alpha(border) != 0) {
         canvas.fill_path(render::ring_path(r, track_radius, t.track_outline_width), border, render::FillRule::even_odd);
     }
+
+    focus_.paint(canvas, scheme, r, track_radius);
 
     const render::Point center{thumb_center_x(), r.y + r.height / 2.0};
     const double size = std::max(0.0, thumb_size_.value());

@@ -8,6 +8,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/switch.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
@@ -32,7 +33,11 @@ public:
     double thumb_size() const { return thumb_size_.value(); }
     double thumb_center_x() const;
 
+    bool focused() const { return focus_.focused(); }
+    void set_focused(bool focused);
+
     bool handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
@@ -46,6 +51,7 @@ private:
     SwitchOptions options_;
     render::Point origin_{0.0, 0.0};
     PressState press_;
+    FocusIndicator focus_;
     motion::Animated offset_;
     motion::Animated thumb_size_;
     motion::Animated state_layer_;
