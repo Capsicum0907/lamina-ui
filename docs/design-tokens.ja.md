@@ -274,6 +274,16 @@ C の `tokens/StateTokens.kt`（`VERSION: v0_103`）の状態の重ねの不透�
 
 lamina-ui は、輪（`lamina/tokens/focus.hpp`）とフォーカスの状態の重ねの両方を描きます。輪は速い効果のばねで現れ、消えます。material-web の 8 dp に広がる動きは作っていません。
 
+### 項目の並ぶ部品のキー
+
+2026-11-20 に、material-web の `9d2f79851cae` と、上に挙げた Compose のファイルから読みました。
+
+- タブ：W の `tabs/internal/tabs.ts` は、列を Tab の一つの止まり位置にします（`tabIndex` を動かす方式）。ArrowLeft と ArrowRight で前後のタブへ動き、端では反対の端へ戻り、Home と End で両端へ動きます。`autoActivate` のときは、動いた先のタブを選びます。lamina-ui のタブの列は `autoActivate` と同じ動きです。W の `tabs/internal/tab.ts` は、フォーカスの輪をタブ全体の内側（`inward`）に描きます。内側への間隔は 0 です（W の `tokens/_md-comp-focus-ring.scss`）。Compose はタブを一つずつ `selectable` な止まり位置にし（C の `Tab.kt`）、矢印のキーはありません。
+- ナビゲーションバーとレール：W の `labs/navigationbar/internal/navigation-bar.ts`（`role="tablist"`）は、ArrowLeft と ArrowRight でフォーカスを動かし（端では戻ります）、Home と End で両端へ動かしますが、選びはしません。Enter か Space でフォーカスのある項目を選びます。lamina-ui はこれに従い、タブと同じくバーやレールを一つの止まり位置にし、縦のレールでは上下の矢印を使い、輪は項目の印の周りに描きます。Compose は項目を一つずつ `selectable` な止まり位置にします（C の `NavigationItem.kt`）。material-web のバーが一つの止まり位置かどうかは、そのファイル（`navigationtab`）を読んでいないので分かりません。
+- メニュー：W の `menu/internal/menu.ts` は `defaultFocus` の既定を `FIRST_ITEM` にし（W の `menu/internal/controllers/shared.ts`）、W の `list/internal/list-controller.ts` は ArrowUp と ArrowDown で動き（既定では端で戻ります）、Home と End で両端へ動きます。W の `menu/internal/controllers/menuItemController.ts` は Enter・Space・Escape でメニューを閉じ、フォーカスはメニューを開く前の要素に戻ります。フォーカスがメニューの外へ出ると（Tab）、フォーカスを戻さずに閉じます。lamina-ui は Tab でも閉じ、Escape と同じく開いた部品にフォーカスを戻します。W の `menu/internal/menuitem/menu-item.ts` は項目の輪を内側（`inward`）に描きます。文字を打って項目へ飛ぶ機能（W の `typeaheadController.ts`）は作っていません。
+- スナックバー：操作にフォーカスがある間に時間を止めるのは lamina-ui 独自の決めごとで、WCAG 2.1 の達成基準 2.2.1（タイミング調整可能）によります。Compose の `SnackbarHost` から読んだものではありません。
+- タブを受け取る入力欄は、WinForms と WPF の `AcceptsTab` のテキストボックスと同じく Ctrl+Tab で外へ出られるので、キーボードの罠になりません（WCAG 2.1 の達成基準 2.1.2）。
+
 ## 部品
 
 ### ボタン

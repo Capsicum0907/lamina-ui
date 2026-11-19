@@ -274,6 +274,16 @@ Read on 2026-11-19 from material-web at `9d2f79851cae` and androidx at `9b9d1fdd
 
 lamina-ui draws both the ring (`lamina/tokens/focus.hpp`) and the focus state layer. The ring fades in and out on the fast effects spring. The 8 dp pulse of material-web is not implemented.
 
+### Keys of the item controls
+
+Read on 2026-11-20 from material-web at `9d2f79851cae` and from the Compose files above.
+
+- Tabs: W `tabs/internal/tabs.ts` makes the row one Tab stop (roving `tabIndex`); ArrowLeft and ArrowRight move to the previous and next tab and wrap, Home and End go to the ends, and with `autoActivate` the moved-to tab is selected. lamina-ui's tab row behaves as `autoActivate` does. W `tabs/internal/tab.ts` draws the focus ring `inward` around the whole tab; the inward offset is 0 (W `tokens/_md-comp-focus-ring.scss`). Compose makes each `Tab` its own `selectable` stop (C `Tab.kt`) with no arrow keys.
+- Navigation bar and rail: W `labs/navigationbar/internal/navigation-bar.ts` (a `role="tablist"`) moves the focus with ArrowLeft and ArrowRight, wrapping, and Home and End, without selecting; Enter or Space selects the focused item. lamina-ui follows it, with one Tab stop per bar or rail as in the tabs, Up and Down on the vertical rail, and the ring around the item's pill. Compose makes each item a `selectable` stop (C `NavigationItem.kt`). Whether material-web's bar is one Tab stop was not read (its `navigationtab` file).
+- Menu: W `menu/internal/menu.ts` defaults `defaultFocus` to `FIRST_ITEM` (W `menu/internal/controllers/shared.ts`), W `list/internal/list-controller.ts` moves with ArrowUp and ArrowDown, wrapping by default, and Home and End, and W `menu/internal/controllers/menuItemController.ts` closes the menu on Enter, Space or Escape; the focus returns to the element focused before the menu opened. Focus leaving the menu (Tab) closes it without returning the focus; lamina-ui closes on Tab and returns the focus to the opener, as for Escape. W `menu/internal/menuitem/menu-item.ts` draws the item's ring `inward`. Typeahead (W `typeaheadController.ts`) is not implemented.
+- Snackbar: holding the time while the action has the focus is lamina-ui's own choice, from WCAG 2.1 success criterion 2.2.1 (Timing Adjustable); it was not read from Compose's `SnackbarHost`.
+- A text field that accepts tabs leaves on Ctrl+Tab, as `AcceptsTab` text boxes do in WinForms and WPF, so it is no keyboard trap (WCAG 2.1 success criterion 2.1.2).
+
 ## Components
 
 ### Button
