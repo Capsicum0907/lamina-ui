@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include <string_view>
+
 #include "lamina/input/events.hpp"
 
 using lamina::input::Key;
@@ -31,4 +33,14 @@ TEST_CASE("key_for_character leaves other characters unmapped") {
     CHECK_FALSE(key_for_character(U',').has_value());
     CHECK_FALSE(key_for_character(U'\u00d7').has_value());
     CHECK_FALSE(key_for_character(U'\u3042').has_value());
+}
+
+TEST_CASE("character_for_key is the inverse of key_for_character") {
+    using lamina::input::character_for_key;
+    for (char32_t c : std::u32string_view(U"abcxyz0189+-*/.%=()^!")) {
+        CHECK(character_for_key(*key_for_character(c)) == c);
+    }
+    CHECK_FALSE(character_for_key(Key::enter).has_value());
+    CHECK_FALSE(character_for_key(Key::space).has_value());
+    CHECK_FALSE(character_for_key(Key::page_down).has_value());
 }

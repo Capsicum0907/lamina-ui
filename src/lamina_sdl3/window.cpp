@@ -323,7 +323,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
         }
         case SDL_EVENT_KEY_DOWN:
             if (const auto key = key_of(e.key)) {
-                frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod), e.key.repeat});
+                frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod), e.key.repeat, (e.key.mod & SDL_KMOD_ALT) != 0});
             }
             break;
         case SDL_EVENT_TEXT_INPUT:

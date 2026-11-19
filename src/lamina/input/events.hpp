@@ -103,6 +103,30 @@ constexpr std::optional<Key> key_for_character(char32_t c) {
     }
 }
 
+constexpr std::optional<char32_t> character_for_key(Key key) {
+    const int k = static_cast<int>(key);
+    if (k >= static_cast<int>(Key::a) && k <= static_cast<int>(Key::z)) {
+        return static_cast<char32_t>(U'a' + (k - static_cast<int>(Key::a)));
+    }
+    if (k >= static_cast<int>(Key::digit_0) && k <= static_cast<int>(Key::digit_9)) {
+        return static_cast<char32_t>(U'0' + (k - static_cast<int>(Key::digit_0)));
+    }
+    switch (key) {
+    case Key::plus: return U'+';
+    case Key::minus: return U'-';
+    case Key::asterisk: return U'*';
+    case Key::slash: return U'/';
+    case Key::period: return U'.';
+    case Key::percent: return U'%';
+    case Key::equals: return U'=';
+    case Key::paren_left: return U'(';
+    case Key::paren_right: return U')';
+    case Key::caret: return U'^';
+    case Key::exclamation: return U'!';
+    default: return std::nullopt;
+    }
+}
+
 struct WheelEvent {
     double x_dp;
     double y_dp;
@@ -115,6 +139,7 @@ struct KeyEvent {
     bool shift;
     bool ctrl = false;
     bool repeat = false;
+    bool alt = false;
 };
 
 enum class TextEventKind { commit, compose };
