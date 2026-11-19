@@ -260,6 +260,9 @@ bool Window::next_frame(Frame& frame, bool animating) {
     if (impl_->live_error) {
         std::rethrow_exception(std::exchange(impl_->live_error, nullptr));
     }
+    if (impl_->close_requested) {
+        return false;
+    }
     frame.pointer.clear();
     frame.keys.clear();
     frame.text.clear();
@@ -318,7 +321,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
     }
 
     impl_->measure(frame);
-    return !impl_->close_requested;
+    return true;
 }
 
 bool Window::client_title_bar() const {
