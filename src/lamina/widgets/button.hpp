@@ -26,6 +26,7 @@ struct ButtonOptions {
     tokens::ButtonShape shape = tokens::ButtonShape::round;
     std::optional<icons::Icon> leading_icon = std::nullopt;
     std::optional<ButtonColors> colors = std::nullopt;
+    icons::IconStyle icon_style = {};
 };
 
 class Button {

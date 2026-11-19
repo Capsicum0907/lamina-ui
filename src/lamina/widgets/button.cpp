@@ -184,7 +184,8 @@ void Button::draw_icon(render::Canvas& canvas, const icons::Icon& icon, double x
     if (opacity <= 0.0) {
         return;
     }
-    icon.font.draw(canvas, icon.symbol, {x, y}, size, opacity < 1.0 ? color::scale_alpha(color, opacity) : color);
+    icon.font.draw(canvas, icon.symbol, {x, y}, size, opacity < 1.0 ? color::scale_alpha(color, opacity) : color,
+                   options_.icon_style);
 }
 
 }

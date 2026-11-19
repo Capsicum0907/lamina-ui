@@ -183,3 +183,17 @@ TEST_CASE("set_icon cross-fades to the new icon and keeps the size of a sized bu
     b.set_icon(icons::Icon{icon_font(), icons::Symbol::pause});
     CHECK_FALSE(b.animating());
 }
+
+TEST_CASE("ButtonOptions::icon_style draws the icon with other symbol axes") {
+    const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
+    auto ink = [&](double fill) {
+        widgets::ButtonOptions o{"", ButtonStyle::text, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), icons::Symbol::pause}};
+        o.icon_style.fill = fill;
+        widgets::Button b(o, fonts());
+        thorvg::Canvas canvas(140, 120);
+        canvas.clear(0xffffffff);
+        b.paint(canvas, scheme);
+        return count_color(canvas, scheme[color::Role::primary]);
+    };
+    CHECK(ink(1.0) > ink(0.0));
+}
