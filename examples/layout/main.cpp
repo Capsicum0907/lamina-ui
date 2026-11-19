@@ -9,6 +9,7 @@
 #include "lamina/tokens/shape.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/surface.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
 
@@ -75,6 +76,10 @@ int main(int argc, char** argv) {
         page->spacing(style.section_gap).padding(layout::Insets::all(style.page_padding)).cross_align(layout::CrossAlign::stretch).fill_cross(true);
         form->self_align = layout::CrossAlign::stretch;
         const std::vector<std::shared_ptr<layout::Linear>> cards{left, right, form};
+        widgets::WidgetSet controls;
+        controls.add(name);
+        controls.add(cancel);
+        controls.add(save);
 
         sdl3::Window window({"lamina-ui layout", 900, 640});
         auto update = [&](const sdl3::Frame& frame) {
@@ -109,18 +114,12 @@ int main(int argc, char** argv) {
             for (auto* l : {&title, &intro, &left_title, &left_body, &right_title, &right_body}) {
                 l->paint(canvas, scheme);
             }
-            name.step(frame.dt_seconds);
-            name.paint(canvas, scheme);
-            bool animating = name.animating();
+            controls.step(frame.dt_seconds);
+            controls.paint(canvas, scheme);
             if (name.focused()) {
                 window.wake_after(name.next_blink_seconds());
             }
-            for (auto* b : {&cancel, &save}) {
-                b->step(frame.dt_seconds);
-                b->paint(canvas, scheme);
-                animating = animating || b->animating();
-            }
-            return animating;
+            return controls.animating();
         };
 
         sdl3::run_app(window, update, paint);

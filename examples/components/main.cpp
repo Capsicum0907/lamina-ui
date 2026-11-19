@@ -23,6 +23,7 @@
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
@@ -61,9 +62,6 @@ class Item {
 public:
     virtual ~Item() = default;
     virtual bool handle(const input::PointerEvent& e) = 0;
-    virtual void step(double dt) = 0;
-    virtual bool animating() const = 0;
-    virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
     virtual layout::NodePtr node() = 0;
     std::function<void()> on_click;
 };
@@ -71,19 +69,15 @@ public:
 template <typename W>
 class Holder : public Item {
 public:
-    template <typename... Args>
-    explicit Holder(Args&&... args) : widget(std::forward<Args>(args)...) {}
+    explicit Holder(W& w) : widget(w) {}
     bool handle(const input::PointerEvent& e) override { return widget.handle(e); }
-    void step(double dt) override { widget.step(dt); }
-    bool animating() const override { return widget.animating(); }
-    void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override { widget.paint(canvas, scheme); }
     layout::NodePtr node() override { return widgets::node(widget); }
-    W widget;
+    W& widget;
 };
 
 template <typename W, typename... Args>
-Holder<W>* add(std::vector<std::unique_ptr<Item>>& items, Args&&... args) {
-    auto holder = std::make_unique<Holder<W>>(std::forward<Args>(args)...);
+Holder<W>* add(widgets::WidgetSet& controls, std::vector<std::unique_ptr<Item>>& items, Args&&... args) {
+    auto holder = std::make_unique<Holder<W>>(controls.emplace<W>(std::forward<Args>(args)...));
     Holder<W>* raw = holder.get();
     items.push_back(std::move(holder));
     return raw;
@@ -134,6 +128,7 @@ int main(int argc, char** argv) {
         widgets::Label status("\u2014", layout.caption_type, layout.caption, fonts, false);
         auto report = [&](std::string s) { status.set_text(std::move(s)); };
 
+        widgets::WidgetSet controls;
         std::vector<Row> rows;
 
         Row buttons{"Buttons"};
@@ -146,14 +141,14 @@ int main(int argc, char** argv) {
         };
         for (const auto& [style, content] : button_list) {
             const std::string label = content.second;
-            auto* b = add<widgets::Button>(buttons.items,
+            auto* b = add<widgets::Button>(controls, buttons.items,
                                            widgets::ButtonOptions{label, style, ButtonSize::small, ButtonShape::round, icon(content.first)},
                                            fonts);
             b->on_click = [&report, label] { report("Button: " + label); };
         }
         auto* medium = add<widgets::Button>(
-            buttons.items, widgets::ButtonOptions{"\u4fdd\u5b58", ButtonStyle::filled, ButtonSize::medium, ButtonShape::square, icon(Symbol::download)},
-            fonts);
+            controls, buttons.items,
+            widgets::ButtonOptions{"\u4fdd\u5b58", ButtonStyle::filled, ButtonSize::medium, ButtonShape::square, icon(Symbol::download)}, fonts);
         medium->on_click = [&report] { report("Button: medium"); };
         rows.push_back(std::move(buttons));
 
@@ -166,13 +161,13 @@ int main(int argc, char** argv) {
         Row icon_buttons{"Icon buttons"};
         for (const auto& [style, name] : icon_styles) {
             const std::string n = name;
-            auto* b = add<widgets::IconButton>(icon_buttons.items, widgets::IconButtonOptions{icon(Symbol::settings), style});
+            auto* b = add<widgets::IconButton>(controls, icon_buttons.items, widgets::IconButtonOptions{icon(Symbol::settings), style});
             b->on_click = [&report, n] { report("Icon button: " + n); };
         }
         const Symbol toggle_symbols[] = {Symbol::favorite, Symbol::star, Symbol::bookmark, Symbol::notifications};
         for (std::size_t i = 0; i < std::size(icon_styles); ++i) {
             const std::string n = icon_styles[i].second;
-            auto* b = add<widgets::IconButton>(icon_buttons.items,
+            auto* b = add<widgets::IconButton>(controls, icon_buttons.items,
                                                widgets::IconButtonOptions{icon(toggle_symbols[i]), icon_styles[i].first,
                                                                           IconButtonSize::small, ButtonShape::round,
                                                                           IconButtonWidth::uniform, true});
@@ -187,7 +182,7 @@ int main(int argc, char** argv) {
         for (std::size_t i = 0; i < std::size(size_list); ++i) {
             const auto shape = i % 2 == 0 ? ButtonShape::round : ButtonShape::square;
             const auto width = i == 1 ? IconButtonWidth::wide : IconButtonWidth::uniform;
-            auto* b = add<widgets::IconButton>(sizes.items,
+            auto* b = add<widgets::IconButton>(controls, sizes.items,
                                                widgets::IconButtonOptions{icon(Symbol::palette), IconButtonStyle::tonal, size_list[i], shape, width});
             b->on_click = [&report, i] { report("Size " + std::to_string(i)); };
         }
@@ -200,26 +195,26 @@ int main(int argc, char** argv) {
             {tokens::FabSize::large, Symbol::mail},
         };
         for (const auto& [size, symbol] : fab_list) {
-            auto* f = add<widgets::Fab>(fabs.items, widgets::FabOptions{icon(symbol), size});
+            auto* f = add<widgets::Fab>(controls, fabs.items, widgets::FabOptions{icon(symbol), size});
             f->on_click = [&report] { report("FAB"); };
         }
-        auto* secondary = add<widgets::Fab>(fabs.items, widgets::FabOptions{icon(Symbol::search), tokens::FabSize::baseline,
+        auto* secondary = add<widgets::Fab>(controls, fabs.items, widgets::FabOptions{icon(Symbol::search), tokens::FabSize::baseline,
                                                                           tokens::FabStyle::secondary_container});
         secondary->on_click = [&report] { report("FAB: secondary"); };
         rows.push_back(std::move(fabs));
 
         Row switches{"Switch"};
-        auto* plain_switch = add<widgets::Switch>(switches.items);
+        auto* plain_switch = add<widgets::Switch>(controls, switches.items);
         plain_switch->on_click = [&report, &w = plain_switch->widget] { report(w.checked() ? "Switch: on" : "Switch: off"); };
-        auto* icon_switch = add<widgets::Switch>(switches.items, widgets::SwitchOptions{true, icon(Symbol::check), std::nullopt});
+        auto* icon_switch = add<widgets::Switch>(controls, switches.items, widgets::SwitchOptions{true, icon(Symbol::check), std::nullopt});
         icon_switch->on_click = [&report, &w = icon_switch->widget] { report(w.checked() ? "Switch: on" : "Switch: off"); };
-        auto* both_switch = add<widgets::Switch>(switches.items, widgets::SwitchOptions{false, icon(Symbol::check), icon(Symbol::close)});
+        auto* both_switch = add<widgets::Switch>(controls, switches.items, widgets::SwitchOptions{false, icon(Symbol::check), icon(Symbol::close)});
         both_switch->on_click = [&report, &w = both_switch->widget] { report(w.checked() ? "Switch: on" : "Switch: off"); };
         rows.push_back(std::move(switches));
 
         Row checkboxes{"Checkbox"};
         for (auto state : {tokens::CheckboxState::off, tokens::CheckboxState::on, tokens::CheckboxState::indeterminate}) {
-            auto* c = add<widgets::Checkbox>(checkboxes.items, widgets::CheckboxOptions{state});
+            auto* c = add<widgets::Checkbox>(controls, checkboxes.items, widgets::CheckboxOptions{state});
             c->on_click = [&report, &w = c->widget] { report(std::string("Checkbox: ") + checkbox_name(w.state())); };
         }
         rows.push_back(std::move(checkboxes));
@@ -227,7 +222,7 @@ int main(int argc, char** argv) {
         Row radios{"Radio button"};
         std::vector<widgets::RadioButton*> group;
         for (int i = 0; i < 3; ++i) {
-            auto* r = add<widgets::RadioButton>(radios.items, widgets::RadioButtonOptions{i == 0});
+            auto* r = add<widgets::RadioButton>(controls, radios.items, widgets::RadioButtonOptions{i == 0});
             group.push_back(&r->widget);
             r->on_click = [&report, &group, i] {
                 for (int k = 0; k < static_cast<int>(group.size()); ++k) {
@@ -240,6 +235,7 @@ int main(int argc, char** argv) {
 
         widgets::IconButton dark_toggle({icon(options.dark ? Symbol::light_mode : Symbol::dark_mode), IconButtonStyle::outlined,
                                          IconButtonSize::small, ButtonShape::round, IconButtonWidth::uniform, true});
+        controls.add(dark_toggle);
         widgets::Label header("\u90e8\u54c1", layout.header_type, layout.text, fonts, false);
         widgets::Label symbols_caption("Symbols", layout.caption_type, layout.caption, fonts, false);
         widgets::Label theme_caption("Theme", layout.caption_type, layout.caption, fonts, false);
@@ -332,14 +328,8 @@ int main(int argc, char** argv) {
         auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             header.paint(canvas, scheme);
             status.paint(canvas, scheme);
-            bool animating = false;
             for (auto& row : rows) {
                 row.label->paint(canvas, scheme);
-                for (auto& item : row.items) {
-                    item->step(frame.dt_seconds);
-                    item->paint(canvas, scheme);
-                    animating = animating || item->animating();
-                }
             }
             symbols_caption.paint(canvas, scheme);
             for (std::size_t i = 0; i < icons::all_symbols.size(); ++i) {
@@ -362,9 +352,9 @@ int main(int argc, char** argv) {
                 canvas.fill_rounded_rect(c, render::uniform_radii(layout.chip / 2.0), seeds[i]);
             }
             theme.step(frame.dt_seconds);
-            dark_toggle.step(frame.dt_seconds);
-            dark_toggle.paint(canvas, scheme);
-            return animating || !theme.settled() || dark_toggle.animating();
+            controls.step(frame.dt_seconds);
+            controls.paint(canvas, scheme);
+            return !theme.settled() || controls.animating();
         };
 
         sdl3::run_app({"lamina-ui components", 1100, 860}, update, paint);

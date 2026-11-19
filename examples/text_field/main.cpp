@@ -10,6 +10,7 @@
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
 
@@ -47,6 +48,11 @@ int main(int argc, char** argv) {
             f->set_width(layout.field_width);
         }
         widgets::Button send({"\u9001\u4fe1", tokens::ButtonStyle::filled, tokens::ButtonSize::medium, tokens::ButtonShape::round}, fonts);
+        widgets::WidgetSet controls;
+        for (auto& f : fields) {
+            controls.add(*f);
+        }
+        controls.add(send);
         widgets::Label header("\u6587\u5b57\u306e\u5165\u529b", layout.header_type, layout.text, fonts, false);
         std::vector<std::unique_ptr<widgets::Label>> log;
 
@@ -135,22 +141,17 @@ int main(int argc, char** argv) {
 
         auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             header.paint(canvas, scheme);
-            bool animating = false;
+            controls.step(frame.dt_seconds);
+            controls.paint(canvas, scheme);
             for (auto& f : fields) {
-                f->step(frame.dt_seconds);
-                f->paint(canvas, scheme);
-                animating = animating || f->animating();
                 if (f->focused()) {
                     window.wake_after(f->next_blink_seconds());
                 }
             }
-            send.step(frame.dt_seconds);
-            send.paint(canvas, scheme);
-            animating = animating || send.animating();
             for (const auto& l : log) {
                 l->paint(canvas, scheme);
             }
-            return animating;
+            return controls.animating();
         };
 
         sdl3::run_app(window, update, paint);

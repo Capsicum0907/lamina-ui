@@ -172,6 +172,7 @@ if(LAMINA_BUILD_TESTS)
         tests/text_field_test.cpp
         tests/text_test.cpp
         tests/tokens_test.cpp
+        tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
     )
     target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg mcu::mcu doctest::doctest)

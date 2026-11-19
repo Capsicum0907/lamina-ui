@@ -15,6 +15,7 @@
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
 
@@ -44,7 +45,7 @@ const std::vector<color::Argb> seeds{0xff6750a4, 0xff006a6a, 0xffb3261e, 0xff7d5
 
 struct Row {
     std::unique_ptr<widgets::Label> caption;
-    std::vector<std::unique_ptr<widgets::Button>> buttons;
+    std::vector<widgets::Button*> buttons;
 };
 
 layout::NodePtr caption_cell(widgets::Label& caption, double width, double height, double line_height) {
@@ -80,12 +81,13 @@ int main(int argc, char** argv) {
             {ButtonStyle::filled, "Filled"},     {ButtonStyle::tonal, "Tonal"}, {ButtonStyle::outlined, "Outlined"},
             {ButtonStyle::elevated, "Elevated"}, {ButtonStyle::text, "Text"},
         };
+        widgets::WidgetSet controls;
         std::vector<Row> rows;
         for (const auto& [style, name] : styles) {
             Row row{std::make_unique<widgets::Label>(name, layout.caption_type, layout.caption, fonts, false), {}};
-            row.buttons.push_back(std::make_unique<widgets::Button>(widgets::ButtonOptions{"\u4fdd\u5b58", style, ButtonSize::small, ButtonShape::round}, fonts));
-            row.buttons.push_back(std::make_unique<widgets::Button>(widgets::ButtonOptions{"Send", style, ButtonSize::small, ButtonShape::square}, fonts));
-            row.buttons.push_back(std::make_unique<widgets::Button>(widgets::ButtonOptions{"\u7d9a\u3051\u308b", style, ButtonSize::medium, ButtonShape::round}, fonts));
+            row.buttons.push_back(&controls.emplace<widgets::Button>(widgets::ButtonOptions{"\u4fdd\u5b58", style, ButtonSize::small, ButtonShape::round}, fonts));
+            row.buttons.push_back(&controls.emplace<widgets::Button>(widgets::ButtonOptions{"Send", style, ButtonSize::small, ButtonShape::square}, fonts));
+            row.buttons.push_back(&controls.emplace<widgets::Button>(widgets::ButtonOptions{"\u7d9a\u3051\u308b", style, ButtonSize::medium, ButtonShape::round}, fonts));
             rows.push_back(std::move(row));
         }
         Row sizes{std::make_unique<widgets::Label>("Sizes", layout.caption_type, layout.caption, fonts, false), {}};
@@ -94,9 +96,11 @@ int main(int argc, char** argv) {
             {ButtonSize::large, "L"},        {ButtonSize::extra_large, "XL"},
         };
         for (const auto& [size, name] : size_list) {
-            sizes.buttons.push_back(std::make_unique<widgets::Button>(widgets::ButtonOptions{name, ButtonStyle::filled, size, ButtonShape::round}, fonts));
+            sizes.buttons.push_back(&controls.emplace<widgets::Button>(widgets::ButtonOptions{name, ButtonStyle::filled, size, ButtonShape::round}, fonts));
         }
         rows.push_back(std::move(sizes));
+        controls.add(dark_toggle);
+        controls.add(spec_switch);
 
         widgets::Label header("\u30dc\u30bf\u30f3", layout.header_type, layout.text, fonts, false);
         int clicks = 0;
@@ -173,16 +177,11 @@ int main(int argc, char** argv) {
         auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             header.paint(canvas, scheme);
             counter.paint(canvas, scheme);
-            bool animating = false;
             for (auto& row : rows) {
                 row.caption->paint(canvas, scheme);
-                for (auto& b : row.buttons) {
-                    b->step(frame.dt_seconds);
-                    b->paint(canvas, scheme);
-                    animating = animating || b->animating();
-                }
             }
             theme_caption.paint(canvas, scheme);
+            spec_label.paint(canvas, scheme);
             for (std::size_t i = 0; i < seeds.size(); ++i) {
                 const render::Rect c = chip_rects[i];
                 if (i == seed_index) {
@@ -196,12 +195,9 @@ int main(int argc, char** argv) {
                 canvas.fill_rounded_rect(c, render::uniform_radii(layout.chip / 2.0), seeds[i]);
             }
             theme.step(frame.dt_seconds);
-            dark_toggle.step(frame.dt_seconds);
-            dark_toggle.paint(canvas, scheme);
-            spec_label.paint(canvas, scheme);
-            spec_switch.step(frame.dt_seconds);
-            spec_switch.paint(canvas, scheme);
-            return animating || !theme.settled() || dark_toggle.animating() || spec_switch.animating();
+            controls.step(frame.dt_seconds);
+            controls.paint(canvas, scheme);
+            return !theme.settled() || controls.animating();
         };
 
         sdl3::run_app({"lamina-ui buttons", 1000, 760}, update, paint);

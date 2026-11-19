@@ -22,6 +22,7 @@
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/tabs.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
@@ -185,6 +186,23 @@ int main(int argc, char** argv) {
         auto root = layout::row({widgets::node(rail), layout::weighted(main_column, 1.0)});
         root->fill_cross(true);
 
+        widgets::WidgetSet page_controls;
+        page_controls.add(dark_toggle);
+        for (widgets::TabRow* t : {&primary_tabs, &secondary_tabs, &leading_tabs}) {
+            page_controls.add(*t);
+        }
+        page_controls.add(continuous);
+        page_controls.add(stepped);
+        for (widgets::Button* b : {&menu_button, &grouped_button, &dialog_button, &wrap_button}) {
+            page_controls.add(*b);
+        }
+        widgets::WidgetSet overlays;
+        overlays.add(nav);
+        overlays.add(menu);
+        overlays.add(grouped_menu);
+        overlays.add(dialog);
+        overlays.add(wrap_dialog);
+
         auto background = [&](const input::PointerEvent& e) {
             if (dark_toggle.handle(e)) {
                 options.dark = dark_toggle.checked();
@@ -332,44 +350,15 @@ int main(int argc, char** argv) {
                 l->paint(canvas, scheme);
             }
             theme.step(dt);
-            dark_toggle.step(dt);
-            primary_tabs.step(dt);
-            secondary_tabs.step(dt);
-            leading_tabs.step(dt);
-            continuous.step(dt);
-            stepped.step(dt);
-            menu_button.step(dt);
-            grouped_button.step(dt);
-            dialog_button.step(dt);
-            wrap_button.step(dt);
+            page_controls.step(dt);
             rail_open.step(dt);
             rail_close.step(dt);
-            grouped_menu.step(dt);
-            wrap_dialog.step(dt);
-            nav.step(dt);
-            menu.step(dt);
-            dialog.step(dt);
-            dark_toggle.paint(canvas, scheme);
-            primary_tabs.paint(canvas, scheme);
-            secondary_tabs.paint(canvas, scheme);
-            leading_tabs.paint(canvas, scheme);
-            continuous.paint(canvas, scheme);
-            stepped.paint(canvas, scheme);
-            menu_button.paint(canvas, scheme);
-            grouped_button.paint(canvas, scheme);
-            dialog_button.paint(canvas, scheme);
-            wrap_button.paint(canvas, scheme);
+            overlays.step(dt);
+            page_controls.paint(canvas, scheme);
             rail_button().paint(canvas, scheme);
-            nav.paint(canvas, scheme);
-            menu.paint(canvas, scheme);
-            grouped_menu.paint(canvas, scheme);
-            dialog.paint(canvas, scheme);
-            wrap_dialog.paint(canvas, scheme);
-            return !theme.settled() || dark_toggle.animating() || primary_tabs.animating() || secondary_tabs.animating() ||
-                   leading_tabs.animating() || continuous.animating() || stepped.animating() || menu_button.animating() ||
-                   dialog_button.animating() || nav.animating() || menu.animating() || dialog.animating() ||
-                   grouped_button.animating() || wrap_button.animating() || rail_open.animating() || rail_close.animating() ||
-                   rail.animating() || grouped_menu.animating() || wrap_dialog.animating();
+            overlays.paint(canvas, scheme);
+            return !theme.settled() || page_controls.animating() || rail_open.animating() || rail_close.animating() ||
+                   rail.animating() || overlays.animating();
         };
 
         sdl3::run_app({"lamina-ui navigation", 1120, 860}, update, paint);
