@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/widgets/dialog.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using platform::PointerAction;

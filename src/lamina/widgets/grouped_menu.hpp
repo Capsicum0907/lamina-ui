@@ -8,9 +8,9 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
+#include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
-#include "lamina/platform/input.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/menu.hpp"

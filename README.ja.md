@@ -17,9 +17,9 @@ lamina-ui は Google とは関係がなく、Google の承認も受けていま�
 - `lamina/color/scheme.hpp`：1 色から作る配色。`spec_2021().build(options)` と `spec_2025().build(options)` は、元の色・ライトかダークか・配色の種類（TonalSpot・Expressive・Vibrant など）・コントラストの段階から、2021 年または 2025 年の色の仕様で 53 個の色の役割（primary・primary-dim・surface-container・outline など）を返します。2021 年の仕様は Google の material-color-utilities（`third_party/`）が計算します。2025 年の仕様（`color/spec_2025.cpp`）は、同じライブラリの Java 版の `ColorSpec2025` をスマートフォン向けの部分だけ移したもので、C++ 版の HCT とコントラストの関数の上に作っています。Java 版との照合は `tools/color-dump/` で行います。
 
 - `lamina/render/canvas.hpp`：曲線・角丸の四角・影・座標変換の積み重ねを持つ 2D の描画面。描くのは ThorVG です（`lamina::thorvg`）。ThorVG を選んだ理由は [docs/renderer-comparison.ja.md](docs/renderer-comparison.ja.md) にあります。
-- `lamina/platform/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。
-- `lamina/platform/resources.hpp`：実行ファイルの隣の `assets/` フォルダーからファイルを探し、無ければ親のフォルダーを順にさかのぼって探します。そのため、ビルドしたその場所からでも、フォルダーごと別の場所に写しても動きます。`bundled_icon_font()` はそこからアイコンのフォントを読みます。
-- `lamina/platform/system_fonts.hpp`：OS のフォントから、日本語の画面の文字に使うフォントを探します。フォントのフォルダーは環境変数（`WINDIR`・`SystemRoot`・`LOCALAPPDATA`）から決め、候補を Noto Sans JP・Yu Gothic UI・Meiryo UI・BIZ UDPゴシック・MS UI Gothic の順に試します。どちらの一覧もヘッダーに置いたデータです。一つも見つからなければ、試したパスを全部並べたエラーを投げます。`font_stack_from_arguments` は、コマンドラインにフォントのファイルが渡されていれば、そちらを使います。
+- `lamina_sdl3/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。
+- `lamina_sdl3/resources.hpp`：実行ファイルの隣の `assets/` フォルダーからファイルを探し、無ければ親のフォルダーを順にさかのぼって探します。そのため、ビルドしたその場所からでも、フォルダーごと別の場所に写しても動きます。`bundled_icon_font()` はそこからアイコンのフォントを読みます。
+- `lamina_sdl3/system_fonts.hpp`：OS のフォントから、日本語の画面の文字に使うフォントを探します。フォントのフォルダーは環境変数（`WINDIR`・`SystemRoot`・`LOCALAPPDATA`）から決め、候補を Noto Sans JP・Yu Gothic UI・Meiryo UI・BIZ UDPゴシック・MS UI Gothic の順に試します。どちらの一覧もヘッダーに置いたデータです。一つも見つからなければ、試したパスを全部並べたエラーを投げます。`font_stack_from_arguments` は、コマンドラインにフォントのファイルが渡されていれば、そちらを使います。
 - `lamina/text/font.hpp`・`layout.hpp`：フォントと、1 行の文字・折り返す段落。文字の並べ方と字形の輪郭はどちらも HarfBuzz から取り、輪郭はほかの図形と同じく描画面で塗るので、FreeType は使いません。可変フォントは文字の段階の太さに合わせて太さを変え、フォントに無い文字は `FontStack` の次のフォントで補います。段落は、欧文では空白で、日本語では文字の間で折り返し、。や 」などの約物は行頭に来ないようにします（`text/line_break.hpp`）。
 - `lamina/widgets/button.hpp`：Material 3 Expressive のボタン。5 種類（filled・tonal・outlined・elevated・text）・5 段階の大きさ・2 種類の形。押すと、Compose と同じく効果のばねで角が押したときの形に変わり、マウスを乗せたときと押したときには状態の重ねと高さが変わります。`ButtonOptions::leading_icon` でラベルの前にアイコンを置けます。大きさと間隔は大きさのトークンに従います。`build/Release/buttons.exe` で全部を並べて見られます。
 - `lamina/icons/`：フォントとしての Material Symbols。`symbols.hpp` が 47 個の記号に名前を付け（`Symbol::add`・`Symbol::delete_` など）、`IconFont` は `assets/icons/` の切り出したフォントを読み、HarfBuzz から取った輪郭で記号を好きな大きさと色で描きます。フォントの可変軸（塗り・太さ・グレード・光学サイズ）も指定でき、光学サイズは指定しなければ描く大きさに合わせます。`text::Font` には `glyph_for` と、軸の値を受け取る `glyph_outline_em` を足しました。`tools/icon-subset/subset.py` は、一つの名前の一覧からフォントと `symbols.hpp` を作り直します。
@@ -64,7 +64,7 @@ ctest --preset release
 
 ビルドは、見本ごとにその隣へ `assets/` を写します。見本は `build/Release/` から動くほか、`assets/` フォルダーを一緒に写せば、ほかのどのフォルダーからでも動きます。写さなかったときは親のフォルダーをさかのぼって `assets/` を探すので、ソースの中のものが見つかります。
 
-`shapes_gallery.exe` 以外の見本は、コマンドラインでフォントのファイルを受け取ります（例：`buttons.exe C:/path/to/font.ttf`）。後ろのファイルは、前のファイルに無い文字を補います。指定しないときは、OS のフォントから最初に見つかった日本語の画面向けのフォントを使い（`lamina/platform/system_fonts.hpp`）、一つも無ければ、試したパスを並べたエラーを出して終わります。
+`shapes_gallery.exe` 以外の見本は、コマンドラインでフォントのファイルを受け取ります（例：`buttons.exe C:/path/to/font.ttf`）。後ろのファイルは、前のファイルに無い文字を補います。指定しないときは、OS のフォントから最初に見つかった日本語の画面向けのフォントを使い（`lamina_sdl3/system_fonts.hpp`）、一つも無ければ、試したパスを並べたエラーを出して終わります。
 
 ## 出典
 

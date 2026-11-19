@@ -73,7 +73,7 @@ lamina_warnings(lamina)
 
 find_path(THORVG_INCLUDE_DIR thorvg.h PATH_SUFFIXES thorvg-1 REQUIRED)
 lamina_find_vcpkg_library(THORVG_LIBRARY thorvg-1)
-add_library(lamina_thorvg STATIC src/lamina/render/thorvg_canvas.cpp)
+add_library(lamina_thorvg STATIC src/lamina_thorvg/canvas.cpp)
 add_library(lamina::thorvg ALIAS lamina_thorvg)
 target_include_directories(lamina_thorvg PRIVATE ${THORVG_INCLUDE_DIR})
 target_link_libraries(lamina_thorvg PUBLIC lamina PRIVATE ${THORVG_LIBRARY})
@@ -81,9 +81,9 @@ lamina_warnings(lamina_thorvg)
 
 find_package(SDL3 CONFIG REQUIRED)
 add_library(lamina_sdl3 STATIC
-    src/lamina/platform/resources.cpp
-    src/lamina/platform/system_fonts.cpp
-    src/lamina/platform/window.cpp
+    src/lamina_sdl3/resources.cpp
+    src/lamina_sdl3/system_fonts.cpp
+    src/lamina_sdl3/window.cpp
 )
 add_library(lamina::sdl3 ALIAS lamina_sdl3)
 target_link_libraries(lamina_sdl3 PUBLIC lamina lamina_thorvg PRIVATE SDL3::SDL3)

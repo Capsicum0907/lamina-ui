@@ -1,9 +1,9 @@
 #include <doctest/doctest.h>
 
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using platform::PointerAction;

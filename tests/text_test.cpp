@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using namespace lamina::text;

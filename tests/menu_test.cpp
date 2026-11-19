@@ -4,8 +4,8 @@
 #include <string>
 
 #include "lamina/color/mix.hpp"
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/widgets/menu.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using platform::PointerAction;

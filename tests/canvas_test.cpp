@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "lamina/render/thorvg_canvas.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina::render;
 using lamina::color::Argb;

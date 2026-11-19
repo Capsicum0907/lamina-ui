@@ -1,4 +1,4 @@
-#include "lamina/platform/window.hpp"
+#include "lamina_sdl3/window.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,7 @@
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL_main.h>
 
-#include "lamina/render/thorvg_canvas.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 namespace lamina::platform {
 

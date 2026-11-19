@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <string>
 
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/nodes.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using platform::PointerAction;

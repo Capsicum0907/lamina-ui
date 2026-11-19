@@ -6,11 +6,11 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
-#include "lamina/platform/window.hpp"
 #include "lamina/shapes/material_shapes.hpp"
 #include "lamina/shapes/morph.hpp"
 #include "lamina/shapes/to_path.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using shapes::MaterialShape;

@@ -7,16 +7,16 @@
 
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
-#include "lamina/motion/animated.hpp"
-#include "lamina/tokens/motion.hpp"
 #include "lamina/layout/layout.hpp"
-#include "lamina/platform/system_fonts.hpp"
-#include "lamina/platform/window.hpp"
+#include "lamina/motion/animated.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina_sdl3/system_fonts.hpp"
+#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using tokens::ButtonShape;

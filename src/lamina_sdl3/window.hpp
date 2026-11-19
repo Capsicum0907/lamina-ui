@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "lamina/platform/clipboard.hpp"
-#include "lamina/platform/input.hpp"
+#include "lamina/input/clipboard.hpp"
+#include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
 
 namespace lamina::platform {

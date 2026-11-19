@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/widgets/slider.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using platform::Key;

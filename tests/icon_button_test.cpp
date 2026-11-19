@@ -1,8 +1,8 @@
 #include <doctest/doctest.h>
 
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using platform::PointerAction;

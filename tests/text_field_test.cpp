@@ -3,9 +3,9 @@
 #include <string>
 
 #include "lamina/color/scheme.hpp"
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using platform::Key;

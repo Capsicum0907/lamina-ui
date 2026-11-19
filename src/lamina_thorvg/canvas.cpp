@@ -1,4 +1,4 @@
-#include "lamina/render/thorvg_canvas.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 #include <cmath>
 #include <vector>

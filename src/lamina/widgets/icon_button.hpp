@@ -2,8 +2,8 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
+#include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
-#include "lamina/platform/input.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/icon_button.hpp"

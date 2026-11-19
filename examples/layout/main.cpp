@@ -6,11 +6,11 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
-#include "lamina/platform/system_fonts.hpp"
-#include "lamina/platform/window.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/surface.hpp"
+#include "lamina_sdl3/system_fonts.hpp"
+#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using color::Role;

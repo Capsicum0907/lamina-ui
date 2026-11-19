@@ -13,9 +13,6 @@
 #include "lamina/icons/icon.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
-#include "lamina/platform/resources.hpp"
-#include "lamina/platform/system_fonts.hpp"
-#include "lamina/platform/window.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
@@ -26,6 +23,9 @@
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina_sdl3/resources.hpp"
+#include "lamina_sdl3/system_fonts.hpp"
+#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using icons::Symbol;

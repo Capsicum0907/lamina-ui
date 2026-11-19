@@ -4,8 +4,8 @@
 #include <string>
 
 #include "lamina/icons/icon.hpp"
-#include "lamina/render/thorvg_canvas.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
 using icons::Symbol;

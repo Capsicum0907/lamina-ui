@@ -1,4 +1,4 @@
-#include "lamina/platform/resources.hpp"
+#include "lamina_sdl3/resources.hpp"
 
 #include <stdexcept>
 #include <string>

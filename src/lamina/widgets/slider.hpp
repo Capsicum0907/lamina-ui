@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
-#include "lamina/platform/input.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/slider.hpp"
 

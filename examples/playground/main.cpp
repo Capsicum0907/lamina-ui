@@ -7,14 +7,14 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
-#include "lamina/platform/system_fonts.hpp"
-#include "lamina/platform/window.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 #include "lamina/widgets/surface.hpp"
+#include "lamina_sdl3/system_fonts.hpp"
+#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using color::Role;
