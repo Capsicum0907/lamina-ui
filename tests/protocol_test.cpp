@@ -28,7 +28,7 @@ using namespace lamina::widgets;
 template <typename W>
 constexpr bool interactive = Paintable<W> && Steppable<W> && HandlesPointer<W>;
 
-static_assert(interactive<Button> && Sized<Button> && !WidthSettable<Button> && !Measurable<Button>);
+static_assert(interactive<Button> && Sized<Button> && SizeSettable<Button> && !WidthSettable<Button> && !Measurable<Button>);
 static_assert(interactive<IconButton> && Sized<IconButton> && !WidthSettable<IconButton> && !Measurable<IconButton>);
 static_assert(interactive<Fab> && Sized<Fab> && !WidthSettable<Fab> && !Measurable<Fab>);
 static_assert(interactive<Switch> && Sized<Switch> && !WidthSettable<Switch> && !Measurable<Switch>);
@@ -105,4 +105,18 @@ TEST_CASE("a widget set paints a label among stepped widgets and does not count 
     set.add(b);
     settle(set);
     CHECK_FALSE(set.animating());
+}
+
+TEST_CASE("filled_node gives a size-settable widget the whole cell it is placed in") {
+    Button a({"1"}, fonts());
+    Button b({"2"}, fonts());
+    auto r = layout::row({layout::weighted(filled_node(a), 1.0), layout::weighted(filled_node(b), 1.0)});
+    r->spacing(10.0).cross_align(layout::CrossAlign::stretch).fill_cross(true);
+    layout::run(*r, {5.0, 6.0, 210.0, 70.0});
+    CHECK(a.bounds().x == doctest::Approx(5.0));
+    CHECK(a.bounds().y == doctest::Approx(6.0));
+    CHECK(a.width() == doctest::Approx(100.0));
+    CHECK(a.height() == doctest::Approx(70.0));
+    CHECK(b.bounds().x == doctest::Approx(115.0));
+    CHECK(b.width() == doctest::Approx(100.0));
 }

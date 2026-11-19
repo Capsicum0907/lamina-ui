@@ -42,6 +42,9 @@ template <typename W>
 concept WidthSettable = Sized<W> && requires(W& w, double width) { w.set_width(width); };
 
 template <typename W>
+concept SizeSettable = Sized<W> && requires(W& w, double width, double height) { w.set_size(width, height); };
+
+template <typename W>
 concept Measurable = requires(W& w, const layout::Constraints& c, const render::Rect& r) {
     { w.measure(c) } -> std::convertible_to<layout::Size>;
     w.arrange(r);

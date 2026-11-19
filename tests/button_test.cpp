@@ -77,3 +77,36 @@ TEST_CASE("cancel_interaction drops a press, so the release no longer clicks, an
     CHECK(canvas.pixel(13, 13) == 0xffffffff);
     CHECK_FALSE(b.handle({PointerAction::up, 20.0, 20.0}));
 }
+
+TEST_CASE("set_size gives a button any size, and a round button's corners follow the new height at once") {
+    auto b = make(ButtonStyle::filled, ButtonSize::large, ButtonShape::round, "7");
+    b.set_size(120.0, 50.0);
+    CHECK(b.width() == 120.0);
+    CHECK(b.height() == 50.0);
+    CHECK(b.bounds().width == 120.0);
+    CHECK(b.bounds().height == 50.0);
+    CHECK_FALSE(b.animating());
+
+    thorvg::Canvas canvas(200, 80);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, scheme());
+    CHECK(canvas.pixel(12, 12) == 0xffffffff);
+    CHECK(canvas.pixel(35, 12) != 0xffffffff);
+    CHECK(canvas.pixel(70, 59) != 0xffffffff);
+    CHECK(canvas.pixel(70, 62) == 0xffffffff);
+}
+
+TEST_CASE("set_size during a press keeps the corners springing toward the pressed shape") {
+    auto b = make(ButtonStyle::filled, ButtonSize::large, ButtonShape::round, "7");
+    b.handle({PointerAction::down, 40.0, 40.0});
+    b.set_size(120.0, 80.0);
+    CHECK(b.animating());
+    settle(b);
+    CHECK_FALSE(b.animating());
+}
+
+TEST_CASE("an icon-only button leaves no gap for the missing label") {
+    widgets::Button b({"", ButtonStyle::tonal, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), icons::Symbol::backspace}}, fonts());
+    const auto& size = tokens::button_size(ButtonSize::large);
+    CHECK(b.width() == doctest::Approx(size.leading_space + size.icon_size + size.trailing_space));
+}

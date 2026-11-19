@@ -27,7 +27,8 @@ public:
     Button(ButtonOptions options, const text::FontStack& fonts);
 
     double width() const { return width_; }
-    double height() const;
+    double height() const { return height_; }
+    void set_size(double width, double height);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
 
@@ -48,6 +49,7 @@ private:
     text::FontStack fonts_;
     text::TextLine label_;
     double width_;
+    double height_;
     render::Point origin_{0.0, 0.0};
     PressState press_;
     motion::Animated corner_;

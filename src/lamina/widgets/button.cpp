@@ -23,6 +23,7 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
       label_(text::layout_line(fonts, options_.label,
                                tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)))),
       width_(0.0),
+      height_(tokens::button_size(options_.size).height),
       corner_(0.0, motion_scheme.default_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()),
       elevation_(0.0, motion_scheme.default_effects()) {
@@ -37,11 +38,22 @@ double Button::content_width() const {
         return label_.width;
     }
     const auto& size = tokens::button_size(options_.size);
-    return size.icon_size + size.icon_label_space + label_.width;
+    const double gap = options_.label.empty() ? 0.0 : size.icon_label_space;
+    return size.icon_size + gap + label_.width;
 }
 
-double Button::height() const {
-    return tokens::button_size(options_.size).height;
+void Button::set_size(double width, double height) {
+    if (width == width_ && height == height_) {
+        return;
+    }
+    width_ = width;
+    height_ = height;
+    const double corner = press_.pressed ? pressed_corner() : rest_corner();
+    if (corner_.settled()) {
+        corner_.snap_to(corner);
+    } else {
+        corner_.animate_to(corner);
+    }
 }
 
 render::Rect Button::bounds() const {

@@ -24,6 +24,18 @@ layout::NodePtr full_width_node(W& w) {
         });
 }
 
+template <SizeSettable W>
+layout::NodePtr filled_node(W& w) {
+    return std::make_shared<layout::Leaf>(
+        [&w](const layout::Constraints& c) {
+            return layout::Size{std::isfinite(c.max_width) ? c.max_width : w.width(), std::isfinite(c.max_height) ? c.max_height : w.height()};
+        },
+        [&w](const render::Rect& r) {
+            w.set_size(r.width, r.height);
+            w.set_origin({r.x, r.y});
+        });
+}
+
 template <Measurable W>
 layout::NodePtr measured_node(W& w) {
     return std::make_shared<layout::Leaf>([&w](const layout::Constraints& c) { return layout::Size(w.measure(c)); },
