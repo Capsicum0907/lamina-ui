@@ -10,6 +10,17 @@
 
 namespace lamina::widgets {
 
+template <typename R>
+bool reports_consumed(const R& result) {
+    if constexpr (std::same_as<R, bool>) {
+        return result;
+    } else if constexpr (requires { { result.consumed } -> std::convertible_to<bool>; }) {
+        return result.consumed;
+    } else {
+        return false;
+    }
+}
+
 template <typename W>
 concept Paintable = requires(const W& w, render::Canvas& canvas, const color::ColorScheme& scheme) { w.paint(canvas, scheme); };
 

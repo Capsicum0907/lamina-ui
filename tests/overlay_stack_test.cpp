@@ -187,3 +187,39 @@ TEST_CASE("a modal overlay restores no focus when nothing had it, or when the wi
     stack.handle(escape);
     CHECK_FALSE(a.focused());
 }
+
+TEST_CASE("an overlay removed from its own result handler leaves the stack after the event and gives the focus back") {
+    widgets::Button a({"A"}, fonts());
+    widgets::FocusManager focus;
+    focus.add(a);
+    a.set_focused(true);
+    widgets::OverlayStack stack;
+    stack.set_focus(focus);
+    auto menu = make_menu();
+    menu.open({20.0, 20.0, 40.0, 40.0}, window);
+    int calls = 0;
+    stack.push(menu, [&](bool) {
+        ++calls;
+        stack.remove(menu);
+    });
+    CHECK_FALSE(a.focused());
+    CHECK(stack.handle(input::KeyEvent{input::Key::a, false}));
+    CHECK(calls == 1);
+    CHECK(menu.is_open());
+    CHECK(stack.empty());
+    CHECK(a.focused());
+    CHECK_FALSE(stack.handle(input::KeyEvent{input::Key::a, false}));
+    CHECK(calls == 1);
+}
+
+TEST_CASE("removing an overlay outside an event takes it off at once") {
+    auto menu = make_menu();
+    menu.open({20.0, 20.0, 40.0, 40.0}, window);
+    widgets::OverlayStack stack;
+    stack.push(menu, [](bool) {});
+    CHECK_FALSE(stack.empty());
+    stack.remove(menu);
+    CHECK(stack.empty());
+    CHECK_FALSE(stack.handle(escape));
+    CHECK(menu.is_open());
+}

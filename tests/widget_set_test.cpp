@@ -140,3 +140,115 @@ TEST_CASE("a widget set steps and paints real widgets as they would be on their 
     CHECK(painted > 0);
     CHECK(differing == 0);
 }
+
+namespace {
+
+class Clickable {
+public:
+    Clickable(std::string name, std::vector<std::string>& seen, int* destroyed = nullptr)
+        : name_(std::move(name)), seen_(seen), destroyed_(destroyed) {}
+    Clickable(const Clickable&) = delete;
+    Clickable& operator=(const Clickable&) = delete;
+    ~Clickable() {
+        if (destroyed_) {
+            ++*destroyed_;
+        }
+    }
+
+    bool handle(const input::PointerEvent&) {
+        seen_.push_back(name_);
+        return true;
+    }
+    void paint(render::Canvas&, const color::ColorScheme&) const { seen_.push_back("paint " + name_); }
+    const std::string& name() const { return name_; }
+
+private:
+    std::string name_;
+    std::vector<std::string>& seen_;
+    int* destroyed_;
+};
+
+constexpr input::PointerEvent press{input::PointerAction::down, 1.0, 1.0};
+
+}
+
+TEST_CASE("a widget removed from its own click handler is skipped afterwards and destroyed after the event") {
+    std::vector<std::string> seen;
+    int destroyed = 0;
+    widgets::WidgetSet set;
+    widgets::WidgetSet* self = &set;
+    set.emplace<Clickable>("a", seen);
+    set.emplace_with<Clickable>(
+        [&](Clickable& w, bool) {
+            CHECK(destroyed == 0);
+            self->remove(w);
+            CHECK(destroyed == 0);
+            CHECK(w.name() == "b");
+        },
+        "b", seen, &destroyed);
+    set.emplace<Clickable>("c", seen);
+    CHECK(set.size() == 3);
+    CHECK(set.handle(press));
+    CHECK(seen == std::vector<std::string>{"a", "b", "c"});
+    CHECK(destroyed == 1);
+    CHECK(set.size() == 2);
+    seen.clear();
+    set.handle(press);
+    CHECK(seen == std::vector<std::string>{"a", "c"});
+}
+
+TEST_CASE("removing a later widget during an event keeps the event from it, and an added one waits for the next event") {
+    std::vector<std::string> seen;
+    widgets::WidgetSet set;
+    Clickable later("later", seen);
+    Clickable added("added", seen);
+    set.emplace_with<Clickable>(
+        [&](bool) {
+            set.remove(later);
+            if (!set.contains(added)) {
+                set.add(added);
+            }
+        },
+        "first", seen);
+    set.add(later);
+    set.handle(press);
+    CHECK(seen == std::vector<std::string>{"first"});
+    CHECK_FALSE(set.contains(later));
+    CHECK(set.contains(added));
+    seen.clear();
+    set.handle(press);
+    CHECK(seen == std::vector<std::string>{"first", "added"});
+}
+
+TEST_CASE("for_each visits the widgets of one type in order, and may remove them while it runs") {
+    std::vector<std::string> seen;
+    Log log;
+    widgets::WidgetSet set;
+    set.emplace<Clickable>("a", seen);
+    set.emplace<Recorder>("r", log);
+    set.emplace<Clickable>("b", seen);
+    std::vector<std::string> names;
+    set.for_each<Clickable>([&](Clickable& c) {
+        names.push_back(c.name());
+        set.remove(c);
+    });
+    CHECK(names == std::vector<std::string>{"a", "b"});
+    CHECK(set.size() == 1);
+    thorvg::Canvas canvas(4, 4);
+    set.paint(canvas, scheme());
+    CHECK(seen.empty());
+    CHECK(log.paints == std::vector<std::string>{"r"});
+    const widgets::WidgetSet& view = set;
+    int recorders = 0;
+    view.for_each<Recorder>([&](const Recorder&) { ++recorders; });
+    CHECK(recorders == 1);
+}
+
+TEST_CASE("removing a widget that is not in the set changes nothing") {
+    std::vector<std::string> seen;
+    widgets::WidgetSet set;
+    Clickable outside("x", seen);
+    set.emplace<Clickable>("a", seen);
+    CHECK_FALSE(set.remove(outside));
+    CHECK(set.size() == 1);
+}

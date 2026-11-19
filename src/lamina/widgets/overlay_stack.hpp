@@ -21,17 +21,6 @@ concept Overlay = HandlesPointer<W> && HandlesKeys<W> && Cancellable<W> && requi
 
 enum class Modality { modal, modeless };
 
-template <typename R>
-bool reports_consumed(const R& result) {
-    if constexpr (std::same_as<R, bool>) {
-        return result;
-    } else if constexpr (requires { { result.consumed } -> std::convertible_to<bool>; }) {
-        return result.consumed;
-    } else {
-        return false;
-    }
-}
-
 class OverlayStack {
 public:
     template <Cancellable... Ws>
@@ -40,6 +29,18 @@ public:
     }
 
     void set_focus(FocusManager& focus) { focus_ = &focus; }
+
+    template <typename W>
+    void remove(const W& overlay) {
+        for (auto& layer : layers_) {
+            if (layer->id() == static_cast<const void*>(&overlay)) {
+                layer->removed = true;
+            }
+        }
+        if (routing_ == 0) {
+            prune();
+        }
+    }
 
     template <Overlay W, typename OnResult>
     void push(W& overlay, OnResult on_result, Modality modality = Modality::modal) {
@@ -78,10 +79,11 @@ private:
         virtual bool deliver(const input::PointerEvent& e) = 0;
         virtual bool deliver(const input::KeyEvent& e) = 0;
         virtual bool deliver(const input::TextEvent& e) = 0;
-        bool live() const { return !stale && open(); }
+        bool live() const { return !stale && !removed && open(); }
         Modality modality;
         bool stale = false;
         bool holds_focus = false;
+        bool removed = false;
     };
 
     template <typename W, typename OnResult>
@@ -127,6 +129,7 @@ private:
     std::vector<std::unique_ptr<Layer>> layers_;
     std::vector<std::function<void()>> base_;
     FocusManager* focus_ = nullptr;
+    int routing_ = 0;
 };
 
 }

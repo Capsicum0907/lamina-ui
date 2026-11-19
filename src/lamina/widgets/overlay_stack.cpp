@@ -7,6 +7,8 @@ namespace lamina::widgets {
 template <typename E>
 bool OverlayStack::route(const E& e) {
     prune();
+    bool stopped = false;
+    ++routing_;
     for (std::size_t i = layers_.size(); i-- > 0;) {
         Layer* layer = layers_[i].get();
         if (!layer->live()) {
@@ -14,11 +16,13 @@ bool OverlayStack::route(const E& e) {
         }
         const bool consumed = layer->deliver(e);
         if (consumed || layer->modality == Modality::modal) {
-            prune();
-            return true;
+            stopped = true;
+            break;
         }
     }
-    return false;
+    --routing_;
+    prune();
+    return stopped;
 }
 
 bool OverlayStack::handle(const input::PointerEvent& e) {
