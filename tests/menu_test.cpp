@@ -115,7 +115,7 @@ TEST_CASE("an open menu paints its container and the hovered item's state layer"
     m.paint(canvas, scheme());
     const color::Argb hovered = canvas.pixel(100, 90);
     CHECK(hovered != container);
-    const color::Argb expected = color::overlay(container, scheme()[color::Role::on_surface], tokens::state_layer_opacity::hover);
+    const color::Argb expected = color::state_layer(container, scheme()[color::Role::on_surface], tokens::state_layer_opacity::hover);
     for (int shift : {0, 8, 16}) {
         CHECK(std::abs(static_cast<int>((hovered >> shift) & 0xff) - static_cast<int>((expected >> shift) & 0xff)) <= 2);
     }

@@ -3,8 +3,8 @@
 
 #include <utility>
 
+#include "lamina/color/mix.hpp"
 #include "lamina/tokens/motion.hpp"
-#include "lamina/widgets/paint.hpp"
 #include "lamina/widgets/surface.hpp"
 
 namespace lamina::widgets {
@@ -60,7 +60,7 @@ void Fab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const 
     const render::Rect r = bounds();
     const double radius = tokens::corner_radius(size.corner, r.width, r.height);
     const color::Argb content = scheme[style.content];
-    const color::Argb fill = with_state_layer(scheme[style.container], content, state_layer_.value());
+    const color::Argb fill = color::state_layer(scheme[style.container], content, state_layer_.value());
     paint_surface(canvas, r, radius, fill, elevation_.value(), scheme[color::Role::shadow]);
     icons::draw_centered(canvas, options_.icon, r, size.icon_size, content);
 }

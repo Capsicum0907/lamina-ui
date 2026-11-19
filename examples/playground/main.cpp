@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
                     a->step(frame.dt_seconds);
                 }
                 const auto base = color::mix(scheme[layout.rest_fill], scheme[layout.raised_fill], c.fill.value());
-                const auto fill = color::overlay(base, scheme[layout.hover_layer], c.hover.value());
+                const auto fill = color::state_layer(base, scheme[layout.hover_layer], c.hover.value());
                 widgets::paint_surface(canvas, r, c.corner.value(), fill, c.elevation.value(), scheme[Role::shadow]);
                 const render::Point title_at{r.x + layout.card_padding, r.y + layout.card_padding};
                 const auto title_color = color::mix(scheme[layout.rest_text], scheme[layout.raised_text], c.fill.value());

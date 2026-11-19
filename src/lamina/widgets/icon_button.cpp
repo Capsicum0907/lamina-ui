@@ -95,7 +95,7 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     const color::Argb container = mix_optional(scheme, from.container, to.container, t);
     const color::Argb outline = mix_optional(scheme, from.outline, to.outline, t);
 
-    const color::Argb fill = with_state_layer(container, content, state_layer_.value());
+    const color::Argb fill = color::state_layer(container, content, state_layer_.value());
     if (color::alpha(fill) != 0) {
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), fill);
     }

@@ -11,8 +11,10 @@ TEST_CASE("mix interpolates every channel") {
     CHECK(color::mix(0xff000000, 0xffffffff, 2.0) == 0xffffffff);
 }
 
-TEST_CASE("overlay keeps the base alpha") {
-    CHECK(color::overlay(0xffffffff, 0x00000000, 0.5) == 0xff808080);
+TEST_CASE("state_layer composites the layer over the container") {
+    CHECK(color::state_layer(0xffffffff, 0x00000000, 0.4) == 0xff999999);
+    CHECK(color::state_layer(0x00000000, 0xff123456, 0.4) == color::with_alpha(0xff123456, 0.4));
+    CHECK(color::source_over(0x80ff0000, 0x800000ff) == 0xc0aa0055);
     CHECK(color::with_alpha(0xff123456, 0.0) == 0x00123456);
 }
 

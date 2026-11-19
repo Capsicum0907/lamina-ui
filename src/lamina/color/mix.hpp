@@ -35,8 +35,24 @@ inline ColorScheme mix(const ColorScheme& from, const ColorScheme& to, double t)
     return out;
 }
 
-inline Argb overlay(Argb base, Argb layer, double opacity) {
-    return mix(base, (base & 0xff000000) | (layer & 0x00ffffff), opacity);
+inline Argb source_over(Argb top, Argb bottom) {
+    const double at = alpha(top) / 255.0;
+    const double ab = alpha(bottom) / 255.0;
+    const double ao = at + ab * (1.0 - at);
+    if (ao <= 0.0) {
+        return 0;
+    }
+    Argb out = static_cast<Argb>(std::lround(ao * 255.0)) << 24;
+    for (int shift : {0, 8, 16}) {
+        const double ct = static_cast<double>((top >> shift) & 0xff);
+        const double cb = static_cast<double>((bottom >> shift) & 0xff);
+        out |= static_cast<Argb>(std::lround((ct * at + cb * ab * (1.0 - at)) / ao)) << shift;
+    }
+    return out;
+}
+
+inline Argb state_layer(Argb container, Argb content, double opacity) {
+    return source_over(with_alpha(content, opacity), container);
 }
 
 }

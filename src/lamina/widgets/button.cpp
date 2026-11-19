@@ -99,11 +99,11 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const color::Argb label_color = scheme[style.label];
     const render::Path shape = render::rounded_rect_path(r, render::uniform_radii(radius));
 
+    const color::Argb fill = color::state_layer(style.container ? scheme[*style.container] : 0, label_color, state_layer_.value());
     if (style.container) {
-        const color::Argb fill = color::overlay(scheme[*style.container], label_color, state_layer_.value());
         paint_surface(canvas, r, radius, fill, elevation_.value(), scheme[color::Role::shadow]);
-    } else if (state_layer_.value() > 0.0) {
-        canvas.fill_path(shape, color::with_alpha(label_color, state_layer_.value()));
+    } else if (color::alpha(fill) != 0) {
+        canvas.fill_path(shape, fill);
     }
     if (style.outline) {
         canvas.fill_path(ring_path(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
