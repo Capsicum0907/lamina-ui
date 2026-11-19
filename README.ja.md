@@ -77,7 +77,7 @@ CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どち�
 
 `shapes_gallery.exe` 以外の見本は、コマンドラインでフォントのファイルを受け取ります（例：`buttons.exe C:/path/to/font.ttf`）。後ろのファイルは、前のファイルに無い文字を補います。指定しないときは、OS のフォントから最初に見つかった日本語の画面向けのフォントを使い（`lamina_sdl3/system_fonts.hpp`）、一つも無ければ、試したパスを並べたエラーを出して終わります。
 
-見本はそれぞれ一つの `examples/<名前>/main.cpp` で（電卓は計算のしくみ・キーの配置・表示部を同じフォルダーに置いています）、`sdl3::run_app` で繰り返しを回し、部品があればそれを `widgets::WidgetSet` でまとめて進めて描きます（遊び場と形の一覧は部品を使わず、値を直接動かします）。ナビゲーションの例はメニューとダイアログへの入力を `widgets::OverlayStack` で振り分け、入力欄と配置の例は `widgets::FocusManager` でフォーカスを移し、IME の位置を決め、カーソルの点滅のために起こします。複数の見本で使うコードは `examples/common/`（`lamina_examples_common` ライブラリ、名前空間 `lamina::examples`）にあります。`window_canvas` は見本の窓が描く先の ThorVG の描画面を作り、`caption_cell` は行の横に見出しを置き、`ThemeFade` は今の配色から新しい配色へ、遅い効果のばねで移り変わらせます。`SeedChips` は元の色の丸を並べ、選んだものに輪を付け、新しく選ばれた色を知らせます。
+見本はそれぞれ一つの `examples/<名前>/main.cpp` で（電卓は計算のしくみ・キーの配置・表示部を同じフォルダーに置いています）、`sdl3::run_app` で繰り返しを回し、部品があればそれを `widgets::WidgetSet` でまとめて進めて描きます（遊び場と形の一覧は部品を使わず、値を直接動かします）。ナビゲーションの例はメニューとダイアログへの入力を `widgets::OverlayStack` で振り分け、入力欄と配置の例は `widgets::FocusManager` でフォーカスを移し、IME の位置を決め、カーソルの点滅のために起こします。複数の見本で使うコードは `examples/common/`（`lamina_examples_common` ライブラリ、名前空間 `lamina::examples`）にあります。`window_canvas` は見本の窓が描く先の ThorVG の描画面を作り、`caption_cell` は行の横に見出しを置き、`ThemeFade` は今の配色から新しい配色へ、遅い効果のばねで移り変わらせます。`SeedChips` は元の色の丸を並べ、選んだものに輪を付け、新しく選ばれた色を知らせます。`AnimatedBox`（`animated_box.hpp`）は、四角形をばねで動かし、新しい場所へ移るか、そのまま合わせるかを選べます。電卓とタイマーのキーがこれを使います。
 
 ## 出典
 
