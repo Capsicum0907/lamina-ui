@@ -118,7 +118,7 @@ render::Rect TabRow::indicator_rect() const {
     return {x, origin_.y + height_ - style.indicator_height, w, style.indicator_height};
 }
 
-bool TabRow::handle(const platform::PointerEvent& e) {
+bool TabRow::handle(const input::PointerEvent& e) {
     std::optional<std::size_t> clicked;
     for (std::size_t i = 0; i < tabs_.size(); ++i) {
         Tab& tab = tabs_[i];

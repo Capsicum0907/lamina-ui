@@ -60,7 +60,7 @@ const std::vector<color::Argb> seeds{0xff6750a4, 0xff006a6a, 0xffb3261e, 0xff7d5
 class Item {
 public:
     virtual ~Item() = default;
-    virtual bool handle(const platform::PointerEvent& e) = 0;
+    virtual bool handle(const input::PointerEvent& e) = 0;
     virtual void step(double dt) = 0;
     virtual bool animating() const = 0;
     virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
@@ -73,7 +73,7 @@ class Holder : public Item {
 public:
     template <typename... Args>
     explicit Holder(Args&&... args) : widget(std::forward<Args>(args)...) {}
-    bool handle(const platform::PointerEvent& e) override { return widget.handle(e); }
+    bool handle(const input::PointerEvent& e) override { return widget.handle(e); }
     void step(double dt) override { widget.step(dt); }
     bool animating() const override { return widget.animating(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override { widget.paint(canvas, scheme); }
@@ -119,8 +119,8 @@ const char* checkbox_name(tokens::CheckboxState s) {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
-        const icons::IconFont icon_font = platform::bundled_icon_font();
+        const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
+        const icons::IconFont icon_font = sdl3::bundled_icon_font();
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
 
         color::SchemeOptions options = color::default_scheme_options;
@@ -290,8 +290,8 @@ int main(int argc, char** argv) {
         auto page = layout::column(std::move(page_children));
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
-        platform::Window window({"lamina-ui components", 1100, 860});
-        platform::Frame frame;
+        sdl3::Window window({"lamina-ui components", 1100, 860});
+        sdl3::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
                     options.dark = dark_toggle.checked();
                     retheme_pending = true;
                 }
-                if (e.action == platform::PointerAction::up) {
+                if (e.action == input::PointerAction::up) {
                     for (std::size_t i = 0; i < seeds.size(); ++i) {
                         const double cx = chip_rects[i].x + chip_rects[i].width / 2.0;
                         const double cy = chip_rects[i].y + chip_rects[i].height / 2.0;

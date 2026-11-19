@@ -6,7 +6,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 
 namespace {
 
@@ -100,7 +100,7 @@ TEST_CASE("selecting an item grows its pill from the center on the spatial sprin
 
 TEST_CASE("the navigation bar paints the selected pill on the container") {
     auto bar = make();
-    render::ThorVGCanvas canvas(360, 64);
+    thorvg::Canvas canvas(360, 64);
     canvas.clear(0xffffffff);
     bar.paint(canvas, scheme());
     CHECK(canvas.pixel(36, 22) == scheme()[color::Role::secondary_container]);

@@ -59,7 +59,7 @@ layout::NodePtr caption_cell(widgets::Label& caption, double width, double heigh
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
+        const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         color::SchemeOptions options = color::default_scheme_options;
         color::ColorScheme from = color::spec_2021().build(options);
         color::ColorScheme to = from;
@@ -134,8 +134,8 @@ int main(int argc, char** argv) {
         auto page = layout::column(std::move(page_children));
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
-        platform::Window window({"lamina-ui buttons", 1000, 760});
-        platform::Frame frame;
+        sdl3::Window window({"lamina-ui buttons", 1000, 760});
+        sdl3::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
                 if (spec_switch.handle(e)) {
                     retheme(scheme);
                 }
-                if (e.action == platform::PointerAction::up) {
+                if (e.action == input::PointerAction::up) {
                     for (std::size_t i = 0; i < seeds.size(); ++i) {
                         const double cx = chip_rects[i].x + chip_rects[i].width / 2.0;
                         const double cy = chip_rects[i].y + chip_rects[i].height / 2.0;

@@ -8,7 +8,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
 
-namespace lamina::platform {
+namespace lamina::sdl3 {
 
 struct WindowOptions {
     std::string title;
@@ -21,9 +21,9 @@ struct Frame {
     double width_dp;
     double height_dp;
     double scale;
-    std::vector<PointerEvent> pointer;
-    std::vector<KeyEvent> keys;
-    std::vector<TextEvent> text;
+    std::vector<input::PointerEvent> pointer;
+    std::vector<input::KeyEvent> keys;
+    std::vector<input::TextEvent> text;
 };
 
 class Window {
@@ -37,7 +37,7 @@ public:
     bool next_frame(Frame& frame, bool animating);
     void wake_after(double seconds);
     void set_text_input(const render::Rect* caret_area_dp);
-    Clipboard& clipboard();
+    input::Clipboard& clipboard();
     render::Canvas& canvas();
     void present();
 

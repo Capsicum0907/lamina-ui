@@ -53,8 +53,8 @@ public:
     double opacity() const;
     render::Point transform_origin() const { return pivot_; }
 
-    MenuResponse handle(const platform::PointerEvent& event);
-    bool handle(const platform::KeyEvent& event);
+    MenuResponse handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

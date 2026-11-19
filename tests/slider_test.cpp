@@ -4,8 +4,8 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::Key;
-using platform::PointerAction;
+using input::Key;
+using input::PointerAction;
 
 namespace {
 
@@ -106,21 +106,21 @@ TEST_CASE("the handle narrows at once while dragged") {
 
 TEST_CASE("arrow keys move by a step, or by a hundredth when continuous") {
     auto continuous = make({0.5});
-    CHECK(continuous.handle(platform::KeyEvent{Key::right, false}));
+    CHECK(continuous.handle(input::KeyEvent{Key::right, false}));
     CHECK(continuous.value() == doctest::Approx(0.51));
-    continuous.handle(platform::KeyEvent{Key::home, false});
+    continuous.handle(input::KeyEvent{Key::home, false});
     CHECK(continuous.value() == 0.0);
-    CHECK_FALSE(continuous.handle(platform::KeyEvent{Key::left, false}));
+    CHECK_FALSE(continuous.handle(input::KeyEvent{Key::left, false}));
     auto stepped = make({0.0, 0.0, 1.0, 4});
-    stepped.handle(platform::KeyEvent{Key::right, false});
+    stepped.handle(input::KeyEvent{Key::right, false});
     CHECK(stepped.value() == doctest::Approx(0.2));
-    stepped.handle(platform::KeyEvent{Key::end, false});
+    stepped.handle(input::KeyEvent{Key::end, false});
     CHECK(stepped.value() == 1.0);
 }
 
 TEST_CASE("the slider paints the active track, the gap, the handle and the inactive track") {
     auto s = make({0.5});
-    render::ThorVGCanvas canvas(204, 44);
+    thorvg::Canvas canvas(204, 44);
     canvas.clear(0xffffffff);
     s.paint(canvas, scheme());
     CHECK(canvas.pixel(20, 22) == scheme()[color::Role::primary]);

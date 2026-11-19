@@ -35,8 +35,8 @@ public:
     double handle_center_x() const;
     std::vector<double> tick_centers() const;
 
-    bool handle(const platform::PointerEvent& event);
-    bool handle(const platform::KeyEvent& event);
+    bool handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

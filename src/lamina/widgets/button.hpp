@@ -31,7 +31,7 @@ public:
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
 
-    bool handle(const platform::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

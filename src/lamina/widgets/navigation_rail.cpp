@@ -226,7 +226,7 @@ double NavigationRail::label_opacity(std::size_t index) const {
     return geometry(index, item_max_width_).label_opacity;
 }
 
-bool NavigationRail::handle(const platform::PointerEvent& e) {
+bool NavigationRail::handle(const input::PointerEvent& e) {
     std::optional<std::size_t> clicked;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         Item& item = items_[i];

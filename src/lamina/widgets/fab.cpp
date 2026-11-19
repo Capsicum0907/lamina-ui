@@ -43,7 +43,7 @@ double Fab::target_elevation() const {
     return tokens::elevation_dp[level];
 }
 
-bool Fab::handle(const platform::PointerEvent& e) {
+bool Fab::handle(const input::PointerEvent& e) {
     const bool clicked = press_.update(e, bounds());
     state_layer_.animate_to(press_.state_layer_opacity());
     elevation_.animate_to(target_elevation());

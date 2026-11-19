@@ -54,7 +54,7 @@ public:
     double label_opacity(std::size_t index) const;
     double icon_position(std::size_t index) const { return items_[index].position.value(); }
 
-    bool handle(const platform::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

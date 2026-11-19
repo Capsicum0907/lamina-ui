@@ -73,7 +73,7 @@ double corner_dp(CornerSize size) {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
+        const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const auto header_style = text::text_style(tokens::type_style(layout.header_type));
         const auto title_style = text::text_style(tokens::type_style(layout.title_type));
         const auto body_style = text::text_style(tokens::type_style(layout.body_type));
@@ -117,8 +117,8 @@ int main(int argc, char** argv) {
         auto page = layout::column({header, layout::weighted(grid, 1.0)});
         page->padding(layout::Insets::all(layout.margin)).cross_align(layout::CrossAlign::stretch).fill_cross(true);
 
-        platform::Window window({"lamina-ui playground", 960, 600});
-        platform::Frame frame;
+        sdl3::Window window({"lamina-ui playground", 960, 600});
+        sdl3::Frame frame;
         double pointer_x = -1.0;
         double pointer_y = -1.0;
         bool animating = true;
@@ -126,13 +126,13 @@ int main(int argc, char** argv) {
         while (window.next_frame(frame, animating)) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
             for (const auto& e : frame.pointer) {
-                if (e.action == platform::PointerAction::leave) {
+                if (e.action == input::PointerAction::leave) {
                     pointer_x = pointer_y = -1.0;
                     continue;
                 }
                 pointer_x = e.x_dp;
                 pointer_y = e.y_dp;
-                if (e.action != platform::PointerAction::down) {
+                if (e.action != input::PointerAction::down) {
                     continue;
                 }
                 for (Card& c : cards) {

@@ -8,7 +8,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 
 namespace {
 
@@ -113,7 +113,7 @@ TEST_CASE("a press outside the menu or Escape closes it without choosing") {
     CHECK_FALSE(outside.chosen);
     CHECK_FALSE(m.is_open());
     m.open(anchor, window);
-    CHECK(m.handle(platform::KeyEvent{platform::Key::escape, false}));
+    CHECK(m.handle(input::KeyEvent{input::Key::escape, false}));
     CHECK_FALSE(m.is_open());
 }
 
@@ -121,7 +121,7 @@ TEST_CASE("an open menu paints its container and the hovered item's state layer"
     auto m = make();
     m.open({0.0, 0.0, 10.0, 0.0}, {200.0, 200.0});
     settle(m);
-    render::ThorVGCanvas canvas(200, 200);
+    thorvg::Canvas canvas(200, 200);
     canvas.clear(0xffffffff);
     m.paint(canvas, scheme());
     const color::Argb container = scheme()[color::Role::surface_container];

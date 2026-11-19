@@ -71,7 +71,7 @@ void Switch::set_checked(bool checked) {
     retarget();
 }
 
-bool Switch::handle(const platform::PointerEvent& e) {
+bool Switch::handle(const input::PointerEvent& e) {
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         options_.checked = !options_.checked;

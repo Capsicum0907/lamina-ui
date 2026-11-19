@@ -38,7 +38,7 @@ TEST_CASE("fit_radii scales radii down to fit the rectangle") {
 }
 
 TEST_CASE("transform stack composes translate and scale") {
-    ThorVGCanvas canvas(4, 4);
+    lamina::thorvg::Canvas canvas(4, 4);
     canvas.save();
     canvas.scale(2.0);
     canvas.translate(3.0, 1.0);
@@ -49,7 +49,7 @@ TEST_CASE("transform stack composes translate and scale") {
     CHECK(canvas.transform().apply({1.0, 1.0}).x == doctest::Approx(1.0));
 }
 
-TEST_CASE_TEMPLATE("rounded rectangles cover the inside and leave the corners", CanvasType, ThorVGCanvas) {
+TEST_CASE_TEMPLATE("rounded rectangles cover the inside and leave the corners", CanvasType, lamina::thorvg::Canvas) {
     CanvasType canvas(100, 100);
     canvas.clear(white);
     canvas.fill_rounded_rect({10, 10, 80, 80}, uniform_radii(20), red);
@@ -66,14 +66,14 @@ TEST_CASE_TEMPLATE("rounded rectangles cover the inside and leave the corners", 
     CHECK(edge != white);
 }
 
-TEST_CASE_TEMPLATE("translucent fills blend over what is below", CanvasType, ThorVGCanvas) {
+TEST_CASE_TEMPLATE("translucent fills blend over what is below", CanvasType, lamina::thorvg::Canvas) {
     CanvasType canvas(10, 10);
     canvas.clear(white);
     canvas.fill_rounded_rect({0, 0, 10, 10}, uniform_radii(0), 0x80000000);
     CHECK(near(canvas.pixel(5, 5), 0xff7f7f7f, 2));
 }
 
-TEST_CASE_TEMPLATE("scale maps dp to pixels", CanvasType, ThorVGCanvas) {
+TEST_CASE_TEMPLATE("scale maps dp to pixels", CanvasType, lamina::thorvg::Canvas) {
     CanvasType canvas(40, 40);
     canvas.clear(white);
     canvas.scale(2.0);
@@ -83,7 +83,7 @@ TEST_CASE_TEMPLATE("scale maps dp to pixels", CanvasType, ThorVGCanvas) {
     CHECK(canvas.pixel(31, 31) == white);
 }
 
-TEST_CASE_TEMPLATE("shadows fall in the offset direction", CanvasType, ThorVGCanvas) {
+TEST_CASE_TEMPLATE("shadows fall in the offset direction", CanvasType, lamina::thorvg::Canvas) {
     CanvasType canvas(120, 120);
     canvas.clear(white);
     const Path shape = rounded_rect_path({30, 30, 60, 60}, uniform_radii(8));

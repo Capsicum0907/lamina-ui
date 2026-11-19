@@ -145,18 +145,18 @@ double Menu::opacity() const {
     return std::clamp(alpha_.value(), 0.0, 1.0);
 }
 
-MenuResponse Menu::handle(const platform::PointerEvent& e) {
+MenuResponse Menu::handle(const input::PointerEvent& e) {
     MenuResponse response;
     if (!open_) {
         return response;
     }
     const bool inside = contains(bounds(), e.x_dp, e.y_dp);
-    if (e.action == platform::PointerAction::down && !inside) {
+    if (e.action == input::PointerAction::down && !inside) {
         close();
         response.consumed = true;
         return response;
     }
-    response.consumed = e.action != platform::PointerAction::leave;
+    response.consumed = e.action != input::PointerAction::leave;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         Item& item = items_[i];
         if (item.press.update(e, item_rect(i))) {
@@ -170,8 +170,8 @@ MenuResponse Menu::handle(const platform::PointerEvent& e) {
     return response;
 }
 
-bool Menu::handle(const platform::KeyEvent& e) {
-    if (open_ && e.key == platform::Key::escape) {
+bool Menu::handle(const input::KeyEvent& e) {
+    if (open_ && e.key == input::Key::escape) {
         close();
         return true;
     }

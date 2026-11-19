@@ -5,7 +5,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 using tokens::IconButtonSize;
 using tokens::IconButtonStyle;
 using tokens::IconButtonWidth;
@@ -87,7 +87,7 @@ TEST_CASE("an icon button reaches the 48 dp touch target") {
 TEST_CASE("pressing a round icon button squares its corners") {
     widgets::IconButton b({icon(), IconButtonStyle::filled, IconButtonSize::medium});
     b.set_origin({0.0, 0.0});
-    render::ThorVGCanvas canvas(60, 60);
+    thorvg::Canvas canvas(60, 60);
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     canvas.clear(0xffffffff);
     b.paint(canvas, scheme);
@@ -102,7 +102,7 @@ TEST_CASE("pressing a round icon button squares its corners") {
 
 TEST_CASE("the icon of an icon button is drawn in the content color") {
     widgets::IconButton b({icon(icons::Symbol::add), IconButtonStyle::standard, IconButtonSize::medium});
-    render::ThorVGCanvas canvas(56, 56);
+    thorvg::Canvas canvas(56, 56);
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     canvas.clear(0xffffffff);
     b.paint(canvas, scheme);
@@ -127,7 +127,7 @@ TEST_CASE("a FAB clicks and paints its container") {
     CHECK(fab.handle({PointerAction::up, 40.0, 40.0}));
     fab.handle({PointerAction::leave, 0.0, 0.0});
     settle(fab);
-    render::ThorVGCanvas canvas(100, 100);
+    thorvg::Canvas canvas(100, 100);
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     canvas.clear(0xffffffff);
     fab.paint(canvas, scheme);

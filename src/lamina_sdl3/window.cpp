@@ -12,7 +12,12 @@
 
 #include "lamina_thorvg/canvas.hpp"
 
-namespace lamina::platform {
+namespace lamina::sdl3 {
+
+using input::Clipboard;
+using input::Key;
+using input::PointerAction;
+using input::TextEventKind;
 
 namespace {
 
@@ -72,7 +77,7 @@ struct Window::Impl {
     SDL_Texture* texture = nullptr;
     int texture_w = 0;
     int texture_h = 0;
-    render::ThorVGCanvas canvas{1, 1};
+    thorvg::Canvas canvas{1, 1};
     Uint64 last_ns = 0;
     double wake_seconds = -1.0;
     bool text_input = false;

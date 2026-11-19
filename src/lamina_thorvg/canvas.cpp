@@ -5,7 +5,14 @@
 
 #include <thorvg.h>
 
-namespace lamina::render {
+namespace lamina::thorvg {
+
+using render::FillRule;
+using render::Path;
+using render::PathVerb;
+using render::PixelView;
+using render::Rect;
+using render::Shadow;
 
 namespace {
 
@@ -58,7 +65,7 @@ tvg::Shape* to_shape(const Path& path, color::Argb color) {
 
 }
 
-struct ThorVGCanvas::Impl {
+struct Canvas::Impl {
     int width = 0;
     int height = 0;
     std::vector<std::uint32_t> buffer;
@@ -104,19 +111,19 @@ struct ThorVGCanvas::Impl {
     }
 };
 
-ThorVGCanvas::ThorVGCanvas(int width, int height) : impl_(std::make_unique<Impl>(width, height)) {}
+Canvas::Canvas(int width, int height) : impl_(std::make_unique<Impl>(width, height)) {}
 
-ThorVGCanvas::~ThorVGCanvas() = default;
+Canvas::~Canvas() = default;
 
-int ThorVGCanvas::width() const {
+int Canvas::width() const {
     return impl_->width;
 }
 
-int ThorVGCanvas::height() const {
+int Canvas::height() const {
     return impl_->height;
 }
 
-void ThorVGCanvas::clear(color::Argb color) {
+void Canvas::clear(color::Argb color) {
     impl_->drop_clips();
     impl_->canvas->remove();
     auto* bg = tvg::Shape::gen();
@@ -126,7 +133,7 @@ void ThorVGCanvas::clear(color::Argb color) {
     impl_->add(bg);
 }
 
-PixelView ThorVGCanvas::finish() {
+PixelView Canvas::finish() {
     if (impl_->dirty) {
         impl_->canvas->update();
         impl_->canvas->draw(true);
@@ -137,20 +144,20 @@ PixelView ThorVGCanvas::finish() {
             static_cast<std::intptr_t>(impl_->width) * 4};
 }
 
-void ThorVGCanvas::resize(int width, int height) {
+void Canvas::resize(int width, int height) {
     if (width != impl_->width || height != impl_->height) {
         impl_->canvas->sync();
         impl_->retarget(width, height);
     }
 }
 
-void ThorVGCanvas::fill_device_path(const Path& path, color::Argb color, FillRule rule) {
+void Canvas::fill_device_path(const Path& path, color::Argb color, FillRule rule) {
     auto* shape = to_shape(path, color);
     shape->fillRule(rule == FillRule::even_odd ? tvg::FillRule::EvenOdd : tvg::FillRule::NonZero);
     impl_->add(shape);
 }
 
-void ThorVGCanvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
+void Canvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
     if ((shadow.color >> 24) == 0) {
         return;
     }
@@ -164,11 +171,11 @@ void ThorVGCanvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
     impl_->add(scene);
 }
 
-void ThorVGCanvas::begin_device_clip(const Rect& rect) {
+void Canvas::begin_device_clip(const Rect& rect) {
     impl_->clips.emplace_back(tvg::Scene::gen(), rect);
 }
 
-void ThorVGCanvas::end_device_clip() {
+void Canvas::end_device_clip() {
     if (impl_->clips.empty()) {
         return;
     }

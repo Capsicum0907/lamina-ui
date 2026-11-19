@@ -46,7 +46,7 @@ void RadioButton::set_selected(bool selected) {
     selected_.animate_to(selected ? 1.0 : 0.0);
 }
 
-bool RadioButton::handle(const platform::PointerEvent& e) {
+bool RadioButton::handle(const input::PointerEvent& e) {
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         set_selected(true);

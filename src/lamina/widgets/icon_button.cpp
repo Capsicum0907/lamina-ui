@@ -60,7 +60,7 @@ void IconButton::set_checked(bool checked) {
     retarget();
 }
 
-bool IconButton::handle(const platform::PointerEvent& e) {
+bool IconButton::handle(const input::PointerEvent& e) {
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked && options_.toggleable) {
         options_.checked = !options_.checked;

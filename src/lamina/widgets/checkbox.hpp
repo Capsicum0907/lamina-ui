@@ -29,7 +29,7 @@ public:
     void set_state(tokens::CheckboxState state);
     double check_fraction() const { return check_fraction_.value(); }
 
-    bool handle(const platform::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

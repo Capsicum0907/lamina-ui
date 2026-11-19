@@ -6,7 +6,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 using tokens::CheckboxState;
 
 namespace {
@@ -93,7 +93,7 @@ TEST_CASE("the switch thumb grows while pressed and with an icon") {
 
 TEST_CASE("a checked switch paints a primary track and its check icon") {
     widgets::Switch s({true, icons::Icon{icon_font(), icons::Symbol::check}});
-    render::ThorVGCanvas canvas(52, 32);
+    thorvg::Canvas canvas(52, 32);
     canvas.clear(0xffffffff);
     s.paint(canvas, scheme());
     CHECK(canvas.pixel(8, 16) == scheme()[color::Role::primary]);
@@ -147,7 +147,7 @@ TEST_CASE("the check mark draws in, and snaps away after the delay") {
 TEST_CASE("the check mark path grows with the draw fraction") {
     const render::Rect box{0.0, 0.0, 20.0, 20.0};
     CHECK(widgets::check_mark_path(box, 0.0, 0.0, 2.0).empty());
-    render::ThorVGCanvas canvas(20, 20);
+    thorvg::Canvas canvas(20, 20);
     canvas.clear(0xffffffff);
     canvas.fill_path(widgets::check_mark_path(box, 0.3, 0.0, 2.0), 0xff000000);
     const int partial = count_color(canvas, 0xff000000);
@@ -161,7 +161,7 @@ TEST_CASE("the check mark path grows with the draw fraction") {
 
 TEST_CASE("a checked checkbox fills its box with primary and draws the check in on-primary") {
     widgets::Checkbox c({CheckboxState::on});
-    render::ThorVGCanvas canvas(40, 40);
+    thorvg::Canvas canvas(40, 40);
     canvas.clear(0xffffffff);
     c.paint(canvas, scheme());
     CHECK(canvas.pixel(12, 12) == scheme()[color::Role::primary]);
@@ -192,7 +192,7 @@ TEST_CASE("radio button tokens and selection") {
 
 TEST_CASE("a selected radio button paints a ring and a dot") {
     widgets::RadioButton r({true});
-    render::ThorVGCanvas canvas(40, 40);
+    thorvg::Canvas canvas(40, 40);
     canvas.clear(0xffffffff);
     r.paint(canvas, scheme());
     const color::Argb primary = scheme()[color::Role::primary];

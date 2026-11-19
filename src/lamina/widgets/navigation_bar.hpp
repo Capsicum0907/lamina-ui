@@ -45,7 +45,7 @@ public:
     render::Rect indicator_rect(std::size_t index) const;
     double indicator_progress(std::size_t index) const { return items_[index].indicator.value(); }
 
-    bool handle(const platform::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

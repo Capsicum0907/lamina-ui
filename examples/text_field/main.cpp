@@ -34,10 +34,10 @@ struct Layout {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
+        const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const auto scheme = color::spec_2021().build(color::default_scheme_options);
 
-        platform::Window window({"lamina-ui text field", 760, 560});
+        sdl3::Window window({"lamina-ui text field", 760, 560});
         std::vector<std::unique_ptr<widgets::TextField>> fields;
         fields.push_back(std::make_unique<widgets::TextField>("\u540d\u524d", fonts, layout.field_width,
                                                               widgets::TextFieldOptions{false, &window.clipboard()}));
@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
         };
         build();
 
-        platform::Frame frame;
+        sdl3::Frame frame;
         bool animating = true;
 
         auto submit = [&] {
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
                     if (!fields[i]->focused()) {
                         continue;
                     }
-                    if (k.key == platform::Key::tab) {
+                    if (k.key == input::Key::tab) {
                         fields[i]->set_focused(false);
                         fields[(i + 1) % fields.size()]->set_focused(true);
                         break;

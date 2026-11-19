@@ -100,7 +100,7 @@ void NavigationBar::select(std::size_t index) {
     }
 }
 
-bool NavigationBar::handle(const platform::PointerEvent& e) {
+bool NavigationBar::handle(const input::PointerEvent& e) {
     std::optional<std::size_t> clicked;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         Item& item = items_[i];

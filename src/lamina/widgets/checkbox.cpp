@@ -173,7 +173,7 @@ void Checkbox::set_state(tokens::CheckboxState next) {
     }
 }
 
-bool Checkbox::handle(const platform::PointerEvent& e) {
+bool Checkbox::handle(const input::PointerEvent& e) {
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         set_state(options_.state == tokens::CheckboxState::on ? tokens::CheckboxState::off : tokens::CheckboxState::on);

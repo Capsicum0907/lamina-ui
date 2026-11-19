@@ -28,7 +28,7 @@
 
 using namespace lamina;
 using icons::Symbol;
-using platform::PointerAction;
+using input::PointerAction;
 
 namespace {
 
@@ -65,8 +65,8 @@ std::string format_value(const char* name, double v) {
 int main(int argc, char** argv) {
     try {
         const Layout layout;
-        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
-        const icons::IconFont icon_font = platform::bundled_icon_font();
+        const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
+        const icons::IconFont icon_font = sdl3::bundled_icon_font();
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
 
         color::SchemeOptions options = color::default_scheme_options;
@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
         auto root = layout::row({widgets::node(rail), layout::weighted(main_column, 1.0)});
         root->fill_cross(true);
 
-        auto background = [&](const platform::PointerEvent& e) {
+        auto background = [&](const input::PointerEvent& e) {
             if (dark_toggle.handle(e)) {
                 options.dark = dark_toggle.checked();
                 from = color::mix(from, to, theme.value());
@@ -239,8 +239,8 @@ int main(int argc, char** argv) {
             return Overlay::none;
         };
 
-        platform::Window window({"lamina-ui navigation", 1120, 860});
-        platform::Frame frame;
+        sdl3::Window window({"lamina-ui navigation", 1120, 860});
+        sdl3::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
             const layout::Size window_size{frame.width_dp, frame.height_dp};

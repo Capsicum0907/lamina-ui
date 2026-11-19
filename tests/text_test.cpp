@@ -76,7 +76,7 @@ TEST_CASE("the baseline centers the text in the line height") {
 TEST_CASE("drawn text covers pixels inside the line box only") {
     const FontStack fonts({sans});
     const TextLine line = layout_line(fonts, "\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e", {32.0, 48.0, 400, 0.0});
-    render::ThorVGCanvas canvas(140, 60);
+    thorvg::Canvas canvas(140, 60);
     canvas.clear(0xffffffff);
     draw_line(canvas, fonts, line, {4.0, 4.0}, 0xff000000);
     int inked = 0;

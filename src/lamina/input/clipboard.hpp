@@ -3,7 +3,7 @@
 #include <string>
 #include <string_view>
 
-namespace lamina::platform {
+namespace lamina::input {
 
 class Clipboard {
 public:

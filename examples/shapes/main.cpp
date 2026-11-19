@@ -72,19 +72,19 @@ int main() {
         page->spacing(layout.stage_gap).padding(layout::Insets::all(layout.margin)).cross_align(layout::CrossAlign::center);
         const layout::Size natural = page->measure({});
 
-        platform::Window window({"lamina-ui shapes", static_cast<int>(natural.width), static_cast<int>(natural.height)});
-        platform::Frame frame;
+        sdl3::Window window({"lamina-ui shapes", static_cast<int>(natural.width), static_cast<int>(natural.height)});
+        sdl3::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
             layout::run(*page, {0.0, 0.0, natural.width, natural.height});
             for (const auto& e : frame.pointer) {
                 hovered = all.size();
                 for (std::size_t i = 0; i < all.size(); ++i) {
-                    if (e.action != platform::PointerAction::leave && inside(cells[i], e.x_dp, e.y_dp)) {
+                    if (e.action != input::PointerAction::leave && inside(cells[i], e.x_dp, e.y_dp)) {
                         hovered = i;
                     }
                 }
-                if (e.action == platform::PointerAction::down && hovered < all.size() && hovered != current) {
+                if (e.action == input::PointerAction::down && hovered < all.size() && hovered != current) {
                     previous = current;
                     current = hovered;
                     morph = std::make_unique<shapes::Morph>(shapes::material_shape(all[previous]), shapes::material_shape(all[current]));

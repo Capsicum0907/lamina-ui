@@ -50,8 +50,8 @@ public:
     render::Rect headline_bounds() const { return headline_.bounds(); }
     std::size_t button_lines() const { return actions_->line_count(); }
 
-    DialogResult handle(const platform::PointerEvent& event);
-    DialogResult handle(const platform::KeyEvent& event);
+    DialogResult handle(const input::PointerEvent& event);
+    DialogResult handle(const input::KeyEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

@@ -6,7 +6,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 using tokens::TabStyle;
 
 namespace {
@@ -122,7 +122,7 @@ TEST_CASE("the first layout places the indicator without animating") {
 
 TEST_CASE("the tab row paints the indicator, the divider and the selected label color") {
     auto row = make(TabStyle::secondary);
-    render::ThorVGCanvas canvas(300, 48);
+    thorvg::Canvas canvas(300, 48);
     canvas.clear(0xffffffff);
     row.paint(canvas, scheme());
     CHECK(canvas.pixel(50, 46) == scheme()[color::Role::primary]);

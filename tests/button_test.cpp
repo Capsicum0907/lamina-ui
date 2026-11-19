@@ -6,7 +6,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 using tokens::ButtonShape;
 using tokens::ButtonSize;
 using tokens::ButtonStyle;
@@ -59,7 +59,7 @@ TEST_CASE("a click needs press and release inside the button") {
 
 TEST_CASE("pressing a round button squares its corners without bouncing") {
     auto b = make(ButtonStyle::filled, ButtonSize::small, ButtonShape::round);
-    render::ThorVGCanvas canvas(200, 80);
+    thorvg::Canvas canvas(200, 80);
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     canvas.clear(0xffffffff);
     b.paint(canvas, scheme);

@@ -117,9 +117,9 @@ void Dialog::close() {
     open_ = false;
     scale_.animate_to(t.closed_scale);
     alpha_.animate_to(0.0);
-    confirm_.handle({platform::PointerAction::leave, 0.0, 0.0});
+    confirm_.handle({input::PointerAction::leave, 0.0, 0.0});
     if (dismiss_) {
-        dismiss_->handle({platform::PointerAction::leave, 0.0, 0.0});
+        dismiss_->handle({input::PointerAction::leave, 0.0, 0.0});
     }
 }
 
@@ -131,11 +131,11 @@ double Dialog::opacity() const {
     return std::clamp(alpha_.value(), 0.0, 1.0);
 }
 
-DialogResult Dialog::handle(const platform::PointerEvent& e) {
+DialogResult Dialog::handle(const input::PointerEvent& e) {
     if (!open_) {
         return DialogResult::none;
     }
-    if (e.action == platform::PointerAction::down && !contains(surface_, e.x_dp, e.y_dp)) {
+    if (e.action == input::PointerAction::down && !contains(surface_, e.x_dp, e.y_dp)) {
         close();
         return DialogResult::dismissed;
     }
@@ -150,8 +150,8 @@ DialogResult Dialog::handle(const platform::PointerEvent& e) {
     return DialogResult::none;
 }
 
-DialogResult Dialog::handle(const platform::KeyEvent& e) {
-    if (open_ && e.key == platform::Key::escape) {
+DialogResult Dialog::handle(const input::KeyEvent& e) {
+    if (open_ && e.key == input::Key::escape) {
         close();
         return DialogResult::dismissed;
     }

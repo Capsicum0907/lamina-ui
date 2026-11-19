@@ -5,7 +5,7 @@
 
 #include <SDL3/SDL.h>
 
-namespace lamina::platform {
+namespace lamina::sdl3 {
 
 std::vector<std::filesystem::path> system_font_directories() {
     std::vector<std::filesystem::path> dirs;

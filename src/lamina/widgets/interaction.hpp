@@ -24,22 +24,22 @@ struct PressState {
     bool hovered = false;
     bool pressed = false;
 
-    bool update(const platform::PointerEvent& e, const render::Rect& hit) {
-        const bool over = e.action != platform::PointerAction::leave && contains(hit, e.x_dp, e.y_dp);
+    bool update(const input::PointerEvent& e, const render::Rect& hit) {
+        const bool over = e.action != input::PointerAction::leave && contains(hit, e.x_dp, e.y_dp);
         bool clicked = false;
         hovered = over;
         switch (e.action) {
-        case platform::PointerAction::down:
+        case input::PointerAction::down:
             pressed = over;
             break;
-        case platform::PointerAction::up:
+        case input::PointerAction::up:
             clicked = pressed && over;
             pressed = false;
             break;
-        case platform::PointerAction::leave:
+        case input::PointerAction::leave:
             pressed = false;
             break;
-        case platform::PointerAction::move:
+        case input::PointerAction::move:
             break;
         }
         return clicked;

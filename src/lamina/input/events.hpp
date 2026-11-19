@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace lamina::platform {
+namespace lamina::input {
 
 enum class PointerAction { move, down, up, leave };
 

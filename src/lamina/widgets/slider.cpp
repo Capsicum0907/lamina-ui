@@ -115,27 +115,27 @@ double Slider::value_at(double x) const {
     return snapped(options_.min + (options_.max - options_.min) * f);
 }
 
-bool Slider::handle(const platform::PointerEvent& e) {
+bool Slider::handle(const input::PointerEvent& e) {
     const double before = options_.value;
     switch (e.action) {
-    case platform::PointerAction::down:
+    case input::PointerAction::down:
         if (contains(touch_target(bounds()), e.x_dp, e.y_dp)) {
             dragging_ = true;
             options_.value = value_at(e.x_dp);
         }
         break;
-    case platform::PointerAction::move:
+    case input::PointerAction::move:
         if (dragging_) {
             options_.value = value_at(e.x_dp);
         }
         break;
-    case platform::PointerAction::up:
+    case input::PointerAction::up:
         if (dragging_) {
             options_.value = value_at(e.x_dp);
         }
         dragging_ = false;
         break;
-    case platform::PointerAction::leave:
+    case input::PointerAction::leave:
         dragging_ = false;
         break;
     }
@@ -143,22 +143,22 @@ bool Slider::handle(const platform::PointerEvent& e) {
     return options_.value != before;
 }
 
-bool Slider::handle(const platform::KeyEvent& e) {
+bool Slider::handle(const input::KeyEvent& e) {
     const double range = std::abs(options_.max - options_.min);
     const int intervals = options_.steps > 0 ? options_.steps + 1 : t.keyboard_steps_when_continuous;
     const double delta = range / intervals;
     const double before = options_.value;
     switch (e.key) {
-    case platform::Key::left:
+    case input::Key::left:
         set_value(options_.value - delta);
         break;
-    case platform::Key::right:
+    case input::Key::right:
         set_value(options_.value + delta);
         break;
-    case platform::Key::home:
+    case input::Key::home:
         set_value(options_.min);
         break;
-    case platform::Key::end:
+    case input::Key::end:
         set_value(options_.max);
         break;
     default:

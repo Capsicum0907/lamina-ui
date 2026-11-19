@@ -8,9 +8,9 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::Key;
-using platform::PointerAction;
-using platform::TextEventKind;
+using input::Key;
+using input::PointerAction;
+using input::TextEventKind;
 
 namespace {
 
@@ -26,7 +26,7 @@ widgets::TextField focused_field(widgets::TextFieldOptions options = {}) {
     return f;
 }
 
-class FakeClipboard final : public platform::Clipboard {
+class FakeClipboard final : public input::Clipboard {
 public:
     std::string text() override { return contents; }
     void set_text(std::string_view utf8) override { contents = utf8; }
@@ -34,7 +34,7 @@ public:
     std::string contents;
 };
 
-platform::KeyEvent ctrl(Key key, bool shift = false) {
+input::KeyEvent ctrl(Key key, bool shift = false) {
     return {key, shift, true};
 }
 
@@ -262,7 +262,7 @@ TEST_CASE("a single-line field scrolls to keep the caret visible and clips its t
 
     const auto scheme = color::spec_2021().build(color::default_scheme_options);
     const color::Argb background = scheme[color::Role::surface];
-    render::ThorVGCanvas canvas(600, 80);
+    thorvg::Canvas canvas(600, 80);
     canvas.clear(background);
     f.paint(canvas, scheme, background);
     const int row = static_cast<int>(f.caret_area().y + f.caret_area().height / 2.0);

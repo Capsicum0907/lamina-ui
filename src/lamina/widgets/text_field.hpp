@@ -16,7 +16,7 @@ namespace lamina::widgets {
 
 struct TextFieldOptions {
     bool multiline = false;
-    platform::Clipboard* clipboard = nullptr;
+    input::Clipboard* clipboard = nullptr;
 };
 
 class TextField {
@@ -28,7 +28,7 @@ public:
     bool focused() const { return focused_; }
     void set_focused(bool focused);
     bool multiline() const { return options_.multiline; }
-    void set_clipboard(platform::Clipboard* clipboard) { options_.clipboard = clipboard; }
+    void set_clipboard(input::Clipboard* clipboard) { options_.clipboard = clipboard; }
 
     std::string text() const;
     void set_text(std::string_view utf8);
@@ -38,9 +38,9 @@ public:
     std::string selected_text() const;
     std::size_t line_count() const { return lines_.size(); }
 
-    void handle(const platform::PointerEvent& event);
-    bool handle(const platform::KeyEvent& event);
-    void handle(const platform::TextEvent& event);
+    void handle(const input::PointerEvent& event);
+    bool handle(const input::KeyEvent& event);
+    void handle(const input::TextEvent& event);
 
     void step(double dt_seconds);
     bool animating() const;

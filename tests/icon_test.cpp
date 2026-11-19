@@ -56,7 +56,7 @@ TEST_CASE("every symbol of the table is in the subset font") {
 }
 
 TEST_CASE("an icon is drawn inside its size by size box") {
-    render::ThorVGCanvas canvas(64, 64);
+    thorvg::Canvas canvas(64, 64);
     canvas.clear(0xffffffff);
     icon_font().draw(canvas, Symbol::settings, {16.0, 16.0}, 32.0, 0xff000000);
     const Ink i = ink(canvas, 0xffffffff);
@@ -70,7 +70,7 @@ TEST_CASE("an icon is drawn inside its size by size box") {
 }
 
 TEST_CASE("the FILL axis changes the outline") {
-    render::ThorVGCanvas canvas(48, 48);
+    thorvg::Canvas canvas(48, 48);
     canvas.clear(0xffffffff);
     icon_font().draw(canvas, Symbol::favorite, {0.0, 0.0}, 48.0, 0xff000000);
     const int outlined = ink(canvas, 0xffffffff).count;
@@ -83,7 +83,7 @@ TEST_CASE("the FILL axis changes the outline") {
 }
 
 TEST_CASE("the weight axis thickens the strokes") {
-    render::ThorVGCanvas canvas(48, 48);
+    thorvg::Canvas canvas(48, 48);
     icons::IconStyle thin;
     thin.weight = 100.0;
     icons::IconStyle bold;

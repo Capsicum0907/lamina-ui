@@ -47,7 +47,7 @@ public:
     render::Rect indicator_rect() const;
     double selection(std::size_t index) const { return tabs_[index].selected.value(); }
 
-    bool handle(const platform::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

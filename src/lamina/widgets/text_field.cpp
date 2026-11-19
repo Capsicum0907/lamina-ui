@@ -114,8 +114,8 @@ std::size_t previous_word(std::u32string_view s, std::size_t i) {
     return i;
 }
 
-bool is_letter_key(platform::Key k) {
-    return k == platform::Key::a || k == platform::Key::c || k == platform::Key::v || k == platform::Key::x;
+bool is_letter_key(input::Key k) {
+    return k == input::Key::a || k == input::Key::c || k == input::Key::v || k == input::Key::x;
 }
 
 }
@@ -368,15 +368,15 @@ void TextField::select_word_at(std::size_t index) {
     upstream_ = false;
 }
 
-void TextField::handle(const platform::PointerEvent& e) {
-    const bool over = e.action != platform::PointerAction::leave && inside(bounds(), e.x_dp, e.y_dp);
+void TextField::handle(const input::PointerEvent& e) {
+    const bool over = e.action != input::PointerAction::leave && inside(bounds(), e.x_dp, e.y_dp);
     hovered_ = over;
     hover_.animate_to(over ? 1.0 : 0.0);
-    if (e.action == platform::PointerAction::up) {
+    if (e.action == input::PointerAction::up) {
         dragging_ = false;
         return;
     }
-    if (e.action == platform::PointerAction::move) {
+    if (e.action == input::PointerAction::move) {
         if (dragging_ && composition_.empty()) {
             const Hit h = hit(e.x_dp, e.y_dp);
             move_to(h.index, true, h.upstream);
@@ -385,7 +385,7 @@ void TextField::handle(const platform::PointerEvent& e) {
         }
         return;
     }
-    if (e.action != platform::PointerAction::down) {
+    if (e.action != input::PointerAction::down) {
         return;
     }
     if (!over) {
@@ -410,7 +410,7 @@ void TextField::handle(const platform::PointerEvent& e) {
     reset_blink();
 }
 
-bool TextField::handle(const platform::KeyEvent& e) {
+bool TextField::handle(const input::KeyEvent& e) {
     if (!focused_ || !composition_.empty()) {
         return false;
     }
@@ -419,44 +419,44 @@ bool TextField::handle(const platform::KeyEvent& e) {
     }
     bool submit = false;
     switch (e.key) {
-    case platform::Key::backspace:
+    case input::Key::backspace:
         if (has_selection()) {
             replace_selection({});
         } else if (cursor_ > 0) {
             erase(e.ctrl ? previous_word(text_, cursor_) : cursor_ - 1, cursor_);
         }
         break;
-    case platform::Key::delete_forward:
+    case input::Key::delete_forward:
         if (has_selection()) {
             replace_selection({});
         } else if (cursor_ < text_.size()) {
             erase(cursor_, e.ctrl ? next_word(text_, cursor_) : cursor_ + 1);
         }
         break;
-    case platform::Key::left:
+    case input::Key::left:
         if (has_selection() && !e.shift && !e.ctrl) {
             move_to(selection_start(), false);
         } else {
             move_to(e.ctrl ? previous_word(text_, cursor_) : (cursor_ > 0 ? cursor_ - 1 : 0), e.shift);
         }
         break;
-    case platform::Key::right:
+    case input::Key::right:
         if (has_selection() && !e.shift && !e.ctrl) {
             move_to(selection_end(), false);
         } else {
             move_to(e.ctrl ? next_word(text_, cursor_) : cursor_ + 1, e.shift);
         }
         break;
-    case platform::Key::up:
-    case platform::Key::down: {
-        const Hit h = vertical(e.key == platform::Key::up ? -1 : 1);
+    case input::Key::up:
+    case input::Key::down: {
+        const Hit h = vertical(e.key == input::Key::up ? -1 : 1);
         move_to(h.index, e.shift, h.upstream);
         break;
     }
-    case platform::Key::home:
+    case input::Key::home:
         move_to(e.ctrl ? 0 : lines_[line_of(cursor_, upstream_)].first, e.shift);
         break;
-    case platform::Key::end: {
+    case input::Key::end: {
         if (e.ctrl) {
             move_to(text_.size(), e.shift);
             break;
@@ -466,38 +466,38 @@ bool TextField::handle(const platform::KeyEvent& e) {
         move_to(limit, e.shift, wraps_at(k, limit));
         break;
     }
-    case platform::Key::enter:
+    case input::Key::enter:
         if (options_.multiline && !e.ctrl) {
             replace_selection(U"\n");
         } else {
             submit = true;
         }
         break;
-    case platform::Key::escape:
+    case input::Key::escape:
         set_focused(false);
         return false;
-    case platform::Key::tab:
+    case input::Key::tab:
         return false;
-    case platform::Key::a:
+    case input::Key::a:
         anchor_ = 0;
         move_to(text_.size(), true);
         break;
-    case platform::Key::c:
+    case input::Key::c:
         copy_selection();
         break;
-    case platform::Key::x:
+    case input::Key::x:
         copy_selection();
         if (has_selection()) {
             replace_selection({});
         }
         break;
-    case platform::Key::v:
+    case input::Key::v:
         if (options_.clipboard) {
             replace_selection(normalize(text::decode_utf8(options_.clipboard->text())));
         }
         break;
     }
-    if (e.key != platform::Key::up && e.key != platform::Key::down) {
+    if (e.key != input::Key::up && e.key != input::Key::down) {
         goal_x_.reset();
     }
     relayout();
@@ -505,11 +505,11 @@ bool TextField::handle(const platform::KeyEvent& e) {
     return submit;
 }
 
-void TextField::handle(const platform::TextEvent& e) {
+void TextField::handle(const input::TextEvent& e) {
     if (!focused_) {
         return;
     }
-    if (e.kind == platform::TextEventKind::commit) {
+    if (e.kind == input::TextEventKind::commit) {
         composition_.clear();
         replace_selection(normalize(text::decode_utf8(e.text)));
     } else {

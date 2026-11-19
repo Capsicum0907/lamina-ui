@@ -7,7 +7,7 @@
 
 #include "lamina/text/font.hpp"
 
-namespace lamina::platform {
+namespace lamina::sdl3 {
 
 struct FontDirectory {
     std::string_view environment;

@@ -33,7 +33,7 @@ public:
     bool checked() const { return options_.checked; }
     void set_checked(bool checked);
 
-    bool handle(const platform::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

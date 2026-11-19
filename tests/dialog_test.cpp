@@ -6,7 +6,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 using widgets::DialogResult;
 
 namespace {
@@ -101,7 +101,7 @@ TEST_CASE("a press on the scrim or Escape dismisses the dialog") {
     CHECK(d.handle({PointerAction::down, 5.0, 5.0}) == DialogResult::dismissed);
     CHECK_FALSE(d.is_open());
     d.open(window);
-    CHECK(d.handle(platform::KeyEvent{platform::Key::escape, false}) == DialogResult::dismissed);
+    CHECK(d.handle(input::KeyEvent{input::Key::escape, false}) == DialogResult::dismissed);
     CHECK(d.handle({PointerAction::down, 5.0, 5.0}) == DialogResult::none);
 }
 
@@ -109,7 +109,7 @@ TEST_CASE("an open dialog paints the scrim and its container") {
     widgets::Dialog d(options(), fonts());
     d.open({400.0, 300.0});
     settle(d);
-    render::ThorVGCanvas canvas(400, 300);
+    thorvg::Canvas canvas(400, 300);
     canvas.clear(0xffffffff);
     d.paint(canvas, scheme());
     const color::Argb scrim = canvas.pixel(2, 2);
@@ -166,7 +166,7 @@ TEST_CASE("the dialog paints its icon in the secondary color") {
     widgets::Dialog d(with_icon(), fonts());
     d.open(window);
     settle(d);
-    render::ThorVGCanvas canvas(800, 600);
+    thorvg::Canvas canvas(800, 600);
     canvas.clear(0xffffffff);
     d.paint(canvas, scheme());
     const render::Rect icon = *d.icon_bounds();

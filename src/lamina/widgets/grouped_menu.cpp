@@ -277,20 +277,20 @@ double GroupedMenu::opacity() const {
     return std::clamp(alpha_.value(), 0.0, 1.0);
 }
 
-GroupedMenuResponse GroupedMenu::handle(const platform::PointerEvent& e) {
+GroupedMenuResponse GroupedMenu::handle(const input::PointerEvent& e) {
     GroupedMenuResponse response;
     if (!open_) {
         return response;
     }
-    if (e.action == platform::PointerAction::down && !contains(bounds(), e.x_dp, e.y_dp)) {
+    if (e.action == input::PointerAction::down && !contains(bounds(), e.x_dp, e.y_dp)) {
         close();
         response.consumed = true;
         return response;
     }
-    response.consumed = e.action != platform::PointerAction::leave;
+    response.consumed = e.action != input::PointerAction::leave;
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         Group& group = groups_[g];
-        const bool hovered = e.action != platform::PointerAction::leave && contains(group_rect(g), e.x_dp, e.y_dp);
+        const bool hovered = e.action != input::PointerAction::leave && contains(group_rect(g), e.x_dp, e.y_dp);
         if (hovered != group.hovered) {
             group.hovered = hovered;
             group.has_been_hovered = group.has_been_hovered || hovered;
@@ -310,8 +310,8 @@ GroupedMenuResponse GroupedMenu::handle(const platform::PointerEvent& e) {
     return response;
 }
 
-bool GroupedMenu::handle(const platform::KeyEvent& e) {
-    if (open_ && e.key == platform::Key::escape) {
+bool GroupedMenu::handle(const input::KeyEvent& e) {
+    if (open_ && e.key == input::Key::escape) {
         close();
         return true;
     }

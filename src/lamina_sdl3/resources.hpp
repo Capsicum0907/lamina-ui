@@ -5,7 +5,7 @@
 
 #include "lamina/icons/icon.hpp"
 
-namespace lamina::platform {
+namespace lamina::sdl3 {
 
 inline constexpr std::string_view assets_directory = "assets";
 inline constexpr std::string_view icons_directory = "icons";

@@ -8,7 +8,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 
 namespace {
 
@@ -185,7 +185,7 @@ TEST_CASE("the rail is a layout node whose width follows its animation") {
 
 TEST_CASE("the rail paints the selected pill on the surface") {
     auto rail = make();
-    render::ThorVGCanvas canvas(120, 200);
+    thorvg::Canvas canvas(120, 200);
     canvas.clear(0xffffffff);
     rail.paint(canvas, scheme());
     const render::Rect pill = rail.indicator_rect(0);

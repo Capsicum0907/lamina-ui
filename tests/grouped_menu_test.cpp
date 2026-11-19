@@ -6,7 +6,7 @@
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
-using platform::PointerAction;
+using input::PointerAction;
 using widgets::MenuSelection;
 
 namespace {
@@ -193,7 +193,7 @@ TEST_CASE("the grouped menu paints groups on surface-container-low and the selec
     auto m = make();
     m.open(anchor, window);
     settle(m);
-    render::ThorVGCanvas canvas(600, 700);
+    thorvg::Canvas canvas(600, 700);
     canvas.clear(0xffffffff);
     m.paint(canvas, scheme());
     const render::Rect selected = m.item_rect(0, 0);

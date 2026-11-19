@@ -5,7 +5,7 @@
 
 #include <SDL3/SDL.h>
 
-namespace lamina::platform {
+namespace lamina::sdl3 {
 
 namespace {
 

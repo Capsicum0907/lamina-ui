@@ -26,7 +26,7 @@ public:
     void set_selected(bool selected);
     double dot_radius() const { return dot_radius_.value(); }
 
-    bool handle(const platform::PointerEvent& event);
+    bool handle(const input::PointerEvent& event);
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

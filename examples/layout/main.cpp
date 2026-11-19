@@ -41,7 +41,7 @@ struct Card {
 int main(int argc, char** argv) {
     try {
         const Style style;
-        const text::FontStack fonts = platform::font_stack_from_arguments(argc, argv);
+        const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const auto scheme = color::spec_2021().build(color::default_scheme_options);
 
         widgets::Label title("\u914d\u7f6e\u306e\u4ed5\u7d44\u307f", TypeRole::headline_medium, Role::on_surface, fonts);
@@ -76,8 +76,8 @@ int main(int argc, char** argv) {
         form->self_align = layout::CrossAlign::stretch;
         const std::vector<std::shared_ptr<layout::Linear>> cards{left, right, form};
 
-        platform::Window window({"lamina-ui layout", 900, 640});
-        platform::Frame frame;
+        sdl3::Window window({"lamina-ui layout", 900, 640});
+        sdl3::Frame frame;
         bool animating = true;
         while (window.next_frame(frame, animating)) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});

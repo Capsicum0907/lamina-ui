@@ -77,7 +77,7 @@ double Button::target_elevation() const {
     return tokens::elevation_dp[level];
 }
 
-bool Button::handle(const platform::PointerEvent& e) {
+bool Button::handle(const input::PointerEvent& e) {
     const bool clicked = press_.update(e, bounds());
     corner_.animate_to(press_.pressed ? pressed_corner() : rest_corner());
     state_layer_.animate_to(target_state_layer());
