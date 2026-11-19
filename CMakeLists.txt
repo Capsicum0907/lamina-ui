@@ -123,7 +123,7 @@ if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
     target_include_directories(timer_engine PUBLIC examples)
     target_compile_features(timer_engine PUBLIC cxx_std_20)
     lamina_warnings(timer_engine)
-    add_library(todo_engine STATIC examples/todo/engine.cpp)
+    add_library(todo_engine STATIC examples/todo/engine.cpp examples/todo/layout.cpp)
     target_include_directories(todo_engine PUBLIC examples)
     target_compile_features(todo_engine PUBLIC cxx_std_20)
     lamina_warnings(todo_engine)
@@ -217,6 +217,7 @@ if(LAMINA_BUILD_TESTS)
         tests/timer_engine_test.cpp
         tests/timer_layout_test.cpp
         tests/todo_engine_test.cpp
+        tests/todo_layout_test.cpp
         tests/tokens_test.cpp
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
