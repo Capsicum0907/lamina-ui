@@ -111,6 +111,13 @@ if(LAMINA_BUILD_SDL3)
     lamina_warnings(lamina_sdl3)
 endif()
 
+if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
+    add_library(calculator_engine STATIC examples/calculator/engine.cpp)
+    target_include_directories(calculator_engine PUBLIC examples)
+    target_compile_features(calculator_engine PUBLIC cxx_std_20)
+    lamina_warnings(calculator_engine)
+endif()
+
 function(lamina_add_example name dir)
     add_executable(${name} examples/${dir}/main.cpp)
     target_link_libraries(${name} PRIVATE lamina lamina_sdl3 lamina_examples_common)
@@ -151,6 +158,7 @@ if(LAMINA_BUILD_TESTS)
     add_executable(lamina_tests
         tests/animated_test.cpp
         tests/button_test.cpp
+        tests/calculator_engine_test.cpp
         tests/cancel_interaction_test.cpp
         tests/canvas_test.cpp
         tests/checkbox_test.cpp
@@ -189,7 +197,7 @@ if(LAMINA_BUILD_TESTS)
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
     )
-    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg mcu::mcu doctest::doctest)
+    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg calculator_engine mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
     target_compile_definitions(lamina_tests PRIVATE LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts")
     target_compile_definitions(lamina_tests PRIVATE LAMINA_ICONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/icons")
