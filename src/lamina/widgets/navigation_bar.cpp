@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 
 namespace lamina::widgets {
@@ -23,12 +24,8 @@ double label_height(const text::TextLine& line) {
     return line.style.line_height;
 }
 
-double lerp(double a, double b, double k) {
-    return a + (b - a) * k;
-}
-
 icons::IconStyle mix_style(const icons::IconStyle& a, const icons::IconStyle& b, double k) {
-    return {lerp(a.fill, b.fill, k), lerp(a.weight, b.weight, k), lerp(a.grade, b.grade, k),
+    return {motion::lerp(a.fill, b.fill, k), motion::lerp(a.weight, b.weight, k), motion::lerp(a.grade, b.grade, k),
             k < 0.5 ? a.optical_size : b.optical_size};
 }
 

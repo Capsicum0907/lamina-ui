@@ -6,6 +6,7 @@
 #include <cmath>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/paint.hpp"
 
@@ -91,10 +92,6 @@ void add_miter(render::Path& path, render::Point corner, Vec d1, Vec d2, double 
     add_polygon<4>(path, {corner, offset(corner, n1, half), offset(corner, m, half), offset(corner, n2, half)});
 }
 
-double lerp(double a, double b, double f) {
-    return a + (b - a) * f;
-}
-
 }
 
 render::Path check_mark_path(const render::Rect& box, double draw_fraction, double center_gravitation, double stroke_width) {
@@ -106,9 +103,9 @@ render::Path check_mark_path(const render::Rect& box, double draw_fraction, doub
     const double g = center_gravitation;
     const double c = t.indeterminate_center;
     auto at = [&](double ux, double uy) { return render::Point{box.x + box.width * ux, box.y + box.width * uy}; };
-    const render::Point left = at(t.check_left.x, lerp(t.check_left.y, c, g));
-    const render::Point cross = at(lerp(t.check_cross.x, c, g), lerp(t.check_cross.y, c, g));
-    const render::Point right = at(t.check_right.x, lerp(t.check_right.y, c, g));
+    const render::Point left = at(t.check_left.x, motion::lerp(t.check_left.y, c, g));
+    const render::Point cross = at(motion::lerp(t.check_cross.x, c, g), motion::lerp(t.check_cross.y, c, g));
+    const render::Point right = at(t.check_right.x, motion::lerp(t.check_right.y, c, g));
 
     const double half = stroke_width / 2.0;
     const Vec d1 = unit(sub(cross, left));

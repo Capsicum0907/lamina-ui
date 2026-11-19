@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 
 namespace lamina::widgets {
@@ -20,12 +21,8 @@ constexpr motion::SpringSpec color_spring =
 constexpr motion::SpringSpec state_spring =
     tokens::expressive_motion.spring(tokens::SpringKind::effects, tokens::SpringSpeed::fast);
 
-double lerp(double a, double b, double k) {
-    return a + (b - a) * k;
-}
-
 icons::IconStyle mix_style(const icons::IconStyle& a, const icons::IconStyle& b, double k) {
-    return {lerp(a.fill, b.fill, k), lerp(a.weight, b.weight, k), lerp(a.grade, b.grade, k),
+    return {motion::lerp(a.fill, b.fill, k), motion::lerp(a.weight, b.weight, k), motion::lerp(a.grade, b.grade, k),
             k < 0.5 ? a.optical_size : b.optical_size};
 }
 
@@ -62,21 +59,21 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
     const double lh = line.style.line_height;
     const double icon = t.icon_size;
 
-    const double pad_h = lerp((t.top_indicator_width - icon) / 2.0, t.start_indicator_leading_space, pd);
-    const double pad_v = lerp((t.top_indicator_height - icon) / 2.0, (t.start_indicator_height - icon) / 2.0, pd);
-    const double ripple_w = lerp(icon, icon + lw + t.start_icon_label_space, p) + 2.0 * pad_h;
-    const double ripple_h = lerp(icon, std::max(icon, lh), p) + 2.0 * pad_v;
+    const double pad_h = motion::lerp((t.top_indicator_width - icon) / 2.0, t.start_indicator_leading_space, pd);
+    const double pad_v = motion::lerp((t.top_indicator_height - icon) / 2.0, (t.start_indicator_height - icon) / 2.0, pd);
+    const double ripple_w = motion::lerp(icon, icon + lw + t.start_icon_label_space, p) + 2.0 * pad_h;
+    const double ripple_h = motion::lerp(icon, std::max(icon, lh), p) + 2.0 * pad_v;
 
     const double start = t.item_horizontal_padding;
     const double end = top ? t.item_horizontal_padding : 0.0;
     const double width_top = std::min(item_max_width, std::max(lw + start + end, icon + start + end + 2.0 * pad_h));
     const double width_start = std::min(item_max_width, ripple_w + start + end);
-    const double content_w = lerp(width_top, width_start, p);
-    const double content_h = lerp(ripple_h + t.top_icon_label_space + lh, ripple_h, p);
+    const double content_w = motion::lerp(width_top, width_start, p);
+    const double content_h = motion::lerp(ripple_h + t.top_icon_label_space + lh, ripple_h, p);
 
     const double icon_y_top = pad_v;
     const double icon_y_start = (content_h - icon) / 2.0 - icon_y_top;
-    const double icon_y = lerp(0.0, icon_y_start, p) + icon_y_top;
+    const double icon_y = motion::lerp(0.0, icon_y_start, p) + icon_y_top;
     const double label_x_top = (icon + 2.0 * pad_h - lw) / 2.0;
     const double label_y_top = icon_y + icon + pad_v + t.top_icon_label_space;
     const double label_offset = top && p > 0.0 ? 0.0 : start * (1.0 - p);

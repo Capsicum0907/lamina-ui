@@ -148,6 +148,7 @@ if(LAMINA_BUILD_TESTS)
         tests/icon_button_test.cpp
         tests/icon_test.cpp
         tests/layout_test.cpp
+        tests/lerp_test.cpp
         tests/main.cpp
         tests/menu_test.cpp
         tests/motion_tokens_test.cpp
