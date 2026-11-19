@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
         fields.push_back(std::make_unique<widgets::TextField>(
             widgets::TextFieldOptions{.label = "\u540d\u524d", .multiline = false, .clipboard = &window.clipboard()}, fonts));
         fields.push_back(std::make_unique<widgets::TextField>(
-            widgets::TextFieldOptions{.label = "\u30e1\u30c3\u30bb\u30fc\u30b8", .multiline = true, .clipboard = &window.clipboard()}, fonts));
+            widgets::TextFieldOptions{.label = "\u30e1\u30c3\u30bb\u30fc\u30b8", .multiline = true, .accepts_tab = true, .clipboard = &window.clipboard()}, fonts));
         for (auto& f : fields) {
             f->set_width(layout.field_width);
         }
