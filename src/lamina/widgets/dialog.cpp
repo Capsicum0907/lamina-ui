@@ -31,8 +31,8 @@ color::ColorScheme faded(const color::ColorScheme& scheme, double opacity) {
 }
 
 Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
-    : headline_(options.headline, t.headline, t.headline_color, fonts),
-      supporting_(options.supporting_text, t.supporting_text, t.supporting_text_color, fonts),
+    : headline_({options.headline, t.headline, t.headline_color}, fonts),
+      supporting_({options.supporting_text, t.supporting_text, t.supporting_text_color}, fonts),
       confirm_(action(options.confirm_label), fonts),
       icon_(std::move(options.icon)),
       popup_(t.closed_scale, motion_scheme.default_spatial(), motion_scheme.default_effects()) {

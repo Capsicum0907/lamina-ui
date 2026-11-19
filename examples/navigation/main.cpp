@@ -72,8 +72,8 @@ int main(int argc, char** argv) {
         color::SchemeOptions options = color::default_scheme_options;
         examples::ThemeFade theme(color::spec_2021().build(options));
 
-        widgets::Label header("Navigation", layout.header_type, layout.text, fonts, false);
-        widgets::Label status("—", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label header({"Navigation", layout.header_type, layout.text, false}, fonts);
+        widgets::Label status({"—", layout.caption_type, layout.caption, false}, fonts);
         widgets::IconButton dark_toggle({icon(Symbol::dark_mode), tokens::IconButtonStyle::outlined, tokens::IconButtonSize::small,
                                          tokens::ButtonShape::round, tokens::IconButtonWidth::uniform, true});
         auto report = [&status](std::string s) { status.set_text(std::move(s)); };
@@ -151,12 +151,12 @@ int main(int argc, char** argv) {
                                      {icon(Symbol::settings), destinations[3], {}, layout.selected_icon}}},
                                    fonts);
 
-        widgets::Label primary_caption("Primary tabs", layout.caption_type, layout.caption, fonts, false);
-        widgets::Label secondary_caption("Secondary tabs", layout.caption_type, layout.caption, fonts, false);
-        widgets::Label leading_caption("Leading icons", layout.caption_type, layout.caption, fonts, false);
-        widgets::Label continuous_caption(format_value("Slider", continuous.value()), layout.caption_type, layout.caption, fonts, false);
-        widgets::Label stepped_caption(format_value("Steps", stepped.value()), layout.caption_type, layout.caption, fonts, false);
-        widgets::Label overlay_caption("Menus and dialogs", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label primary_caption({"Primary tabs", layout.caption_type, layout.caption, false}, fonts);
+        widgets::Label secondary_caption({"Secondary tabs", layout.caption_type, layout.caption, false}, fonts);
+        widgets::Label leading_caption({"Leading icons", layout.caption_type, layout.caption, false}, fonts);
+        widgets::Label continuous_caption({format_value("Slider", continuous.value()), layout.caption_type, layout.caption, false}, fonts);
+        widgets::Label stepped_caption({format_value("Steps", stepped.value()), layout.caption_type, layout.caption, false}, fonts);
+        widgets::Label overlay_caption({"Menus and dialogs", layout.caption_type, layout.caption, false}, fonts);
 
         auto header_row = layout::row({widgets::node(header), layout::flexible_space(), widgets::node(status), widgets::centered_node(dark_toggle)});
         header_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center).fill_main(true);

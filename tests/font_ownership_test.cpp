@@ -29,10 +29,10 @@ static_assert(std::is_copy_assignable_v<widgets::TextField>);
 TEST_CASE("a widget keeps its fonts after the stack it was built from is gone") {
     const auto build = [] {
         const text::FontStack temporary({text::Font::from_file(std::string(LAMINA_TEST_FONTS_DIR) + "/lamina-test-sans.ttf")});
-        return widgets::Label("Fonts", tokens::TypeRole::body_large, color::Role::on_surface, temporary, false);
+        return widgets::Label({"Fonts", tokens::TypeRole::body_large, color::Role::on_surface, false}, temporary);
     };
     widgets::Label owned = build();
-    widgets::Label shared("Fonts", tokens::TypeRole::body_large, color::Role::on_surface, fonts(), false);
+    widgets::Label shared({"Fonts", tokens::TypeRole::body_large, color::Role::on_surface, false}, fonts());
     owned.measure({0.0, 200.0, 0.0, 80.0});
     shared.measure({0.0, 200.0, 0.0, 80.0});
     thorvg::Canvas a(200, 80);

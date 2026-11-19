@@ -46,14 +46,13 @@ int main(int argc, char** argv) {
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const auto scheme = color::spec_2021().build(color::default_scheme_options);
 
-        widgets::Label title("\u914d\u7f6e\u306e\u4ed5\u7d44\u307f", TypeRole::headline_medium, Role::on_surface, fonts);
-        widgets::Label intro("\u7a93\u306e\u5927\u304d\u3055\u3092\u5909\u3048\u308b\u3068\u3001\u6587\u7ae0\u306e\u6298\u308a\u8fd4\u3057\u30fb\u30dc\u30bf\u30f3\u306e\u4e26\u3073\u30fb\u5217\u306e\u5e45\u304c\u305d\u306e\u5834\u3067\u7d44\u307f\u76f4\u3055\u308c\u307e\u3059\u3002Rows and columns measure their children first and then place them, like Compose.",
-                             TypeRole::body_large, Role::on_surface_variant, fonts);
+        widgets::Label title({"\u914d\u7f6e\u306e\u4ed5\u7d44\u307f", TypeRole::headline_medium, Role::on_surface}, fonts);
+        widgets::Label intro({"\u7a93\u306e\u5927\u304d\u3055\u3092\u5909\u3048\u308b\u3068\u3001\u6587\u7ae0\u306e\u6298\u308a\u8fd4\u3057\u30fb\u30dc\u30bf\u30f3\u306e\u4e26\u3073\u30fb\u5217\u306e\u5e45\u304c\u305d\u306e\u5834\u3067\u7d44\u307f\u76f4\u3055\u308c\u307e\u3059\u3002Rows and columns measure their children first and then place them, like Compose.", TypeRole::body_large, Role::on_surface_variant}, fonts);
 
-        widgets::Label left_title("\u5de6\u306e\u5217\uff081\uff09", TypeRole::title_medium, Role::on_surface, fonts);
-        widgets::Label left_body("\u91cd\u307f 1 \u306e\u5217\u3067\u3059\u3002\u5e45\u306f\u4f59\u3063\u305f\u5e45\u3092\u91cd\u307f\u306e\u6bd4\u3067\u5206\u3051\u305f\u3082\u306e\u306b\u306a\u308a\u307e\u3059\u3002", TypeRole::body_medium, Role::on_surface_variant, fonts);
-        widgets::Label right_title("\u53f3\u306e\u5217\uff082\uff09", TypeRole::title_medium, Role::on_surface, fonts);
-        widgets::Label right_body("\u91cd\u307f 2 \u306e\u5217\u3067\u3059\u3002\u5de6\u306e 2 \u500d\u306e\u5e45\u3092\u3082\u3089\u3044\u307e\u3059\u3002Text wraps to whatever width the column receives.", TypeRole::body_medium, Role::on_surface_variant, fonts);
+        widgets::Label left_title({"\u5de6\u306e\u5217\uff081\uff09", TypeRole::title_medium, Role::on_surface}, fonts);
+        widgets::Label left_body({"\u91cd\u307f 1 \u306e\u5217\u3067\u3059\u3002\u5e45\u306f\u4f59\u3063\u305f\u5e45\u3092\u91cd\u307f\u306e\u6bd4\u3067\u5206\u3051\u305f\u3082\u306e\u306b\u306a\u308a\u307e\u3059\u3002", TypeRole::body_medium, Role::on_surface_variant}, fonts);
+        widgets::Label right_title({"\u53f3\u306e\u5217\uff082\uff09", TypeRole::title_medium, Role::on_surface}, fonts);
+        widgets::Label right_body({"\u91cd\u307f 2 \u306e\u5217\u3067\u3059\u3002\u5de6\u306e 2 \u500d\u306e\u5e45\u3092\u3082\u3089\u3044\u307e\u3059\u3002Text wraps to whatever width the column receives.", TypeRole::body_medium, Role::on_surface_variant}, fonts);
 
         widgets::TextField name({.label = "\u540d\u524d"}, fonts);
         widgets::Button cancel({"\u30ad\u30e3\u30f3\u30bb\u30eb", ButtonStyle::text, ButtonSize::small, ButtonShape::round}, fonts);

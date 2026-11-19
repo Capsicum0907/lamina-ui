@@ -10,9 +10,16 @@
 
 namespace lamina::widgets {
 
+struct LabelOptions {
+    std::string text;
+    tokens::TypeRole type = tokens::TypeRole::body_large;
+    color::Role color = color::Role::on_surface;
+    bool wrap = true;
+};
+
 class Label {
 public:
-    Label(std::string text, tokens::TypeRole type, color::Role color, const text::FontStack& fonts, bool wrap = true);
+    Label(LabelOptions options, const text::FontStack& fonts);
 
     void set_text(std::string text);
     layout::Size measure(const layout::Constraints& c);

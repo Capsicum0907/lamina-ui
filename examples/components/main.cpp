@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
         bool retheme_pending = false;
 
         const auto caption_style = tokens::text_style(tokens::type_style(layout.caption_type));
-        widgets::Label status("\u2014", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label status({"\u2014", layout.caption_type, layout.caption, false}, fonts);
         auto report = [&](std::string s) { status.set_text(std::move(s)); };
 
         widgets::WidgetSet controls;
@@ -221,16 +221,16 @@ int main(int argc, char** argv) {
         widgets::IconButton dark_toggle({icon(options.dark ? Symbol::light_mode : Symbol::dark_mode), IconButtonStyle::outlined,
                                          IconButtonSize::small, ButtonShape::round, IconButtonWidth::uniform, true});
         controls.add(dark_toggle);
-        widgets::Label header("\u90e8\u54c1", layout.header_type, layout.text, fonts, false);
-        widgets::Label symbols_caption("Symbols", layout.caption_type, layout.caption, fonts, false);
-        widgets::Label theme_caption("Theme", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label header({"\u90e8\u54c1", layout.header_type, layout.text, false}, fonts);
+        widgets::Label symbols_caption({"Symbols", layout.caption_type, layout.caption, false}, fonts);
+        widgets::Label theme_caption({"Theme", layout.caption_type, layout.caption, false}, fonts);
 
         auto header_row = layout::row({widgets::node(header), widgets::node(status)});
         header_row->fill_main(true).main_align(layout::MainAlign::space_between);
         header_row->self_align = layout::CrossAlign::stretch;
         std::vector<layout::NodePtr> page_children{header_row};
         for (auto& row : rows) {
-            row.label = std::make_unique<widgets::Label>(row.caption, layout.caption_type, layout.caption, fonts, false);
+            row.label = std::make_unique<widgets::Label>(widgets::LabelOptions{row.caption, layout.caption_type, layout.caption, false}, fonts);
             std::vector<layout::NodePtr> nodes;
             for (auto& item : row.items) {
                 nodes.push_back(item->node());

@@ -4,8 +4,12 @@
 
 namespace lamina::widgets {
 
-Label::Label(std::string text, tokens::TypeRole type, color::Role color, const text::FontStack& fonts, bool wrap)
-    : text_(std::move(text)), style_(tokens::text_style(tokens::type_style(type))), color_(color), fonts_(fonts), wrap_(wrap) {}
+Label::Label(LabelOptions options, const text::FontStack& fonts)
+    : text_(std::move(options.text)),
+      style_(tokens::text_style(tokens::type_style(options.type))),
+      color_(options.color),
+      fonts_(fonts),
+      wrap_(options.wrap) {}
 
 void Label::set_text(std::string text) {
     text_ = std::move(text);

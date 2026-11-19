@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
             controls.add(*f);
         }
         controls.add(send);
-        widgets::Label header("\u6587\u5b57\u306e\u5165\u529b", layout.header_type, layout.text, fonts, false);
+        widgets::Label header({"\u6587\u5b57\u306e\u5165\u529b", layout.header_type, layout.text, false}, fonts);
         std::vector<std::unique_ptr<widgets::Label>> log;
 
         std::shared_ptr<layout::Linear> page;
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
             if (message.empty()) {
                 return;
             }
-            log.push_back(std::make_unique<widgets::Label>((name.empty() ? std::string("?") : name) + ": " + message, layout.log_type, layout.log, fonts));
+            log.push_back(std::make_unique<widgets::Label>(widgets::LabelOptions{(name.empty() ? std::string("?") : name) + ": " + message, layout.log_type, layout.log}, fonts));
             fields[1]->set_text("");
             build();
         };

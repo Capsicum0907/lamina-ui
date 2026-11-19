@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
         examples::SeedChips chips;
         widgets::Button dark_toggle({"ダーク", ButtonStyle::outlined, ButtonSize::extra_small, ButtonShape::round}, fonts);
         widgets::Switch spec_switch;
-        widgets::Label spec_label("2025", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label spec_label({"2025", layout.caption_type, layout.caption, false}, fonts);
         auto retheme = [&] { theme.fade_to((spec_switch.checked() ? color::spec_2025() : color::spec_2021()).build(options)); };
         const auto caption_style = tokens::text_style(tokens::type_style(layout.caption_type));
 
@@ -63,13 +63,13 @@ int main(int argc, char** argv) {
         widgets::WidgetSet controls;
         std::vector<Row> rows;
         for (const auto& [style, name] : styles) {
-            Row row{std::make_unique<widgets::Label>(name, layout.caption_type, layout.caption, fonts, false), {}};
+            Row row{std::make_unique<widgets::Label>(widgets::LabelOptions{name, layout.caption_type, layout.caption, false}, fonts), {}};
             row.buttons.push_back(&controls.emplace<widgets::Button>(widgets::ButtonOptions{"\u4fdd\u5b58", style, ButtonSize::small, ButtonShape::round}, fonts));
             row.buttons.push_back(&controls.emplace<widgets::Button>(widgets::ButtonOptions{"Send", style, ButtonSize::small, ButtonShape::square}, fonts));
             row.buttons.push_back(&controls.emplace<widgets::Button>(widgets::ButtonOptions{"\u7d9a\u3051\u308b", style, ButtonSize::medium, ButtonShape::round}, fonts));
             rows.push_back(std::move(row));
         }
-        Row sizes{std::make_unique<widgets::Label>("Sizes", layout.caption_type, layout.caption, fonts, false), {}};
+        Row sizes{std::make_unique<widgets::Label>(widgets::LabelOptions{"Sizes", layout.caption_type, layout.caption, false}, fonts), {}};
         const std::pair<ButtonSize, const char*> size_list[] = {
             {ButtonSize::extra_small, "XS"}, {ButtonSize::small, "S"}, {ButtonSize::medium, "M"},
             {ButtonSize::large, "L"},        {ButtonSize::extra_large, "XL"},
@@ -81,10 +81,10 @@ int main(int argc, char** argv) {
         controls.add(dark_toggle);
         controls.add(spec_switch);
 
-        widgets::Label header("\u30dc\u30bf\u30f3", layout.header_type, layout.text, fonts, false);
+        widgets::Label header({"\u30dc\u30bf\u30f3", layout.header_type, layout.text, false}, fonts);
         int clicks = 0;
-        widgets::Label counter("\u62bc\u3057\u305f\u56de\u6570: 0", layout.caption_type, layout.caption, fonts, false);
-        widgets::Label theme_caption("Theme", layout.caption_type, layout.caption, fonts, false);
+        widgets::Label counter({"\u62bc\u3057\u305f\u56de\u6570: 0", layout.caption_type, layout.caption, false}, fonts);
+        widgets::Label theme_caption({"Theme", layout.caption_type, layout.caption, false}, fonts);
 
         auto header_row = layout::row({widgets::node(header), widgets::node(counter)});
         header_row->fill_main(true).main_align(layout::MainAlign::space_between);
