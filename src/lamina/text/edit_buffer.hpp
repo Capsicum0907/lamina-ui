@@ -10,11 +10,17 @@
 
 namespace lamina::text {
 
+struct EditBufferOptions {
+    bool multiline = false;
+    bool keeps_tabs = false;
+};
+
 class EditBuffer {
 public:
-    explicit EditBuffer(bool multiline = false) : multiline_(multiline) {}
+    explicit EditBuffer(EditBufferOptions options = {}) : options_(options) {}
 
-    bool multiline() const { return multiline_; }
+    bool multiline() const { return options_.multiline; }
+    bool keeps_tabs() const { return options_.keeps_tabs; }
     std::u32string_view text() const { return text_; }
     std::u32string_view shown() const { return shown_; }
     std::size_t cursor() const { return cursor_; }
@@ -60,7 +66,7 @@ private:
     void erase(std::size_t first, std::size_t last);
     void sync();
 
-    bool multiline_;
+    EditBufferOptions options_;
     std::u32string text_;
     std::u32string shown_;
     std::size_t cursor_ = 0;

@@ -100,8 +100,15 @@ TEST_CASE("backspace and delete remove a character, a word or the selection") {
 TEST_CASE("normalize folds line breaks and drops control characters") {
     const EditBuffer single;
     CHECK(single.normalize(U"a\r\nb\rc\nd\te\x01\x7f") == U"a b c d e");
-    const EditBuffer multi(true);
+    const EditBuffer multi({.multiline = true});
     CHECK(multi.normalize(U"a\r\nb\rc\nd") == U"a\nb\nc\nd");
+}
+
+TEST_CASE("normalize keeps tabs only when asked") {
+    const EditBuffer tabs({.keeps_tabs = true});
+    CHECK(tabs.normalize(U"a\tb\x01") == U"a\tb");
+    const EditBuffer multi_tabs({.multiline = true, .keeps_tabs = true});
+    CHECK(multi_tabs.normalize(U"a\tb\r\n\tc") == U"a\tb\n\tc");
 }
 
 TEST_CASE("a composition sits at the cursor until it is committed") {
@@ -160,7 +167,7 @@ TEST_CASE("the line map finds lines, their ends and soft wraps") {
 }
 
 TEST_CASE("home, end, up and down move by line through the line map") {
-    EditBuffer b(true);
+    EditBuffer b({.multiline = true});
     b.set_text(U"abc\ndefgh\nij");
     const LineMap lines = hard_lines(b.shown());
     const MonospaceGeometry geometry(lines);

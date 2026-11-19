@@ -19,6 +19,7 @@ namespace lamina::widgets {
 struct TextFieldOptions {
     std::string label;
     bool multiline = false;
+    bool accepts_tab = false;
     input::Clipboard* clipboard = nullptr;
 };
 
@@ -36,6 +37,7 @@ public:
     bool focused() const { return focused_; }
     void set_focused(bool focused);
     bool multiline() const { return options_.multiline; }
+    bool accepts_tab() const { return options_.accepts_tab; }
     void set_clipboard(input::Clipboard* clipboard) { options_.clipboard = clipboard; }
 
     std::string text() const;

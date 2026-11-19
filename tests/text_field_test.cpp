@@ -3,7 +3,9 @@
 #include <string>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/text/layout.hpp"
 #include "lamina/tokens/text_field.hpp"
+#include "lamina/tokens/typography.hpp"
 #include "lamina/widgets/text_field.hpp"
 #include "lamina_thorvg/canvas.hpp"
 #include "support.hpp"
@@ -397,4 +399,98 @@ TEST_CASE("a field without a label keeps its outline whole") {
     const auto& t = tokens::outlined_text_field;
     const int gap_left = static_cast<int>(10.0 + t.padding - t.label_gap_padding);
     CHECK(canvas.pixel(gap_left + 1, 20) == scheme()[t.focus_outline]);
+}
+
+namespace {
+
+double tab_stop() {
+    const text::TextStyle style = tokens::text_style(tokens::type_style(tokens::outlined_text_field.input_type));
+    return (text::layout_line(fonts(), " ", style).width + style.tracking) * style.tab_width;
+}
+
+double input_width(std::string_view utf8) {
+    const text::TextStyle style = tokens::text_style(tokens::type_style(tokens::outlined_text_field.input_type));
+    return text::layout_line(fonts(), utf8, style).width;
+}
+
+}
+
+TEST_CASE("a field that accepts tabs inserts one at the caret and replaces the selection") {
+    auto f = focused_field({.multiline = true, .accepts_tab = true});
+    CHECK(f.accepts_tab());
+    f.handle({TextEventKind::commit, "ab", 0});
+    f.handle({Key::left, false});
+    CHECK_FALSE(f.handle({Key::tab, false}));
+    CHECK(f.text() == "a\tb");
+    CHECK(f.cursor() == 2);
+    f.handle(ctrl(Key::a));
+    f.handle({Key::tab, false});
+    CHECK(f.text() == "\t");
+    CHECK(f.cursor() == 1);
+}
+
+TEST_CASE("an inserted tab is an ordinary edit that one backspace removes") {
+    auto f = focused_field({.accepts_tab = true});
+    f.handle({TextEventKind::commit, "ab", 0});
+    f.handle({Key::tab, false});
+    CHECK(f.text() == "ab\t");
+    f.handle({Key::backspace, false});
+    CHECK(f.text() == "ab");
+    CHECK(f.cursor() == 2);
+}
+
+TEST_CASE("shift+tab and ctrl+tab leave a tab-accepting field's text alone") {
+    auto f = focused_field({.accepts_tab = true});
+    f.handle({TextEventKind::commit, "ab", 0});
+    CHECK_FALSE(f.handle({Key::tab, true}));
+    CHECK_FALSE(f.handle(ctrl(Key::tab)));
+    CHECK_FALSE(f.handle(ctrl(Key::tab, true)));
+    CHECK(f.text() == "ab");
+}
+
+TEST_CASE("a field that does not accept tabs ignores tab and turns pasted tabs into spaces") {
+    FakeClipboard clipboard;
+    clipboard.contents = "a\tb";
+    auto plain = focused_field({.clipboard = &clipboard});
+    plain.handle({Key::tab, false});
+    CHECK(plain.text().empty());
+    plain.handle(ctrl(Key::v));
+    CHECK(plain.text() == "a b");
+    auto tabs = focused_field({.accepts_tab = true, .clipboard = &clipboard});
+    tabs.handle(ctrl(Key::v));
+    CHECK(tabs.text() == "a\tb");
+    tabs.set_text("x\ty");
+    CHECK(tabs.text() == "x\ty");
+}
+
+TEST_CASE("the caret after a tab stands at the next tab stop") {
+    auto f = focused_field({.multiline = true, .accepts_tab = true});
+    const double left = f.caret_area().x;
+    f.handle({Key::tab, false});
+    CHECK(f.caret_area().x - left == doctest::Approx(tab_stop()));
+    f.handle({TextEventKind::commit, "a", 0});
+    f.handle({Key::tab, false});
+    CHECK(f.caret_area().x - left == doctest::Approx(2.0 * tab_stop()));
+}
+
+TEST_CASE("a click inside a tab's span puts the caret at the nearer edge of the tab") {
+    auto f = focused_field({.multiline = true, .accepts_tab = true});
+    f.set_text("a\tb");
+    const double left = tokens::outlined_text_field.padding;
+    const double a = input_width("a");
+    const double y = f.height() / 2.0;
+    f.handle({PointerAction::down, left + a + (tab_stop() - a) * 0.25, y, 1});
+    f.handle({PointerAction::up, left + a + (tab_stop() - a) * 0.25, y, 1});
+    CHECK(f.cursor() == 1);
+    f.handle({PointerAction::down, left + a + (tab_stop() - a) * 0.75, y, 1});
+    f.handle({PointerAction::up, left + a + (tab_stop() - a) * 0.75, y, 1});
+    CHECK(f.cursor() == 2);
+}
+
+TEST_CASE("word moves step over a tab as over a space") {
+    auto f = focused_field({.accepts_tab = true});
+    f.set_text("one\ttwo");
+    f.handle({Key::home, false});
+    f.handle(ctrl(Key::right));
+    CHECK(f.cursor() == 4);
 }

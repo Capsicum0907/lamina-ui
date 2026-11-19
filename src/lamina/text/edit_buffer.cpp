@@ -35,9 +35,9 @@ std::u32string EditBuffer::normalize(std::u32string_view input) const {
             c = U'\n';
         }
         if (c == U'\n') {
-            out.push_back(multiline_ ? U'\n' : U' ');
+            out.push_back(options_.multiline ? U'\n' : U' ');
         } else if (c == U'\t') {
-            out.push_back(U' ');
+            out.push_back(options_.keeps_tabs ? U'\t' : U' ');
         } else if (c >= first_printable && c != delete_char) {
             out.push_back(c);
         }

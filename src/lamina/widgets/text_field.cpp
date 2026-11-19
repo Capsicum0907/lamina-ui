@@ -80,7 +80,7 @@ TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
       width_(t.min_width),
-      buffer_(options_.multiline),
+      buffer_({.multiline = options_.multiline, .keeps_tabs = options_.accepts_tab}),
       label_large_(text::layout_line(fonts, options_.label, style_of(t.label_type))),
       label_small_(text::layout_line(fonts, options_.label, style_of(t.minimized_label_type))),
       label_progress_(0.0, motion_scheme.fast_spatial()),
@@ -303,7 +303,11 @@ bool TextField::handle(const input::KeyEvent& e) {
         set_focused(false);
         return false;
     case input::Key::tab:
-        return false;
+        if (!options_.accepts_tab || e.shift || e.ctrl) {
+            return false;
+        }
+        buffer_.insert(U"\t");
+        break;
     default:
         switch (shortcut(e)) {
         case Shortcut::none:
