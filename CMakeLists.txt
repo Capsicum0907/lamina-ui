@@ -137,6 +137,7 @@ if(LAMINA_BUILD_EXAMPLES)
     add_library(lamina_examples_common STATIC
         examples/common/canvas.cpp
         examples/common/caption_cell.cpp
+        examples/common/options.cpp
         examples/common/theme.cpp
     )
     target_include_directories(lamina_examples_common PUBLIC examples)
