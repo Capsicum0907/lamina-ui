@@ -356,7 +356,7 @@ int main(int argc, char** argv) {
             }
 
             for (const auto& e : frame.pointer) {
-                if (e.action == input::PointerAction::down && e.y_dp < bar_height) {
+                if (window.client_title_bar() && e.action == input::PointerAction::down && e.y_dp < bar_height) {
                     continue;
                 }
                 if (overlays.handle(e)) {
