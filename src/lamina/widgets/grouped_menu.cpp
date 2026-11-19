@@ -16,44 +16,8 @@ namespace {
 constexpr const tokens::GroupedMenuTokens& t = tokens::grouped_menu_tokens;
 using tokens::motion_scheme;
 
-render::CornerRadii radii_of(const tokens::Corners& c, double w, double h) {
-    return {tokens::corner_radius(c.top_start, w, h), tokens::corner_radius(c.top_end, w, h),
-            tokens::corner_radius(c.bottom_end, w, h), tokens::corner_radius(c.bottom_start, w, h)};
-}
-
-std::array<double, 4> as_array(const render::CornerRadii& r) {
-    return {r.top_left, r.top_right, r.bottom_right, r.bottom_left};
-}
-
-template <typename Springs>
-render::CornerRadii current(const Springs& s) {
-    return {std::max(0.0, s[0].value()), std::max(0.0, s[1].value()), std::max(0.0, s[2].value()), std::max(0.0, s[3].value())};
-}
-
-template <typename Springs>
-void animate(Springs& s, const render::CornerRadii& target) {
-    const auto v = as_array(target);
-    for (std::size_t i = 0; i < 4; ++i) {
-        s[i].animate_to(v[i]);
-    }
-}
-
-template <typename Springs>
-void snap(Springs& s, const render::CornerRadii& target) {
-    const auto v = as_array(target);
-    for (std::size_t i = 0; i < 4; ++i) {
-        s[i].snap_to(v[i]);
-    }
-}
-
-template <typename Springs>
-bool springs_settled(const Springs& s) {
-    return std::all_of(s.begin(), s.end(), [](const motion::Animated& a) { return a.settled(); });
-}
-
-std::array<motion::Animated, 4> springs() {
-    const motion::SpringSpec spec = motion_scheme.fast_spatial();
-    return {motion::Animated(0.0, spec), motion::Animated(0.0, spec), motion::Animated(0.0, spec), motion::Animated(0.0, spec)};
+motion::AnimatedRadii corner_springs() {
+    return motion::AnimatedRadii(render::uniform_radii(0.0), motion_scheme.fast_spatial());
 }
 
 }
@@ -86,7 +50,7 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
     double y = 0.0;
     for (std::size_t g = 0; g < options.groups.size(); ++g) {
         MenuGroup& spec = options.groups[g];
-        Group group{std::nullopt, 0.0, 0.0, std::nullopt, spec.selection, {}, y, 0.0, false, false, springs()};
+        Group group{std::nullopt, 0.0, 0.0, std::nullopt, spec.selection, {}, y, 0.0, false, false, corner_springs()};
         double gy = t.group_vertical_padding;
         if (!spec.label.empty()) {
             group.label = text::layout_line(fonts_, spec.label, group_label_style);
@@ -123,7 +87,7 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
             group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
                                    std::move(item.trailing_icon), item.selected, gy, height, {},
                                    motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, motion_scheme.fast_effects()),
-                                   springs()});
+                                   corner_springs()});
             gy += height;
         }
         group.height = gy + t.group_vertical_padding;
@@ -132,9 +96,9 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
     }
     width_ = content;
     for (std::size_t g = 0; g < groups_.size(); ++g) {
-        snap(groups_[g].corners, group_target(g));
+        groups_[g].corners.snap_to(group_target(g));
         for (std::size_t i = 0; i < groups_[g].items.size(); ++i) {
-            snap(groups_[g].items[i].corners, item_target(g, i));
+            groups_[g].items[i].corners.snap_to(item_target(g, i));
         }
     }
 }
@@ -162,38 +126,38 @@ render::Rect GroupedMenu::item_rect(std::size_t group, std::size_t item) const {
 }
 
 render::CornerRadii GroupedMenu::group_radii(std::size_t group) const {
-    return current(groups_[group].corners);
+    return groups_[group].corners.value();
 }
 
 render::CornerRadii GroupedMenu::item_radii(std::size_t group, std::size_t item) const {
-    return current(groups_[group].items[item].corners);
+    return groups_[group].items[item].corners.value();
 }
 
 render::CornerRadii GroupedMenu::group_target(std::size_t group) const {
     const Group& g = groups_[group];
     const render::Rect r = group_rect(group);
     if (g.has_been_hovered && !g.hovered) {
-        return radii_of(tokens::all_corners(t.inactive_group), r.width, r.height);
+        return tokens::corner_radii(tokens::all_corners(t.inactive_group), r.width, r.height);
     }
-    return radii_of(menu_group_corners(group, groups_.size()), r.width, r.height);
+    return tokens::corner_radii(menu_group_corners(group, groups_.size()), r.width, r.height);
 }
 
 render::CornerRadii GroupedMenu::item_target(std::size_t group, std::size_t item) const {
     const Group& g = groups_[group];
     const render::Rect r = item_rect(group, item);
     if (g.items[item].selected) {
-        return radii_of(tokens::all_corners(t.selected_item), r.width, r.height);
+        return tokens::corner_radii(tokens::all_corners(t.selected_item), r.width, r.height);
     }
-    return radii_of(menu_item_corners(item, g.items.size()), r.width, r.height);
+    return tokens::corner_radii(menu_item_corners(item, g.items.size()), r.width, r.height);
 }
 
 void GroupedMenu::retarget_group(std::size_t group) {
-    animate(groups_[group].corners, group_target(group));
+    groups_[group].corners.animate_to(group_target(group));
 }
 
 void GroupedMenu::retarget_item(std::size_t group, std::size_t item) {
     Item& i = groups_[group].items[item];
-    animate(i.corners, item_target(group, item));
+    i.corners.animate_to(item_target(group, item));
     i.selection.animate_to(i.selected ? 1.0 : 0.0);
 }
 
@@ -226,10 +190,10 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window) {
         for (std::size_t g = 0; g < groups_.size(); ++g) {
             groups_[g].hovered = false;
             groups_[g].has_been_hovered = false;
-            snap(groups_[g].corners, group_target(g));
+            groups_[g].corners.snap_to(group_target(g));
             for (std::size_t i = 0; i < groups_[g].items.size(); ++i) {
                 Item& item = groups_[g].items[i];
-                snap(item.corners, item_target(g, i));
+                item.corners.snap_to(item_target(g, i));
                 item.selection.snap_to(item.selected ? 1.0 : 0.0);
             }
         }
@@ -291,15 +255,11 @@ bool GroupedMenu::handle(const input::KeyEvent& e) {
 void GroupedMenu::step(double dt) {
     popup_.step(dt);
     for (Group& g : groups_) {
-        for (motion::Animated& c : g.corners) {
-            c.step(dt);
-        }
+        g.corners.step(dt);
         for (Item& item : g.items) {
             item.state_layer.step(dt);
             item.selection.step(dt);
-            for (motion::Animated& c : item.corners) {
-                c.step(dt);
-            }
+            item.corners.step(dt);
         }
     }
 }
@@ -309,8 +269,8 @@ bool GroupedMenu::animating() const {
         return true;
     }
     return std::any_of(groups_.begin(), groups_.end(), [](const Group& g) {
-        return !springs_settled(g.corners) || std::any_of(g.items.begin(), g.items.end(), [](const Item& item) {
-                   return !item.state_layer.settled() || !item.selection.settled() || !springs_settled(item.corners);
+        return !g.corners.settled() || std::any_of(g.items.begin(), g.items.end(), [](const Item& item) {
+                   return !item.state_layer.settled() || !item.selection.settled() || !item.corners.settled();
                });
     });
 }

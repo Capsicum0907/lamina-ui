@@ -3,6 +3,8 @@
 #include <array>
 #include <cstddef>
 
+#include "lamina/render/geometry.hpp"
+
 namespace lamina::tokens {
 
 enum class CornerSize : std::size_t {
@@ -39,6 +41,11 @@ struct Corners {
 
 constexpr Corners all_corners(CornerSize size) {
     return {size, size, size, size};
+}
+
+constexpr render::CornerRadii corner_radii(const Corners& c, double width, double height) {
+    return {corner_radius(c.top_start, width, height), corner_radius(c.top_end, width, height),
+            corner_radius(c.bottom_end, width, height), corner_radius(c.bottom_start, width, height)};
 }
 
 namespace corners {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -11,6 +10,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/motion/animated_radii.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
@@ -86,8 +86,6 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
-    using CornerSprings = std::array<motion::Animated, 4>;
-
     struct Item {
         std::optional<text::TextLine> label;
         std::optional<icons::Icon> leading_icon;
@@ -99,7 +97,7 @@ private:
         PressState press;
         motion::Animated state_layer;
         motion::Animated selection;
-        CornerSprings corners;
+        motion::AnimatedRadii corners;
     };
 
     struct Group {
@@ -113,7 +111,7 @@ private:
         double height;
         bool hovered;
         bool has_been_hovered;
-        CornerSprings corners;
+        motion::AnimatedRadii corners;
     };
 
     render::CornerRadii group_target(std::size_t group) const;

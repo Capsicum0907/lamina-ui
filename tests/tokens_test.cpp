@@ -107,3 +107,11 @@ TEST_CASE("elevation shadows match the material-web levels") {
         CHECK(level_for_elevation(elevation_dp[level]) == doctest::Approx(level));
     }
 }
+
+TEST_CASE("corner_radii resolves each corner of a Corners set") {
+    const lamina::render::CornerRadii r = corner_radii(Corners{CornerSize::large, CornerSize::none, CornerSize::full, CornerSize::small}, 100, 40);
+    CHECK(r.top_left == 16.0);
+    CHECK(r.top_right == 0.0);
+    CHECK(r.bottom_right == 20.0);
+    CHECK(r.bottom_left == 8.0);
+}
