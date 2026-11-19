@@ -14,12 +14,18 @@
 
 namespace lamina::widgets {
 
+struct ButtonColors {
+    color::Role container;
+    color::Role content;
+};
+
 struct ButtonOptions {
     std::string label;
     tokens::ButtonStyle style = tokens::ButtonStyle::filled;
     tokens::ButtonSize size = tokens::ButtonSize::small;
     tokens::ButtonShape shape = tokens::ButtonShape::round;
     std::optional<icons::Icon> leading_icon = std::nullopt;
+    std::optional<ButtonColors> colors = std::nullopt;
 };
 
 class Button {

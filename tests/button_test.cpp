@@ -110,3 +110,14 @@ TEST_CASE("an icon-only button leaves no gap for the missing label") {
     const auto& size = tokens::button_size(ButtonSize::large);
     CHECK(b.width() == doctest::Approx(size.leading_space + size.icon_size + size.trailing_space));
 }
+
+TEST_CASE("ButtonOptions::colors replaces the style's container and content roles") {
+    widgets::ButtonOptions options{"", ButtonStyle::text, ButtonSize::small, ButtonShape::square};
+    options.colors = widgets::ButtonColors{color::Role::tertiary_container, color::Role::on_tertiary_container};
+    widgets::Button b(options, fonts());
+    b.set_origin({10.0, 10.0});
+    thorvg::Canvas canvas(200, 80);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, scheme());
+    CHECK(canvas.pixel(40, 30) == scheme()[color::Role::tertiary_container]);
+}
