@@ -20,6 +20,7 @@
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/fab.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
@@ -59,6 +60,8 @@ class Item {
 public:
     virtual ~Item() = default;
     virtual bool handle(const input::PointerEvent& e) = 0;
+    virtual bool handle(const input::KeyEvent& e) = 0;
+    virtual void join(widgets::FocusManager& focus) = 0;
     virtual layout::NodePtr node() = 0;
     std::function<void()> on_click;
 };
@@ -68,6 +71,8 @@ class Holder : public Item {
 public:
     explicit Holder(W& w) : widget(w) {}
     bool handle(const input::PointerEvent& e) override { return widget.handle(e); }
+    bool handle(const input::KeyEvent& e) override { return widget.handle(e); }
+    void join(widgets::FocusManager& focus) override { focus.add(widget); }
     layout::NodePtr node() override { return widgets::node(widget); }
     W& widget;
 };
@@ -286,6 +291,17 @@ int main(int argc, char** argv) {
             root = framed;
         }
 
+        widgets::FocusManager focus;
+        if (window.client_title_bar()) {
+            focus.add(bar_search);
+        }
+        for (auto& row : rows) {
+            for (auto& item : row.items) {
+                item->join(focus);
+            }
+        }
+        focus.add(dark_toggle);
+
         color::ColorScheme scheme = theme.current();
         auto update = [&](const sdl3::Frame& frame) {
             title_bar.set_maximized(frame.maximized);
@@ -324,6 +340,25 @@ int main(int argc, char** argv) {
                 for (auto& row : rows) {
                     for (auto& item : row.items) {
                         if (item->handle(e) && item->on_click) {
+                            item->on_click();
+                        }
+                    }
+                }
+            }
+            for (const auto& k : frame.keys) {
+                if (focus.handle(k)) {
+                    continue;
+                }
+                if (window.client_title_bar() && bar_search.handle(k)) {
+                    report("Title bar: search");
+                }
+                if (dark_toggle.handle(k)) {
+                    options.dark = dark_toggle.checked();
+                    retheme_pending = true;
+                }
+                for (auto& row : rows) {
+                    for (auto& item : row.items) {
+                        if (item->handle(k) && item->on_click) {
                             item->on_click();
                         }
                     }
