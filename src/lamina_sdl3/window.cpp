@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <exception>
 #include <functional>
@@ -13,6 +14,8 @@
 #include <SDL3/SDL.h>
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL_main.h>
+
+#include "lamina_sdl3/caption_frame.hpp"
 
 namespace lamina::sdl3 {
 
@@ -113,6 +116,9 @@ struct Window::Impl {
     std::function<void(const Frame&)> live_redraw;
     bool in_live_redraw = false;
     std::exception_ptr live_error;
+    Uint32 caption_pointer_event = 0;
+    std::unique_ptr<detail::CaptionFrame> caption;
+    bool close_requested = false;
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
@@ -127,6 +133,9 @@ struct Window::Impl {
         frame.scale = scale();
         frame.width_dp = pw / frame.scale;
         frame.height_dp = ph / frame.scale;
+        const SDL_WindowFlags flags = SDL_GetWindowFlags(window);
+        frame.maximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
+        frame.active = (flags & SDL_WINDOW_INPUT_FOCUS) != 0;
     }
 
     static bool SDLCALL watch(void* userdata, SDL_Event* e) {
@@ -193,10 +202,24 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fail("SDL_Init");
     }
-    const SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
+    const bool client_title_bar = options.client_title_bar && detail::caption_frame_supported();
+    SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
+    if (client_title_bar) {
+        flags |= SDL_WINDOW_BORDERLESS;
+    }
     if (!SDL_CreateWindowAndRenderer(options.title.c_str(), options.width_dp, options.height_dp, flags,
                                      &impl_->window, &impl_->renderer)) {
         fail("SDL_CreateWindowAndRenderer");
+    }
+    if (client_title_bar) {
+        impl_->caption_pointer_event = SDL_RegisterEvents(1);
+        if (impl_->caption_pointer_event != 0) {
+            impl_->caption = detail::attach_caption_frame(impl_->window, impl_->caption_pointer_event);
+        }
+        if (!impl_->caption) {
+            std::fprintf(stderr, "lamina: the client-drawn title bar is not available; using the system frame\n");
+            SDL_SetWindowBordered(impl_->window, true);
+        }
     }
     const double factor = impl_->scale() / impl_->pixel_density();
     SDL_SetWindowSize(impl_->window, static_cast<int>(std::lround(options.width_dp * factor)),
@@ -210,6 +233,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
 }
 
 Window::~Window() {
+    impl_->caption.reset();
     if (impl_->texture) {
         SDL_DestroyTexture(impl_->texture);
     }
@@ -250,6 +274,13 @@ bool Window::next_frame(Frame& frame, bool animating) {
     impl_->wake_seconds = -1.0;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
+        if (impl_->caption_pointer_event != 0 && e.type == impl_->caption_pointer_event) {
+            const double k = impl_->scale();
+            frame.pointer.push_back({static_cast<PointerAction>(e.user.code),
+                                     static_cast<double>(reinterpret_cast<std::intptr_t>(e.user.data1)) / k,
+                                     static_cast<double>(reinterpret_cast<std::intptr_t>(e.user.data2)) / k, 1});
+            continue;
+        }
         switch (e.type) {
         case SDL_EVENT_QUIT:
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -287,7 +318,33 @@ bool Window::next_frame(Frame& frame, bool animating) {
     }
 
     impl_->measure(frame);
-    return true;
+    return !impl_->close_requested;
+}
+
+bool Window::client_title_bar() const {
+    return static_cast<bool>(impl_->caption);
+}
+
+void Window::set_caption_regions(input::CaptionRegions regions) {
+    if (impl_->caption) {
+        impl_->caption->set_regions(std::move(regions));
+    }
+}
+
+void Window::minimize() {
+    SDL_MinimizeWindow(impl_->window);
+}
+
+void Window::toggle_maximize() {
+    if ((SDL_GetWindowFlags(impl_->window) & SDL_WINDOW_MAXIMIZED) != 0) {
+        SDL_RestoreWindow(impl_->window);
+    } else {
+        SDL_MaximizeWindow(impl_->window);
+    }
+}
+
+void Window::close() {
+    impl_->close_requested = true;
 }
 
 void Window::wake_after(double seconds) {
