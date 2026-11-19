@@ -46,6 +46,16 @@ std::filesystem::path find_asset(const std::filesystem::path& relative) {
     throw std::runtime_error("cannot find the asset " + relative.string() + "; looked in:" + tried);
 }
 
+std::filesystem::path preference_directory(const std::string& organization, const std::string& application) {
+    char* raw = SDL_GetPrefPath(organization.c_str(), application.c_str());
+    if (!raw) {
+        throw std::runtime_error("cannot find the preference directory for " + organization + "/" + application + ": " + SDL_GetError());
+    }
+    std::filesystem::path dir = from_utf8(raw);
+    SDL_free(raw);
+    return dir;
+}
+
 icons::IconFont bundled_icon_font() {
     return icons::IconFont::from_file(find_asset(std::filesystem::path(icons_directory) / icons::symbols_font_file).string());
 }
