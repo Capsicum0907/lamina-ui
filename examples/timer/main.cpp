@@ -19,6 +19,7 @@
 #include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/progress_indicator.hpp"
 #include "lamina/widgets/title_bar.hpp"
 #include "lamina_sdl3/app.hpp"
@@ -130,10 +131,19 @@ struct View {
     widgets::Button button;
     AnimatedBox box;
     double release_in = -1.0;
+    bool usable = true;
+
+    bool focused() const { return button.focused(); }
+    void set_focused(bool focused) { button.set_focused(focused); }
+    bool can_focus() const { return usable; }
 
     void press_briefly(double seconds) {
         const render::Rect r = box.rect();
+        const bool had_focus = button.focused();
         button.handle({input::PointerAction::down, r.x + r.width / 2.0, r.y + r.height / 2.0});
+        if (had_focus) {
+            button.set_focused(true);
+        }
         release_in = seconds;
     }
     void step(double dt) {
@@ -249,12 +259,46 @@ int main(int argc, char** argv) {
         bool running_screen = false;
         std::optional<State> shown_state;
 
+        widgets::FocusManager focus;
+        for (View& v : presets) {
+            focus.add(v);
+        }
+        for (View& v : pad) {
+            focus.add(v);
+        }
+        for (View* v : {&start, &toggle, &add, &reset}) {
+            focus.add(*v);
+        }
+        auto any_focused = [&] {
+            for (const auto* group : {&pad, &presets}) {
+                for (const View& v : *group) {
+                    if (v.focused()) {
+                        return true;
+                    }
+                }
+            }
+            return start.focused() || toggle.focused() || add.focused() || reset.focused();
+        };
+        auto set_usable = [&] {
+            for (auto* group : {&pad, &presets}) {
+                for (View& v : *group) {
+                    v.usable = !running_screen;
+                }
+            }
+            start.usable = !running_screen && start_presence.target() > 0.0;
+            for (View* v : {&toggle, &add, &reset}) {
+                v->usable = running_screen;
+            }
+        };
+
         auto sync = [&](double now, bool snap) {
             const State state = engine.state(now);
             readout.show(engine.entry_digits(), engine.typed().size());
             const double presence = engine.entry_seconds() > 0 ? 1.0 : 0.0;
             const bool to_running = state != State::entry;
             if (to_running != running_screen) {
+                const bool refocus = any_focused();
+                focus.clear_focus();
                 for (View* v : {&start, &toggle, &add, &reset}) {
                     v->button.cancel_interaction();
                 }
@@ -264,6 +308,10 @@ int main(int argc, char** argv) {
                     }
                 }
                 running_screen = to_running;
+                set_usable();
+                if (refocus) {
+                    focus.move_focus(widgets::FocusDirection::next);
+                }
             }
             const double screen = running_screen ? 1.0 : 0.0;
             const double alarmed = state == State::finished ? 1.0 : 0.0;
@@ -277,6 +325,10 @@ int main(int argc, char** argv) {
                 screen_opacity.animate_to(screen);
                 screen_scale.animate_to(screen);
                 alarm.animate_to(alarmed);
+            }
+            set_usable();
+            if (start.focused() && !start.usable) {
+                start.set_focused(false);
             }
             if (state != shown_state) {
                 const bool square = state == State::running;
@@ -368,35 +420,56 @@ int main(int argc, char** argv) {
                     eased = true;
                 }
             };
-            for (const auto& e : frame.pointer) {
+            auto dispatch = [&](auto&& handle) {
+                bool used = false;
                 if (!running_screen) {
                     for (std::size_t i = 0; i < pad.size(); ++i) {
-                        if (pad[i].button.handle(e)) {
+                        if (handle(pad[i])) {
                             press_pad(i);
+                            used = true;
                         }
                     }
                     for (std::size_t i = 0; i < presets.size(); ++i) {
-                        if (presets[i].button.handle(e)) {
+                        if (handle(presets[i])) {
                             engine.set_entry_seconds(config.presets[i].seconds);
+                            used = true;
                         }
                     }
-                    if (start_presence.target() > 0.0 && start.button.handle(e)) {
+                    if (start_presence.target() > 0.0 && handle(start)) {
                         engine.start(now);
+                        used = true;
                     }
                 } else {
-                    if (toggle.button.handle(e)) {
+                    if (handle(toggle)) {
                         engine.toggle(now);
+                        used = true;
                     }
-                    if (add.button.handle(e)) {
+                    if (handle(add)) {
                         add_minute();
+                        used = true;
                     }
-                    if (reset.button.handle(e)) {
+                    if (handle(reset)) {
                         engine.reset();
+                        used = true;
                     }
                 }
+                return used;
+            };
+            for (const auto& e : frame.pointer) {
+                dispatch([&](View& v) { return v.button.handle(e); });
             }
             for (const auto& e : frame.keys) {
-                if (e.ctrl) {
+                if (focus.handle(e)) {
+                    continue;
+                }
+                const bool used = dispatch([&](View& v) {
+                    if (!v.button.handle(e)) {
+                        return false;
+                    }
+                    v.press_briefly(config.key_press_seconds);
+                    return true;
+                });
+                if (used || e.ctrl) {
                     continue;
                 }
                 if (e.key == Key::enter || e.key == Key::space) {
