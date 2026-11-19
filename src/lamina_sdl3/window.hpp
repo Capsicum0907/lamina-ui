@@ -24,6 +24,7 @@ struct Frame {
     double height_dp;
     double scale;
     std::vector<input::PointerEvent> pointer;
+    std::vector<input::WheelEvent> wheel;
     std::vector<input::KeyEvent> keys;
     std::vector<input::TextEvent> text;
 };

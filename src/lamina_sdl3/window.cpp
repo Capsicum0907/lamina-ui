@@ -42,6 +42,8 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_ESCAPE: return Key::escape;
     case SDLK_TAB: return Key::tab;
     case SDLK_SPACE: return Key::space;
+    case SDLK_PAGEUP: return Key::page_up;
+    case SDLK_PAGEDOWN: return Key::page_down;
     case SDLK_KP_0: return Key::digit_0;
     case SDLK_KP_1: return Key::digit_1;
     case SDLK_KP_2: return Key::digit_2;
@@ -240,6 +242,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
         std::rethrow_exception(std::exchange(impl_->live_error, nullptr));
     }
     frame.pointer.clear();
+    frame.wheel.clear();
     frame.keys.clear();
     frame.text.clear();
     if (!animating) {
@@ -271,6 +274,11 @@ bool Window::next_frame(Frame& frame, bool animating) {
                 frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y)});
             }
             break;
+        case SDL_EVENT_MOUSE_WHEEL: {
+            const float flip = e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f;
+            frame.wheel.push_back({impl_->to_dp(e.wheel.mouse_x), impl_->to_dp(e.wheel.mouse_y), flip * e.wheel.x, -flip * e.wheel.y});
+            break;
+        }
         case SDL_EVENT_KEY_DOWN:
             if (const auto key = key_of(e.key)) {
                 frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod)});

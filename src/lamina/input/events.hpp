@@ -74,6 +74,8 @@ enum class Key {
     caret,
     exclamation,
     space,
+    page_up,
+    page_down,
 };
 
 constexpr std::optional<Key> key_for_character(char32_t c) {
@@ -98,6 +100,13 @@ constexpr std::optional<Key> key_for_character(char32_t c) {
     default: return std::nullopt;
     }
 }
+
+struct WheelEvent {
+    double x_dp;
+    double y_dp;
+    double dx;
+    double dy;
+};
 
 struct KeyEvent {
     Key key;
