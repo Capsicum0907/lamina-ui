@@ -94,10 +94,10 @@ int main(int argc, char** argv) {
     try {
         const Config config;
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
+        const std::optional<std::string> data_dir = examples::take_option(argc, argv, config.data_dir_option);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = sdl3::bundled_icon_font();
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
-        const std::optional<std::string> data_dir = examples::take_option(argc, argv, config.data_dir_option);
         if (data_dir) {
             std::filesystem::create_directories(*data_dir);
         }
