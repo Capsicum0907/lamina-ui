@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <initializer_list>
 #include <string_view>
 
 #include "calculator/engine.hpp"
@@ -327,4 +328,188 @@ TEST_CASE("backspace removes parentheses like any other token") {
     CHECK(run("p2<").formula() == "(");
     CHECK(run("p2<<").formula() == "0");
     CHECK(run("p2p<").formula() == "(2");
+}
+
+namespace {
+
+Engine& apply(Engine& e, std::initializer_list<Command> commands) {
+    for (Command c : commands) {
+        e.apply(c);
+    }
+    return e;
+}
+
+}
+
+TEST_CASE("trigonometric functions work in degrees by default and in radians after the toggle") {
+    Engine e;
+    CHECK(e.angle_unit() == AngleUnit::degrees);
+    CHECK(std::string(e.angle_label()) == "DEG");
+    apply(e, {Command::sine});
+    press(e, "30");
+    CHECK(e.formula() == "sin(30");
+    CHECK(e.result() == "0.5");
+    press(e, "=");
+    CHECK(e.formula() == "sin(30) =");
+    CHECK(e.result() == "0.5");
+    CHECK(press(apply(e, {Command::cosine}), "60=").result() == "0.5");
+    CHECK(press(apply(e, {Command::tangent}), "45=").result() == "1");
+    CHECK(press(apply(e, {Command::sine}), "180=").result() == "0");
+    apply(e, {Command::angle_unit});
+    CHECK(e.angle_unit() == AngleUnit::radians);
+    CHECK(std::string(e.angle_label()) == "RAD");
+    CHECK(apply(e, {Command::sine, Command::pi, Command::equals}).result() == "0");
+    CHECK(press(apply(e, {Command::cosine}), "0=").result() == "1");
+}
+
+TEST_CASE("Inv turns the function keys into their inverses until it is pressed again") {
+    Engine e;
+    apply(e, {Command::inverse});
+    CHECK(e.inverse());
+    apply(e, {Command::sine});
+    CHECK(press(e, ".5").formula() == "asin(0.5");
+    CHECK(press(e, "=").result() == "30");
+    CHECK(press(apply(e, {Command::cosine}), "0=").result() == "90");
+    CHECK(press(apply(e, {Command::tangent}), "1=").result() == "45");
+    CHECK(press(apply(e, {Command::natural_log}), "1=").result() == "2.71828182846");
+    CHECK(apply(e, {Command::all_clear, Command::natural_log}).formula() == "e^(");
+    CHECK(press(apply(e, {Command::all_clear, Command::common_log}), "3=").result() == "1,000");
+    Engine s;
+    press(s, "7");
+    apply(s, {Command::inverse, Command::square_root});
+    CHECK(s.formula() == "7^2");
+    CHECK(press(s, "=").result() == "49");
+    apply(e, {Command::inverse, Command::sine});
+    CHECK_FALSE(e.inverse());
+    CHECK(e.formula() == "sin(");
+}
+
+TEST_CASE("powers are right-associative and bind tighter than multiplication") {
+    Engine e;
+    press(e, "2");
+    apply(e, {Command::power});
+    press(e, "10");
+    CHECK(e.formula() == "2^10");
+    CHECK(press(e, "=").result() == "1,024");
+    Engine r;
+    press(r, "2");
+    apply(r, {Command::power});
+    press(r, "3");
+    apply(r, {Command::power});
+    press(r, "2=");
+    CHECK(r.result() == "512");
+    Engine m;
+    press(m, "3*2");
+    apply(m, {Command::power});
+    press(m, "2=");
+    CHECK(m.result() == "12");
+    Engine n;
+    press(n, "2");
+    apply(n, {Command::power});
+    press(n, "-1=");
+    CHECK(n.formula() == "2^\u22121 =");
+    CHECK(n.result() == "0.5");
+}
+
+TEST_CASE("factorial is postfix, and reciprocal and square follow a complete operand") {
+    Engine e;
+    press(e, "5");
+    apply(e, {Command::factorial});
+    CHECK(e.formula() == "5!");
+    CHECK(e.result() == "120");
+    CHECK(press(e, "=").result() == "120");
+    Engine f;
+    apply(f, {Command::factorial});
+    CHECK(f.formula() == "0");
+    Engine g;
+    press(g, "3+2");
+    apply(g, {Command::factorial});
+    CHECK(press(g, "=").result() == "5");
+    Engine r;
+    press(r, "4");
+    apply(r, {Command::reciprocal});
+    CHECK(r.formula() == "4^\u22121");
+    CHECK(press(r, "=").result() == "0.25");
+}
+
+TEST_CASE("square root, logarithms and the constants") {
+    Engine e;
+    apply(e, {Command::square_root});
+    press(e, "2");
+    CHECK(e.formula() == "\u221a(2");
+    CHECK(press(e, "=").result() == "1.41421356237");
+    CHECK(press(apply(e, {Command::natural_log, Command::euler}), "=").result() == "1");
+    CHECK(press(apply(e, {Command::common_log}), "1000=").result() == "3");
+    Engine p;
+    press(p, "2");
+    apply(p, {Command::pi});
+    CHECK(p.formula() == "2 \u00d7 \u03c0");
+    CHECK(p.result() == "6.28318530718");
+    apply(p, {Command::sine});
+    CHECK(p.formula() == "2 \u00d7 \u03c0 \u00d7 sin(");
+    Engine q;
+    apply(q, {Command::pi});
+    press(q, "2");
+    CHECK(q.formula() == "\u03c0 \u00d7 2");
+    Engine n;
+    press(n, "-");
+    apply(n, {Command::pi});
+    CHECK(n.formula() == "\u22121 \u00d7 \u03c0");
+}
+
+TEST_CASE("functions after a result start anew, postfix keys continue from it") {
+    Engine e = run("2+2=");
+    apply(e, {Command::square_root});
+    CHECK(e.formula() == "\u221a(");
+    Engine f = run("2+2=");
+    apply(f, {Command::factorial});
+    CHECK(f.formula() == "4!");
+    CHECK(press(f, "=").result() == "24");
+}
+
+TEST_CASE("backspace removes a whole function name") {
+    Engine e;
+    apply(e, {Command::sine});
+    press(e, "3<");
+    CHECK(e.formula() == "sin(");
+    press(e, "<");
+    CHECK(e.formula() == "0");
+}
+
+TEST_CASE("values outside a function's domain are errors") {
+    auto error_of = [](std::initializer_list<Command> before, std::string_view keys) {
+        Engine e;
+        apply(e, before);
+        press(e, keys);
+        return e.error();
+    };
+    CHECK(error_of({Command::square_root}, "-4=") == Error::domain);
+    CHECK(error_of({Command::natural_log}, "0=") == Error::domain);
+    CHECK(error_of({Command::common_log}, "-1=") == Error::domain);
+    CHECK(error_of({Command::inverse, Command::sine}, "2=") == Error::domain);
+    CHECK(error_of({Command::inverse, Command::cosine}, "-2=") == Error::domain);
+    CHECK(error_of({Command::tangent}, "90=") == Error::domain);
+    CHECK(error_of({Command::tangent}, "270=") == Error::domain);
+    Engine e;
+    apply(e, {Command::square_root});
+    press(e, "-4=");
+    CHECK(e.result() == "Domain error");
+    Engine f;
+    press(f, "2.5");
+    apply(f, {Command::factorial, Command::equals});
+    CHECK(f.error() == Error::domain);
+    Engine g;
+    press(g, "171");
+    apply(g, {Command::factorial, Command::equals});
+    CHECK(g.error() == Error::out_of_range);
+    Engine h;
+    press(h, "-8");
+    apply(h, {Command::power});
+    press(h, ".5=");
+    CHECK(h.error() == Error::domain);
+    Engine z;
+    press(z, "0");
+    apply(z, {Command::power});
+    press(z, "-1=");
+    CHECK(z.error() == Error::divide_by_zero);
 }
