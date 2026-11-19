@@ -10,6 +10,7 @@
 #include "lamina/shapes/morph.hpp"
 #include "lamina/shapes/to_path.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/interaction.hpp"
 #include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
@@ -33,10 +34,6 @@ struct Layout {
 
 render::Path placed(const render::Path& unit, const render::Rect& r) {
     return unit.transformed({r.width, 0.0, 0.0, r.height, r.x, r.y});
-}
-
-bool inside(const render::Rect& r, double x, double y) {
-    return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 }
 
 }
@@ -80,7 +77,7 @@ int main() {
             for (const auto& e : frame.pointer) {
                 hovered = all.size();
                 for (std::size_t i = 0; i < all.size(); ++i) {
-                    if (e.action != input::PointerAction::leave && inside(cells[i], e.x_dp, e.y_dp)) {
+                    if (e.action != input::PointerAction::leave && widgets::contains(cells[i], e.x_dp, e.y_dp)) {
                         hovered = i;
                     }
                 }

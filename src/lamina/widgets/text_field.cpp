@@ -7,6 +7,7 @@
 #include "lamina/text/line_break.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/text_field.hpp"
+#include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
 
@@ -24,10 +25,6 @@ motion::SpringSpec effects_spring() {
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
-}
-
-bool inside(const render::Rect& r, double x, double y) {
-    return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 }
 
 enum class WordClass { space, newline, punctuation, hiragana, katakana, han, word };
@@ -376,7 +373,7 @@ void TextField::select_word_at(std::size_t index) {
 }
 
 void TextField::handle(const input::PointerEvent& e) {
-    const bool over = e.action != input::PointerAction::leave && inside(bounds(), e.x_dp, e.y_dp);
+    const bool over = e.action != input::PointerAction::leave && contains(bounds(), e.x_dp, e.y_dp);
     hovered_ = over;
     hover_.animate_to(over ? 1.0 : 0.0);
     if (e.action == input::PointerAction::up) {
