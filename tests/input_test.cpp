@@ -21,6 +21,8 @@ TEST_CASE("key_for_character maps digits, letters and the operator characters") 
     CHECK(key_for_character(U'=') == Key::equals);
     CHECK(key_for_character(U'(') == Key::paren_left);
     CHECK(key_for_character(U')') == Key::paren_right);
+    CHECK(key_for_character(U'^') == Key::caret);
+    CHECK(key_for_character(U'!') == Key::exclamation);
 }
 
 TEST_CASE("key_for_character leaves other characters unmapped") {

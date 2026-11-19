@@ -71,6 +71,8 @@ enum class Key {
     equals,
     paren_left,
     paren_right,
+    caret,
+    exclamation,
 };
 
 constexpr std::optional<Key> key_for_character(char32_t c) {
@@ -90,6 +92,8 @@ constexpr std::optional<Key> key_for_character(char32_t c) {
     case U'=': return Key::equals;
     case U'(': return Key::paren_left;
     case U')': return Key::paren_right;
+    case U'^': return Key::caret;
+    case U'!': return Key::exclamation;
     default: return std::nullopt;
     }
 }
