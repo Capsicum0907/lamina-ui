@@ -68,6 +68,7 @@ add_library(lamina STATIC
     src/lamina/widgets/overlay_stack.cpp
     src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
+    src/lamina/widgets/scroll_area.cpp
     src/lamina/widgets/slider.cpp
     src/lamina/widgets/surface.cpp
     src/lamina/widgets/switch.cpp
@@ -197,6 +198,7 @@ if(LAMINA_BUILD_TESTS)
         tests/progress_indicator_test.cpp
         tests/protocol_test.cpp
         tests/radio_button_test.cpp
+        tests/scroll_area_test.cpp
         tests/shapes_test.cpp
         tests/slider_test.cpp
         tests/spring_test.cpp

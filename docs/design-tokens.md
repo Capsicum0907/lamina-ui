@@ -413,6 +413,13 @@ C `tokens/CircularProgressIndicatorTokens.kt` (40 dp, 48 dp for the wavy one, 4 
 - Compose's stroke has round caps and a zero-length segment draws nothing. lamina-ui narrows an arc shorter than its thickness in proportion, so a growing indicator or a shrinking track does not appear or vanish as a whole dot.
 - `sample_length` (1 dp) is lamina-ui's own: the arcs are filled as outlines (`render::stroke_path`), sampled every 1 dp along the arc.
 
+### Scroll area
+
+Material 3 defines no scroll bar, and Compose Material 3 has none: every value in `lamina/tokens/scroll_area.hpp` is lamina-ui's own, none was read from a source.
+
+- The offset moves on the default effects spring because it is critically damped: a spatial spring of the expressive scheme overshoots, which would scroll past the ends of the content.
+- 64 dp per wheel notch, 48 dp kept on screen by Page Up and Page Down, a 4 dp thumb that widens to 8 dp under the pointer, 2 dp from the edge, at least 16 dp long, `on_surface` at 38 % (50 % under the pointer), a 12 dp strip at the end edge that counts as over the bar, and hiding 1 s after scrolling stops.
+
 ## Open questions
 
 - Components other than those above are not surveyed yet.

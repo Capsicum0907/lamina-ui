@@ -413,6 +413,13 @@ C `tokens/CircularProgressIndicatorTokens.kt`（40 dp、波のある形は 48 dp
 - Compose の線は端が丸く、長さ 0 の区間は何も描きません。lamina-ui は太さより短い弧を長さに合わせて細くするので、伸び始める表示や縮み切る下地が、点ごと急に現れたり消えたりしません。
 - `sample_length`（1 dp）は lamina-ui 独自の値です。弧は輪郭として塗る（`render::stroke_path`）ので、弧に沿って 1 dp ごとに点を取ります。
 
+### スクロールする範囲
+
+Material 3 にはスクロールバーの定めがなく、Compose Material 3 にもありません。`lamina/tokens/scroll_area.hpp` の値はすべて lamina-ui 独自のもので、出典から読んだものはありません。
+
+- 送る量は標準の効果のばねで動かします。臨界減衰なので行き過ぎません。Expressive の空間のばねは行き過ぎるので、中身の端を越えて送ってしまいます。
+- ホイール 1 ノッチで 64 dp、Page Up と Page Down で画面に残す 48 dp、幅 4 dp のつまみ（ポインターを乗せると 8 dp）、端から 2 dp、長さは 16 dp 以上、`on_surface` の 38 %（乗せると 50 %）、バーの上とみなす終わりの側の帯 12 dp、送り終えてから消えるまで 1 秒です。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
