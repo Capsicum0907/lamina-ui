@@ -32,6 +32,7 @@ struct LayoutSettings {
 struct Column {
     double x;
     double width;
+    double check_width;
     double text_x;
     double text_width;
     double remove_x;

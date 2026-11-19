@@ -12,7 +12,7 @@ Column TodoLayout::column(double width) const {
     const double x = (width - w) / 2.0;
     const double text_x = x + s.check_size + s.text_gap;
     const double remove_x = x + w - s.remove_size;
-    return {x, w, text_x, std::max(0.0, remove_x - s.remove_gap - text_x), remove_x};
+    return {x, w, s.check_size, text_x, std::max(0.0, remove_x - s.remove_gap - text_x), remove_x};
 }
 
 TodoFrame TodoLayout::place(double width, double height, const ListInput& rows) const {
