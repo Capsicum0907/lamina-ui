@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -21,6 +22,7 @@ struct TitleBarOptions {
     std::string title;
     icons::IconFont icons;
     layout::NodePtr content = nullptr;
+    std::optional<color::Role> container = std::nullopt;
 };
 
 enum class TitleBarAction { none, minimize, toggle_maximize, close };

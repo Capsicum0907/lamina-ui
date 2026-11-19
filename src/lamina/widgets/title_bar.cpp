@@ -153,7 +153,8 @@ void TitleBar::paint_button(render::Canvas& canvas, const color::ColorScheme& sc
 
 void TitleBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const color::Argb container =
-        color::mix(scheme[title_bar_tokens.inactive_container], scheme[title_bar_tokens.container], active_.value());
+        options_.container ? scheme[*options_.container]
+                           : color::mix(scheme[title_bar_tokens.inactive_container], scheme[title_bar_tokens.container], active_.value());
     canvas.fill_rect(bounds(), container);
     title_.paint(canvas, scheme);
     for (const Button& b : buttons_) {
