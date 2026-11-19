@@ -41,6 +41,7 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_KP_ENTER: return Key::enter;
     case SDLK_ESCAPE: return Key::escape;
     case SDLK_TAB: return Key::tab;
+    case SDLK_SPACE: return Key::space;
     case SDLK_KP_0: return Key::digit_0;
     case SDLK_KP_1: return Key::digit_1;
     case SDLK_KP_2: return Key::digit_2;
