@@ -7,6 +7,7 @@ struct TextStyle {
     double line_height;
     int weight;
     double tracking;
+    double tab_width;
 };
 
 }

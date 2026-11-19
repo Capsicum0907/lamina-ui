@@ -1,8 +1,10 @@
 #include <doctest/doctest.h>
 
+#include <cmath>
 #include <string>
 
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/typography.hpp"
 #include "lamina_thorvg/canvas.hpp"
 
 using namespace lamina;
@@ -17,7 +19,7 @@ std::string fixture(const char* name) {
 const auto sans = Font::from_file(fixture("lamina-test-sans.ttf"));
 const auto condensed = Font::from_file(fixture("lamina-test-condensed.ttf"));
 
-constexpr TextStyle body{16.0, 24.0, 400, 0.0};
+constexpr TextStyle body{16.0, 24.0, 400, 0.0, tokens::tab_width_spaces};
 
 }
 
@@ -145,4 +147,79 @@ TEST_CASE("a word longer than the line is split rather than overflowing forever"
     for (const auto& line : block.lines) {
         CHECK(line.last > line.first);
     }
+}
+
+namespace {
+
+double tab_interval(const FontStack& fonts, const TextStyle& style) {
+    return layout_line(fonts, " ", style).width * style.tab_width;
+}
+
+}
+
+TEST_CASE("a tab advances to the next tab stop, measured in spaces from the line start") {
+    const FontStack fonts({sans});
+    const double stop = tab_interval(fonts, body);
+    REQUIRE(stop > 0.0);
+    const TextLine leading = layout_line(fonts, "\tx", body);
+    REQUIRE(leading.glyphs.size() == 2);
+    CHECK(leading.glyphs[0].x == doctest::Approx(0.0));
+    CHECK(leading.glyphs[1].x == doctest::Approx(stop));
+
+    const double word = layout_line(fonts, "Hello", body).width;
+    const double expected = (std::floor(word / stop) + 1.0) * stop;
+    const TextLine after_word = layout_line(fonts, "Hello\tx", body);
+    REQUIRE(after_word.glyphs.size() == 7);
+    CHECK(after_word.glyphs[6].x == doctest::Approx(expected));
+    CHECK(layout_line(fonts, "Hello\t", body).width == doctest::Approx(expected));
+}
+
+TEST_CASE("a tab keeps tracking out of its stop and the line's end") {
+    const FontStack fonts({sans});
+    TextStyle tracked = body;
+    tracked.tracking = 2.0;
+    const double stop = tab_interval(fonts, tracked) + tracked.tracking * tracked.tab_width;
+    const TextLine line = layout_line(fonts, "x\t", tracked);
+    CHECK(line.width == doctest::Approx(stop));
+}
+
+TEST_CASE("the caret and hit-testing treat a tab as one character spanning to its stop") {
+    const FontStack fonts({sans});
+    const double stop = tab_interval(fonts, body);
+    const TextLine line = layout_line(fonts, "a\tb", body);
+    const double a = layout_line(fonts, "a", body).width;
+    CHECK(caret_x(line, 1) == doctest::Approx(a));
+    CHECK(caret_x(line, 2) == doctest::Approx(stop));
+    CHECK(index_at(line, a + (stop - a) * 0.25) == 1);
+    CHECK(index_at(line, a + (stop - a) * 0.75) == 2);
+}
+
+TEST_CASE("a tab draws nothing") {
+    const FontStack fonts({sans});
+    CHECK(line_path(fonts, layout_line(fonts, "\t", body), {0.0, 0.0}).empty());
+}
+
+TEST_CASE("a tab width of zero gives a tab no width") {
+    const FontStack fonts({sans});
+    TextStyle none = body;
+    none.tab_width = 0.0;
+    CHECK(layout_line(fonts, "\t", none).width == doctest::Approx(0.0));
+    CHECK(layout_line(fonts, "a\tb", none).width == doctest::Approx(layout_line(fonts, "ab", none).width));
+}
+
+TEST_CASE("paragraph tabs are measured from their own line and count toward wrapping") {
+    const FontStack fonts({sans});
+    const double stop = tab_interval(fonts, body);
+    const TextBlock after_newline = layout_paragraph(fonts, "Hello world\n\tx", body, 1000.0);
+    REQUIRE(after_newline.lines.size() == 2);
+    REQUIRE(after_newline.lines[1].glyphs.size() == 2);
+    CHECK(after_newline.lines[1].glyphs[1].x == doctest::Approx(stop));
+
+    const char* text = "a\tbbbb";
+    const double bbbb = layout_line(fonts, "bbbb", body).width;
+    const TextBlock wrapped = layout_paragraph(fonts, text, body, stop + bbbb - 1.0);
+    REQUIRE(wrapped.lines.size() == 2);
+    CHECK(line_text(text, wrapped.lines[0]) == U"a");
+    CHECK(line_text(text, wrapped.lines[1]) == U"bbbb");
+    CHECK(layout_paragraph(fonts, text, body, stop + bbbb + 1.0).lines.size() == 1);
 }

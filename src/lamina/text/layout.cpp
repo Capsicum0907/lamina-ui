@@ -9,6 +9,30 @@ namespace lamina::text {
 
 namespace {
 
+constexpr char32_t tab = U'	';
+
+struct TabStops {
+    std::size_t font = 0;
+    std::uint32_t glyph = 0;
+    double interval = 0.0;
+
+    double next(double x) const { return interval > 0.0 ? (std::floor(x / interval) + 1.0) * interval : x; }
+};
+
+TabStops tab_stops(const FontStack& fonts, const TextStyle& style) {
+    TabStops stops;
+    if (fonts.empty()) {
+        return stops;
+    }
+    stops.font = fonts.font_for(U' ');
+    const std::vector<ShapedGlyph> space = fonts.fonts()[stops.font]->shape(U" ", 0, style.weight);
+    if (!space.empty()) {
+        stops.glyph = space.front().glyph;
+        stops.interval = (space.front().advance_em * style.size + style.tracking) * style.tab_width;
+    }
+    return stops;
+}
+
 TextLine shape_range(const FontStack& fonts, std::u32string_view text, std::size_t first, std::size_t last,
                      const TextStyle& style) {
     TextLine line{{}, style, 0.0, 0.0, 0.0, 0.0, first, last};
@@ -19,12 +43,21 @@ TextLine shape_range(const FontStack& fonts, std::u32string_view text, std::size
     line.ascent = primary.ascender * style.size;
     line.descent = -primary.descender * style.size;
 
+    const TabStops stops = text.substr(first, last - first).find(tab) == std::u32string_view::npos ? TabStops{} : tab_stops(fonts, style);
     double x = 0.0;
+    bool tracked = false;
     std::size_t start = first;
     while (start < last) {
+        if (text[start] == tab) {
+            line.glyphs.push_back({stops.font, stops.glyph, static_cast<std::uint32_t>(start), x, 0.0});
+            x = stops.next(x);
+            tracked = false;
+            ++start;
+            continue;
+        }
         const std::size_t font_index = fonts.font_for(text[start]);
         std::size_t end = start + 1;
-        while (end < last && fonts.font_for(text[end]) == font_index) {
+        while (end < last && text[end] != tab && fonts.font_for(text[end]) == font_index) {
             ++end;
         }
         const Font& font = *fonts.fonts()[font_index];
@@ -35,10 +68,11 @@ TextLine shape_range(const FontStack& fonts, std::u32string_view text, std::size
         for (const ShapedGlyph& g : font.shape(text.substr(start, end - start), start, style.weight)) {
             line.glyphs.push_back({font_index, g.glyph, g.cluster, x + g.offset_x_em * style.size, -g.offset_y_em * style.size});
             x += g.advance_em * style.size + style.tracking;
+            tracked = true;
         }
         start = end;
     }
-    if (!line.glyphs.empty()) {
+    if (tracked) {
         x -= style.tracking;
     }
     line.width = std::max(0.0, x);
@@ -70,6 +104,7 @@ TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const 
     const std::u32string text = decode_utf8(utf8);
     const TextLine whole = shape_range(fonts, text, 0, text.size(), style);
     const std::vector<double> advance = codepoint_advances(whole, text.size(), style);
+    const TabStops stops = text.find(tab) == std::u32string::npos ? TabStops{} : tab_stops(fonts, style);
 
     auto emit = [&](std::size_t first, std::size_t last) {
         while (last > first && is_space(text[last - 1])) {
@@ -94,7 +129,7 @@ TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const 
         if (i > line_start && can_break_before(text, i)) {
             last_break = i;
         }
-        const double next = width + advance[i];
+        const double next = text[i] == tab ? stops.next(width) : width + advance[i];
         if (next > max_width && i > line_start && !is_space(text[i])) {
             const std::size_t cut = last_break > line_start ? last_break : i;
             emit(line_start, cut);

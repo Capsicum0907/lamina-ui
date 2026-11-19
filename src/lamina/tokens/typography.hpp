@@ -76,8 +76,10 @@ constexpr TypeStyle type_style(TypeRole role, bool emphasized = false) {
     return style;
 }
 
+inline constexpr double tab_width_spaces = 4.0;
+
 constexpr text::TextStyle text_style(const TypeStyle& t) {
-    return {t.size_sp, t.line_height_sp, t.weight, t.tracking_sp};
+    return {t.size_sp, t.line_height_sp, t.weight, t.tracking_sp, tab_width_spaces};
 }
 
 }
