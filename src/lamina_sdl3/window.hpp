@@ -33,6 +33,8 @@ struct Frame {
     std::vector<input::TextEvent> text;
 };
 
+bool client_title_bar_supported();
+
 class Window {
 public:
     Window(const WindowOptions& options, std::unique_ptr<render::Canvas> canvas);

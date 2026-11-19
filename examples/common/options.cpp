@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "lamina/tokens/title_bar.hpp"
+#include "lamina_sdl3/window.hpp"
 
 namespace lamina::examples {
 
@@ -16,7 +17,7 @@ bool take_flag(int& argc, char** argv, std::string_view flag) {
 }
 
 int window_height_dp(int content_height_dp, bool title_bar) {
-    return content_height_dp + (title_bar ? static_cast<int>(std::ceil(tokens::title_bar_tokens.height)) : 0);
+    return content_height_dp + (title_bar && sdl3::client_title_bar_supported() ? static_cast<int>(std::ceil(tokens::title_bar_tokens.height)) : 0);
 }
 
 }

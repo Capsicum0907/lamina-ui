@@ -29,6 +29,7 @@ namespace {
 constexpr double nanoseconds_per_second = 1e9;
 constexpr double max_frame_seconds = 0.1;
 constexpr double milliseconds_per_second = 1000.0;
+constexpr const char* unavailable_title_bar_message = "lamina: the client-drawn title bar is not available; using the system frame\n";
 
 std::optional<Key> to_key(SDL_Keycode k) {
     switch (k) {
@@ -196,6 +197,10 @@ struct Window::Impl {
     }
 };
 
+bool client_title_bar_supported() {
+    return detail::caption_frame_supported();
+}
+
 Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> canvas) : impl_(std::make_unique<Impl>()) {
     if (!canvas) {
         throw std::invalid_argument("lamina::sdl3::Window needs a canvas");
@@ -207,7 +212,10 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fail("SDL_Init");
     }
-    const bool client_title_bar = options.client_title_bar && detail::caption_frame_supported();
+    const bool client_title_bar = options.client_title_bar && client_title_bar_supported();
+    if (options.client_title_bar && !client_title_bar) {
+        std::fprintf(stderr, "%s", unavailable_title_bar_message);
+    }
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
     if (client_title_bar) {
         flags |= SDL_WINDOW_BORDERLESS;
@@ -222,7 +230,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
             impl_->caption = detail::attach_caption_frame(impl_->window, impl_->caption_pointer_event);
         }
         if (!impl_->caption) {
-            std::fprintf(stderr, "lamina: the client-drawn title bar is not available; using the system frame\n");
+            std::fprintf(stderr, "%s", unavailable_title_bar_message);
             SDL_SetWindowBordered(impl_->window, true);
         }
     }
