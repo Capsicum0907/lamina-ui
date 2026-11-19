@@ -4,7 +4,6 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/events.hpp"
-#include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/slider.hpp"
 
@@ -31,14 +30,14 @@ public:
     void set_value(double value);
     double fraction() const;
     bool dragging() const { return dragging_; }
-    double handle_width() const { return handle_width_.value(); }
+    double handle_width() const { return handle_width_; }
     double handle_center_x() const;
     std::vector<double> tick_centers() const;
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
-    void step(double dt_seconds);
-    bool animating() const;
+    void step(double) {}
+    bool animating() const { return false; }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
@@ -53,7 +52,7 @@ private:
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};
     bool dragging_ = false;
-    motion::Animated handle_width_;
+    double handle_width_ = tokens::slider_tokens.handle_width;
 };
 
 }

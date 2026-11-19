@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
@@ -11,7 +10,6 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::SliderTokens& t = tokens::slider_tokens;
-using tokens::motion_scheme;
 
 render::Path track_path(const render::Rect& r, double start_radius, double end_radius) {
     return render::rounded_rect_path(r, {start_radius, end_radius, end_radius, start_radius});
@@ -19,7 +17,7 @@ render::Path track_path(const render::Rect& r, double start_radius, double end_r
 
 }
 
-Slider::Slider(SliderOptions options) : options_(options), handle_width_(t.handle_width, motion_scheme.fast_spatial()) {
+Slider::Slider(SliderOptions options) : options_(options) {
     options_.value = snapped(options_.value);
 }
 
@@ -137,7 +135,7 @@ bool Slider::handle(const input::PointerEvent& e) {
         dragging_ = false;
         break;
     }
-    handle_width_.snap_to(dragging_ ? t.pressed_handle_width : t.handle_width);
+    handle_width_ = dragging_ ? t.pressed_handle_width : t.handle_width;
     return options_.value != before;
 }
 
@@ -163,14 +161,6 @@ bool Slider::handle(const input::KeyEvent& e) {
         return false;
     }
     return options_.value != before;
-}
-
-void Slider::step(double dt) {
-    handle_width_.step(dt);
-}
-
-bool Slider::animating() const {
-    return !handle_width_.settled();
 }
 
 void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -205,7 +195,7 @@ void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
         canvas.fill_path(circle_path({ticks[i], cy}, t.tick_size / 2.0), scheme[active ? t.active_tick : t.inactive_tick]);
     }
 
-    const double w = std::max(0.0, handle_width_.value());
+    const double w = handle_width_;
     const render::Rect handle{handle_center_x() - w / 2.0, origin_.y, w, height()};
     canvas.fill_path(render::rounded_rect_path(handle, render::uniform_radii(w / 2.0)), scheme[t.handle]);
 }
