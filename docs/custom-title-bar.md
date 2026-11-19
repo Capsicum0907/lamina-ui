@@ -1,8 +1,8 @@
-# Client-drawn title bar (experiment)
+# Client-drawn title bar
 
 [日本語](custom-title-bar.ja.md)
 
-This branch (`experiment/custom-title-bar`) lets a lamina-ui app draw its own window title bar on Windows while keeping the native window behaviour. Material 3 has no desktop title bar; the nearest Google design is Android desktop windowing, where the app draws under a caption bar and the caption buttons sit on top. Here the whole bar, buttons included, is drawn by lamina.
+A lamina-ui app can draw its own window title bar on Windows while keeping the native window behaviour. It is opt-in: a window keeps the system frame unless it sets `WindowOptions::client_title_bar`. Material 3 has no desktop title bar; the nearest Google design is Android desktop windowing, where the app draws under a caption bar and the caption buttons sit on top. Here the whole bar, buttons included, is drawn by lamina.
 
 ## Trying it
 
@@ -25,7 +25,7 @@ Without the flag the examples keep the system frame. The components example also
 
 ## What Windows does and what lamina does
 
-SDL 3.4 already gives a borderless resizable window the caption, system menu, thick frame and maximize box styles, sizes the client area to the whole window and to the work area when maximized, and repaints during a live resize. The branch adds a window subclass that:
+SDL 3.4 already gives a borderless resizable window the caption, system menu, thick frame and maximize box styles, sizes the client area to the whole window and to the work area when maximized, and repaints during a live resize. lamina adds a window subclass that:
 
 - answers `WM_NCHITTEST`: resize edges (from the system frame metrics for the window's DPI, not while maximized), `HTMAXBUTTON` over the maximize button so Windows 11 shows Snap Layouts, `HTCAPTION` over the drag area, `HTCLIENT` elsewhere. Dragging, double-click to maximize, Aero snap and the shadow then come from Windows;
 - turns non-client mouse messages over the maximize button into lamina pointer events, so it hovers and clicks like the other buttons;
@@ -35,7 +35,8 @@ SDL 3.4 already gives a borderless resizable window the caption, system menu, th
 ## Known limits
 
 - The resize band lies inside the client area (about 8 px at 100 %), so content at the very edge of the window cannot be clicked there.
-- Only Windows 11 on one 100 % monitor was tried. Not tried: maximizing on a second monitor, moving between monitors with different DPI, Windows 10 (no rounded corners or Snap Layouts there), and the non-Windows build.
+- Tried on Windows 11 with two 1920 × 1080 monitors at 100 %, the second to the right of the primary, with the calculator and the to-do app: dragging the bar to the second monitor and back, maximizing there (the client area equals that monitor's work area), restoring with a double-click, snapping to its right edge, and the Snap Layouts flyout there.
+- Not tried: moving between monitors with different DPI, Windows 10 (no rounded corners or Snap Layouts there), and a build on another platform. The fallback was checked on Windows with `LAMINA_CLIENT_TITLE_BAR=OFF`, which compiles the same `caption_frame_none.cpp`.
 - `Alt+Space` was checked with a posted key message, because another app held that shortcut on the test machine. After a menu opened from the keyboard is closed with one Escape, the next click only leaves menu mode.
 - The caption buttons do not take keyboard focus.
 - The behaviour leans on SDL 3.4 details (the borderless window styles, the maximized client area, dropping the menu key command); an SDL update can change them.
