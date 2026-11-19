@@ -11,7 +11,7 @@ NAMES = [
     "refresh", "download", "upload", "play_arrow", "pause", "stop", "light_mode", "dark_mode",
     "palette", "arrow_back", "arrow_forward", "arrow_upward", "arrow_downward", "chevron_left",
     "chevron_right", "expand_more", "expand_less", "more_vert", "more_horiz", "menu_open",
-    "view_list", "grid_view", "backspace",
+    "view_list", "grid_view", "backspace", "crop_square", "filter_none",
 ]
 
 CPP_KEYWORDS = {"delete"}
