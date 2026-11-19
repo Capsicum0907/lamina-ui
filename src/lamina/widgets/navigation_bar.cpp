@@ -1,3 +1,4 @@
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
 
 #include <algorithm>

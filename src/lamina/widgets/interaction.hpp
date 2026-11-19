@@ -5,7 +5,6 @@
 #include "lamina/input/events.hpp"
 #include "lamina/render/geometry.hpp"
 #include "lamina/render/path.hpp"
-#include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/interaction.hpp"
 
 namespace lamina::widgets {

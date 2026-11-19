@@ -1,3 +1,4 @@
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/switch.hpp"
 
 #include <utility>

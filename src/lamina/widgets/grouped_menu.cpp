@@ -1,3 +1,4 @@
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 
 #include <algorithm>

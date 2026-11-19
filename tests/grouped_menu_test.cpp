@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "lamina/tokens/elevation.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 #include "lamina_thorvg/canvas.hpp"
 

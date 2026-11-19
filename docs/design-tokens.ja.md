@@ -381,7 +381,7 @@ C の `tokens/MenuTokens.kt`（surface-container・extra-small の角・Level2 �
 
 ### まとまりに分けたメニュー
 
-C の `tokens/StandardMenuTokens.kt`（surface-container-low・選んだときの tertiary-container と on-tertiary-container・on-surface の名前・on-surface-variant のアイコン）、C の `tokens/SegmentedMenuTokens.kt`（項目 44 dp・アイコン 20 dp・角の大きさ・まとまりの間 2 dp）、C の `tokens/MenuTokens.kt`（Level2 の影）、C の `tokens/DividerTokens.kt`（1 dp・outline-variant）、C の `MenuDefaults.kt` と C の `Menu.kt`（`DropdownMenuPopup`・`DropdownMenuGroup`・`SelectableDropdownMenuItem`・`CheckableDropdownMenuItem`）を `lamina/tokens/menu.hpp` の `grouped_menu_tokens` に写しました。
+C の `tokens/StandardMenuTokens.kt`（surface-container-low・選んだときの tertiary-container と on-tertiary-container・on-surface の名前・on-surface-variant のアイコン）、C の `tokens/SegmentedMenuTokens.kt`（項目 44 dp・アイコン 20 dp・角の大きさ・まとまりの間 2 dp）、C の `tokens/MenuTokens.kt`（Level2 の影）、C の `tokens/DividerTokens.kt`（1 dp・outline-variant）、C の `MenuDefaults.kt` と C の `Menu.kt`（`DropdownMenuPopup`・`DropdownMenuGroup`・`SelectableDropdownMenuItem`・`CheckableDropdownMenuItem`）を `lamina/tokens/grouped_menu.hpp` の `grouped_menu_tokens` に写しました。
 
 - まとまり：それぞれが Level2 の影を持つ一枚の面で、中身の上下に 2 dp の余白があり、次のまとまりとは 2 dp 離れます（見本どおりの `GroupSpacing`）。メニュー全体の幅は、いちばん広い項目か見出しの幅（`IntrinsicSize.Max`）なので、どのまとまりも同じ幅です。まとまり全体を囲む入れ物はありません。
 - まとまりの角は位置で決まります：一つだけなら 16 dp、最初は上 16 dp・下 8 dp、間のものは 8 dp、最後は上 8 dp・下 16 dp です。マウスが一度乗ってから離れたまとまりは角が 8 dp（`inactiveShape`）になり、角は速い空間のばねで動きます。マウスが乗っているかどうかは、`DropdownMenuGroup` の既定どおりまとまりごとに持ちます。見本はすべてのまとまりで一つの操作の元を共有していますが、lamina-ui はそうしていません。

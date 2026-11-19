@@ -4,6 +4,8 @@
 #include <string>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/tokens/elevation.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/menu.hpp"
 #include "lamina_thorvg/canvas.hpp"
 

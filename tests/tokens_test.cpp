@@ -3,6 +3,7 @@
 #include <array>
 
 #include "lamina/tokens/elevation.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 

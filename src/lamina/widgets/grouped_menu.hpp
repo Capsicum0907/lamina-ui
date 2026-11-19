@@ -13,7 +13,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
-#include "lamina/tokens/menu.hpp"
+#include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
