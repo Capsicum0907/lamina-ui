@@ -174,6 +174,19 @@ void Canvas::fill_device_rect(render::Point from, render::Point to, color::Argb 
     impl_->add(shape);
 }
 
+void Canvas::draw_device_image(const render::Image& image, const render::Affine& m, double opacity) {
+    auto* picture = tvg::Picture::gen();
+    if (picture->load(image.pixels.data(), static_cast<std::uint32_t>(image.width), static_cast<std::uint32_t>(image.height),
+                      tvg::ColorSpace::ARGB8888S, true) != tvg::Result::Success) {
+        tvg::Paint::rel(picture);
+        return;
+    }
+    auto f = [](double v) { return static_cast<float>(v); };
+    picture->transform({f(m.a), f(m.c), f(m.tx), f(m.b), f(m.d), f(m.ty), 0.0f, 0.0f, 1.0f});
+    picture->opacity(static_cast<std::uint8_t>(std::lround(opacity * 255.0)));
+    impl_->add(picture);
+}
+
 void Canvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
     if ((shadow.color >> 24) == 0) {
         return;

@@ -26,6 +26,14 @@ void Canvas::fill_rect(const Rect& rect, color::Argb color) {
     fill_device_rect(transform_.apply({rect.x, rect.y}), transform_.apply({rect.x + rect.width, rect.y + rect.height}), color);
 }
 
+void Canvas::draw_image(const Image& image, const Rect& rect, double opacity) {
+    if (image.width <= 0 || image.height <= 0 || image.pixels.size() < static_cast<std::size_t>(image.width) * image.height || opacity <= 0.0) {
+        return;
+    }
+    const Affine place{rect.width / image.width, 0.0, 0.0, rect.height / image.height, rect.x, rect.y};
+    draw_device_image(image, transform_.then_local(place), std::min(opacity, 1.0));
+}
+
 void Canvas::save() {
     stack_.push_back(transform_);
 }

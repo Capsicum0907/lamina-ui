@@ -21,6 +21,7 @@ protected:
     void fill_device_path(const render::Path& path, color::Argb color, render::FillRule rule) override;
     void fill_device_shadow(const render::Path& path, const render::Shadow& shadow) override;
     void fill_device_rect(render::Point from, render::Point to, color::Argb color) override;
+    void draw_device_image(const render::Image& image, const render::Affine& to_device, double opacity) override;
     void begin_device_clip(const render::Rect& rect) override;
     void end_device_clip() override;
 

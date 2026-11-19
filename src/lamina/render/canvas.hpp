@@ -5,6 +5,7 @@
 
 #include "lamina/color/argb.hpp"
 #include "lamina/render/geometry.hpp"
+#include "lamina/render/image.hpp"
 #include "lamina/render/path.hpp"
 
 namespace lamina::render {
@@ -39,6 +40,7 @@ public:
     void fill_shadow(const Path& path, const Shadow& shadow);
     void fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color::Argb color);
     void fill_rect(const Rect& rect, color::Argb color);
+    void draw_image(const Image& image, const Rect& rect, double opacity = 1.0);
 
     void save();
     void restore();
@@ -54,6 +56,7 @@ protected:
     virtual void fill_device_path(const Path& path, color::Argb color, FillRule rule) = 0;
     virtual void fill_device_shadow(const Path& path, const Shadow& shadow) = 0;
     virtual void fill_device_rect(Point from, Point to, color::Argb color) = 0;
+    virtual void draw_device_image(const Image& image, const Affine& to_device, double opacity) = 0;
     virtual void begin_device_clip(const Rect& rect) = 0;
     virtual void end_device_clip() = 0;
 

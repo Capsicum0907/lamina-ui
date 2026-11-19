@@ -139,3 +139,37 @@ TEST_CASE_TEMPLATE("shadows fall in the offset direction", CanvasType, lamina::t
     CHECK(channel(below, 16) < 200);
     CHECK(channel(above, 16) > channel(below, 16));
 }
+
+TEST_CASE_TEMPLATE("an image is scaled into its rectangle and follows the transform", CanvasType, lamina::thorvg::Canvas) {
+    const Image image{2, 1, {0xffff0000, 0xff0000ff}};
+    CanvasType canvas(40, 40);
+    canvas.clear(white);
+    canvas.translate(2.0, 4.0);
+    canvas.scale(2.0);
+    canvas.draw_image(image, {4.0, 2.0, 12.0, 8.0});
+    CHECK(near(canvas.pixel(12, 14), red, 8));
+    CHECK(near(canvas.pixel(32, 14), 0xff0000ff, 8));
+    CHECK(canvas.pixel(8, 14) == white);
+    CHECK(canvas.pixel(36, 14) == white);
+    CHECK(canvas.pixel(20, 6) == white);
+    CHECK(canvas.pixel(20, 26) == white);
+    CHECK(canvas.pixel(20, 22) != white);
+}
+
+TEST_CASE_TEMPLATE("an image's alpha is straight and its opacity fades it", CanvasType, lamina::thorvg::Canvas) {
+    CanvasType canvas(10, 10);
+    canvas.clear(white);
+    canvas.draw_image({1, 1, {0x80000000}}, {0.0, 0.0, 5.0, 10.0});
+    canvas.draw_image({1, 1, {0xff000000}}, {5.0, 0.0, 5.0, 10.0}, 0.5);
+    CHECK(near(canvas.pixel(2, 5), 0xff7f7f7f, 3));
+    CHECK(near(canvas.pixel(7, 5), 0xff7f7f7f, 3));
+}
+
+TEST_CASE_TEMPLATE("an image without pixels or at no opacity draws nothing", CanvasType, lamina::thorvg::Canvas) {
+    CanvasType canvas(10, 10);
+    canvas.clear(white);
+    canvas.draw_image({}, {0.0, 0.0, 10.0, 10.0});
+    canvas.draw_image({2, 2, {red}}, {0.0, 0.0, 10.0, 10.0});
+    canvas.draw_image({1, 1, {red}}, {0.0, 0.0, 10.0, 10.0}, 0.0);
+    CHECK(canvas.pixel(5, 5) == white);
+}
