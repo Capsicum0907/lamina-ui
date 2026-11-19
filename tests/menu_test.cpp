@@ -120,3 +120,19 @@ TEST_CASE("an open menu paints its container and the hovered item's state layer"
         CHECK(std::abs(static_cast<int>((hovered >> shift) & 0xff) - static_cast<int>((expected >> shift) & 0xff)) <= 2);
     }
 }
+
+TEST_CASE("cancel_interaction clears the hovered item's state layer and keeps the menu open") {
+    auto m = make();
+    m.open({0.0, 0.0, 10.0, 0.0}, {200.0, 200.0});
+    settle(m);
+    m.handle({PointerAction::move, 100.0, 90.0});
+    settle(m);
+    m.cancel_interaction();
+    CHECK(m.animating());
+    settle(m);
+    CHECK(m.is_open());
+    thorvg::Canvas canvas(200, 200);
+    canvas.clear(0xffffffff);
+    m.paint(canvas, scheme());
+    CHECK(canvas.pixel(100, 90) == scheme()[color::Role::surface_container]);
+}

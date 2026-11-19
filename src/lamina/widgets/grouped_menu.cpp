@@ -238,6 +238,10 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window) {
 
 void GroupedMenu::close() {
     popup_.close();
+    cancel_interaction();
+}
+
+void GroupedMenu::cancel_interaction() {
     for (Group& g : groups_) {
         for (Item& item : g.items) {
             item.press = {};

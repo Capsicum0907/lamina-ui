@@ -104,9 +104,9 @@ void Dialog::open(layout::Size window) {
 
 void Dialog::close() {
     popup_.close();
-    confirm_.handle({input::PointerAction::leave, 0.0, 0.0});
+    confirm_.cancel_interaction();
     if (dismiss_) {
-        dismiss_->handle({input::PointerAction::leave, 0.0, 0.0});
+        dismiss_->cancel_interaction();
     }
 }
 

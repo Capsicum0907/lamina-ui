@@ -67,6 +67,11 @@ bool IconButton::handle(const input::PointerEvent& e) {
     return clicked;
 }
 
+void IconButton::cancel_interaction() {
+    press_ = {};
+    retarget();
+}
+
 void IconButton::step(double dt) {
     corner_.step(dt);
     state_layer_.step(dt);

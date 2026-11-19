@@ -62,3 +62,18 @@ TEST_CASE("pressing a round button squares its corners without bouncing") {
     b.paint(canvas, scheme);
     CHECK(canvas.pixel(13, 13) != 0xffffffff);
 }
+
+TEST_CASE("cancel_interaction drops a press, so the release no longer clicks, and the corners spring back") {
+    auto b = make(ButtonStyle::filled, ButtonSize::small, ButtonShape::round);
+    thorvg::Canvas canvas(200, 80);
+    const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
+    b.handle({PointerAction::down, 20.0, 20.0});
+    settle(b);
+    b.cancel_interaction();
+    CHECK(b.animating());
+    settle(b);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, scheme);
+    CHECK(canvas.pixel(13, 13) == 0xffffffff);
+    CHECK_FALSE(b.handle({PointerAction::up, 20.0, 20.0}));
+}

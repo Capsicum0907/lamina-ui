@@ -114,6 +114,10 @@ void Menu::open(const render::Rect& anchor, layout::Size window) {
 
 void Menu::close() {
     popup_.close();
+    cancel_interaction();
+}
+
+void Menu::cancel_interaction() {
     for (Item& item : items_) {
         item.press = {};
         item.state_layer.animate_to(0.0);

@@ -64,12 +64,21 @@ double Button::target_state_layer() const {
     return press_.state_layer_opacity();
 }
 
-bool Button::handle(const input::PointerEvent& e) {
-    const bool clicked = press_.update(e, bounds());
+void Button::retarget() {
     corner_.animate_to(press_.pressed ? pressed_corner() : rest_corner());
     state_layer_.animate_to(target_state_layer());
     elevation_.animate_to(state_elevation(tokens::button_style(options_.style), press_));
+}
+
+bool Button::handle(const input::PointerEvent& e) {
+    const bool clicked = press_.update(e, bounds());
+    retarget();
     return clicked;
+}
+
+void Button::cancel_interaction() {
+    press_ = {};
+    retarget();
 }
 
 void Button::step(double dt) {

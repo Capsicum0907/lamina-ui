@@ -217,8 +217,8 @@ int main(int argc, char** argv) {
             }
             if (rail_button().handle(e)) {
                 rail.set_expanded(!rail.expanded());
-                rail_open.handle({PointerAction::leave, 0.0, 0.0});
-                rail_close.handle({PointerAction::leave, 0.0, 0.0});
+                rail_open.cancel_interaction();
+                rail_close.cancel_interaction();
                 report(rail.expanded() ? "Rail: expanded" : "Rail: collapsed");
             }
             if (rail.handle(e)) {

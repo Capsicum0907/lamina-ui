@@ -32,6 +32,7 @@ public:
     render::Rect bounds() const;
 
     bool handle(const input::PointerEvent& event);
+    void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -41,6 +42,7 @@ private:
     double rest_corner() const;
     double pressed_corner() const;
     double target_state_layer() const;
+    void retarget();
 
     ButtonOptions options_;
     const text::FontStack& fonts_;
