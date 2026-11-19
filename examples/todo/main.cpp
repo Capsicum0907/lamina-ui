@@ -327,6 +327,7 @@ int main(int argc, char** argv) {
 
         auto update = [&](const sdl3::Frame& frame) {
             const double body_height = frame.height_dp - bar_height;
+            const render::Rect body{0.0, bar_height, frame.width_dp, body_height};
             if (window.client_title_bar()) {
                 title_bar.set_maximized(frame.maximized);
                 title_bar.set_active(frame.active);
@@ -384,7 +385,7 @@ int main(int argc, char** argv) {
                     header.set_expanded(expanded);
                 }
                 if (h.clear) {
-                    dialog.open({frame.width_dp, frame.height_dp});
+                    dialog.open_in(body);
                     overlays.push(dialog, on_dialog);
                 }
                 std::vector<TaskRow*> snapshot;
@@ -569,9 +570,9 @@ int main(int argc, char** argv) {
             input.set_width(placed.field.width);
             input.set_origin({placed.field.x, placed.field.y});
             add_button.set_origin({placed.add.x, placed.add.y});
-            snackbar.set_area({0.0, bar_height, frame.width_dp, body_height});
+            snackbar.set_area(body);
             if (dialog.visible()) {
-                dialog.set_window({frame.width_dp, frame.height_dp});
+                dialog.set_area(body);
             }
             empty_presence.animate_to(list.items().empty() ? 1.0 : 0.0);
             if (first) {

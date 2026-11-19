@@ -197,10 +197,12 @@ int main(int argc, char** argv) {
             root = framed;
         }
 
-        widgets::WidgetSet page_controls;
+        const double bar_height = window.client_title_bar() ? title_bar.height() : 0.0;
+        widgets::WidgetSet chrome;
         if (window.client_title_bar()) {
-            page_controls.add(title_bar);
+            chrome.add(title_bar);
         }
+        widgets::WidgetSet page_controls;
         page_controls.add(dark_toggle);
         for (widgets::TabRow* t : {&primary_tabs, &secondary_tabs, &leading_tabs}) {
             page_controls.add(*t);
@@ -245,22 +247,24 @@ int main(int argc, char** argv) {
             }
         };
 
-        auto background = [&](const input::PointerEvent& e) {
-            if (window.client_title_bar()) {
-                switch (title_bar.handle(e)) {
-                case widgets::TitleBarAction::minimize:
-                    window.minimize();
-                    break;
-                case widgets::TitleBarAction::toggle_maximize:
-                    window.toggle_maximize();
-                    break;
-                case widgets::TitleBarAction::close:
-                    window.close();
-                    break;
-                case widgets::TitleBarAction::none:
-                    break;
-                }
+        auto caption = [&](const input::PointerEvent& e) {
+            switch (title_bar.handle(e)) {
+            case widgets::TitleBarAction::minimize:
+                window.minimize();
+                break;
+            case widgets::TitleBarAction::toggle_maximize:
+                window.toggle_maximize();
+                break;
+            case widgets::TitleBarAction::close:
+                window.close();
+                break;
+            case widgets::TitleBarAction::none:
+                break;
             }
+            return e.action == input::PointerAction::down && widgets::contains(title_bar.bounds(), e.x_dp, e.y_dp);
+        };
+
+        auto background = [&](const input::PointerEvent& e) {
             if (dark_toggle.handle(e)) {
                 options.dark = dark_toggle.checked();
                 theme.fade_to(color::spec_2021().build(options));
@@ -314,6 +318,7 @@ int main(int argc, char** argv) {
         color::ColorScheme scheme = theme.current();
         auto update = [&](const sdl3::Frame& frame) {
             const layout::Size window_size{frame.width_dp, frame.height_dp};
+            const render::Rect body{0.0, bar_height, frame.width_dp, frame.height_dp - bar_height};
             rail.step(frame.dt_seconds);
             title_bar.set_maximized(frame.maximized);
             title_bar.set_active(frame.active);
@@ -321,12 +326,15 @@ int main(int argc, char** argv) {
             window.set_caption_regions(title_bar.regions());
             for (widgets::Dialog* d : {&dialog, &wrap_dialog}) {
                 if (d->visible()) {
-                    d->set_window(window_size);
+                    d->set_area(body);
                 }
             }
             scheme = theme.current();
 
             for (const auto& e : frame.pointer) {
+                if (window.client_title_bar() && caption(e)) {
+                    continue;
+                }
                 if (overlays.handle(e)) {
                     continue;
                 }
@@ -338,10 +346,10 @@ int main(int argc, char** argv) {
                     grouped_menu.open(grouped_button.bounds(), window_size);
                     overlays.push(grouped_menu, on_grouped_menu);
                 } else if (opened == Opened::dialog) {
-                    dialog.open(window_size);
+                    dialog.open_in(body);
                     overlays.push(dialog, on_dialog);
                 } else if (opened == Opened::wrap_dialog) {
-                    wrap_dialog.open(window_size);
+                    wrap_dialog.open_in(body);
                     overlays.push(wrap_dialog, on_wrap_dialog);
                 }
             }
@@ -365,14 +373,16 @@ int main(int argc, char** argv) {
                 l->paint(canvas, scheme);
             }
             theme.step(dt);
+            chrome.step(dt);
             page_controls.step(dt);
             rail_open.step(dt);
             rail_close.step(dt);
             front.step(dt);
+            chrome.paint(canvas, scheme);
             page_controls.paint(canvas, scheme);
             rail_button().paint(canvas, scheme);
             front.paint(canvas, scheme);
-            return !theme.settled() || page_controls.animating() || rail_open.animating() || rail_close.animating() ||
+            return !theme.settled() || chrome.animating() || page_controls.animating() || rail_open.animating() || rail_close.animating() ||
                    rail.animating() || front.animating();
         };
 

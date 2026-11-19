@@ -14,7 +14,7 @@ timer --title-bar
 todo --title-bar
 ```
 
-Without the flag the examples keep the system frame. The components example also puts an icon button inside the bar to show app content in the caption area. The calculator and the timer paint the bar in their own background color (TitleBarOptions::container), so each window reads as one surface. The to-do app does the same; its dialog still dims the whole window, bar included, and a press on the bar's buttons does not reach the dialog or the list.
+Without the flag the examples keep the system frame. The components example also puts an icon button inside the bar to show app content in the caption area. The calculator and the timer paint the bar in their own background color (TitleBarOptions::container), so each window reads as one surface. The to-do app does the same. In the to-do and navigation examples a dialog opens below the bar (`Dialog::open_in`), so the bar is never dimmed. The bar is window chrome, so a modal dialog does not block it, just as it does not block the system frame: the examples give each pointer event to the bar first, and a press on the bar goes nowhere else, so it neither closes the dialog nor reaches the content below.
 
 ## Layers
 
