@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -19,12 +20,15 @@
 
 namespace lamina::widgets {
 
+enum class DialogAction { confirm, dismiss };
+
 struct DialogOptions {
     std::string headline;
     std::string supporting_text;
     std::string confirm_label;
     std::string dismiss_label;
     std::optional<icons::Icon> icon = std::nullopt;
+    std::optional<DialogAction> default_action = std::nullopt;
 };
 
 enum class DialogResult { none, confirmed, dismissed };
@@ -35,8 +39,8 @@ public:
     Dialog(const Dialog&) = delete;
     Dialog& operator=(const Dialog&) = delete;
 
-    void open_in(const render::Rect& area);
-    void open(layout::Size window);
+    void open_in(const render::Rect& area, input::InputSource source = input::InputSource::pointer);
+    void open(layout::Size window, input::InputSource source = input::InputSource::pointer);
     void close();
     void set_area(const render::Rect& area);
     void set_window(layout::Size window);
@@ -51,6 +55,8 @@ public:
     std::optional<render::Rect> icon_bounds() const;
     render::Rect headline_bounds() const { return headline_.bounds(); }
     std::size_t button_lines() const { return actions_->line_count(); }
+    std::optional<DialogAction> focused_action() const;
+    bool focus_shown() const { return focus_shown_; }
 
     DialogResult handle(const input::PointerEvent& event);
     DialogResult handle(const input::KeyEvent& event);
@@ -60,6 +66,12 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    std::vector<DialogAction> reading_order() const;
+    Button& button(DialogAction action);
+    DialogResult result_of(DialogAction action);
+    void show_focus(DialogAction action);
+    void clear_focus();
+
     Label headline_;
     Label supporting_;
     Button confirm_;
@@ -71,6 +83,9 @@ private:
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     render::Rect surface_{0.0, 0.0, 0.0, 0.0};
     PopupTransition popup_;
+    std::optional<DialogAction> default_action_;
+    std::optional<DialogAction> focus_;
+    bool focus_shown_ = false;
 };
 
 }

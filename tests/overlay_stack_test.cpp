@@ -116,3 +116,74 @@ TEST_CASE("pushing an overlay that is already on the stack moves it to the top w
     stack.handle(input::PointerEvent{PointerAction::move, 30.0, 30.0});
     CHECK(calls == 1);
 }
+
+TEST_CASE("a modal overlay takes the focus away and gives it back when it closes") {
+    widgets::Button a({"A"}, fonts());
+    widgets::Button b({"B"}, fonts());
+    widgets::FocusManager focus;
+    focus.add(a);
+    focus.add(b);
+    widgets::OverlayStack stack;
+    stack.set_focus(focus);
+    focus.handle(input::KeyEvent{input::Key::tab, false});
+    focus.handle(input::KeyEvent{input::Key::tab, false});
+    REQUIRE(b.focused());
+
+    widgets::Dialog dialog({"Delete?", "", "Delete", "Cancel"}, fonts());
+    dialog.open(window, input::InputSource::keyboard);
+    widgets::DialogResult result = widgets::DialogResult::none;
+    stack.push(dialog, [&](widgets::DialogResult r) { result = r; });
+    CHECK_FALSE(a.focused());
+    CHECK_FALSE(b.focused());
+    CHECK(stack.handle(input::KeyEvent{input::Key::tab, false}));
+    CHECK_FALSE(a.focused());
+    CHECK_FALSE(b.focused());
+    CHECK(stack.handle(escape));
+    CHECK(result == widgets::DialogResult::dismissed);
+    CHECK(b.focused());
+    CHECK(stack.empty());
+}
+
+TEST_CASE("a menu over a dialog gives the focus back in order, and a re-pushed overlay holds it once") {
+    widgets::Button a({"A"}, fonts());
+    widgets::FocusManager focus;
+    focus.add(a);
+    widgets::OverlayStack stack;
+    stack.set_focus(focus);
+    a.set_focused(true);
+
+    widgets::Dialog dialog({"Delete?", "", "Delete", "Cancel"}, fonts());
+    dialog.open(window);
+    stack.push(dialog, [](widgets::DialogResult) {});
+    auto menu = make_menu();
+    menu.open({20.0, 20.0, 40.0, 40.0}, window);
+    stack.push(menu, [](bool) {});
+    stack.push(menu, [](bool) {});
+    CHECK_FALSE(a.focused());
+    CHECK(stack.handle(escape));
+    CHECK_FALSE(menu.is_open());
+    CHECK_FALSE(a.focused());
+    CHECK(stack.handle(escape));
+    CHECK_FALSE(dialog.is_open());
+    CHECK(a.focused());
+}
+
+TEST_CASE("a modal overlay restores no focus when nothing had it, or when the widget left the order") {
+    widgets::Button a({"A"}, fonts());
+    widgets::FocusManager focus;
+    focus.add(a);
+    widgets::OverlayStack stack;
+    stack.set_focus(focus);
+    widgets::Dialog dialog({"Delete?", "", "Delete", "Cancel"}, fonts());
+    dialog.open(window);
+    stack.push(dialog, [](widgets::DialogResult) {});
+    stack.handle(escape);
+    CHECK_FALSE(a.focused());
+
+    a.set_focused(true);
+    dialog.open(window);
+    stack.push(dialog, [](widgets::DialogResult) {});
+    focus.remove(a);
+    stack.handle(escape);
+    CHECK_FALSE(a.focused());
+}

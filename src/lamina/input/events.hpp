@@ -7,6 +7,8 @@ namespace lamina::input {
 
 enum class PointerAction { move, down, up, leave };
 
+enum class InputSource { pointer, keyboard };
+
 struct PointerEvent {
     PointerAction action;
     double x_dp;

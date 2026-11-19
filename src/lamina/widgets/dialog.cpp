@@ -6,6 +6,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/nodes.hpp"
 
@@ -27,7 +28,8 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
       supporting_({options.supporting_text, t.supporting_text, t.supporting_text_color}, fonts),
       confirm_(action(options.confirm_label), fonts),
       icon_(std::move(options.icon)),
-      popup_(t.closed_scale, motion_scheme.default_spatial(), motion_scheme.default_effects()) {
+      popup_(t.closed_scale, motion_scheme.default_spatial(), motion_scheme.default_effects()),
+      default_action_(options.default_action) {
     if (!options.dismiss_label.empty()) {
         dismiss_.emplace(action(options.dismiss_label), fonts);
     }
@@ -93,18 +95,66 @@ void Dialog::set_window(layout::Size window) {
     set_area({0.0, 0.0, window.width, window.height});
 }
 
-void Dialog::open_in(const render::Rect& area) {
+void Dialog::open_in(const render::Rect& area, input::InputSource source) {
     set_area(area);
     popup_.open();
+    clear_focus();
+    const std::vector<DialogAction> order = reading_order();
+    const bool has_default = default_action_ && (*default_action_ == DialogAction::confirm || dismiss_);
+    focus_ = has_default ? *default_action_ : order.front();
+    if (source == input::InputSource::keyboard) {
+        show_focus(*focus_);
+    }
 }
 
-void Dialog::open(layout::Size window) {
-    open_in({0.0, 0.0, window.width, window.height});
+void Dialog::open(layout::Size window, input::InputSource source) {
+    open_in({0.0, 0.0, window.width, window.height}, source);
 }
 
 void Dialog::close() {
     popup_.close();
     cancel_interaction();
+    clear_focus();
+}
+
+std::optional<DialogAction> Dialog::focused_action() const {
+    return popup_.is_open() ? focus_ : std::nullopt;
+}
+
+std::vector<DialogAction> Dialog::reading_order() const {
+    std::vector<DialogAction> order{DialogAction::confirm};
+    if (dismiss_) {
+        const render::Rect c = confirm_.bounds();
+        const render::Rect d = dismiss_->bounds();
+        const bool dismiss_first = d.y < c.y || (d.y == c.y && d.x < c.x);
+        order.insert(dismiss_first ? order.begin() : order.end(), DialogAction::dismiss);
+    }
+    return order;
+}
+
+Button& Dialog::button(DialogAction action) {
+    return action == DialogAction::dismiss && dismiss_ ? *dismiss_ : confirm_;
+}
+
+DialogResult Dialog::result_of(DialogAction action) {
+    close();
+    return action == DialogAction::confirm ? DialogResult::confirmed : DialogResult::dismissed;
+}
+
+void Dialog::show_focus(DialogAction action) {
+    clear_focus();
+    focus_ = action;
+    focus_shown_ = true;
+    button(action).set_focused(true);
+}
+
+void Dialog::clear_focus() {
+    confirm_.set_focused(false);
+    if (dismiss_) {
+        dismiss_->set_focused(false);
+    }
+    focus_.reset();
+    focus_shown_ = false;
 }
 
 DialogResult Dialog::handle(const input::PointerEvent& e) {
@@ -115,13 +165,14 @@ DialogResult Dialog::handle(const input::PointerEvent& e) {
         close();
         return DialogResult::dismissed;
     }
+    if (e.action == input::PointerAction::down) {
+        focus_shown_ = false;
+    }
     if (confirm_.handle(e)) {
-        close();
-        return DialogResult::confirmed;
+        return result_of(DialogAction::confirm);
     }
     if (dismiss_ && dismiss_->handle(e)) {
-        close();
-        return DialogResult::dismissed;
+        return result_of(DialogAction::dismiss);
     }
     return DialogResult::none;
 }
@@ -130,6 +181,24 @@ DialogResult Dialog::handle(const input::KeyEvent& e) {
     if (popup_.dismisses(e)) {
         close();
         return DialogResult::dismissed;
+    }
+    if (!popup_.is_open()) {
+        return DialogResult::none;
+    }
+    if (e.key == input::Key::tab && !e.ctrl) {
+        const std::vector<DialogAction> order = reading_order();
+        const auto at = focus_ ? std::find(order.begin(), order.end(), *focus_) : order.end();
+        const std::size_t n = order.size();
+        std::size_t next = e.shift ? n - 1 : 0;
+        if (at != order.end()) {
+            const auto i = static_cast<std::size_t>(at - order.begin());
+            next = e.shift ? (i + n - 1) % n : (i + 1) % n;
+        }
+        show_focus(order[next]);
+        return DialogResult::none;
+    }
+    if (focus_ && activates(e, KeyActivation::space_or_enter)) {
+        return result_of(*focus_);
     }
     return DialogResult::none;
 }

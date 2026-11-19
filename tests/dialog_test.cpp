@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include "lamina/tokens/focus.hpp"
 #include "lamina/widgets/dialog.hpp"
 #include "lamina_thorvg/canvas.hpp"
 #include "support.hpp"
@@ -228,4 +229,96 @@ TEST_CASE("set_area moves an open dialog to the new area") {
     CHECK(r.y + r.height / 2.0 == doctest::Approx(200.0));
     CHECK(d.area().x == area.x);
     CHECK(d.area().y == area.y);
+}
+
+namespace {
+
+constexpr input::KeyEvent key_tab{input::Key::tab, false};
+constexpr input::KeyEvent key_shift_tab{input::Key::tab, true};
+constexpr input::KeyEvent key_enter{input::Key::enter, false};
+constexpr input::KeyEvent key_space{input::Key::space, false};
+
+}
+
+TEST_CASE("a dialog opened from the keyboard shows the focus on its first action in reading order") {
+    widgets::Dialog d(options(), fonts());
+    d.open(window, input::InputSource::keyboard);
+    REQUIRE(d.focused_action());
+    CHECK(*d.focused_action() == widgets::DialogAction::dismiss);
+    CHECK(d.focus_shown());
+    CHECK(d.handle(key_enter) == DialogResult::dismissed);
+    CHECK_FALSE(d.is_open());
+    CHECK_FALSE(d.focused_action());
+}
+
+TEST_CASE("a dialog opened by the pointer holds the focus without showing it until Tab") {
+    widgets::Dialog d(options(), fonts());
+    d.open(window);
+    REQUIRE(d.focused_action());
+    CHECK(*d.focused_action() == widgets::DialogAction::dismiss);
+    CHECK_FALSE(d.focus_shown());
+    CHECK(d.handle(key_tab) == DialogResult::none);
+    CHECK(d.focus_shown());
+    CHECK(*d.focused_action() == widgets::DialogAction::confirm);
+    CHECK(d.handle(key_space) == DialogResult::confirmed);
+}
+
+TEST_CASE("Tab and Shift+Tab cycle only through the dialog's actions") {
+    widgets::Dialog d(options(), fonts());
+    d.open(window, input::InputSource::keyboard);
+    d.handle(key_tab);
+    CHECK(*d.focused_action() == widgets::DialogAction::confirm);
+    d.handle(key_tab);
+    CHECK(*d.focused_action() == widgets::DialogAction::dismiss);
+    d.handle(key_shift_tab);
+    CHECK(*d.focused_action() == widgets::DialogAction::confirm);
+    CHECK(d.is_open());
+    CHECK(d.handle(input::KeyEvent{input::Key::enter, false, false, true}) == DialogResult::none);
+    CHECK(d.handle(input::KeyEvent{input::Key::escape, false}) == DialogResult::dismissed);
+}
+
+TEST_CASE("the default action takes the first focus, and a dialog with one action focuses it") {
+    widgets::DialogOptions o = options();
+    o.default_action = widgets::DialogAction::confirm;
+    widgets::Dialog d(o, fonts());
+    d.open(window, input::InputSource::keyboard);
+    CHECK(*d.focused_action() == widgets::DialogAction::confirm);
+
+    widgets::DialogOptions single{"Saved", "", "OK", ""};
+    single.default_action = widgets::DialogAction::dismiss;
+    widgets::Dialog s(single, fonts());
+    s.open(window, input::InputSource::keyboard);
+    CHECK(*s.focused_action() == widgets::DialogAction::confirm);
+    s.handle(key_tab);
+    CHECK(*s.focused_action() == widgets::DialogAction::confirm);
+    CHECK(s.handle(key_enter) == DialogResult::confirmed);
+}
+
+TEST_CASE("wrapped actions keep the reading order, confirm first, and a pointer press hides the focus") {
+    widgets::DialogOptions o = options();
+    o.confirm_label = "Discard the draft and every attachment in it";
+    o.dismiss_label = "Keep editing the draft for now";
+    widgets::Dialog d(o, fonts());
+    d.open(window, input::InputSource::keyboard);
+    REQUIRE(d.button_lines() == 2);
+    CHECK(*d.focused_action() == widgets::DialogAction::confirm);
+    const render::Rect r = d.headline_bounds();
+    d.handle({PointerAction::down, r.x + 1.0, r.y + 1.0});
+    CHECK_FALSE(d.focus_shown());
+    CHECK(d.is_open());
+}
+
+TEST_CASE("the focused action draws the focus ring") {
+    widgets::Dialog d(options(), fonts());
+    thorvg::Canvas canvas(800, 600);
+    auto ring = [&] {
+        settle(d);
+        canvas.clear(0xffffffff);
+        d.paint(canvas, scheme());
+        return count_color(canvas, scheme()[tokens::focus_indicator.color]);
+    };
+    d.open(window);
+    const int hidden = ring();
+    d.handle(key_tab);
+    CHECK(ring() > hidden);
 }

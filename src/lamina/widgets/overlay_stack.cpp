@@ -14,6 +14,7 @@ bool OverlayStack::route(const E& e) {
         }
         const bool consumed = layer->deliver(e);
         if (consumed || layer->modality == Modality::modal) {
+            prune();
             return true;
         }
     }
@@ -37,7 +38,16 @@ bool OverlayStack::empty() const {
 }
 
 void OverlayStack::prune() {
-    std::erase_if(layers_, [](const auto& layer) { return !layer->live(); });
+    for (std::size_t i = layers_.size(); i-- > 0;) {
+        if (layers_[i]->live()) {
+            continue;
+        }
+        const bool give_back = layers_[i]->holds_focus;
+        layers_.erase(layers_.begin() + static_cast<std::ptrdiff_t>(i));
+        if (give_back && focus_) {
+            focus_->resume();
+        }
+    }
 }
 
 void OverlayStack::cancel_below() {

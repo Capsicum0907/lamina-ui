@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "lamina/input/events.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/protocol.hpp"
 
 namespace lamina::widgets {
@@ -38,17 +39,28 @@ public:
         (base_.push_back([&base] { base.cancel_interaction(); }), ...);
     }
 
+    void set_focus(FocusManager& focus) { focus_ = &focus; }
+
     template <Overlay W, typename OnResult>
     void push(W& overlay, OnResult on_result, Modality modality = Modality::modal) {
+        bool holds_focus = false;
         for (auto& layer : layers_) {
             if (layer->id() == &overlay) {
                 layer->stale = true;
+                holds_focus = holds_focus || layer->holds_focus;
+                layer->holds_focus = false;
             }
         }
         if (modality == Modality::modal) {
             cancel_below();
+            if (focus_ && !holds_focus) {
+                focus_->suspend();
+                holds_focus = true;
+            }
         }
-        layers_.push_back(std::make_unique<Entry<W, OnResult>>(overlay, std::move(on_result), modality));
+        auto entry = std::make_unique<Entry<W, OnResult>>(overlay, std::move(on_result), modality);
+        entry->holds_focus = holds_focus;
+        layers_.push_back(std::move(entry));
     }
 
     bool handle(const input::PointerEvent& e);
@@ -69,6 +81,7 @@ private:
         bool live() const { return !stale && open(); }
         Modality modality;
         bool stale = false;
+        bool holds_focus = false;
     };
 
     template <typename W, typename OnResult>
@@ -113,6 +126,7 @@ private:
 
     std::vector<std::unique_ptr<Layer>> layers_;
     std::vector<std::function<void()>> base_;
+    FocusManager* focus_ = nullptr;
 };
 
 }

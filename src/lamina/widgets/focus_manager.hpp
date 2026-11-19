@@ -37,6 +37,8 @@ public:
     bool handle(const input::KeyEvent& e);
     bool move_focus(FocusDirection direction);
     void clear_focus();
+    void suspend();
+    void resume();
     std::size_t size() const { return entries_.size(); }
 
     std::optional<render::Rect> caret_area() const;
@@ -86,8 +88,10 @@ private:
 
     void remove_id(const void* id);
     const Member* focused_member() const;
+    Member* member(const void* id) const;
 
     std::vector<std::unique_ptr<Member>> entries_;
+    std::vector<const void*> suspended_;
 };
 
 }
