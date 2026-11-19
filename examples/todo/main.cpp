@@ -250,6 +250,7 @@ int main(int argc, char** argv) {
                 }
             }
             if (!list.completed().empty()) {
+                focus.add(header);
                 focus.add(header.clear_button());
             }
             if (expanded) {
@@ -259,6 +260,7 @@ int main(int argc, char** argv) {
                     }
                 }
             }
+            focus.add(snackbar);
         };
         overlays.set_focus(focus);
         auto focus_input = [&] {
@@ -447,11 +449,18 @@ int main(int argc, char** argv) {
             }
 
             for (const auto& k : frame.keys) {
+                const bool snackbar_focused = snackbar.focused();
                 if (overlays.handle(k)) {
+                    if (snackbar_focused && !snackbar.focused()) {
+                        focus_input();
+                    }
                     continue;
                 }
                 if (k.ctrl && k.key == Key::z) {
                     undo();
+                    if (snackbar_focused && !snackbar.focused()) {
+                        focus_input();
+                    }
                     continue;
                 }
                 TaskRow* editing = first_row([](const TaskRow& r) { return r.editing() && r.editor()->focused(); });
@@ -480,7 +489,13 @@ int main(int argc, char** argv) {
                     add_from_input();
                     continue;
                 }
-                if (header.handle(k).clear) {
+                const examples::todo::HeaderAction header_action = header.handle(k);
+                if (header_action.toggled) {
+                    expanded = !expanded;
+                    header.set_expanded(expanded);
+                    continue;
+                }
+                if (header_action.clear) {
                     dialog.open_in(body, input::InputSource::keyboard);
                     overlays.push(dialog, on_dialog);
                     continue;
@@ -521,7 +536,7 @@ int main(int argc, char** argv) {
                 }
                 TaskRow* f = focused_row();
                 if (!f) {
-                    if (k.key == Key::escape && (focus_holder() || add_button.focused() || header.clear_button().focused())) {
+                    if (k.key == Key::escape && (focus_holder() || add_button.focused() || header.focused() || header.clear_button().focused())) {
                         focus_input();
                     } else {
                         scroll.handle(k);

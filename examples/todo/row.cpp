@@ -360,6 +360,7 @@ void SectionHeader::place(const std::optional<Box>& box, const Column& column, b
         presence_.animate_to(0.0);
         cancel_interaction();
         clear_.set_focused(false);
+        fold_focus_.set_focused(false);
         return;
     }
     if (!placed_ || presence_.value() <= 0.0) {
@@ -377,7 +378,13 @@ HeaderAction SectionHeader::handle(const input::KeyEvent& e) {
         return a;
     }
     a.clear = clear_.handle(e);
+    a.toggled = fold_focus_.activates(e, widgets::KeyActivation::space_or_enter);
     return a;
+}
+
+render::Rect SectionHeader::toggle_rect() const {
+    const render::Rect r = box_.rect();
+    return {r.x, r.y, clear_.bounds().x - r.x, r.height};
 }
 
 HeaderAction SectionHeader::handle(const input::PointerEvent& e) {
@@ -385,13 +392,12 @@ HeaderAction SectionHeader::handle(const input::PointerEvent& e) {
     if (presence_.target() <= 0.0) {
         return a;
     }
+    fold_focus_.release_on_press(e);
     if (clear_.handle(e)) {
         a.clear = true;
         return a;
     }
-    const render::Rect r = box_.rect();
-    const render::Rect toggle{r.x, r.y, clear_.bounds().x - r.x, r.height};
-    a.toggled = press_.update(e, toggle);
+    a.toggled = press_.update(e, toggle_rect());
     return a;
 }
 
@@ -406,6 +412,7 @@ void SectionHeader::step(double dt) {
     for (motion::Animated* a : {&presence_, &turn_, &hover_}) {
         a->step(dt);
     }
+    fold_focus_.step(dt);
     const render::Rect r = box_.rect();
     clear_.set_origin({r.x + r.width - clear_.width(), r.y + (r.height - clear_.height()) / 2.0});
     title_.measure({0.0, std::max(0.0, clear_.bounds().x - column_.text_x), 0.0, r.height});
@@ -415,7 +422,7 @@ void SectionHeader::step(double dt) {
 }
 
 bool SectionHeader::animating() const {
-    return !box_.settled() || !presence_.settled() || !turn_.settled() || !hover_.settled() || clear_.animating();
+    return !box_.settled() || !presence_.settled() || !turn_.settled() || !hover_.settled() || !fold_focus_.settled() || clear_.animating();
 }
 
 void SectionHeader::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -425,11 +432,11 @@ void SectionHeader::paint(render::Canvas& canvas, const color::ColorScheme& sche
     }
     const color::ColorScheme s = p < 1.0 ? color::faded(scheme, p) : scheme;
     const render::Rect r = box_.rect();
-    if (const double h = unit(hover_); h > 0.0) {
-        const render::Rect toggle{r.x, r.y, clear_.bounds().x - r.x, r.height};
-        const double radius = tokens::corner_radius(row_style_.corner, toggle.width, toggle.height);
-        canvas.fill_rounded_rect(toggle, render::uniform_radii(radius),
-                                 color::with_alpha(s[row_style_.state_layer], h * tokens::state_layer_opacity::hover));
+    const render::Rect toggle = toggle_rect();
+    const double radius = tokens::corner_radius(row_style_.corner, toggle.width, toggle.height);
+    const double layer = std::max(unit(hover_) * tokens::state_layer_opacity::hover, fold_focus_.amount() * tokens::state_layer_opacity::focus);
+    if (layer > 0.0) {
+        canvas.fill_rounded_rect(toggle, render::uniform_radii(radius), color::with_alpha(s[row_style_.state_layer], layer));
     }
     const double size = style_.chevron_size;
     const render::Point center{column_.x + column_.check_width / 2.0, r.y + r.height / 2.0};
@@ -441,6 +448,7 @@ void SectionHeader::paint(render::Canvas& canvas, const color::ColorScheme& sche
     canvas.fill_path(chevron.transformed(rotate), s[style_.chevron_color]);
     title_.paint(canvas, s);
     clear_.paint(canvas, s);
+    fold_focus_.paint_inward(canvas, s, toggle, radius);
 }
 
 }

@@ -16,6 +16,7 @@
 #include "lamina/tokens/typography.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/checkbox.hpp"
+#include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/label.hpp"
@@ -157,6 +158,9 @@ public:
     HeaderAction handle(const input::PointerEvent& event);
     HeaderAction handle(const input::KeyEvent& event);
     void cancel_interaction();
+    bool focused() const { return fold_focus_.focused(); }
+    void set_focused(bool focused) { fold_focus_.set_focused(focused && shown()); }
+    bool can_focus() const { return shown(); }
     widgets::Button& clear_button() { return clear_; }
     bool shown() const { return presence_.target() > 0.0; }
     void step(double dt_seconds);
@@ -178,6 +182,9 @@ private:
     motion::Animated presence_;
     motion::Animated turn_;
     motion::Animated hover_;
+    widgets::FocusIndicator fold_focus_;
+
+    render::Rect toggle_rect() const;
 };
 
 }
