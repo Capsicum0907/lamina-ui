@@ -263,6 +263,17 @@ A CSS blur radius is twice the Gaussian standard deviation.
 
 C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, focus 0.10, pressed 0.10, dragged 0.16.
 
+### Focus indicator
+
+Read on 2026-11-19 from material-web at `9d2f79851cae` and androidx at `9b9d1fdd16f4`, newer than the commits in the table above.
+
+- W `tokens/_md-comp-focus-ring.scss`: width 3 dp, outward offset 2 dp, inward offset 0, color secondary, and an active width of 8 dp over `duration-long4`.
+- W `focus/internal/_focus-ring.scss` draws the ring as an outline outside a box grown by the outward offset, with each corner radius grown by the same offset.
+- The ring follows the component's shape. W `button/internal/_shared.scss`, `iconbutton/internal/_shared.scss` and `fab/internal/_shared.scss` give it the container's corners, and W `switch/internal/_switch.scss` gives it the track's. W `checkbox/internal/_checkbox.scss` and `radio/internal/_radio.scss` make it a 44 dp circle: the 40 dp state layer plus the offset.
+- Compose Material3 draws no ring around buttons. It shows focus with the state layer at `FocusStateLayerOpacity` 0.1 (C `tokens/StateTokens.kt`), and C `tokens/CheckboxTokens.kt` and `tokens/SwitchTokens.kt` name `FocusIndicatorColor` secondary.
+
+lamina-ui draws both the ring (`lamina/tokens/focus.hpp`) and the focus state layer. The ring fades in and out on the fast effects spring. The 8 dp pulse of material-web is not implemented.
+
 ## Components
 
 ### Button
