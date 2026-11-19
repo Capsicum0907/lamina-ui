@@ -71,7 +71,7 @@ struct Canvas::Impl {
     std::vector<std::uint32_t> buffer;
     tvg::SwCanvas* canvas = nullptr;
     bool dirty = false;
-    std::vector<std::pair<tvg::Scene*, Rect>> clips;
+    std::vector<std::pair<tvg::Scene*, tvg::Shape*>> clips;
 
     Impl(int w, int h) {
         tvg::Initializer::init(0);
@@ -104,8 +104,9 @@ struct Canvas::Impl {
     }
 
     void drop_clips() {
-        for (auto& [scene, rect] : clips) {
+        for (auto& [scene, clipper] : clips) {
             tvg::Paint::rel(scene);
+            tvg::Paint::rel(clipper);
         }
         clips.clear();
     }
@@ -202,18 +203,22 @@ void Canvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
 }
 
 void Canvas::begin_device_clip(const Rect& rect) {
-    impl_->clips.emplace_back(tvg::Scene::gen(), rect);
+    auto* clipper = tvg::Shape::gen();
+    clipper->appendRect(static_cast<float>(rect.x), static_cast<float>(rect.y), static_cast<float>(rect.width),
+                        static_cast<float>(rect.height));
+    impl_->clips.emplace_back(tvg::Scene::gen(), clipper);
+}
+
+void Canvas::begin_device_clip(const Path& path) {
+    impl_->clips.emplace_back(tvg::Scene::gen(), to_shape(path, 0xff000000));
 }
 
 void Canvas::end_device_clip() {
     if (impl_->clips.empty()) {
         return;
     }
-    auto [scene, rect] = impl_->clips.back();
+    auto [scene, clipper] = impl_->clips.back();
     impl_->clips.pop_back();
-    auto* clipper = tvg::Shape::gen();
-    clipper->appendRect(static_cast<float>(rect.x), static_cast<float>(rect.y), static_cast<float>(rect.width),
-                        static_cast<float>(rect.height));
     scene->clip(clipper);
     impl_->add(scene);
 }

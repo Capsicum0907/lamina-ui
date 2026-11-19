@@ -47,6 +47,7 @@ public:
     void translate(double dx, double dy);
     void scale(double factor);
     void push_clip(const Rect& rect);
+    void push_clip(const Path& path);
     void pop_clip();
     const Affine& transform() const { return transform_; }
 
@@ -58,6 +59,7 @@ protected:
     virtual void fill_device_rect(Point from, Point to, color::Argb color) = 0;
     virtual void draw_device_image(const Image& image, const Affine& to_device, double opacity) = 0;
     virtual void begin_device_clip(const Rect& rect) = 0;
+    virtual void begin_device_clip(const Path& path) = 0;
     virtual void end_device_clip() = 0;
 
 private:

@@ -173,3 +173,32 @@ TEST_CASE_TEMPLATE("an image without pixels or at no opacity draws nothing", Can
     canvas.draw_image({1, 1, {red}}, {0.0, 0.0, 10.0, 10.0}, 0.0);
     CHECK(canvas.pixel(5, 5) == white);
 }
+
+TEST_CASE_TEMPLATE("a path clip keeps drawing inside the path, under the transform", CanvasType, lamina::thorvg::Canvas) {
+    CanvasType canvas(60, 60);
+    canvas.clear(white);
+    canvas.translate(10.0, 10.0);
+    canvas.scale(2.0);
+    canvas.push_clip(circle_path({10.0, 10.0}, 10.0));
+    canvas.fill_rect({0.0, 0.0, 20.0, 20.0}, red);
+    canvas.draw_image({1, 1, {red}}, {0.0, 0.0, 20.0, 20.0});
+    canvas.pop_clip();
+    CHECK(canvas.pixel(30, 30) == red);
+    CHECK(canvas.pixel(30, 12) == red);
+    CHECK(canvas.pixel(12, 12) == white);
+    CHECK(canvas.pixel(48, 48) == white);
+    CHECK(canvas.pixel(5, 30) == white);
+}
+
+TEST_CASE_TEMPLATE("path and rectangle clips nest", CanvasType, lamina::thorvg::Canvas) {
+    CanvasType canvas(40, 40);
+    canvas.clear(white);
+    canvas.push_clip(Rect{0.0, 0.0, 20.0, 40.0});
+    canvas.push_clip(circle_path({20.0, 20.0}, 16.0));
+    canvas.fill_rect({0.0, 0.0, 40.0, 40.0}, red);
+    canvas.pop_clip();
+    canvas.pop_clip();
+    CHECK(canvas.pixel(10, 20) == red);
+    CHECK(canvas.pixel(30, 20) == white);
+    CHECK(canvas.pixel(2, 2) == white);
+}

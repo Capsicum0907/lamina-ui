@@ -59,6 +59,10 @@ void Canvas::push_clip(const Rect& rect) {
     begin_device_clip({std::min(a.x, b.x), std::min(a.y, b.y), std::abs(b.x - a.x), std::abs(b.y - a.y)});
 }
 
+void Canvas::push_clip(const Path& path) {
+    begin_device_clip(path.transformed(transform_));
+}
+
 void Canvas::pop_clip() {
     end_device_clip();
 }

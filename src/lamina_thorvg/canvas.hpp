@@ -23,6 +23,7 @@ protected:
     void fill_device_rect(render::Point from, render::Point to, color::Argb color) override;
     void draw_device_image(const render::Image& image, const render::Affine& to_device, double opacity) override;
     void begin_device_clip(const render::Rect& rect) override;
+    void begin_device_clip(const render::Path& path) override;
     void end_device_clip() override;
 
 private:
