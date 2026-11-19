@@ -15,3 +15,15 @@ TEST_CASE("overlay keeps the base alpha") {
     CHECK(color::overlay(0xffffffff, 0x00000000, 0.5) == 0xff808080);
     CHECK(color::with_alpha(0xff123456, 0.0) == 0x00123456);
 }
+
+TEST_CASE("alpha reads the top byte") {
+    CHECK(color::alpha(0x80123456) == 0x80);
+    CHECK(color::alpha(0x00ffffff) == 0);
+}
+
+TEST_CASE("scale_alpha multiplies the existing alpha and keeps the color") {
+    CHECK(color::scale_alpha(0xff123456, 0.5) == 0x80123456);
+    CHECK(color::scale_alpha(0x80123456, 0.5) == 0x40123456);
+    CHECK(color::scale_alpha(0x80123456, 1.0) == 0x80123456);
+    CHECK(color::scale_alpha(0xff123456, 0.0) == 0x00123456);
+}

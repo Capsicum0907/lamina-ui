@@ -17,7 +17,7 @@ void paint_layer(render::Canvas& canvas, const render::Rect& r, const render::Co
     const render::Path path = render::rounded_rect_path(
         grown, {radii.top_left + g, radii.top_right + g, radii.bottom_right + g, radii.bottom_left + g});
     canvas.fill_shadow(path, {0.0, layer.offset_y, layer.blur / tokens::css_blur_per_sigma,
-                              color::with_alpha(shadow_color, layer.opacity * ((shadow_color >> 24) / 255.0))});
+                              color::scale_alpha(shadow_color, layer.opacity)});
 }
 
 }

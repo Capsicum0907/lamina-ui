@@ -94,10 +94,10 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     const color::Argb outline = mix_optional(scheme, from.outline, to.outline, t);
 
     const color::Argb fill = with_state_layer(container, content, state_layer_.value());
-    if ((fill >> 24) != 0) {
+    if (color::alpha(fill) != 0) {
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), fill);
     }
-    if ((outline >> 24) != 0) {
+    if (color::alpha(outline) != 0) {
         canvas.fill_path(ring_path(r, radius, size.outline_width), outline, render::FillRule::even_odd);
     }
     options_.icon.font.draw(canvas, options_.icon.symbol,

@@ -100,7 +100,7 @@ void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(track_radius)),
                      color::mix(scheme[t.unchecked.track], scheme[t.checked.track], p));
     const color::Argb border = mix_optional(scheme, t.unchecked.border, t.checked.border, p);
-    if ((border >> 24) != 0) {
+    if (color::alpha(border) != 0) {
         canvas.fill_path(ring_path(r, track_radius, t.track_outline_width), border, render::FillRule::even_odd);
     }
 

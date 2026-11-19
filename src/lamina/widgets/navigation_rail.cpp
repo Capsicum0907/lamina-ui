@@ -295,7 +295,7 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
             const color::Argb c = color::mix(scheme[t.inactive_label], active, k);
             const double y = label.y + (label.height - g.line->box_height()) / 2.0;
             text::draw_line(canvas, fonts_, *g.line, {label.x, y},
-                            color::with_alpha(c, g.label_opacity * static_cast<double>(c >> 24) / 255.0));
+                            color::scale_alpha(c, g.label_opacity));
         }
     }
     canvas.pop_clip();

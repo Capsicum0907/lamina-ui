@@ -29,7 +29,7 @@ ButtonOptions action(std::string label) {
 color::ColorScheme faded(const color::ColorScheme& scheme, double opacity) {
     color::ColorScheme out = scheme;
     for (color::Argb& c : out.colors) {
-        c = color::with_alpha(c, opacity * static_cast<double>(c >> 24) / 255.0);
+        c = color::scale_alpha(c, opacity);
     }
     return out;
 }

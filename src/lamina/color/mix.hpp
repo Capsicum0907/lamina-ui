@@ -12,6 +12,10 @@ constexpr Argb with_alpha(Argb c, double alpha) {
     return (static_cast<Argb>(a * 255.0 + 0.5) << 24) | (c & 0x00ffffff);
 }
 
+constexpr Argb scale_alpha(Argb c, double k) {
+    return with_alpha(c, k * static_cast<double>(alpha(c)) / 255.0);
+}
+
 inline Argb mix(Argb from, Argb to, double t) {
     const double k = std::clamp(t, 0.0, 1.0);
     Argb out = 0;

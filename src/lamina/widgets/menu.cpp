@@ -50,10 +50,6 @@ double pivot_fraction(double anchor_start, double anchor_end, double menu_start,
     return (center - menu_start) / (menu_end - menu_start);
 }
 
-color::Argb faded(color::Argb c, double alpha) {
-    return color::with_alpha(c, alpha * static_cast<double>(c >> 24) / 255.0);
-}
-
 }
 
 render::Point menu_position(const render::Rect& anchor, layout::Size window, layout::Size menu) {
@@ -205,16 +201,16 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     canvas.translate(pivot_.x, pivot_.y);
     canvas.scale(scale_.value());
     canvas.translate(-pivot_.x, -pivot_.y);
-    paint_surface(canvas, r, radius, faded(scheme[t.container], a), tokens::elevation_dp[t.elevation],
-                  faded(scheme[color::Role::shadow], a));
-    const color::Argb label_color = faded(scheme[t.label_color], a);
-    const color::Argb icon_color = faded(scheme[t.leading_icon], a);
+    paint_surface(canvas, r, radius, color::scale_alpha(scheme[t.container], a), tokens::elevation_dp[t.elevation],
+                  color::scale_alpha(scheme[color::Role::shadow], a));
+    const color::Argb label_color = color::scale_alpha(scheme[t.label_color], a);
+    const color::Argb icon_color = color::scale_alpha(scheme[t.leading_icon], a);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const render::Rect ir = item_rect(i);
         if (item.state_layer.value() > 0.0) {
             canvas.fill_path(render::rounded_rect_path(ir, render::uniform_radii(0.0)),
-                             faded(color::with_alpha(scheme[t.state_layer], item.state_layer.value()), a));
+                             color::scale_alpha(color::with_alpha(scheme[t.state_layer], item.state_layer.value()), a));
         }
         double x = ir.x + t.item_horizontal_padding;
         const double cy = ir.y + ir.height / 2.0;

@@ -215,12 +215,12 @@ void Checkbox::paint(render::Canvas& canvas, const color::ColorScheme& scheme) c
     } else {
         const render::Rect inner{b.x + t.stroke_width, b.y + t.stroke_width, b.width - 2 * t.stroke_width,
                                  b.height - 2 * t.stroke_width};
-        if ((box_color >> 24) != 0) {
+        if (color::alpha(box_color) != 0) {
             canvas.fill_rounded_rect(inner, render::uniform_radii(std::max(0.0, t.corner_radius - t.stroke_width)), box_color);
         }
         canvas.fill_path(ring_path(b, t.corner_radius, t.stroke_width), border_color, render::FillRule::even_odd);
     }
-    if ((check_color >> 24) != 0) {
+    if (color::alpha(check_color) != 0) {
         canvas.fill_path(check_mark_path(b, check_fraction_.value(), gravitation_.value(), t.stroke_width), check_color);
     }
     if (state_layer_.value() > 0.0) {
