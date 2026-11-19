@@ -119,6 +119,10 @@ bool TabRow::handle(const input::PointerEvent& e) {
                            [this](std::size_t i) { select(i); });
 }
 
+void TabRow::cancel_interaction() {
+    cancel_presses(tabs_);
+}
+
 void TabRow::step(double dt) {
     indicator_offset_.step(dt);
     indicator_width_.step(dt);

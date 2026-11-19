@@ -104,10 +104,7 @@ void Dialog::open(layout::Size window) {
 
 void Dialog::close() {
     popup_.close();
-    confirm_.cancel_interaction();
-    if (dismiss_) {
-        dismiss_->cancel_interaction();
-    }
+    cancel_interaction();
 }
 
 DialogResult Dialog::handle(const input::PointerEvent& e) {
@@ -135,6 +132,13 @@ DialogResult Dialog::handle(const input::KeyEvent& e) {
         return DialogResult::dismissed;
     }
     return DialogResult::none;
+}
+
+void Dialog::cancel_interaction() {
+    confirm_.cancel_interaction();
+    if (dismiss_) {
+        dismiss_->cancel_interaction();
+    }
 }
 
 void Dialog::step(double dt) {

@@ -49,6 +49,7 @@ public:
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void handle(const input::TextEvent& event);
+    void cancel_interaction();
 
     void step(double dt_seconds);
     bool animating() const;

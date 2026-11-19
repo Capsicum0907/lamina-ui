@@ -75,6 +75,11 @@ bool Switch::handle(const input::PointerEvent& e) {
     return clicked;
 }
 
+void Switch::cancel_interaction() {
+    press_ = {};
+    retarget();
+}
+
 void Switch::step(double dt) {
     offset_.step(dt);
     thumb_size_.step(dt);

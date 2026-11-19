@@ -41,6 +41,12 @@ public:
         }
     }
 
+    void cancel_interaction() {
+        for (auto& e : entries_) {
+            e->cancel_interaction();
+        }
+    }
+
     bool animating() const {
         return std::any_of(entries_.begin(), entries_.end(), [](const auto& e) { return e->animating(); });
     }
@@ -54,6 +60,7 @@ private:
         virtual void step(double dt_seconds) = 0;
         virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
         virtual bool animating() const = 0;
+        virtual void cancel_interaction() = 0;
     };
 
     template <typename Held>
@@ -72,6 +79,11 @@ private:
                 return widget.animating();
             } else {
                 return false;
+            }
+        }
+        void cancel_interaction() override {
+            if constexpr (Cancellable<Widget>) {
+                widget.cancel_interaction();
             }
         }
         Held widget;

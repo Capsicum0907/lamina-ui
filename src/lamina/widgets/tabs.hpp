@@ -48,6 +48,7 @@ public:
     double selection(std::size_t index) const { return tabs_[index].selected.value(); }
 
     bool handle(const input::PointerEvent& event);
+    void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

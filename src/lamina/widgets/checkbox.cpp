@@ -175,6 +175,11 @@ bool Checkbox::handle(const input::PointerEvent& e) {
     return clicked;
 }
 
+void Checkbox::cancel_interaction() {
+    press_ = {};
+    state_layer_.animate_to(press_.state_layer_opacity());
+}
+
 void Checkbox::step(double dt) {
     if (snap_off_in_ >= 0.0) {
         snap_off_in_ -= dt;

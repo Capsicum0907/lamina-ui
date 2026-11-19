@@ -207,6 +207,10 @@ bool NavigationRail::handle(const input::PointerEvent& e) {
                            [this](std::size_t i) { select(i); });
 }
 
+void NavigationRail::cancel_interaction() {
+    cancel_presses(items_);
+}
+
 void NavigationRail::step(double dt) {
     min_width_.step(dt);
     full_width_.step(dt);

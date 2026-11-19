@@ -350,6 +350,12 @@ void TextField::handle(const input::TextEvent& e) {
     reset_blink();
 }
 
+void TextField::cancel_interaction() {
+    press_ = {};
+    hover_.animate_to(0.0);
+    dragging_ = false;
+}
+
 void TextField::step(double dt) {
     blink_clock_ += dt;
     label_progress_.step(dt);

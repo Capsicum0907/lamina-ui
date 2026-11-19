@@ -83,6 +83,10 @@ bool NavigationBar::handle(const input::PointerEvent& e) {
                            [this](std::size_t i) { select(i); });
 }
 
+void NavigationBar::cancel_interaction() {
+    cancel_presses(items_);
+}
+
 void NavigationBar::step(double dt) {
     for (Item& item : items_) {
         item.state_layer.step(dt);

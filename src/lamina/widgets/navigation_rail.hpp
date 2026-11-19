@@ -49,6 +49,7 @@ public:
     double icon_position(std::size_t index) const { return items_[index].position.value(); }
 
     bool handle(const input::PointerEvent& event);
+    void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

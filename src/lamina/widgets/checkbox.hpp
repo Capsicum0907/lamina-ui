@@ -30,6 +30,7 @@ public:
     double check_fraction() const { return check_fraction_.value(); }
 
     bool handle(const input::PointerEvent& event);
+    void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;

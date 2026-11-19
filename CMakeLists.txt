@@ -148,6 +148,7 @@ if(LAMINA_BUILD_TESTS)
     add_executable(lamina_tests
         tests/animated_test.cpp
         tests/button_test.cpp
+        tests/cancel_interaction_test.cpp
         tests/canvas_test.cpp
         tests/checkbox_test.cpp
         tests/color_mix_test.cpp

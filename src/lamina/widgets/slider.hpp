@@ -35,6 +35,7 @@ public:
     std::vector<double> tick_centers() const;
 
     bool handle(const input::PointerEvent& event);
+    void cancel_interaction();
     bool handle(const input::KeyEvent& event);
     void step(double) {}
     bool animating() const { return false; }

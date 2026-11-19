@@ -243,10 +243,7 @@ void GroupedMenu::close() {
 
 void GroupedMenu::cancel_interaction() {
     for (Group& g : groups_) {
-        for (Item& item : g.items) {
-            item.press = {};
-            item.state_layer.animate_to(0.0);
-        }
+        cancel_presses(g.items);
     }
 }
 

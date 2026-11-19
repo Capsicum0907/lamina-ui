@@ -139,6 +139,11 @@ bool Slider::handle(const input::PointerEvent& e) {
     return options_.value != before;
 }
 
+void Slider::cancel_interaction() {
+    dragging_ = false;
+    handle_width_ = t.handle_width;
+}
+
 bool Slider::handle(const input::KeyEvent& e) {
     const double range = std::abs(options_.max - options_.min);
     const int intervals = options_.steps > 0 ? options_.steps + 1 : t.keyboard_steps_when_continuous;

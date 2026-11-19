@@ -67,6 +67,14 @@ std::optional<std::size_t> update_presses(Items& items, const input::PointerEven
     return clicked;
 }
 
+template <typename Items>
+void cancel_presses(Items& items) {
+    for (auto& item : items) {
+        item.press = {};
+        item.state_layer.animate_to(0.0);
+    }
+}
+
 template <typename Items, typename HitRect, typename Select>
 bool select_on_click(Items& items, const input::PointerEvent& e, std::size_t selected, HitRect hit, Select select) {
     const std::optional<std::size_t> clicked = update_presses(items, e, hit);

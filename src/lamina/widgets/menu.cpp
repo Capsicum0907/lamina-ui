@@ -118,10 +118,7 @@ void Menu::close() {
 }
 
 void Menu::cancel_interaction() {
-    for (Item& item : items_) {
-        item.press = {};
-        item.state_layer.animate_to(0.0);
-    }
+    cancel_presses(items_);
 }
 
 MenuResponse Menu::handle(const input::PointerEvent& e) {

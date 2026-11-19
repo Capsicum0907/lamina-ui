@@ -39,6 +39,12 @@ bool Fab::handle(const input::PointerEvent& e) {
     return clicked;
 }
 
+void Fab::cancel_interaction() {
+    press_ = {};
+    state_layer_.animate_to(press_.state_layer_opacity());
+    elevation_.animate_to(state_elevation(tokens::fab_style(options_.style), press_));
+}
+
 void Fab::step(double dt) {
     state_layer_.step(dt);
     elevation_.step(dt);

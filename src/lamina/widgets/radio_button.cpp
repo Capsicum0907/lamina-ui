@@ -50,6 +50,11 @@ bool RadioButton::handle(const input::PointerEvent& e) {
     return clicked;
 }
 
+void RadioButton::cancel_interaction() {
+    press_ = {};
+    state_layer_.animate_to(press_.state_layer_opacity());
+}
+
 void RadioButton::step(double dt) {
     dot_radius_.step(dt);
     selected_.step(dt);
