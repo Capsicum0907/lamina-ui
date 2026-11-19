@@ -27,25 +27,43 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
       corner_(0.0, motion_scheme.default_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()),
       elevation_(0.0, motion_scheme.default_effects()) {
-    const auto& size = tokens::button_size(options_.size);
-    width_ = std::max(tokens::button_min_width, size.leading_space + content_width() + size.trailing_space);
+    width_ = intrinsic_width();
     corner_.snap_to(rest_corner());
     elevation_.snap_to(tokens::elevation_dp[tokens::button_style(options_.style).elevation]);
 }
 
 double Button::content_width() const {
     if (!options_.leading_icon) {
-        return label_.width;
+        return label_.width * label_scale_;
     }
     const auto& size = tokens::button_size(options_.size);
-    const double gap = options_.label.empty() ? 0.0 : size.icon_label_space;
-    return size.icon_size + gap + label_.width;
+    const double gap = options_.label.empty() ? 0.0 : size.icon_label_space * label_scale_;
+    return size.icon_size * icon_scale_ + gap + label_.width * label_scale_;
+}
+
+double Button::intrinsic_width() const {
+    const auto& size = tokens::button_size(options_.size);
+    return std::max(tokens::button_min_width, size.leading_space + content_width() + size.trailing_space);
+}
+
+void Button::set_label(std::string label) {
+    options_.label = std::move(label);
+    label_ = text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)));
+    if (!sized_) {
+        width_ = intrinsic_width();
+    }
+}
+
+void Button::set_content_scale(double label_scale, double icon_scale) {
+    label_scale_ = label_scale;
+    icon_scale_ = icon_scale;
 }
 
 void Button::set_size(double width, double height) {
     if (width == width_ && height == height_) {
         return;
     }
+    sized_ = true;
     width_ = width;
     height_ = height;
     const double corner = press_.pressed ? pressed_corner() : rest_corner();
@@ -125,10 +143,19 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     double x = r.x + (r.width - content_width()) / 2.0;
     if (options_.leading_icon) {
         const auto& icon = *options_.leading_icon;
-        icon.font.draw(canvas, icon.symbol, {x, r.y + (r.height - size.icon_size) / 2.0}, size.icon_size, label_color);
-        x += size.icon_size + size.icon_label_space;
+        const double icon_size = size.icon_size * icon_scale_;
+        icon.font.draw(canvas, icon.symbol, {x, r.y + (r.height - icon_size) / 2.0}, icon_size, label_color);
+        x += icon_size + size.icon_label_space * label_scale_;
     }
-    text::draw_line(canvas, fonts_, label_, {x, r.y + (r.height - label_.box_height()) / 2.0}, label_color);
+    if (label_scale_ == 1.0) {
+        text::draw_line(canvas, fonts_, label_, {x, r.y + (r.height - label_.box_height()) / 2.0}, label_color);
+        return;
+    }
+    canvas.save();
+    canvas.translate(x, r.y + (r.height - label_.box_height() * label_scale_) / 2.0);
+    canvas.scale(label_scale_);
+    text::draw_line(canvas, fonts_, label_, {0.0, 0.0}, label_color);
+    canvas.restore();
 }
 
 }

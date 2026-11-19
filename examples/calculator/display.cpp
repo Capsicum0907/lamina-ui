@@ -14,7 +14,17 @@ Display::Display(DisplayStyle style, const text::FontStack& fonts)
       lines_{Line{{}, text::layout_line(fonts, "", text_style_), true, motion::Animated(1.0, style.size_spring),
                   motion::Animated(1.0, style.color_spring)},
              Line{{}, text::layout_line(fonts, "", text_style_), false, motion::Animated(secondary_ratio_, style.size_spring),
-                  motion::Animated(0.0, style.color_spring)}} {}
+                  motion::Animated(0.0, style.color_spring)}},
+      badge_(text::layout_line(fonts, "", tokens::text_style(tokens::type_style(style.badge_type)))),
+      badge_opacity_(0.0, style.color_spring) {}
+
+void Display::set_badge(const std::string& text, bool visible) {
+    if (text != badge_text_) {
+        badge_text_ = text;
+        badge_ = text::layout_line(fonts_, badge_text_, tokens::text_style(tokens::type_style(style_.badge_type)));
+    }
+    badge_opacity_.animate_to(visible ? 1.0 : 0.0);
+}
 
 void Display::show(const std::string& formula, const std::string& result, bool result_focused, bool error) {
     const std::array<const std::string*, 2> texts{&formula, &result};
@@ -64,10 +74,12 @@ void Display::step(double dt) {
         line.scale.step(dt);
         line.emphasis.step(dt);
     }
+    badge_opacity_.step(dt);
 }
 
 bool Display::animating() const {
-    return std::any_of(lines_.begin(), lines_.end(), [](const Line& l) { return !l.scale.settled() || !l.emphasis.settled(); });
+    return !badge_opacity_.settled() ||
+           std::any_of(lines_.begin(), lines_.end(), [](const Line& l) { return !l.scale.settled() || !l.emphasis.settled(); });
 }
 
 void Display::paint_line(render::Canvas& canvas, const Line& line, double bottom, color::Argb color) const {
@@ -93,6 +105,10 @@ void Display::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
     paint_line(canvas, result, result_bottom, color::mix(secondary, result_focused, result.emphasis.value()));
     const double formula_bottom = result_bottom - result.layout.box_height() * result.scale.value() - style_.line_gap;
     paint_line(canvas, formula, formula_bottom, color::mix(secondary, focused, formula.emphasis.value()));
+    if (badge_opacity_.value() > 0.0) {
+        text::draw_line(canvas, fonts_, badge_, {rect_.x + style_.inset, rect_.y + style_.inset},
+                        color::scale_alpha(scheme[style_.badge_color], badge_opacity_.value()));
+    }
     canvas.pop_clip();
 }
 

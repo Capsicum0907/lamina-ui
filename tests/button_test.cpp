@@ -121,3 +121,30 @@ TEST_CASE("ButtonOptions::colors replaces the style's container and content role
     b.paint(canvas, scheme());
     CHECK(canvas.pixel(40, 30) == scheme()[color::Role::tertiary_container]);
 }
+
+TEST_CASE("set_label relays out the label and refits an unsized button") {
+    auto b = make(ButtonStyle::filled, ButtonSize::small, ButtonShape::round, "A");
+    const double narrow = b.width();
+    b.set_label("A much longer label");
+    CHECK(b.width() > narrow);
+    b.set_size(80.0, 40.0);
+    b.set_label("B");
+    CHECK(b.width() == 80.0);
+}
+
+TEST_CASE("set_content_scale scales the drawn label without changing the size") {
+    thorvg::Canvas canvas(300, 200);
+    auto ink = [&](double scale) {
+        widgets::Button b({"88", ButtonStyle::text, ButtonSize::small, ButtonShape::round}, fonts());
+        b.set_size(200.0, 150.0);
+        b.set_origin({10.0, 10.0});
+        b.set_content_scale(scale, scale);
+        canvas.clear(0xffffffff);
+        b.paint(canvas, scheme());
+        CHECK(b.width() == 200.0);
+        return 300 * 200 - count_color(canvas, 0xffffffff);
+    };
+    const int normal = ink(1.0);
+    const int doubled = ink(2.0);
+    CHECK(doubled > normal * 3);
+}
