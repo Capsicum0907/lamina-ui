@@ -4,7 +4,7 @@
 #include <cmath>
 
 #include "lamina/color/mix.hpp"
-#include "lamina/text/line_break.hpp"
+#include "lamina/text/word_boundary.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -20,85 +20,8 @@ text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
 }
 
-enum class WordClass { space, newline, punctuation, hiragana, katakana, han, word };
-
-struct ClassRange {
-    char32_t first;
-    char32_t last;
-    WordClass cls;
-};
-
-constexpr ClassRange class_ranges[] = {
-    {U'々', U'々', WordClass::han},
-    {U'　', U'〿', WordClass::punctuation},
-    {U'ぁ', U'ゟ', WordClass::hiragana},
-    {U'゠', U'ヿ', WordClass::katakana},
-    {U'ㇰ', U'ㇿ', WordClass::katakana},
-    {U'㐀', U'䶿', WordClass::han},
-    {U'一', U'鿿', WordClass::han},
-    {U'豈', U'﫿', WordClass::han},
-    {U'\U00020000', U'\U0003134f', WordClass::han},
-    {U' ', U'⁯', WordClass::punctuation},
-    {U'！', U'／', WordClass::punctuation},
-    {U'：', U'＠', WordClass::punctuation},
-    {U'［', U'｀', WordClass::punctuation},
-    {U'｛', U'･', WordClass::punctuation},
-    {U'ｦ', U'ﾟ', WordClass::katakana},
-};
-
-constexpr char32_t ascii_end = U'\x80';
 constexpr char32_t first_printable = U' ';
 constexpr char32_t delete_char = U'\x7f';
-
-WordClass word_class(char32_t c) {
-    if (c == U'\n') {
-        return WordClass::newline;
-    }
-    if (text::is_space(c)) {
-        return WordClass::space;
-    }
-    for (const ClassRange& r : class_ranges) {
-        if (c >= r.first && c <= r.last) {
-            return r.cls;
-        }
-    }
-    if (c < ascii_end) {
-        const bool alnum = (c >= U'0' && c <= U'9') || (c >= U'a' && c <= U'z') || (c >= U'A' && c <= U'Z') || c == U'_';
-        return alnum ? WordClass::word : WordClass::punctuation;
-    }
-    return WordClass::word;
-}
-
-std::size_t next_word(std::u32string_view s, std::size_t i) {
-    if (i >= s.size()) {
-        return s.size();
-    }
-    const WordClass c = word_class(s[i]);
-    if (c != WordClass::space) {
-        while (i < s.size() && word_class(s[i]) == c) {
-            ++i;
-        }
-    }
-    while (i < s.size() && word_class(s[i]) == WordClass::space) {
-        ++i;
-    }
-    return i;
-}
-
-std::size_t previous_word(std::u32string_view s, std::size_t i) {
-    i = std::min(i, s.size());
-    while (i > 0 && word_class(s[i - 1]) == WordClass::space) {
-        --i;
-    }
-    if (i == 0) {
-        return 0;
-    }
-    const WordClass c = word_class(s[i - 1]);
-    while (i > 0 && word_class(s[i - 1]) == c) {
-        --i;
-    }
-    return i;
-}
 
 enum class Shortcut { none, select_all, copy, cut, paste };
 
@@ -350,18 +273,9 @@ void TextField::select_word_at(std::size_t index) {
         move_to(0, false);
         return;
     }
-    const std::size_t at = std::min(index, text_.size() - 1);
-    const WordClass c = word_class(text_[at]);
-    std::size_t first = at;
-    while (first > 0 && word_class(text_[first - 1]) == c) {
-        --first;
-    }
-    std::size_t last = at + 1;
-    while (last < text_.size() && word_class(text_[last]) == c) {
-        ++last;
-    }
-    anchor_ = first;
-    cursor_ = last;
+    const text::TextRange word = text::word_at(text_, index);
+    anchor_ = word.first;
+    cursor_ = word.last;
     upstream_ = false;
 }
 
@@ -417,28 +331,28 @@ bool TextField::handle(const input::KeyEvent& e) {
         if (has_selection()) {
             replace_selection({});
         } else if (cursor_ > 0) {
-            erase(e.ctrl ? previous_word(text_, cursor_) : cursor_ - 1, cursor_);
+            erase(e.ctrl ? text::previous_word(text_, cursor_) : cursor_ - 1, cursor_);
         }
         break;
     case input::Key::delete_forward:
         if (has_selection()) {
             replace_selection({});
         } else if (cursor_ < text_.size()) {
-            erase(cursor_, e.ctrl ? next_word(text_, cursor_) : cursor_ + 1);
+            erase(cursor_, e.ctrl ? text::next_word(text_, cursor_) : cursor_ + 1);
         }
         break;
     case input::Key::left:
         if (has_selection() && !e.shift && !e.ctrl) {
             move_to(selection_start(), false);
         } else {
-            move_to(e.ctrl ? previous_word(text_, cursor_) : (cursor_ > 0 ? cursor_ - 1 : 0), e.shift);
+            move_to(e.ctrl ? text::previous_word(text_, cursor_) : (cursor_ > 0 ? cursor_ - 1 : 0), e.shift);
         }
         break;
     case input::Key::right:
         if (has_selection() && !e.shift && !e.ctrl) {
             move_to(selection_end(), false);
         } else {
-            move_to(e.ctrl ? next_word(text_, cursor_) : cursor_ + 1, e.shift);
+            move_to(e.ctrl ? text::next_word(text_, cursor_) : cursor_ + 1, e.shift);
         }
         break;
     case input::Key::up:

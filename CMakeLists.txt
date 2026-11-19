@@ -52,6 +52,7 @@ add_library(lamina STATIC
     src/lamina/shapes/to_path.cpp
     src/lamina/text/font.cpp
     src/lamina/text/layout.cpp
+    src/lamina/text/word_boundary.cpp
     src/lamina/layout/layout.cpp
     src/lamina/widgets/button.cpp
     src/lamina/widgets/checkbox.cpp
@@ -167,6 +168,7 @@ if(LAMINA_BUILD_TESTS)
         tests/text_field_test.cpp
         tests/text_test.cpp
         tests/tokens_test.cpp
+        tests/word_boundary_test.cpp
     )
     target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
