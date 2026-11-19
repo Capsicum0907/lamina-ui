@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -24,11 +25,12 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
                                tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)))),
       width_(0.0),
       height_(tokens::button_size(options_.size).height),
-      corner_(0.0, motion_scheme.default_effects()),
+      press_amount_(0.0, motion_scheme.default_effects()),
+      squareness_(options_.shape == tokens::ButtonShape::square ? 1.0 : 0.0, motion_scheme.fast_spatial()),
+      icon_fade_(1.0, motion_scheme.fast_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()),
       elevation_(0.0, motion_scheme.default_effects()) {
     width_ = intrinsic_width();
-    corner_.snap_to(rest_corner());
     elevation_.snap_to(tokens::elevation_dp[tokens::button_style(options_.style).elevation]);
 }
 
@@ -59,19 +61,29 @@ void Button::set_content_scale(double label_scale, double icon_scale) {
     icon_scale_ = icon_scale;
 }
 
-void Button::set_size(double width, double height) {
-    if (width == width_ && height == height_) {
+void Button::set_shape(tokens::ButtonShape shape) {
+    options_.shape = shape;
+    squareness_.animate_to(shape == tokens::ButtonShape::square ? 1.0 : 0.0);
+}
+
+void Button::set_icon(std::optional<icons::Icon> icon) {
+    const bool same = icon && options_.leading_icon && icon->symbol == options_.leading_icon->symbol;
+    if (same || (!icon && !options_.leading_icon)) {
         return;
     }
+    previous_icon_ = std::move(options_.leading_icon);
+    options_.leading_icon = std::move(icon);
+    icon_fade_.snap_to(0.0);
+    icon_fade_.animate_to(1.0);
+    if (!sized_) {
+        width_ = intrinsic_width();
+    }
+}
+
+void Button::set_size(double width, double height) {
     sized_ = true;
     width_ = width;
     height_ = height;
-    const double corner = press_.pressed ? pressed_corner() : rest_corner();
-    if (corner_.settled()) {
-        corner_.snap_to(corner);
-    } else {
-        corner_.animate_to(corner);
-    }
 }
 
 render::Rect Button::bounds() const {
@@ -79,15 +91,17 @@ render::Rect Button::bounds() const {
 }
 
 double Button::rest_corner() const {
-    const auto& size = tokens::button_size(options_.size);
-    if (options_.shape == tokens::ButtonShape::round) {
-        return height() / 2.0;
-    }
-    return tokens::corner_radius(size.square_corner, width_, height());
+    const double square = tokens::corner_radius(tokens::button_size(options_.size).square_corner, width_, height());
+    return motion::lerp(height() / 2.0, square, squareness_.value());
 }
 
 double Button::pressed_corner() const {
     return tokens::corner_radius(tokens::button_size(options_.size).pressed_corner, width_, height());
+}
+
+double Button::corner() const {
+    const double radius = motion::lerp(rest_corner(), pressed_corner(), press_amount_.value());
+    return std::clamp(radius, 0.0, std::min(width_, height()) / 2.0);
 }
 
 double Button::target_state_layer() const {
@@ -95,7 +109,7 @@ double Button::target_state_layer() const {
 }
 
 void Button::retarget() {
-    corner_.animate_to(press_.pressed ? pressed_corner() : rest_corner());
+    press_amount_.animate_to(press_.pressed ? 1.0 : 0.0);
     state_layer_.animate_to(target_state_layer());
     elevation_.animate_to(state_elevation(tokens::button_style(options_.style), press_));
 }
@@ -112,20 +126,23 @@ void Button::cancel_interaction() {
 }
 
 void Button::step(double dt) {
-    corner_.step(dt);
+    press_amount_.step(dt);
+    squareness_.step(dt);
+    icon_fade_.step(dt);
     state_layer_.step(dt);
     elevation_.step(dt);
 }
 
 bool Button::animating() const {
-    return !corner_.settled() || !state_layer_.settled() || !elevation_.settled();
+    return !press_amount_.settled() || !squareness_.settled() || !icon_fade_.settled() || !state_layer_.settled() ||
+           !elevation_.settled();
 }
 
 void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const auto& style = tokens::button_style(options_.style);
     const auto& size = tokens::button_size(options_.size);
     const render::Rect r = bounds();
-    const double radius = corner_.value();
+    const double radius = corner();
     const std::optional<color::Role> container = options_.colors ? std::optional(options_.colors->container) : style.container;
     const color::Argb label_color = scheme[options_.colors ? options_.colors->content : style.label];
     const render::Path shape = render::rounded_rect_path(r, render::uniform_radii(radius));
@@ -142,9 +159,13 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
 
     double x = r.x + (r.width - content_width()) / 2.0;
     if (options_.leading_icon) {
-        const auto& icon = *options_.leading_icon;
         const double icon_size = size.icon_size * icon_scale_;
-        icon.font.draw(canvas, icon.symbol, {x, r.y + (r.height - icon_size) / 2.0}, icon_size, label_color);
+        const double y = r.y + (r.height - icon_size) / 2.0;
+        const double fade = std::clamp(icon_fade_.value(), 0.0, 1.0);
+        if (previous_icon_ && fade < 1.0) {
+            draw_icon(canvas, *previous_icon_, x, y, icon_size, label_color, 1.0 - fade);
+        }
+        draw_icon(canvas, *options_.leading_icon, x, y, icon_size, label_color, fade);
         x += icon_size + size.icon_label_space * label_scale_;
     }
     if (label_scale_ == 1.0) {
@@ -156,6 +177,14 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.scale(label_scale_);
     text::draw_line(canvas, fonts_, label_, {0.0, 0.0}, label_color);
     canvas.restore();
+}
+
+void Button::draw_icon(render::Canvas& canvas, const icons::Icon& icon, double x, double y, double size, color::Argb color,
+                       double opacity) const {
+    if (opacity <= 0.0) {
+        return;
+    }
+    icon.font.draw(canvas, icon.symbol, {x, y}, size, opacity < 1.0 ? color::scale_alpha(color, opacity) : color);
 }
 
 }

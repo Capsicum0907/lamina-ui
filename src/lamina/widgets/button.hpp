@@ -37,6 +37,8 @@ public:
     void set_size(double width, double height);
     void set_label(std::string label);
     void set_content_scale(double label_scale, double icon_scale);
+    void set_shape(tokens::ButtonShape shape);
+    void set_icon(std::optional<icons::Icon> icon);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
 
@@ -51,6 +53,9 @@ private:
     double intrinsic_width() const;
     double rest_corner() const;
     double pressed_corner() const;
+    double corner() const;
+    void draw_icon(render::Canvas& canvas, const icons::Icon& icon, double x, double y, double size, color::Argb color,
+                   double opacity) const;
     double target_state_layer() const;
     void retarget();
 
@@ -64,7 +69,10 @@ private:
     double icon_scale_ = 1.0;
     render::Point origin_{0.0, 0.0};
     PressState press_;
-    motion::Animated corner_;
+    std::optional<icons::Icon> previous_icon_;
+    motion::Animated press_amount_;
+    motion::Animated squareness_;
+    motion::Animated icon_fade_;
     motion::Animated state_layer_;
     motion::Animated elevation_;
 };

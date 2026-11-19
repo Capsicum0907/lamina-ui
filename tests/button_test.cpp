@@ -148,3 +148,38 @@ TEST_CASE("set_content_scale scales the drawn label without changing the size") 
     const int doubled = ink(2.0);
     CHECK(doubled > normal * 3);
 }
+
+TEST_CASE("set_shape morphs a round button to its square corners on a spring and back") {
+    widgets::Button b({"", ButtonStyle::filled, ButtonSize::large, ButtonShape::round}, fonts());
+    b.set_size(96.0, 96.0);
+    b.set_origin({10.0, 10.0});
+    thorvg::Canvas canvas(140, 140);
+    const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
+    auto corner_filled = [&] {
+        canvas.clear(0xffffffff);
+        b.paint(canvas, scheme);
+        return canvas.pixel(12, 30) != 0xffffffff;
+    };
+    CHECK_FALSE(corner_filled());
+    b.set_shape(ButtonShape::square);
+    CHECK(b.animating());
+    settle(b);
+    CHECK_FALSE(b.animating());
+    CHECK(corner_filled());
+    b.set_shape(ButtonShape::round);
+    settle(b);
+    CHECK_FALSE(corner_filled());
+}
+
+TEST_CASE("set_icon cross-fades to the new icon and keeps the size of a sized button") {
+    widgets::Button b({"", ButtonStyle::filled, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), icons::Symbol::play_arrow}},
+                      fonts());
+    b.set_size(96.0, 96.0);
+    b.set_icon(icons::Icon{icon_font(), icons::Symbol::pause});
+    CHECK(b.animating());
+    CHECK(b.width() == 96.0);
+    settle(b);
+    CHECK_FALSE(b.animating());
+    b.set_icon(icons::Icon{icon_font(), icons::Symbol::pause});
+    CHECK_FALSE(b.animating());
+}
