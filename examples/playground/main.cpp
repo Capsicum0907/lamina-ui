@@ -14,8 +14,8 @@
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 #include "lamina/widgets/surface.hpp"
+#include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
-#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using color::Role;
@@ -115,13 +115,10 @@ int main(int argc, char** argv) {
         auto page = layout::column({header, layout::weighted(grid, 1.0)});
         page->padding(layout::Insets::all(layout.margin)).cross_align(layout::CrossAlign::stretch).fill_cross(true);
 
-        sdl3::Window window({"lamina-ui playground", 960, 600});
-        sdl3::Frame frame;
         double pointer_x = -1.0;
         double pointer_y = -1.0;
-        bool animating = true;
 
-        while (window.next_frame(frame, animating)) {
+        auto update = [&](const sdl3::Frame& frame) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
             for (const auto& e : frame.pointer) {
                 if (e.action == input::PointerAction::leave) {
@@ -143,11 +140,10 @@ int main(int argc, char** argv) {
                     c.fill.animate_to(c.selected ? 1.0 : 0.0);
                 }
             }
+            return scheme[Role::surface];
+        };
 
-            auto& canvas = window.canvas();
-            canvas.clear(scheme[Role::surface]);
-            canvas.save();
-            canvas.scale(frame.scale);
+        auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             text::draw_line(canvas, fonts, header_line, header_at, scheme[layout.header_text]);
             for (std::size_t i = 0; i < cards.size(); ++i) {
                 Card& c = cards[i];
@@ -170,16 +166,16 @@ int main(int argc, char** argv) {
                 text::draw_block(canvas, fonts, body_block,
                                  {title_at.x, title_at.y + title_style.line_height + layout.title_gap}, scheme[layout.body_text]);
             }
-            canvas.restore();
-            window.present();
-
-            animating = false;
+            bool animating = false;
             for (const Card& c : cards) {
                 for (const auto* a : {&c.elevation, &c.corner, &c.fill, &c.hover}) {
                     animating = animating || !a->settled();
                 }
             }
-        }
+            return animating;
+        };
+
+        sdl3::run_app({"lamina-ui playground", 960, 600}, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

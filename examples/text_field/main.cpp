@@ -10,8 +10,8 @@
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
-#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 
@@ -70,9 +70,6 @@ int main(int argc, char** argv) {
         };
         build();
 
-        sdl3::Frame frame;
-        bool animating = true;
-
         auto submit = [&] {
             const std::string name = fields[0]->text();
             const std::string message = fields[1]->text();
@@ -84,10 +81,10 @@ int main(int argc, char** argv) {
             build();
         };
 
-        auto place = [&] { layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp}); };
+        auto place = [&](const sdl3::Frame& frame) { layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp}); };
 
-        while (window.next_frame(frame, animating)) {
-            place();
+        auto update = [&](const sdl3::Frame& frame) {
+            place(frame);
 
             for (const auto& e : frame.pointer) {
                 for (auto& f : fields) {
@@ -119,7 +116,7 @@ int main(int argc, char** argv) {
                 }
             }
 
-            place();
+            place(frame);
 
             const widgets::TextField* focused = nullptr;
             for (auto& f : fields) {
@@ -133,14 +130,12 @@ int main(int argc, char** argv) {
             } else {
                 window.set_text_input(nullptr);
             }
+            return scheme[layout.background];
+        };
 
-            auto& canvas = window.canvas();
-            const color::Argb background = scheme[layout.background];
-            canvas.clear(background);
-            canvas.save();
-            canvas.scale(frame.scale);
+        auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             header.paint(canvas, scheme);
-            animating = false;
+            bool animating = false;
             for (auto& f : fields) {
                 f->step(frame.dt_seconds);
                 f->paint(canvas, scheme);
@@ -155,9 +150,10 @@ int main(int argc, char** argv) {
             for (const auto& l : log) {
                 l->paint(canvas, scheme);
             }
-            canvas.restore();
-            window.present();
-        }
+            return animating;
+        };
+
+        sdl3::run_app(window, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

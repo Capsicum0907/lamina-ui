@@ -24,8 +24,8 @@
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina_sdl3/resources.hpp"
+#include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
-#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using icons::Symbol;
@@ -290,12 +290,10 @@ int main(int argc, char** argv) {
         auto page = layout::column(std::move(page_children));
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
-        sdl3::Window window({"lamina-ui components", 1100, 860});
-        sdl3::Frame frame;
-        bool animating = true;
-        while (window.next_frame(frame, animating)) {
+        color::ColorScheme scheme = from;
+        auto update = [&](const sdl3::Frame& frame) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
-            const color::ColorScheme scheme = color::mix(from, to, theme.value());
+            scheme = color::mix(from, to, theme.value());
 
             for (const auto& e : frame.pointer) {
                 if (dark_toggle.handle(e)) {
@@ -328,14 +326,13 @@ int main(int argc, char** argv) {
                 theme.snap_to(0.0);
                 theme.animate_to(1.0);
             }
+            return scheme[color::Role::surface];
+        };
 
-            auto& canvas = window.canvas();
-            canvas.clear(scheme[color::Role::surface]);
-            canvas.save();
-            canvas.scale(frame.scale);
+        auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             header.paint(canvas, scheme);
             status.paint(canvas, scheme);
-            animating = false;
+            bool animating = false;
             for (auto& row : rows) {
                 row.label->paint(canvas, scheme);
                 for (auto& item : row.items) {
@@ -367,10 +364,10 @@ int main(int argc, char** argv) {
             theme.step(frame.dt_seconds);
             dark_toggle.step(frame.dt_seconds);
             dark_toggle.paint(canvas, scheme);
-            animating = animating || !theme.settled() || dark_toggle.animating();
-            canvas.restore();
-            window.present();
-        }
+            return animating || !theme.settled() || dark_toggle.animating();
+        };
+
+        sdl3::run_app({"lamina-ui components", 1100, 860}, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

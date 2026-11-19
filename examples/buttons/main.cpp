@@ -15,8 +15,8 @@
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
-#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using tokens::ButtonShape;
@@ -134,12 +134,10 @@ int main(int argc, char** argv) {
         auto page = layout::column(std::move(page_children));
         page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
-        sdl3::Window window({"lamina-ui buttons", 1000, 760});
-        sdl3::Frame frame;
-        bool animating = true;
-        while (window.next_frame(frame, animating)) {
+        color::ColorScheme scheme = from;
+        auto update = [&](const sdl3::Frame& frame) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
-            const color::ColorScheme scheme = color::mix(from, to, theme.value());
+            scheme = color::mix(from, to, theme.value());
 
             for (const auto& e : frame.pointer) {
                 if (dark_toggle.handle(e)) {
@@ -164,19 +162,18 @@ int main(int argc, char** argv) {
                     for (auto& b : row.buttons) {
                         if (b->handle(e)) {
                             ++clicks;
-                            counter.set_text("\u62bc\u3057\u305f\u56de\u6570: " + std::to_string(clicks));
+                            counter.set_text("押した回数: " + std::to_string(clicks));
                         }
                     }
                 }
             }
+            return scheme[color::Role::surface];
+        };
 
-            auto& canvas = window.canvas();
-            canvas.clear(scheme[color::Role::surface]);
-            canvas.save();
-            canvas.scale(frame.scale);
+        auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             header.paint(canvas, scheme);
             counter.paint(canvas, scheme);
-            animating = false;
+            bool animating = false;
             for (auto& row : rows) {
                 row.caption->paint(canvas, scheme);
                 for (auto& b : row.buttons) {
@@ -204,10 +201,10 @@ int main(int argc, char** argv) {
             spec_label.paint(canvas, scheme);
             spec_switch.step(frame.dt_seconds);
             spec_switch.paint(canvas, scheme);
-            animating = animating || !theme.settled() || dark_toggle.animating() || spec_switch.animating();
-            canvas.restore();
-            window.present();
-        }
+            return animating || !theme.settled() || dark_toggle.animating() || spec_switch.animating();
+        };
+
+        sdl3::run_app({"lamina-ui buttons", 1000, 760}, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

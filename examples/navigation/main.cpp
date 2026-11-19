@@ -23,8 +23,8 @@
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina_sdl3/resources.hpp"
+#include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
-#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using icons::Symbol;
@@ -239,10 +239,8 @@ int main(int argc, char** argv) {
             return Overlay::none;
         };
 
-        sdl3::Window window({"lamina-ui navigation", 1120, 860});
-        sdl3::Frame frame;
-        bool animating = true;
-        while (window.next_frame(frame, animating)) {
+        color::ColorScheme scheme = from;
+        auto update = [&](const sdl3::Frame& frame) {
             const layout::Size window_size{frame.width_dp, frame.height_dp};
             rail.step(frame.dt_seconds);
             layout::run(*root, {0.0, 0.0, frame.width_dp, frame.height_dp});
@@ -251,7 +249,7 @@ int main(int argc, char** argv) {
                     d->set_window(window_size);
                 }
             }
-            const color::ColorScheme scheme = color::mix(from, to, theme.value());
+            scheme = color::mix(from, to, theme.value());
 
             for (const auto& e : frame.pointer) {
                 if (dialog.is_open()) {
@@ -323,11 +321,10 @@ int main(int argc, char** argv) {
                     stepped_caption.set_text(format_value("Steps", stepped.value()));
                 }
             }
+            return scheme[color::Role::surface];
+        };
 
-            auto& canvas = window.canvas();
-            canvas.clear(scheme[color::Role::surface]);
-            canvas.save();
-            canvas.scale(frame.scale);
+        auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             const double dt = frame.dt_seconds;
             rail.paint(canvas, scheme);
             for (widgets::Label* l : {&header, &status, &primary_caption, &secondary_caption, &leading_caption, &continuous_caption,
@@ -368,14 +365,14 @@ int main(int argc, char** argv) {
             grouped_menu.paint(canvas, scheme);
             dialog.paint(canvas, scheme);
             wrap_dialog.paint(canvas, scheme);
-            animating = !theme.settled() || dark_toggle.animating() || primary_tabs.animating() || secondary_tabs.animating() ||
-                        leading_tabs.animating() || continuous.animating() || stepped.animating() || menu_button.animating() ||
-                        dialog_button.animating() || nav.animating() || menu.animating() || dialog.animating() ||
-                        grouped_button.animating() || wrap_button.animating() || rail_open.animating() || rail_close.animating() ||
-                        rail.animating() || grouped_menu.animating() || wrap_dialog.animating();
-            canvas.restore();
-            window.present();
-        }
+            return !theme.settled() || dark_toggle.animating() || primary_tabs.animating() || secondary_tabs.animating() ||
+                   leading_tabs.animating() || continuous.animating() || stepped.animating() || menu_button.animating() ||
+                   dialog_button.animating() || nav.animating() || menu.animating() || dialog.animating() ||
+                   grouped_button.animating() || wrap_button.animating() || rail_open.animating() || rail_close.animating() ||
+                   rail.animating() || grouped_menu.animating() || wrap_dialog.animating();
+        };
+
+        sdl3::run_app({"lamina-ui navigation", 1120, 860}, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

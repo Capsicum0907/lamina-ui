@@ -9,8 +9,8 @@
 #include "lamina/tokens/shape.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/surface.hpp"
+#include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
-#include "lamina_sdl3/window.hpp"
 
 using namespace lamina;
 using color::Role;
@@ -77,9 +77,7 @@ int main(int argc, char** argv) {
         const std::vector<std::shared_ptr<layout::Linear>> cards{left, right, form};
 
         sdl3::Window window({"lamina-ui layout", 900, 640});
-        sdl3::Frame frame;
-        bool animating = true;
-        while (window.next_frame(frame, animating)) {
+        auto update = [&](const sdl3::Frame& frame) {
             layout::run(*page, {0.0, 0.0, frame.width_dp, frame.height_dp});
 
             for (const auto& e : frame.pointer) {
@@ -99,12 +97,10 @@ int main(int argc, char** argv) {
             } else {
                 window.set_text_input(nullptr);
             }
+            return scheme[style.page];
+        };
 
-            auto& canvas = window.canvas();
-            const color::Argb background = scheme[style.page];
-            canvas.clear(background);
-            canvas.save();
-            canvas.scale(frame.scale);
+        auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             for (const auto& c : cards) {
                 const render::Rect r = c->rect();
                 widgets::paint_surface(canvas, r, tokens::corner_radius(style.card_corner, r.width, r.height), scheme[style.card],
@@ -115,7 +111,7 @@ int main(int argc, char** argv) {
             }
             name.step(frame.dt_seconds);
             name.paint(canvas, scheme);
-            animating = name.animating();
+            bool animating = name.animating();
             if (name.focused()) {
                 window.wake_after(name.next_blink_seconds());
             }
@@ -124,9 +120,10 @@ int main(int argc, char** argv) {
                 b->paint(canvas, scheme);
                 animating = animating || b->animating();
             }
-            canvas.restore();
-            window.present();
-        }
+            return animating;
+        };
+
+        sdl3::run_app(window, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());

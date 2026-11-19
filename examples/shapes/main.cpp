@@ -11,7 +11,7 @@
 #include "lamina/shapes/to_path.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/interaction.hpp"
-#include "lamina_sdl3/window.hpp"
+#include "lamina_sdl3/app.hpp"
 
 using namespace lamina;
 using shapes::MaterialShape;
@@ -69,10 +69,7 @@ int main() {
         page->spacing(layout.stage_gap).padding(layout::Insets::all(layout.margin)).cross_align(layout::CrossAlign::center);
         const layout::Size natural = page->measure({});
 
-        sdl3::Window window({"lamina-ui shapes", static_cast<int>(natural.width), static_cast<int>(natural.height)});
-        sdl3::Frame frame;
-        bool animating = true;
-        while (window.next_frame(frame, animating)) {
+        auto update = [&](const sdl3::Frame& frame) {
             layout::run(*page, {0.0, 0.0, natural.width, natural.height});
             for (const auto& e : frame.pointer) {
                 hovered = all.size();
@@ -89,11 +86,10 @@ int main() {
                     progress.animate_to(1.0);
                 }
             }
+            return scheme[layout.background];
+        };
 
-            auto& canvas = window.canvas();
-            canvas.clear(scheme[layout.background]);
-            canvas.save();
-            canvas.scale(frame.scale);
+        auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             for (std::size_t i = 0; i < all.size(); ++i) {
                 const render::Rect c = cells[i];
                 const render::Rect r{c.x + layout.cell_inset, c.y + layout.cell_inset, c.width - 2 * layout.cell_inset,
@@ -106,10 +102,10 @@ int main() {
             }
             progress.step(frame.dt_seconds);
             canvas.fill_path(placed(shapes::to_path(*morph, static_cast<float>(progress.value())), stage), scheme[layout.stage_fill]);
-            canvas.restore();
-            window.present();
-            animating = !progress.settled();
-        }
+            return !progress.settled();
+        };
+
+        sdl3::run_app({"lamina-ui shapes", static_cast<int>(natural.width), static_cast<int>(natural.height)}, update, paint);
         return 0;
     } catch (const std::exception& ex) {
         std::fprintf(stderr, "%s\n", ex.what());
