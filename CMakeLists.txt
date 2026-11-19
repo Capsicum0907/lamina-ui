@@ -29,6 +29,7 @@ function(lamina_warnings target)
 endfunction()
 
 add_library(lamina STATIC
+    src/lamina/color/mcu_scheme.cpp
     src/lamina/color/spec_2021.cpp
     src/lamina/color/spec_2025.cpp
     src/lamina/icons/icon.cpp
