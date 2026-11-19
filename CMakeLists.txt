@@ -123,6 +123,10 @@ if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
     target_include_directories(timer_engine PUBLIC examples)
     target_compile_features(timer_engine PUBLIC cxx_std_20)
     lamina_warnings(timer_engine)
+    add_library(todo_engine STATIC examples/todo/engine.cpp)
+    target_include_directories(todo_engine PUBLIC examples)
+    target_compile_features(todo_engine PUBLIC cxx_std_20)
+    lamina_warnings(todo_engine)
 endif()
 
 function(lamina_add_example name dir)
@@ -212,11 +216,12 @@ if(LAMINA_BUILD_TESTS)
         tests/text_test.cpp
         tests/timer_engine_test.cpp
         tests/timer_layout_test.cpp
+        tests/todo_engine_test.cpp
         tests/tokens_test.cpp
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
     )
-    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg calculator_engine timer_engine mcu::mcu doctest::doctest)
+    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg calculator_engine timer_engine todo_engine mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
     target_compile_definitions(lamina_tests PRIVATE LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts")
     target_compile_definitions(lamina_tests PRIVATE LAMINA_ICONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/icons")
