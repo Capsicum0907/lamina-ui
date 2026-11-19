@@ -35,6 +35,8 @@ public:
     double width() const { return width_; }
     double height() const { return height_; }
     void set_size(double width, double height);
+    void set_label(std::string label);
+    void set_content_scale(double label_scale, double icon_scale);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
 
@@ -46,6 +48,7 @@ public:
 
 private:
     double content_width() const;
+    double intrinsic_width() const;
     double rest_corner() const;
     double pressed_corner() const;
     double target_state_layer() const;
@@ -56,6 +59,9 @@ private:
     text::TextLine label_;
     double width_;
     double height_;
+    bool sized_ = false;
+    double label_scale_ = 1.0;
+    double icon_scale_ = 1.0;
     render::Point origin_{0.0, 0.0};
     PressState press_;
     motion::Animated corner_;
