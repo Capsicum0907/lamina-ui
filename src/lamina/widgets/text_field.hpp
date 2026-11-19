@@ -47,6 +47,9 @@ public:
     void select(std::size_t anchor, std::size_t cursor);
     std::string selected_text() const;
     std::size_t line_count() const { return lines_.size(); }
+    bool can_undo() const { return buffer_.can_undo(); }
+    bool can_redo() const { return buffer_.can_redo(); }
+    bool handles_history_key(const input::KeyEvent& event) const;
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);

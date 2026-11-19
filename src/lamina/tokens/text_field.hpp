@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include "lamina/color/scheme.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
@@ -31,6 +33,8 @@ struct OutlinedTextFieldTokens {
     color::Role selection = color::Role::primary;
     double selection_opacity = 0.4;
     double vertical_padding = 16.0;
+    std::size_t undo_depth = 100;
+    double undo_pause_seconds = 1.0;
 };
 
 inline constexpr OutlinedTextFieldTokens outlined_text_field{};

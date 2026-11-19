@@ -494,3 +494,174 @@ TEST_CASE("word moves step over a tab as over a space") {
     f.handle(ctrl(Key::right));
     CHECK(f.cursor() == 4);
 }
+
+namespace {
+
+void type_keys(widgets::TextField& f, std::string_view text) {
+    for (const char c : text) {
+        f.handle({TextEventKind::commit, std::string(1, c), 0});
+    }
+}
+
+}
+
+TEST_CASE("ctrl+z undoes typing as one step and both redo keys replay it") {
+    auto f = focused_field();
+    type_keys(f, "abc");
+    CHECK(f.handles_history_key(ctrl(Key::z)));
+    CHECK_FALSE(f.handle(ctrl(Key::z)));
+    CHECK(f.text().empty());
+    CHECK(f.handles_history_key(ctrl(Key::z, true)));
+    f.handle(ctrl(Key::z, true));
+    CHECK(f.text() == "abc");
+    f.handle(ctrl(Key::z));
+    CHECK(f.handles_history_key(ctrl(Key::y)));
+    f.handle(ctrl(Key::y));
+    CHECK(f.text() == "abc");
+    CHECK(f.cursor() == 3);
+}
+
+TEST_CASE("ctrl+shift+y is not a redo key") {
+    auto f = focused_field();
+    type_keys(f, "abc");
+    f.handle(ctrl(Key::z));
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::y, true)));
+    f.handle(ctrl(Key::y, true));
+    CHECK(f.text().empty());
+}
+
+TEST_CASE("a new edit after undo clears the redo history") {
+    auto f = focused_field();
+    type_keys(f, "ab");
+    f.handle(ctrl(Key::z));
+    type_keys(f, "c");
+    CHECK_FALSE(f.can_redo());
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::y)));
+    f.handle(ctrl(Key::y));
+    CHECK(f.text() == "c");
+}
+
+TEST_CASE("a pause in typing longer than the token starts a new undo step") {
+    auto f = focused_field();
+    type_keys(f, "ab");
+    f.step(tokens::outlined_text_field.undo_pause_seconds / 2.0);
+    type_keys(f, "c");
+    f.step(tokens::outlined_text_field.undo_pause_seconds * 2.0);
+    type_keys(f, "d");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "abc");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text().empty());
+}
+
+TEST_CASE("a caret move and whitespace break the typing into steps") {
+    auto f = focused_field();
+    type_keys(f, "one two");
+    f.handle({Key::left, false});
+    f.handle({Key::right, false});
+    type_keys(f, "s");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "one two");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "one");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text().empty());
+}
+
+TEST_CASE("paste, cut and an inserted tab are single undo steps") {
+    FakeClipboard clipboard;
+    auto f = focused_field({.accepts_tab = true, .clipboard = &clipboard});
+    type_keys(f, "ab");
+    clipboard.contents = "XY";
+    f.handle(ctrl(Key::v));
+    f.handle({Key::tab, false});
+    type_keys(f, "c");
+    CHECK(f.text() == "abXY\tc");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "abXY\t");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "abXY");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "ab");
+    f.select(0, 2);
+    f.handle(ctrl(Key::x));
+    CHECK(f.text().empty());
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "ab");
+    CHECK(f.selected_text() == "ab");
+}
+
+TEST_CASE("undo and redo restore the caret and the selection") {
+    auto f = focused_field();
+    f.set_text("Hello world");
+    f.select(6, 11);
+    type_keys(f, "X");
+    CHECK(f.text() == "Hello X");
+    f.handle(ctrl(Key::z));
+    CHECK(f.anchor() == 6);
+    CHECK(f.cursor() == 11);
+    CHECK(f.selected_text() == "world");
+    f.handle(ctrl(Key::y));
+    CHECK(f.text() == "Hello X");
+    CHECK(f.cursor() == 7);
+    CHECK(f.selected_text().empty());
+}
+
+TEST_CASE("the undo history keeps the token's depth of steps") {
+    FakeClipboard clipboard;
+    clipboard.contents = "x";
+    auto f = focused_field({.clipboard = &clipboard});
+    const std::size_t depth = tokens::outlined_text_field.undo_depth;
+    for (std::size_t i = 0; i < depth + 2; ++i) {
+        f.handle(ctrl(Key::v));
+    }
+    std::size_t steps = 0;
+    while (f.can_undo()) {
+        f.handle(ctrl(Key::z));
+        ++steps;
+    }
+    CHECK(steps == depth);
+    CHECK(f.text() == "xx");
+}
+
+TEST_CASE("set_text clears the undo history") {
+    auto f = focused_field();
+    type_keys(f, "abc");
+    f.set_text("");
+    CHECK_FALSE(f.can_undo());
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::z)));
+}
+
+TEST_CASE("undo keys pass through when the field has nothing to undo or redo or no focus") {
+    auto f = focused_field();
+    f.step(0.3);
+    const double blink = f.next_blink_seconds();
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::z)));
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::z, true)));
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::y)));
+    CHECK_FALSE(f.handle(ctrl(Key::z)));
+    CHECK(f.next_blink_seconds() == blink);
+    CHECK_FALSE(f.handles_history_key({Key::z, false}));
+    type_keys(f, "a");
+    CHECK(f.handles_history_key(ctrl(Key::z)));
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::y)));
+    f.set_focused(false);
+    CHECK_FALSE(f.handles_history_key(ctrl(Key::z)));
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "a");
+}
+
+TEST_CASE("undo keys are taken but do nothing while an IME composition is open") {
+    auto f = focused_field();
+    f.handle({TextEventKind::compose, "に", 1});
+    CHECK(f.handles_history_key(ctrl(Key::z)));
+    CHECK(f.handles_history_key(ctrl(Key::y)));
+    f.handle(ctrl(Key::z));
+    f.handle({TextEventKind::commit, "日本", 0});
+    type_keys(f, "a");
+    CHECK(f.text() == "日本a");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text() == "日本");
+    f.handle(ctrl(Key::z));
+    CHECK(f.text().empty());
+}

@@ -297,7 +297,7 @@ C `tokens/Button{XSmall,Small,Medium,Large,XLarge}Tokens.kt` (height, square and
 
 ### Outlined text field
 
-C `tokens/OutlinedTextFieldTokens.kt` (56 dp high, extra-small corners, outline 1 dp and 2 dp when focused, Body L input and label, colors per state) and C `internal/TextFieldImpl.kt` (16 dp padding, Body S for the floating label), read into `lamina/tokens/text_field.hpp`. The selection is `primary` at 0.4 opacity, from `TextSelectionBackgroundOpacity` in C `MaterialTheme.kt`.
+C `tokens/OutlinedTextFieldTokens.kt` (56 dp high, extra-small corners, outline 1 dp and 2 dp when focused, Body L input and label, colors per state) and C `internal/TextFieldImpl.kt` (16 dp padding, Body S for the floating label), read into `lamina/tokens/text_field.hpp`. The selection is `primary` at 0.4 opacity, from `TextSelectionBackgroundOpacity` in C `MaterialTheme.kt`. The undo history keeps 100 steps (`undo_depth`) and ends a typing step after a pause of more than 1 s (`undo_pause_seconds`); Material 3 has no tokens for these, so they are lamina-ui's own values.
 
 ### Button icons
 

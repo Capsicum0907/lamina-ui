@@ -59,7 +59,7 @@ render::Path notched_ring_path(const render::Rect& r, double radius, double widt
     return p;
 }
 
-enum class Shortcut { none, select_all, copy, cut, paste };
+enum class Shortcut { none, select_all, copy, cut, paste, undo, redo };
 
 Shortcut shortcut(const input::KeyEvent& e) {
     if (!e.ctrl) {
@@ -70,6 +70,8 @@ Shortcut shortcut(const input::KeyEvent& e) {
     case input::Key::c: return Shortcut::copy;
     case input::Key::x: return Shortcut::cut;
     case input::Key::v: return Shortcut::paste;
+    case input::Key::z: return e.shift ? Shortcut::redo : Shortcut::undo;
+    case input::Key::y: return e.shift ? Shortcut::none : Shortcut::redo;
     default: return Shortcut::none;
     }
 }
@@ -80,7 +82,9 @@ TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
       width_(t.min_width),
-      buffer_({.multiline = options_.multiline, .keeps_tabs = options_.accepts_tab}),
+      buffer_({.multiline = options_.multiline,
+               .keeps_tabs = options_.accepts_tab,
+               .history = {.depth = t.undo_depth, .pause_seconds = t.undo_pause_seconds}}),
       label_large_(text::layout_line(fonts, options_.label, style_of(t.label_type))),
       label_small_(text::layout_line(fonts, options_.label, style_of(t.minimized_label_type))),
       label_progress_(0.0, motion_scheme.fast_spatial()),
@@ -217,6 +221,17 @@ TextField::Hit TextField::hit(double x, double y) const {
     return {index, line_map_.wraps_at(k, index)};
 }
 
+bool TextField::handles_history_key(const input::KeyEvent& e) const {
+    if (!focused_) {
+        return false;
+    }
+    switch (shortcut(e)) {
+    case Shortcut::undo: return buffer_.composing() || buffer_.can_undo();
+    case Shortcut::redo: return buffer_.composing() || buffer_.can_redo();
+    default: return false;
+    }
+}
+
 void TextField::copy_selection() const {
     if (options_.clipboard && buffer_.has_selection()) {
         options_.clipboard->set_text(selected_text());
@@ -294,7 +309,7 @@ bool TextField::handle(const input::KeyEvent& e) {
         break;
     case input::Key::enter:
         if (options_.multiline && !e.ctrl) {
-            buffer_.insert(U"\n");
+            buffer_.type(U"\n");
         } else {
             submit = true;
         }
@@ -327,6 +342,16 @@ bool TextField::handle(const input::KeyEvent& e) {
         case Shortcut::paste:
             if (options_.clipboard) {
                 buffer_.insert(text::decode_utf8(options_.clipboard->text()));
+            }
+            break;
+        case Shortcut::undo:
+            if (!buffer_.undo()) {
+                return false;
+            }
+            break;
+        case Shortcut::redo:
+            if (!buffer_.redo()) {
+                return false;
             }
             break;
         }
@@ -362,6 +387,7 @@ void TextField::cancel_interaction() {
 
 void TextField::step(double dt) {
     blink_clock_ += dt;
+    buffer_.advance(dt);
     label_progress_.step(dt);
     focus_.step(dt);
     hover_.step(dt);

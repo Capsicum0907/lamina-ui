@@ -297,7 +297,7 @@ C の `tokens/Button{XSmall,Small,Medium,Large,XLarge}Tokens.kt`（高さ・四�
 
 ### 枠線つきの入力欄
 
-C の `tokens/OutlinedTextFieldTokens.kt`（高さ 56 dp・角は extra-small・枠線 1 dp で焦点時は 2 dp・入力とラベルは Body L・状態ごとの色）と C の `internal/TextFieldImpl.kt`（余白 16 dp・浮いたラベルは Body S）を `lamina/tokens/text_field.hpp` に写しました。選択範囲の色は `primary` の不透明度 0.4 で、C の `MaterialTheme.kt` の `TextSelectionBackgroundOpacity` から取りました。
+C の `tokens/OutlinedTextFieldTokens.kt`（高さ 56 dp・角は extra-small・枠線 1 dp で焦点時は 2 dp・入力とラベルは Body L・状態ごとの色）と C の `internal/TextFieldImpl.kt`（余白 16 dp・浮いたラベルは Body S）を `lamina/tokens/text_field.hpp` に写しました。選択範囲の色は `primary` の不透明度 0.4 で、C の `MaterialTheme.kt` の `TextSelectionBackgroundOpacity` から取りました。取り消しの履歴は 100 まで残し（`undo_depth`）、1 秒より長く手を止めると打った文字のまとまりを区切ります（`undo_pause_seconds`）。Material 3 にはこれらのトークンがないので、lamina-ui が決めた値です。
 
 ### ボタンのアイコン
 
