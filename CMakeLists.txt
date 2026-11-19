@@ -72,6 +72,7 @@ add_library(lamina STATIC
     src/lamina/widgets/switch.cpp
     src/lamina/widgets/tabs.cpp
     src/lamina/widgets/text_field.cpp
+    src/lamina/widgets/title_bar.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
 target_include_directories(lamina PUBLIC src)
@@ -195,6 +196,7 @@ if(LAMINA_BUILD_TESTS)
         tests/switch_test.cpp
         tests/tabs_test.cpp
         tests/text_field_test.cpp
+        tests/title_bar_test.cpp
         tests/text_test.cpp
         tests/tokens_test.cpp
         tests/widget_set_test.cpp
