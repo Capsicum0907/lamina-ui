@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <exception>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -108,6 +110,42 @@ struct Window::Impl {
     double wake_seconds = -1.0;
     bool text_input = false;
     SdlClipboard clipboard;
+    std::function<void(const Frame&)> live_redraw;
+    bool in_live_redraw = false;
+    std::exception_ptr live_error;
+
+    void measure(Frame& frame) {
+        const Uint64 now = SDL_GetTicksNS();
+        frame.dt_seconds = std::min(max_frame_seconds, static_cast<double>(now - last_ns) / nanoseconds_per_second);
+        last_ns = now;
+        int pw = 0;
+        int ph = 0;
+        SDL_GetWindowSizeInPixels(window, &pw, &ph);
+        pw = std::max(pw, 1);
+        ph = std::max(ph, 1);
+        canvas->resize(pw, ph);
+        frame.scale = scale();
+        frame.width_dp = pw / frame.scale;
+        frame.height_dp = ph / frame.scale;
+    }
+
+    static bool SDLCALL watch(void* userdata, SDL_Event* e) {
+        auto* self = static_cast<Impl*>(userdata);
+        if (e->type != SDL_EVENT_WINDOW_EXPOSED || e->window.data1 != 1 || e->window.windowID != SDL_GetWindowID(self->window) ||
+            !self->live_redraw || self->in_live_redraw || self->live_error) {
+            return true;
+        }
+        self->in_live_redraw = true;
+        try {
+            Frame frame{};
+            self->measure(frame);
+            self->live_redraw(frame);
+        } catch (...) {
+            self->live_error = std::current_exception();
+        }
+        self->in_live_redraw = false;
+        return true;
+    }
 
     double pixel_density() const {
         int ww = 0;
@@ -184,7 +222,20 @@ Window::~Window() {
     SDL_Quit();
 }
 
+void Window::on_live_resize(std::function<void(const Frame&)> redraw) {
+    const bool had = static_cast<bool>(impl_->live_redraw);
+    impl_->live_redraw = std::move(redraw);
+    if (impl_->live_redraw && !had) {
+        SDL_AddEventWatch(&Impl::watch, impl_.get());
+    } else if (!impl_->live_redraw && had) {
+        SDL_RemoveEventWatch(&Impl::watch, impl_.get());
+    }
+}
+
 bool Window::next_frame(Frame& frame, bool animating) {
+    if (impl_->live_error) {
+        std::rethrow_exception(std::exchange(impl_->live_error, nullptr));
+    }
     frame.pointer.clear();
     frame.keys.clear();
     frame.text.clear();
@@ -235,19 +286,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
         }
     }
 
-    const Uint64 now = SDL_GetTicksNS();
-    frame.dt_seconds = std::min(max_frame_seconds, static_cast<double>(now - impl_->last_ns) / nanoseconds_per_second);
-    impl_->last_ns = now;
-
-    int pw = 0;
-    int ph = 0;
-    SDL_GetWindowSizeInPixels(impl_->window, &pw, &ph);
-    pw = std::max(pw, 1);
-    ph = std::max(ph, 1);
-    impl_->canvas->resize(pw, ph);
-    frame.scale = impl_->scale();
-    frame.width_dp = pw / frame.scale;
-    frame.height_dp = ph / frame.scale;
+    impl_->measure(frame);
     return true;
 }
 

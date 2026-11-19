@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -36,6 +37,7 @@ public:
     Window& operator=(const Window&) = delete;
 
     bool next_frame(Frame& frame, bool animating);
+    void on_live_resize(std::function<void(const Frame&)> redraw);
     void wake_after(double seconds);
     void set_text_input(const std::optional<render::Rect>& caret_area_dp);
     input::Clipboard& clipboard();
