@@ -211,11 +211,11 @@ void TabRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.pop_clip();
     const render::Rect divider{r.x, r.y + r.height - t.divider_thickness, r.width, t.divider_thickness};
     canvas.fill_rect(divider, scheme[t.divider]);
-    const render::Rect indicator = indicator_rect();
-    canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(style.indicator_corner)), scheme[style.indicator]);
     if (!tabs_.empty()) {
         focus_.paint_inward(canvas, scheme, tab_rect(options_.selected), t.focus_ring_corner);
     }
+    const render::Rect indicator = indicator_rect();
+    canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(style.indicator_corner)), scheme[style.indicator]);
 }
 
 }
