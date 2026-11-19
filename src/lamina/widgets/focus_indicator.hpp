@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <optional>
 
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
@@ -27,6 +28,8 @@ constexpr bool activates(const input::KeyEvent& e, KeyActivation keys) {
 class FocusIndicator {
 public:
     FocusIndicator() : amount_(0.0, tokens::motion_scheme.fast_effects()) {}
+
+    void set_color(std::optional<color::Role> role) { color_ = role; }
 
     bool focused() const { return focused_; }
     void set_focused(bool focused) {
@@ -55,7 +58,7 @@ public:
         const tokens::FocusIndicatorTokens& t = tokens::focus_indicator;
         const double grow = t.outer_offset + t.thickness;
         const render::Rect outer{shape.x - grow, shape.y - grow, shape.width + 2.0 * grow, shape.height + 2.0 * grow};
-        canvas.fill_path(render::ring_path(outer, radius + grow, t.thickness), color::scale_alpha(scheme[t.color], a),
+        canvas.fill_path(render::ring_path(outer, radius + grow, t.thickness), color::scale_alpha(scheme[color_.value_or(t.color)], a),
                          render::FillRule::even_odd);
     }
     void paint_inward(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& shape, double radius) const {
@@ -78,7 +81,7 @@ public:
         };
         render::Path ring = render::rounded_rect_path(outer, shrink(radii, d));
         ring.append(render::rounded_rect_path(inner, shrink(radii, d + w)));
-        canvas.fill_path(ring, color::scale_alpha(scheme[t.color], a), render::FillRule::even_odd);
+        canvas.fill_path(ring, color::scale_alpha(scheme[color_.value_or(t.color)], a), render::FillRule::even_odd);
     }
     void paint_circle(render::Canvas& canvas, const color::ColorScheme& scheme, render::Point center, double radius) const {
         paint(canvas, scheme, render::circle_rect(center, radius), radius);
@@ -86,6 +89,7 @@ public:
 
 private:
     bool focused_ = false;
+    std::optional<color::Role> color_;
     motion::Animated amount_;
 };
 

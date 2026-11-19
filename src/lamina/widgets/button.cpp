@@ -31,6 +31,9 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
       state_layer_(0.0, motion_scheme.fast_effects()),
       elevation_(0.0, motion_scheme.default_effects()) {
     width_ = intrinsic_width();
+    if (options_.colors) {
+        focus_.set_color(options_.colors->focus_ring);
+    }
     elevation_.snap_to(tokens::elevation_dp[tokens::button_style(options_.style).elevation]);
 }
 

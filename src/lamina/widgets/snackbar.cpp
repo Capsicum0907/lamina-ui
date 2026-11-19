@@ -25,7 +25,7 @@ Snackbar::Snackbar(SnackbarOptions options, const text::FontStack& fonts)
       popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     if (!options_.action_label.empty()) {
         action_.emplace(ButtonOptions{options_.action_label, t.action_style, t.action_size, tokens::ButtonShape::round,
-                                      std::nullopt, ButtonColors{std::nullopt, t.action_color}},
+                                      std::nullopt, ButtonColors{std::nullopt, t.action_color, t.action_focus_ring}},
                         fonts);
     }
 }

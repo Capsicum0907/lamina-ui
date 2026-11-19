@@ -16,6 +16,7 @@ struct SnackbarTokens {
     color::Role supporting_text_color;
     TypeRole supporting_text;
     color::Role action_color;
+    color::Role action_focus_ring;
     ButtonStyle action_style;
     ButtonSize action_size;
     double single_line_height;
@@ -38,6 +39,7 @@ inline constexpr SnackbarTokens snackbar_tokens{
     .supporting_text_color = color::Role::inverse_on_surface,
     .supporting_text = TypeRole::body_medium,
     .action_color = color::Role::inverse_primary,
+    .action_focus_ring = color::Role::inverse_primary,
     .action_style = ButtonStyle::text,
     .action_size = ButtonSize::small,
     .single_line_height = 48.0,

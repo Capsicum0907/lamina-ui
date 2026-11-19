@@ -18,6 +18,7 @@ namespace lamina::widgets {
 struct ButtonColors {
     std::optional<color::Role> container;
     color::Role content;
+    std::optional<color::Role> focus_ring = std::nullopt;
 };
 
 struct ButtonOptions {

@@ -139,6 +139,20 @@ TEST_CASE("ButtonColors without a container keeps the button transparent") {
     CHECK(canvas.pixel(12, 30) != 0xffffffff);
 }
 
+TEST_CASE("ButtonColors can give the focus ring its own color role") {
+    widgets::ButtonOptions options{"Undo", ButtonStyle::text, ButtonSize::small, ButtonShape::round};
+    options.colors = widgets::ButtonColors{std::nullopt, color::Role::inverse_primary, color::Role::tertiary};
+    widgets::Button b(options, fonts());
+    b.set_origin({20.0, 20.0});
+    b.set_focused(true);
+    settle(b);
+    thorvg::Canvas canvas(200, 100);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, scheme());
+    CHECK(count_color(canvas, scheme()[color::Role::tertiary]) > 0);
+    CHECK(count_color(canvas, scheme()[tokens::focus_indicator.color]) == 0);
+}
+
 TEST_CASE("set_label relays out the label and refits an unsized button") {
     auto b = make(ButtonStyle::filled, ButtonSize::small, ButtonShape::round, "A");
     const double narrow = b.width();

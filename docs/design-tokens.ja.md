@@ -282,6 +282,7 @@ lamina-ui は、輪（`lamina/tokens/focus.hpp`）とフォーカスの状態の
 - ナビゲーションバーとレール：W の `labs/navigationbar/internal/navigation-bar.ts`（`role="tablist"`）は、ArrowLeft と ArrowRight でフォーカスを動かし（端では戻ります）、Home と End で両端へ動かしますが、選びはしません。Enter か Space でフォーカスのある項目を選びます。lamina-ui はこれに従い、タブと同じくバーやレールを一つの止まり位置にし、縦のレールでは上下の矢印を使い、輪は項目の印の周りに描きます。Compose は項目を一つずつ `selectable` な止まり位置にします（C の `NavigationItem.kt`）。material-web のバーが一つの止まり位置かどうかは、そのファイル（`navigationtab`）を読んでいないので分かりません。
 - メニュー：W の `menu/internal/menu.ts` は `defaultFocus` の既定を `FIRST_ITEM` にし（W の `menu/internal/controllers/shared.ts`）、W の `list/internal/list-controller.ts` は ArrowUp と ArrowDown で動き（既定では端で戻ります）、Home と End で両端へ動きます。W の `menu/internal/controllers/menuItemController.ts` は Enter・Space・Escape でメニューを閉じ、フォーカスはメニューを開く前の要素に戻ります。フォーカスがメニューの外へ出ると（Tab）、フォーカスを戻さずに閉じます。lamina-ui は Tab でも閉じ、Escape と同じく開いた部品にフォーカスを戻します。W の `menu/internal/menuitem/menu-item.ts` は項目の輪を内側（`inward`）に描きます。文字を打って項目へ飛ぶ機能（W の `typeaheadController.ts`）は作っていません。
 - スナックバー：操作にフォーカスがある間に時間を止めるのは lamina-ui 独自の決めごとで、WCAG 2.1 の達成基準 2.2.1（タイミング調整可能）によります。Compose の `SnackbarHost` から読んだものではありません。
+- スナックバー：操作のフォーカスの枠は secondary ではなく、操作の文字と同じ inverse-primary で描きます。inverse-surface の面の上では secondary の差が小さく、見えにくいためです。これは lamina-ui 独自の決めごとです。どのボタンでも `ButtonColors::focus_ring` で枠の色の役割を指定できます。
 - タブを受け取る入力欄は、WinForms と WPF の `AcceptsTab` のテキストボックスと同じく Ctrl+Tab で外へ出られるので、キーボードの罠になりません（WCAG 2.1 の達成基準 2.1.2）。
 
 ## 部品
