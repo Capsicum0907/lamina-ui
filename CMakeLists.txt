@@ -82,6 +82,7 @@ add_library(lamina STATIC
     src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/scroll_area.cpp
+    src/lamina/widgets/segmented_button.cpp
     src/lamina/widgets/slider.cpp
     src/lamina/widgets/snackbar.cpp
     src/lamina/widgets/surface.cpp
@@ -93,7 +94,7 @@ add_library(lamina STATIC
     src/lamina/widgets/top_app_bar.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
-set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close)
+set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close check)
 get_property(lamina_builtin_icons GLOBAL PROPERTY LAMINA_BUILTIN_ICONS)
 lamina_icon_codepoints(lamina_builtin_codes lamina ${lamina_builtin_icons})
 lamina_write_resource_header("${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamina/include/lamina/builtin_resources.hpp" lamina::builtin
@@ -266,6 +267,7 @@ if(LAMINA_BUILD_TESTS)
         tests/radio_button_test.cpp
         tests/resources_test.cpp
         tests/scroll_area_test.cpp
+        tests/segmented_button_test.cpp
         tests/shapes_test.cpp
         tests/slider_test.cpp
         tests/snackbar_test.cpp
