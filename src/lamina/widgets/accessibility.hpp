@@ -35,6 +35,11 @@ enum class AccessibleRole {
     tooltip,
     title_bar,
     group,
+    separator,
+    list,
+    list_item,
+    toolbar,
+    heading,
 };
 
 enum class AccessibleToggle { off, on, mixed };

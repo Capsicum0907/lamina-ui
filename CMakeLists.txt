@@ -62,6 +62,7 @@ add_library(lamina STATIC
     src/lamina/widgets/button.cpp
     src/lamina/widgets/checkbox.cpp
     src/lamina/widgets/dialog.cpp
+    src/lamina/widgets/divider.cpp
     src/lamina/widgets/fab.cpp
     src/lamina/widgets/focus_manager.cpp
     src/lamina/widgets/grouped_menu.cpp
@@ -224,6 +225,7 @@ if(LAMINA_BUILD_TESTS)
         tests/dialog_test.cpp
         tests/disabled_items_test.cpp
         tests/disabled_test.cpp
+        tests/divider_test.cpp
         tests/edit_buffer_test.cpp
         tests/edit_history_test.cpp
         tests/focus_indicator_test.cpp
