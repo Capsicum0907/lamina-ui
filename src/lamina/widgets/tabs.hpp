@@ -57,9 +57,9 @@ public:
     void set_focused(bool focused);
     bool tab_enabled(std::size_t index) const { return tabs_[index].enabled.enabled(); }
     void set_tab_enabled(std::size_t index, bool enabled);
-    bool enabled() const;
+    bool enabled() const { return row_enabled_; }
     void set_enabled(bool enabled);
-    bool can_focus() const { return enabled(); }
+    bool can_focus() const;
     AccessibleNode accessible() const;
 
     bool handle(const input::PointerEvent& event);
@@ -77,6 +77,7 @@ private:
         motion::Animated state_layer;
         motion::Animated selected;
         Enablement enabled;
+        bool allowed;
     };
 
     double tab_width() const;
@@ -96,6 +97,9 @@ private:
     motion::Animated indicator_offset_;
     motion::Animated indicator_width_;
     FocusIndicator focus_;
+    bool row_enabled_ = true;
+
+    void refresh_tabs();
 };
 
 }

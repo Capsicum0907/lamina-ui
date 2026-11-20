@@ -95,4 +95,16 @@ void disable_item(Items& items, std::size_t index) {
     items[index].state_layer.animate_to(0.0);
 }
 
+template <typename Items>
+bool refresh_item(Items& items, std::size_t index, bool row_enabled) {
+    const bool on = row_enabled && items[index].allowed;
+    if (!items[index].enabled.set(on)) {
+        return false;
+    }
+    if (!on) {
+        disable_item(items, index);
+    }
+    return true;
+}
+
 }

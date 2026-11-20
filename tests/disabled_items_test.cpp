@@ -161,3 +161,20 @@ TEST_CASE("a disabled grouped menu item takes no keys, clicks or access keys") {
     menu.set_item_enabled(0, 0, true);
     CHECK(menu.item_enabled(0, 0));
 }
+
+TEST_CASE("disabling and enabling a whole row keeps the items that were disabled on their own") {
+    auto row = tab_row(false);
+    row.set_enabled(false);
+    CHECK_FALSE(row.enabled());
+    CHECK_FALSE(row.tab_enabled(0));
+    row.set_enabled(true);
+    CHECK(row.tab_enabled(0));
+    CHECK_FALSE(row.tab_enabled(1));
+
+    widgets::NavigationBar bar({navigation_items(false)}, fonts());
+    bar.set_enabled(false);
+    CHECK_FALSE(bar.can_focus());
+    bar.set_enabled(true);
+    CHECK_FALSE(bar.item_enabled(0));
+    CHECK(bar.item_enabled(1));
+}

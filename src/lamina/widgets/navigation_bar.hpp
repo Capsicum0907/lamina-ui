@@ -45,9 +45,9 @@ public:
     void set_focused(bool focused);
     bool item_enabled(std::size_t index) const { return items_[index].enabled.enabled(); }
     void set_item_enabled(std::size_t index, bool enabled);
-    bool enabled() const;
+    bool enabled() const { return row_enabled_; }
     void set_enabled(bool enabled);
-    bool can_focus() const { return enabled(); }
+    bool can_focus() const { return row_enabled_ && any_item_enabled(items_); }
     AccessibleNode accessible() const {
         return navigation_accessible(options_.items, items_, options_.accessible_name, bounds(), options_.selected, focused(), focus_index_,
                                      [this](std::size_t i) { return item_rect(i); });
@@ -69,6 +69,7 @@ private:
         motion::Animated indicator;
         motion::Animated color;
         Enablement enabled;
+        bool allowed;
     };
 
     double content_top(std::size_t index) const;
@@ -83,6 +84,8 @@ private:
     std::size_t focus_index_ = 0;
 
     void retarget_state_layers();
+    void refresh_items();
+    bool row_enabled_ = true;
 };
 
 }

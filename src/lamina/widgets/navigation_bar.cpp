@@ -32,7 +32,7 @@ NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack
         const double on = i == options_.selected ? 1.0 : 0.0;
         items_.push_back({std::move(label), {}, motion::Animated(0.0, motion_scheme.fast_effects()),
                           motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(on, motion_scheme.default_effects()),
-                          Enablement(options_.items[i].enabled)});
+                          Enablement(options_.items[i].enabled), options_.items[i].enabled});
     }
 }
 
@@ -94,29 +94,29 @@ void NavigationBar::set_focused(bool focused) {
     retarget_state_layers();
 }
 
-bool NavigationBar::enabled() const {
-    return any_item_enabled(items_);
-}
-
-void NavigationBar::set_item_enabled(std::size_t index, bool enabled) {
-    if (index >= items_.size() || !items_[index].enabled.set(enabled)) {
-        return;
+void NavigationBar::refresh_items() {
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        refresh_item(items_, i, row_enabled_);
     }
-    if (!enabled) {
-        disable_item(items_, index);
-        if (!can_focus()) {
-            focus_.set_focused(false);
-        } else if (focus_index_ == index) {
-            focus_index_ = navigation_focus_start(items_, index);
-        }
+    if (!can_focus()) {
+        focus_.set_focused(false);
+    } else if (!items_[focus_index_].enabled.enabled()) {
+        focus_index_ = navigation_focus_start(items_, focus_index_);
     }
     retarget_state_layers();
 }
 
-void NavigationBar::set_enabled(bool enabled) {
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        set_item_enabled(i, enabled);
+void NavigationBar::set_item_enabled(std::size_t index, bool enabled) {
+    if (index >= items_.size()) {
+        return;
     }
+    items_[index].allowed = enabled;
+    refresh_items();
+}
+
+void NavigationBar::set_enabled(bool enabled) {
+    row_enabled_ = enabled;
+    refresh_items();
 }
 
 bool NavigationBar::handle(const input::KeyEvent& e) {

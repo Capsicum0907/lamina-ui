@@ -39,7 +39,7 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
         stacked = stacked || (label && item.icon && options_.icon_position == TabIconPosition::top);
         const double on = i == options_.selected ? 1.0 : 0.0;
         tabs_.push_back({std::move(label), item.icon, {}, motion::Animated(0.0, motion_scheme.fast_effects()),
-                         motion::Animated(on, fade_in_spring), Enablement(item.enabled)});
+                         motion::Animated(on, fade_in_spring), Enablement(item.enabled), item.enabled});
     }
     height_ = stacked ? t.icon_and_label_height : t.height;
 }
@@ -128,21 +128,26 @@ void TabRow::set_focused(bool focused) {
     retarget_state_layers();
 }
 
-bool TabRow::enabled() const {
-    return any_item_enabled(tabs_);
+bool TabRow::can_focus() const {
+    return row_enabled_ && any_item_enabled(tabs_);
+}
+
+void TabRow::refresh_tabs() {
+    for (std::size_t i = 0; i < tabs_.size(); ++i) {
+        refresh_item(tabs_, i, row_enabled_);
+    }
+    if (!can_focus()) {
+        focus_.set_focused(false);
+    }
+    retarget_state_layers();
 }
 
 void TabRow::set_tab_enabled(std::size_t index, bool enabled) {
-    if (index >= tabs_.size() || !tabs_[index].enabled.set(enabled)) {
+    if (index >= tabs_.size()) {
         return;
     }
-    if (!enabled) {
-        disable_item(tabs_, index);
-        if (!can_focus()) {
-            focus_.set_focused(false);
-        }
-    }
-    retarget_state_layers();
+    tabs_[index].allowed = enabled;
+    refresh_tabs();
 }
 
 AccessibleNode TabRow::accessible() const {
@@ -158,9 +163,8 @@ AccessibleNode TabRow::accessible() const {
 }
 
 void TabRow::set_enabled(bool enabled) {
-    for (std::size_t i = 0; i < tabs_.size(); ++i) {
-        set_tab_enabled(i, enabled);
-    }
+    row_enabled_ = enabled;
+    refresh_tabs();
 }
 
 bool TabRow::handle(const input::PointerEvent& e) {

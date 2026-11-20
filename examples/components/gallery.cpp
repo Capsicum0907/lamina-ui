@@ -328,7 +328,7 @@ void Gallery::Impl::build_left(std::vector<layout::NodePtr>& column) {
         control_with<widgets::Fab>(fabs, clicked(std::string("FAB: ") + name), widgets::FabOptions{icon(symbol), name, size});
     }
     control_with<widgets::Fab>(fabs, clicked("FAB: secondary"),
-                               widgets::FabOptions{icon(res::icons::search), "Search", tokens::FabSize::baseline, tokens::FabStyle::secondary_container});
+                               widgets::FabOptions{icon(res::icons::search), "Find", tokens::FabSize::baseline, tokens::FabStyle::secondary_container});
     column.push_back(captioned("FAB", items(std::move(fabs))));
 
     std::vector<layout::NodePtr> switches;
@@ -734,8 +734,12 @@ std::vector<widgets::AccessibleNode> Gallery::accessible_nodes() const {
 }
 
 std::optional<render::Rect> Gallery::find(std::string_view name) const {
-    const auto node = widgets::find_accessible(
-        accessible_nodes(), [name](const widgets::AccessibleNode& n) { return n.name == name && n.role != widgets::AccessibleRole::label; });
+    const std::vector<widgets::AccessibleNode> nodes = accessible_nodes();
+    auto node = widgets::find_accessible(
+        nodes, [name](const widgets::AccessibleNode& n) { return n.name == name && n.role != widgets::AccessibleRole::label; });
+    if (!node) {
+        node = widgets::find_accessible(nodes, name);
+    }
     return node ? std::optional<render::Rect>(node->bounds) : std::nullopt;
 }
 
