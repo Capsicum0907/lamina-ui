@@ -407,7 +407,7 @@ private:
     layout::NodePtr cards() {
         std::vector<layout::NodePtr> row;
         card(row, tokens::CardStyle::elevated, "Kyoto", "Temples, gardens and tea in the old capital.", true, true, nullptr);
-        card(row, tokens::CardStyle::filled, "Lisbon", "Tiled streets, trams and the river at sunset.", true, true, nullptr);
+        card(row, tokens::CardStyle::filled, "Porto", "Tiled streets, trams and the river at sunset.", true, true, nullptr);
         card(row, tokens::CardStyle::outlined, "Reykjavik", "Hot springs and the northern lights.", true, true, "Open");
         auto r = items(std::move(row));
         static_cast<layout::Linear&>(*r).cross_align(layout::CrossAlign::start);

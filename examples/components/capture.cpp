@@ -550,7 +550,7 @@ const std::map<std::string, Scene>& videos() {
              d.wait(0.8);
              d.click();
              d.wait(0.6);
-             d.move_to("Lisbon", 0.6);
+             d.move_to("Porto", 0.6);
              d.wait(0.6);
              d.click();
              d.wait(0.6);
