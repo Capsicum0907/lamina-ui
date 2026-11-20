@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "common/caption_cell.hpp"
+#include "components/pages.hpp"
 #include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
@@ -66,6 +67,21 @@ struct Layout {
     double symbol_size = 24.0;
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
+    double page_tabs_width = 560.0;
+    std::array<const char*, 4> page_names{"Basics", "Chips & cards", "Lists", "App bars & badges"};
+};
+
+class PageSwitch final : public layout::Node {
+public:
+    PageSwitch(std::vector<layout::NodePtr> pages, const std::size_t& current) : pages_(std::move(pages)), current_(current) {}
+
+protected:
+    layout::Size on_measure(const layout::Constraints& c) override { return pages_[current_]->measure(c); }
+    void on_arrange(const render::Rect& r) override { pages_[current_]->arrange(r); }
+
+private:
+    std::vector<layout::NodePtr> pages_;
+    const std::size_t& current_;
 };
 
 struct TypeSample {
@@ -119,6 +135,10 @@ struct Gallery::Impl {
     void retheme();
     void open_menu();
     void open_dialog();
+    void switch_page(std::size_t next);
+    void handle_title_bar(const input::PointerEvent& e);
+    widgets::FocusManager& current_focus() { return page == 0 ? focus : pages[page - 1]->focus(); }
+    Page* current_page() const { return page == 0 ? nullptr : pages[page - 1].get(); }
 
     const Layout layout;
     text::FontStack fonts;
@@ -132,11 +152,15 @@ struct Gallery::Impl {
     widgets::Label status;
     widgets::WidgetSet controls;
     widgets::WidgetSet chrome;
+    widgets::WidgetSet header_widgets;
     widgets::FocusManager focus;
     widgets::OverlayStack overlay;
     std::vector<Row> rows;
     std::vector<std::unique_ptr<widgets::Tooltip>> tooltips;
     widgets::Switch* enabled_switch = nullptr;
+    widgets::TabRow* page_tabs = nullptr;
+    std::vector<std::unique_ptr<Page>> pages;
+    std::size_t page = 0;
     widgets::IconButton* dark_toggle = nullptr;
     widgets::Button* menu_button = nullptr;
     widgets::Button* dialog_button = nullptr;
@@ -162,22 +186,46 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
       scheme(theme.current()),
       header({"部品", layout.header_type, layout.text, false}, f),
       status({"—", layout.caption_type, layout.caption, false}, f) {
-    auto& switch_label = chrome.emplace<widgets::Label>(widgets::LabelOptions{"Enabled", layout.caption_type, layout.caption, false}, fonts);
-    enabled_switch = &chrome.emplace_with<widgets::Switch>(
+    auto& switch_label = header_widgets.emplace<widgets::Label>(widgets::LabelOptions{"Enabled", layout.caption_type, layout.caption, false}, fonts);
+    enabled_switch = &header_widgets.emplace_with<widgets::Switch>(
         [this](widgets::Switch& s, bool clicked) {
             if (clicked) {
                 controls.set_enabled(s.checked());
+                for (auto& p : pages) {
+                    p->set_enabled(s.checked());
+                }
                 report(s.checked() ? "Enabled: on" : "Enabled: off");
             }
         },
         widgets::SwitchOptions{.checked = true, .checked_icon = icon(res::icons::check), .accessible_name = "Enabled"});
     focus.add(*enabled_switch);
+    std::vector<widgets::TabItem> page_items;
+    for (const char* name : layout.page_names) {
+        page_items.push_back({name});
+    }
+    page_tabs = &header_widgets.emplace_with<widgets::TabRow>(
+        [this](widgets::TabRow& w, bool changed) {
+            if (changed) {
+                switch_page(w.selected());
+            }
+        },
+        widgets::TabRowOptions{page_items, tokens::TabStyle::secondary, 0, widgets::TabIconPosition::top, "Pages"}, f);
+    page_tabs->set_width(layout.page_tabs_width);
+    focus.add(*page_tabs);
+    PageContext context{f, i, [this](std::string s) { report(std::move(s)); },
+                        [this](widgets::FocusManager& m) {
+                            m.add(*enabled_switch);
+                            m.add(*page_tabs);
+                        }};
+    pages.push_back(make_chips_page(context));
+    pages.push_back(make_lists_page(context));
+    pages.push_back(make_bars_page(context));
 
     auto toggle_row = layout::row({widgets::node(switch_label), widgets::node(*enabled_switch)});
     toggle_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
     auto end_row = layout::row({widgets::node(status), toggle_row});
     end_row->spacing(layout.column_space).cross_align(layout::CrossAlign::center);
-    auto header_row = layout::row({widgets::node(header), end_row});
+    auto header_row = layout::row({widgets::node(header), widgets::centered_node(*page_tabs), end_row});
     header_row->fill_main(true).main_align(layout::MainAlign::space_between).cross_align(layout::CrossAlign::center);
     header_row->self_align = layout::CrossAlign::stretch;
 
@@ -201,18 +249,24 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
             return layout::Size{static_cast<double>(symbols_per_line) * symbol_pitch, static_cast<double>(lines) * symbol_pitch};
         },
         [this](const render::Rect& r) { symbols_at = {r.x, r.y}; });
-    auto page = layout::column({header_row, columns, captioned("Symbols", symbols)});
-    page->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
+    auto basics = layout::column({columns, captioned("Symbols", symbols)});
+    basics->spacing(layout.row_gap);
+    std::vector<layout::NodePtr> bodies{basics};
+    for (const auto& p : pages) {
+        bodies.push_back(p->body());
+    }
+    auto content = layout::column({header_row, std::make_shared<PageSwitch>(std::move(bodies), page)});
+    content->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
 
-    root = page;
+    root = content;
     if (host.client_title_bar()) {
         title_bar = std::make_unique<widgets::TitleBar>(widgets::TitleBarOptions{"lamina-ui components", icon_font}, fonts);
-        page->self_align = layout::CrossAlign::stretch;
-        auto framed = layout::column({widgets::node(*title_bar), layout::weighted(page, 1.0)});
+        content->self_align = layout::CrossAlign::stretch;
+        auto framed = layout::column({widgets::node(*title_bar), layout::weighted(content, 1.0)});
         framed->fill_cross(true);
         root = framed;
     }
-    overlay.add_base(controls, chrome);
+    overlay.add_base(controls, chrome, header_widgets);
     overlay.set_focus(focus);
 }
 
@@ -535,6 +589,45 @@ void Gallery::Impl::retheme() {
     dark_toggle->set_icon(icon(options.dark ? res::icons::light_mode : res::icons::dark_mode));
 }
 
+void Gallery::Impl::handle_title_bar(const input::PointerEvent& e) {
+    if (title_bar) {
+        switch (title_bar->handle(e)) {
+        case widgets::TitleBarAction::minimize:
+            host.minimize();
+            break;
+        case widgets::TitleBarAction::toggle_maximize:
+            host.toggle_maximize();
+            break;
+        case widgets::TitleBarAction::close:
+            host.close();
+            break;
+        case widgets::TitleBarAction::none:
+            break;
+        }
+    }
+}
+
+void Gallery::Impl::switch_page(std::size_t next) {
+    if (next == page || next > pages.size()) {
+        return;
+    }
+    const bool tabs_focused = page_tabs->focused();
+    current_focus().clear_focus();
+    if (page == 0) {
+        controls.cancel_interaction();
+        for (auto& t : tooltips) {
+            t->dismiss();
+        }
+    } else {
+        pages[page - 1]->cancel_interaction();
+    }
+    page = next;
+    if (tabs_focused) {
+        page_tabs->set_focused(true);
+    }
+    report(std::string("Page: ") + layout.page_names[page]);
+}
+
 void Gallery::Impl::open_menu() {
     menu->open(menu_button->bounds(), window, source);
     overlay.push(*menu, [this](const widgets::MenuResponse& r) {
@@ -577,10 +670,20 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
     for (auto& t : g.tooltips) {
         t->set_window(g.window);
     }
+    for (auto& p : g.pages) {
+        p->set_window(g.window);
+    }
     g.scheme = g.theme.current();
+    Page* current = g.current_page();
 
     for (const auto& e : frame.pointer) {
         g.source = input::InputSource::pointer;
+        if (current) {
+            g.handle_title_bar(e);
+            current->handle(e);
+            g.header_widgets.handle(e);
+            continue;
+        }
         if (g.overlay.handle(e)) {
             continue;
         }
@@ -595,33 +698,30 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         if (consumed) {
             continue;
         }
-        if (g.title_bar) {
-            switch (g.title_bar->handle(e)) {
-            case widgets::TitleBarAction::minimize:
-                g.host.minimize();
-                break;
-            case widgets::TitleBarAction::toggle_maximize:
-                g.host.toggle_maximize();
-                break;
-            case widgets::TitleBarAction::close:
-                g.host.close();
-                break;
-            case widgets::TitleBarAction::none:
-                break;
-            }
-        }
+        g.handle_title_bar(e);
         if (const auto seed = g.chips.handle(e)) {
             g.options.seed = *seed;
             g.retheme();
         }
         g.controls.handle(e);
         g.chrome.handle(e);
+        g.header_widgets.handle(e);
     }
     for (const auto& w : frame.wheel) {
-        g.overlay.handle(w);
+        if (g.current_page()) {
+            g.current_page()->handle(w);
+        } else {
+            g.overlay.handle(w);
+        }
     }
     for (const auto& k : frame.keys) {
         g.source = input::InputSource::keyboard;
+        if (Page* p = g.current_page()) {
+            if (!p->handle(k)) {
+                g.header_widgets.handle(k);
+            }
+            continue;
+        }
         if (g.overlay.handle(k)) {
             continue;
         }
@@ -639,8 +739,12 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         }
         g.controls.handle(k);
         g.chrome.handle(k);
+        g.header_widgets.handle(k);
     }
     for (const auto& t : frame.text) {
+        if (g.current_page()) {
+            continue;
+        }
         if (!g.overlay.handle(t)) {
             g.controls.handle(t);
         }
@@ -652,9 +756,14 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     Impl& g = *impl_;
     const double dt = frame.dt_seconds;
     g.theme.step(dt);
+    Page* current = g.current_page();
+    if (current) {
+        current->step(dt);
+    }
     g.chips.step(dt);
     g.controls.step(dt);
     g.chrome.step(dt);
+    g.header_widgets.step(dt);
     g.menu->step(dt);
     g.dialog->step(dt);
     for (auto& t : g.tooltips) {
@@ -667,6 +776,12 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     const color::ColorScheme& s = g.scheme;
     g.header.paint(canvas, s);
     g.status.paint(canvas, s);
+    if (current) {
+        g.header_widgets.paint(canvas, s);
+        current->paint(canvas, s);
+        current->paint_overlays(canvas, s);
+        return !g.theme.settled() || g.header_widgets.animating() || current->animating() || (g.title_bar && g.title_bar->animating());
+    }
     for (const Row& row : g.rows) {
         row.caption->paint(canvas, s);
     }
@@ -679,6 +794,7 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     }
     g.chips.paint(canvas, s);
     g.chrome.paint(canvas, s);
+    g.header_widgets.paint(canvas, s);
     g.controls.paint(canvas, s);
     g.menu->paint(canvas, s);
     g.dialog->paint(canvas, s);
@@ -689,11 +805,14 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     for (const auto& t : g.tooltips) {
         tooltips_moving = tooltips_moving || t->animating();
     }
-    return !g.theme.settled() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.menu->animating() ||
+    return !g.theme.settled() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
            g.dialog->animating() || tooltips_moving || (g.title_bar && g.title_bar->animating());
 }
 
 std::optional<render::Rect> Gallery::caret_area() const {
+    if (impl_->current_page()) {
+        return std::nullopt;
+    }
     if (const auto caret = impl_->dialog->caret_area()) {
         return caret;
     }
@@ -701,6 +820,9 @@ std::optional<render::Rect> Gallery::caret_area() const {
 }
 
 std::optional<double> Gallery::next_wake_seconds() const {
+    if (Page* p = impl_->current_page()) {
+        return p->next_wake_seconds();
+    }
     std::optional<double> wake = impl_->focus.next_wake_seconds();
     auto merge = [&wake](std::optional<double> w) {
         if (w) {
@@ -715,7 +837,16 @@ std::optional<double> Gallery::next_wake_seconds() const {
 }
 
 std::vector<widgets::AccessibleNode> Gallery::accessible_nodes() const {
-    std::vector<widgets::AccessibleNode> nodes = impl_->chrome.accessible_nodes();
+    std::vector<widgets::AccessibleNode> nodes = impl_->header_widgets.accessible_nodes();
+    if (Page* p = impl_->current_page()) {
+        for (widgets::AccessibleNode& n : p->accessible_nodes()) {
+            nodes.push_back(std::move(n));
+        }
+        return nodes;
+    }
+    for (widgets::AccessibleNode& n : impl_->chrome.accessible_nodes()) {
+        nodes.push_back(std::move(n));
+    }
     for (widgets::AccessibleNode& n : impl_->controls.accessible_nodes()) {
         nodes.push_back(std::move(n));
     }
@@ -746,6 +877,11 @@ std::optional<render::Rect> Gallery::find(std::string_view name) const {
 bool Gallery::set_enabled(std::string_view name, bool enabled) {
     const auto it = impl_->enablers.find(name);
     if (it == impl_->enablers.end()) {
+        for (auto& p : impl_->pages) {
+            if (p->set_enabled(name, enabled)) {
+                return true;
+            }
+        }
         return false;
     }
     it->second(enabled);

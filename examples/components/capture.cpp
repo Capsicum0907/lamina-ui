@@ -188,7 +188,9 @@ private:
         static const std::map<Key, std::string> names{{Key::tab, "Tab"},      {Key::space, "Space"}, {Key::enter, "Enter"},
                                                       {Key::escape, "Esc"},   {Key::left, "←"},  {Key::right, "→"},
                                                       {Key::up, "↑"},    {Key::down, "↓"},  {Key::backspace, "Backspace"},
-                                                      {Key::page_down, "PgDn"}};
+                                                      {Key::page_down, "PgDn"},  {Key::page_up, "PgUp"},
+                                                      {Key::home, "Home"},       {Key::end, "End"},
+                                                      {Key::delete_forward, "Delete"}};
         const auto it = names.find(k);
         const std::string base = it == names.end() ? "?" : it->second;
         return shift ? "Shift+" + base : base;
@@ -263,11 +265,78 @@ void tab_to(Driver& d, examples::components::Gallery& g, std::string_view name, 
     throw std::runtime_error("Tab never reached " + std::string(name));
 }
 
+void show_page(Driver& d, std::string_view name) {
+    d.set_cursor(false);
+    d.move_to(name, 0.05);
+    d.click();
+    d.move_to({720.0, 845.0}, 0.05);
+    d.set_cursor(true);
+    d.wait(0.6);
+}
+
+void wheel_at(Driver& d, std::string_view name, double dy, int notches, double pause) {
+    d.move_to(name, 0.4);
+    for (int i = 0; i < notches; ++i) {
+        d.wheel(dy);
+        d.wait(pause);
+    }
+}
+
 using Scene = std::function<void(Driver&, examples::components::Gallery&)>;
 
 const std::map<std::string, Scene>& stills() {
     static const std::map<std::string, Scene> scenes{
         {"default", [](Driver&, examples::components::Gallery&) {}},
+        {"chips", [](Driver& d, examples::components::Gallery&) { show_page(d, "Chips & cards"); }},
+        {"chips_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Chips & cards");
+             d.set_cursor(false);
+             tab_to(d, g, "Filters");
+             d.key(Key::right);
+             d.wait(0.4);
+         }},
+        {"chips_hover",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Chips & cards");
+             d.move_to("Kyoto", 0.3);
+             d.wait(0.4);
+         }},
+        {"chips_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Chips & cards");
+             d.move_to("Enabled", 0.1);
+             d.click();
+             d.move_to({720.0, 845.0}, 0.1);
+         }},
+        {"lists", [](Driver& d, examples::components::Gallery&) { show_page(d, "Lists"); }},
+        {"lists_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Lists");
+             d.set_cursor(false);
+             tab_to(d, g, "Messages");
+             for (int i = 0; i < 4; ++i) {
+                 d.key(Key::down);
+             }
+             d.wait(0.6);
+         }},
+        {"lists_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Lists");
+             d.move_to("Enabled", 0.1);
+             d.click();
+             d.move_to({720.0, 845.0}, 0.1);
+         }},
+        {"bars", [](Driver& d, examples::components::Gallery&) { show_page(d, "App bars & badges"); }},
+        {"bars_scrolled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "App bars & badges");
+             for (const char* list : {"Inbox list", "Photos list", "Mail list", "Albums list"}) {
+                 wheel_at(d, list, 1.0, 3, 0.1);
+             }
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(0.8);
+         }},
         {"disabled",
          [](Driver& d, examples::components::Gallery&) {
              d.move_to("Enabled", 0.1);
@@ -421,6 +490,170 @@ const std::map<std::string, Scene>& videos() {
              d.move_to("Cancel", 0.7);
              d.wait(0.3);
              d.click();
+             d.wait(1.0);
+         }},
+        {"filter_chips",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Chips & cards");
+             for (const char* name : {"Unread", "Has files", "Elevated", "Starred"}) {
+                 d.move_to(name, 0.6);
+                 d.wait(0.3);
+                 d.click();
+                 d.wait(0.7);
+             }
+             for (const char* name : {"Music", "Science", "Travel"}) {
+                 d.move_to(name, 0.6);
+                 d.wait(0.2);
+                 d.click();
+                 d.wait(0.6);
+             }
+             d.move_to({720.0, 845.0}, 0.6);
+             d.set_cursor(false);
+             tab_to(d, g, "Filters");
+             d.wait(0.5);
+             for (int i = 0; i < 2; ++i) {
+                 d.key(Key::right);
+                 d.wait(0.5);
+                 d.key(Key::space);
+                 d.wait(0.7);
+             }
+             d.wait(0.6);
+         }},
+        {"input_chip",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Chips & cards");
+             d.move_to("Grace", 0.8);
+             d.wait(0.4);
+             d.move_to("Remove Grace", 0.4);
+             d.wait(0.5);
+             d.click();
+             d.wait(1.2);
+             d.move_to("Remove Lisbon", 0.8);
+             d.wait(0.4);
+             d.click();
+             d.wait(1.2);
+             d.move_to({720.0, 845.0}, 0.6);
+             d.set_cursor(false);
+             tab_to(d, g, "Recipients");
+             d.wait(0.5);
+             d.key(Key::right);
+             d.wait(0.6);
+             d.key(Key::delete_forward);
+             d.wait(1.2);
+             d.key(Key::backspace, false, "Backspace");
+             d.wait(1.4);
+         }},
+        {"card",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Chips & cards");
+             d.move_to("Kyoto", 0.8);
+             d.wait(0.8);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Lisbon", 0.6);
+             d.wait(0.6);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Open", 0.6);
+             d.wait(0.5);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Static", 0.6);
+             d.wait(0.6);
+             d.click();
+             d.wait(0.6);
+             d.move_to({720.0, 845.0}, 0.6);
+             d.set_cursor(false);
+             tab_to(d, g, "Kyoto");
+             d.wait(0.6);
+             d.key(Key::enter);
+             d.wait(0.6);
+             d.key(Key::tab);
+             d.wait(0.6);
+             d.key(Key::tab);
+             d.wait(0.8);
+         }},
+        {"list_keys",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Lists");
+             d.set_cursor(false);
+             tab_to(d, g, "Messages");
+             d.wait(0.5);
+             for (int i = 0; i < 8; ++i) {
+                 d.key(Key::down);
+                 d.wait(0.3);
+             }
+             d.key(Key::page_down);
+             d.wait(0.8);
+             d.key(Key::page_down);
+             d.wait(0.8);
+             d.key(Key::end);
+             d.wait(1.2);
+             d.key(Key::up);
+             d.wait(0.5);
+             d.key(Key::home);
+             d.wait(1.2);
+             tab_to(d, g, "Settings");
+             d.wait(0.4);
+             for (int i = 0; i < 3; ++i) {
+                 d.key(Key::down);
+                 d.wait(0.35);
+             }
+             d.key(Key::space);
+             d.wait(0.7);
+             for (int i = 0; i < 4; ++i) {
+                 d.key(Key::down);
+                 d.wait(0.35);
+             }
+             d.key(Key::space);
+             d.wait(0.7);
+             d.key(Key::down);
+             d.wait(0.5);
+             d.key(Key::down);
+             d.wait(0.8);
+         }},
+        {"badge",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "App bars & badges");
+             d.move_to("Add 1", 0.8);
+             for (int i = 0; i < 4; ++i) {
+                 d.click();
+                 d.wait(0.45);
+             }
+             d.move_to("Add 100", 0.6);
+             for (int i = 0; i < 10; ++i) {
+                 d.click();
+                 d.wait(0.35);
+             }
+             d.wait(0.5);
+             d.move_to("Clear", 0.6);
+             d.click();
+             d.wait(0.8);
+             d.move_to("Add 1", 0.6);
+             d.click();
+             d.wait(1.0);
+         }},
+        {"app_bar",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "App bars & badges");
+             wheel_at(d, "Inbox list", 1.0, 3, 0.35);
+             d.wait(0.4);
+             wheel_at(d, "Inbox list", -1.0, 3, 0.3);
+             d.wait(0.6);
+             wheel_at(d, "Photos list", 1.0, 3, 0.35);
+             d.wait(0.4);
+             wheel_at(d, "Photos list", -0.5, 1, 0.8);
+             wheel_at(d, "Photos list", -1.0, 4, 0.3);
+             d.wait(0.6);
+             wheel_at(d, "Mail list", 0.5, 1, 1.0);
+             wheel_at(d, "Mail list", 1.0, 4, 0.35);
+             d.wait(0.4);
+             wheel_at(d, "Mail list", -1.0, 6, 0.3);
+             d.wait(0.6);
+             wheel_at(d, "Albums list", 0.6, 1, 1.0);
+             wheel_at(d, "Albums list", 1.0, 3, 0.35);
+             d.wait(0.6);
+             wheel_at(d, "Albums list", -1.0, 6, 0.3);
              d.wait(1.0);
          }},
         {"enable",
