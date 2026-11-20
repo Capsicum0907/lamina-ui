@@ -90,8 +90,13 @@ TEST_CASE("the generated constants carry the codepoints of the codepoints file")
 
 TEST_CASE("all_icons keeps the listed order and adds lamina's own icons after them") {
     CHECK(res::all_icons.front() == res::icons::add);
-    CHECK(res::all_icons[res::all_icons.size() - 2] == res::icons::_10k);
-    CHECK(res::all_icons.back() == builtin::icons::close);
+    const auto ten_k = std::find(res::all_icons.begin(), res::all_icons.end(), res::icons::_10k);
+    REQUIRE(ten_k != res::all_icons.end());
+    REQUIRE(ten_k + 1 != res::all_icons.end());
+    CHECK(*(ten_k + 1) == builtin::icons::close);
+    for (auto it = ten_k + 2; it != res::all_icons.end(); ++it) {
+        CHECK(std::count(builtin::all_icons.begin(), builtin::all_icons.end(), *it) == 1);
+    }
     CHECK(res::icons::close == builtin::icons::close);
     for (icons::Symbol s : builtin::all_icons) {
         CHECK(std::count(res::all_icons.begin(), res::all_icons.end(), s) == 1);
