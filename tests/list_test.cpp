@@ -277,3 +277,27 @@ TEST_CASE("list items and list views satisfy the widget concepts") {
     set.set_enabled(false);
     CHECK_FALSE(list.can_focus());
 }
+
+TEST_CASE("a list view's top inset leaves room above the first row, as content padding under an app bar does") {
+    widgets::ListViewOptions o{many(50)};
+    o.top_inset = 112.0;
+    ListView list(o, fonts());
+    list.set_viewport({0.0, 0.0, 360.0, 400.0});
+    CHECK(list.row_rect(0).y == doctest::Approx(112.0));
+    CHECK(list.content_height() > 112.0 + 50 * 56.0);
+    CHECK(list.row_at(10.0, 50.0) == 0u);
+}
+
+TEST_CASE("single selection leaves toggle rows alone") {
+    std::vector<ListItemSpec> items{{"Toggle"}, {"Pick"}};
+    items[0].action = ListItemAction::toggle;
+    items[0].selected = true;
+    items[1].action = ListItemAction::select;
+    ListView list({items, true}, fonts());
+    list.set_viewport({0.0, 0.0, 360.0, 300.0});
+    list.set_focused(true);
+    list.handle(key(input::Key::down));
+    list.handle(key(input::Key::space));
+    CHECK(list.item(0).selected);
+    CHECK(list.item(1).selected);
+}

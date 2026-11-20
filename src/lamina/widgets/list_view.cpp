@@ -13,7 +13,10 @@ constexpr const tokens::ListTokens& t = tokens::list_tokens;
 }
 
 ListView::ListView(ListViewOptions options, const text::FontStack& fonts)
-    : fonts_(fonts), single_selection_(options.single_selection), accessible_name_(std::move(options.accessible_name)) {
+    : fonts_(fonts),
+      single_selection_(options.single_selection),
+      accessible_name_(std::move(options.accessible_name)),
+      top_inset_(options.top_inset) {
     set_items(std::move(options.items));
 }
 
@@ -32,11 +35,18 @@ void ListView::set_items(std::vector<ListItemSpec> items) {
     update_rows();
 }
 
+void ListView::set_top_inset(double inset) {
+    top_inset_ = inset;
+    tops_dirty_ = true;
+    scroll_.set_content_height(content_height());
+    update_rows();
+}
+
 void ListView::rebuild_tops() const {
     if (!tops_dirty_) {
         return;
     }
-    tops_.assign(heights_.size() + 1, 0.0);
+    tops_.assign(heights_.size() + 1, top_inset_);
     for (std::size_t i = 0; i < heights_.size(); ++i) {
         tops_[i + 1] = tops_[i] + heights_[i];
     }
@@ -243,7 +253,7 @@ void ListView::after_click(std::size_t index, ListViewResponse& response) {
     specs_[index].selected = live(index).selected();
     if (single_selection_ && specs_[index].selected) {
         for (std::size_t i = 0; i < specs_.size(); ++i) {
-            if (i != index && specs_[i].selected) {
+            if (i != index && specs_[i].selected && specs_[i].action == ListItemAction::select) {
                 set_selected(i, false);
             }
         }

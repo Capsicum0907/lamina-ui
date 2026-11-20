@@ -24,6 +24,7 @@ struct ListViewOptions {
     std::vector<ListItemSpec> items;
     bool single_selection = false;
     std::string accessible_name = {};
+    double top_inset = 0.0;
 };
 
 struct ListViewResponse {
@@ -54,6 +55,8 @@ public:
     std::size_t size() const { return specs_.size(); }
     const ListItemSpec& item(std::size_t index) const { return specs_[index]; }
     void set_items(std::vector<ListItemSpec> items);
+    double top_inset() const { return top_inset_; }
+    void set_top_inset(double inset);
     void set_selected(std::size_t index, bool selected);
     void set_item_enabled(std::size_t index, bool enabled);
     double content_height() const;
@@ -92,6 +95,7 @@ private:
     text::FontStack fonts_;
     bool single_selection_;
     std::string accessible_name_;
+    double top_inset_;
     ScrollArea scroll_;
     std::map<std::size_t, std::unique_ptr<ListItem>> live_;
     std::vector<double> heights_;
