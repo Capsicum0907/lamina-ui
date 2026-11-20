@@ -14,6 +14,7 @@
 #include "lamina/text/edit_buffer.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/text/line_map.hpp"
+#include "lamina/tokens/text_field.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -36,6 +37,7 @@ struct TextFieldOptions {
     CharacterFilter filter = {};
     std::size_t max_length = 0;
     std::string mask = {};
+    double min_width = tokens::outlined_text_field.min_width;
 };
 
 class TextField {

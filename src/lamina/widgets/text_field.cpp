@@ -99,7 +99,7 @@ std::optional<char32_t> ascii_digit(char32_t c) {
 TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      width_(t.min_width),
+      width_(options_.min_width),
       buffer_({.multiline = options_.multiline,
                .keeps_tabs = options_.accepts_tab,
                .history = {.depth = t.undo_depth, .pause_seconds = t.undo_pause_seconds}}),
@@ -265,7 +265,7 @@ std::string TextField::display_text() const {
 }
 
 void TextField::set_width(double width) {
-    width_ = std::max(width, t.min_width);
+    width_ = std::max(width, options_.min_width);
     relayout();
 }
 
