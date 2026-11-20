@@ -72,6 +72,8 @@ add_library(lamina STATIC
     src/lamina/widgets/grouped_menu.cpp
     src/lamina/widgets/icon_button.cpp
     src/lamina/widgets/label.cpp
+    src/lamina/widgets/list_item.cpp
+    src/lamina/widgets/list_view.cpp
     src/lamina/widgets/menu.cpp
     src/lamina/widgets/navigation_bar.cpp
     src/lamina/widgets/navigation_rail.cpp
@@ -247,6 +249,7 @@ if(LAMINA_BUILD_TESTS)
         tests/keyboard_focus_test.cpp
         tests/layout_test.cpp
         tests/lerp_test.cpp
+        tests/list_test.cpp
         tests/main.cpp
         tests/menu_test.cpp
         tests/motion_tokens_test.cpp
