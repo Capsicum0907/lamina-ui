@@ -134,11 +134,21 @@ std::shared_ptr<Font> Font::from_file(const std::string& path, unsigned face_ind
     if (!blob) {
         throw std::runtime_error("cannot read font: " + path);
     }
+    return from_blob(blob, face_index, path);
+}
+
+std::shared_ptr<Font> Font::from_resource(const resources::Resource& resource, unsigned face_index) {
+    hb_blob_t* blob = hb_blob_create(reinterpret_cast<const char*>(resource.data.data()), static_cast<unsigned>(resource.data.size()),
+                                     HB_MEMORY_MODE_READONLY, nullptr, nullptr);
+    return from_blob(blob, face_index, "resource " + std::string(resource.name));
+}
+
+std::shared_ptr<Font> Font::from_blob(hb_blob_t* blob, unsigned face_index, const std::string& what) {
     auto impl = std::make_unique<Impl>();
     impl->face = hb_face_create(blob, face_index);
     hb_blob_destroy(blob);
     if (hb_face_get_glyph_count(impl->face) == 0) {
-        throw std::runtime_error("not a usable font: " + path);
+        throw std::runtime_error("not a usable font: " + what);
     }
     impl->base = hb_font_create(impl->face);
     hb_ot_var_axis_info_t info{};

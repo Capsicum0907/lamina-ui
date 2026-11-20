@@ -8,6 +8,9 @@
 #include <vector>
 
 #include "lamina/render/path.hpp"
+#include "lamina/resources/resource.hpp"
+
+struct hb_blob_t;
 
 namespace lamina::text {
 
@@ -45,6 +48,7 @@ struct UnderlineMetrics {
 class Font {
 public:
     static std::shared_ptr<Font> from_file(const std::string& path, unsigned face_index = 0);
+    static std::shared_ptr<Font> from_resource(const resources::Resource& resource, unsigned face_index = 0);
     ~Font();
 
     Font(const Font&) = delete;
@@ -62,6 +66,7 @@ public:
 private:
     struct Impl;
     explicit Font(std::unique_ptr<Impl> impl);
+    static std::shared_ptr<Font> from_blob(hb_blob_t* blob, unsigned face_index, const std::string& what);
     std::unique_ptr<Impl> impl_;
 };
 
