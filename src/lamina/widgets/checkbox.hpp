@@ -5,6 +5,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/checkbox.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
@@ -12,6 +13,7 @@ namespace lamina::widgets {
 
 struct CheckboxOptions {
     tokens::CheckboxState state = tokens::CheckboxState::off;
+    bool enabled = true;
 };
 
 render::Path check_mark_path(const render::Rect& box, double draw_fraction, double center_gravitation, double stroke_width);
@@ -32,6 +34,9 @@ public:
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
+    bool enabled() const { return enabled_.enabled(); }
+    void set_enabled(bool enabled);
+    bool can_focus() const { return enabled(); }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
@@ -47,6 +52,7 @@ private:
     render::Point origin_{0.0, 0.0};
     PressState press_;
     FocusIndicator focus_;
+    Enablement enabled_;
     motion::Animated check_fraction_;
     motion::Animated gravitation_;
     motion::Animated checked_;

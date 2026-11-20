@@ -20,6 +20,7 @@ constexpr double travel = t.track_width - t.track_height;
 
 Switch::Switch(SwitchOptions options)
     : options_(std::move(options)),
+      enabled_(options_.enabled),
       offset_(options_.checked ? travel : 0.0, motion_scheme.fast_spatial()),
       thumb_size_(0.0, motion_scheme.fast_spatial()),
       state_layer_(0.0, motion_scheme.fast_effects()),
@@ -67,12 +68,26 @@ void Switch::set_checked(bool checked) {
 }
 
 void Switch::set_focused(bool focused) {
-    focus_.set_focused(focused);
+    focus_.set_focused(focused && enabled());
+    retarget();
+}
+
+void Switch::set_enabled(bool enabled) {
+    if (!enabled_.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        press_ = {};
+        focus_.set_focused(false);
+    }
     retarget();
 }
 
 bool Switch::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
+    if (!enabled()) {
+        return false;
+    }
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         options_.checked = !options_.checked;
@@ -82,7 +97,7 @@ bool Switch::handle(const input::PointerEvent& e) {
 }
 
 bool Switch::handle(const input::KeyEvent& e) {
-    if (!focus_.activates(e, KeyActivation::space)) {
+    if (!enabled() || !focus_.activates(e, KeyActivation::space)) {
         return false;
     }
     options_.checked = !options_.checked;
@@ -101,10 +116,12 @@ void Switch::step(double dt) {
     state_layer_.step(dt);
     checked_.step(dt);
     focus_.step(dt);
+    enabled_.step(dt);
 }
 
 bool Switch::animating() const {
-    return !offset_.settled() || !thumb_size_.settled() || !state_layer_.settled() || !checked_.settled() || !focus_.settled();
+    return !offset_.settled() || !thumb_size_.settled() || !state_layer_.settled() || !checked_.settled() || !focus_.settled() ||
+           !enabled_.settled();
 }
 
 void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -112,9 +129,15 @@ void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const double p = checked_.value();
     const double track_radius = r.height / 2.0;
 
+    const auto& off = t.disabled_unchecked;
+    const auto& on = t.disabled_checked;
+    auto both = [&](const tokens::StateColor& d_off, const tokens::StateColor& d_on, color::Role e_off, color::Role e_on) {
+        return enabled_.mix(color::mix(resolve(scheme, d_off), resolve(scheme, d_on), p), color::mix(scheme[e_off], scheme[e_on], p));
+    };
     canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(track_radius)),
-                     color::mix(scheme[t.unchecked.track], scheme[t.checked.track], p));
-    const color::Argb border = mix_optional(scheme, t.unchecked.border, t.checked.border, p);
+                     both(off.track, on.track, t.unchecked.track, t.checked.track));
+    const color::Argb border =
+        enabled_.mix(mix_resolved(scheme, off.border, on.border, p), mix_optional(scheme, t.unchecked.border, t.checked.border, p));
     if (color::alpha(border) != 0) {
         canvas.fill_path(render::ring_path(r, track_radius, t.track_outline_width), border, render::FillRule::even_odd);
     }
@@ -123,13 +146,13 @@ void Switch::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
 
     const render::Point center{thumb_center_x(), r.y + r.height / 2.0};
     const double size = std::max(0.0, thumb_size_.value());
-    canvas.fill_path(render::circle_path(center, size / 2.0), color::mix(scheme[t.unchecked.thumb], scheme[t.checked.thumb], p));
+    canvas.fill_path(render::circle_path(center, size / 2.0), both(off.thumb, on.thumb, t.unchecked.thumb, t.checked.thumb));
     if (state_layer_.value() > 0.0) {
         canvas.fill_path(render::circle_path(center, t.state_layer_size / 2.0),
                          color::with_alpha(scheme[t.state_layer], state_layer_.value()));
     }
     if (const auto& icon = current_icon()) {
-        const color::Argb icon_color = color::mix(scheme[t.unchecked.icon], scheme[t.checked.icon], p);
+        const color::Argb icon_color = both(off.icon, on.icon, t.unchecked.icon, t.checked.icon);
         icons::draw_centered(canvas, *icon, center, t.icon_size, icon_color);
     }
 }

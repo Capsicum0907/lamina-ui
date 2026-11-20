@@ -95,6 +95,10 @@ public:
         visit([](Member& m) { m.cancel_interaction(); });
     }
 
+    void set_enabled(bool enabled) {
+        visit([enabled](Member& m) { m.set_enabled(enabled); });
+    }
+
     bool animating() const {
         return std::any_of(entries_.begin(), entries_.end(), [](const auto& e) { return !e->removed && e->animating(); });
     }
@@ -122,6 +126,7 @@ private:
         virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
         virtual bool animating() const = 0;
         virtual void cancel_interaction() = 0;
+        virtual void set_enabled(bool enabled) = 0;
         virtual bool deliver(const input::PointerEvent& e) = 0;
         virtual bool deliver(const input::KeyEvent& e) = 0;
         bool removed = false;
@@ -153,6 +158,11 @@ private:
         void cancel_interaction() override {
             if constexpr (Cancellable<Widget>) {
                 widget.cancel_interaction();
+            }
+        }
+        void set_enabled(bool enabled) override {
+            if constexpr (Disableable<Widget>) {
+                widget.set_enabled(enabled);
             }
         }
         bool deliver(const input::PointerEvent& e) override {

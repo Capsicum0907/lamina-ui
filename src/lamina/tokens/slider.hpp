@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 
 namespace lamina::tokens {
 
@@ -22,6 +23,12 @@ struct SliderTokens {
     color::Role active_tick;
     color::Role inactive_tick;
     color::Role stop_indicator;
+    StateColor disabled_active_track;
+    StateColor disabled_inactive_track;
+    StateColor disabled_handle;
+    StateColor disabled_active_tick;
+    StateColor disabled_inactive_tick;
+    StateColor disabled_stop_indicator;
 };
 
 inline constexpr SliderTokens slider_tokens{
@@ -42,6 +49,12 @@ inline constexpr SliderTokens slider_tokens{
     .active_tick = color::Role::secondary_container,
     .inactive_tick = color::Role::primary,
     .stop_indicator = color::Role::primary,
+    .disabled_active_track = {color::Role::on_surface, 0.38},
+    .disabled_inactive_track = {color::Role::on_surface, 0.12},
+    .disabled_handle = {color::Role::on_surface, 0.38, true},
+    .disabled_active_tick = {color::Role::on_surface, 0.12},
+    .disabled_inactive_tick = {color::Role::on_surface, 0.38},
+    .disabled_stop_indicator = {color::Role::on_surface, 0.38},
 };
 
 }

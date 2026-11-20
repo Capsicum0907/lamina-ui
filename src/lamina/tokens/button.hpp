@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 
@@ -43,14 +44,23 @@ struct ButtonStyleTokens {
     std::size_t elevation;
     std::size_t hovered_elevation;
     std::size_t pressed_elevation;
+    std::optional<StateColor> disabled_container;
+    StateColor disabled_label;
+    std::optional<StateColor> disabled_outline;
+    std::size_t disabled_elevation;
 };
 
 inline constexpr std::array<ButtonStyleTokens, static_cast<std::size_t>(ButtonStyle::count)> button_styles{{
-    {color::Role::primary, color::Role::on_primary, std::nullopt, 0, 1, 0},
-    {color::Role::secondary_container, color::Role::on_secondary_container, std::nullopt, 0, 1, 0},
-    {std::nullopt, color::Role::on_surface_variant, color::Role::outline_variant, 0, 0, 0},
-    {std::nullopt, color::Role::primary, std::nullopt, 0, 0, 0},
-    {color::Role::surface_container_low, color::Role::primary, std::nullopt, 1, 2, 1},
+    {color::Role::primary, color::Role::on_primary, std::nullopt, 0, 1, 0, StateColor{color::Role::on_surface, 0.1},
+     StateColor{color::Role::on_surface_variant, 0.38}, std::nullopt, 0},
+    {color::Role::secondary_container, color::Role::on_secondary_container, std::nullopt, 0, 1, 0,
+     StateColor{color::Role::on_surface, 0.12}, StateColor{color::Role::on_surface, 0.38}, std::nullopt, 0},
+    {std::nullopt, color::Role::on_surface_variant, color::Role::outline_variant, 0, 0, 0, std::nullopt,
+     StateColor{color::Role::on_surface_variant, 0.38}, StateColor{color::Role::outline_variant, 0.1}, 0},
+    {std::nullopt, color::Role::primary, std::nullopt, 0, 0, 0, std::nullopt, StateColor{color::Role::on_surface_variant, 0.38},
+     std::nullopt, 0},
+    {color::Role::surface_container_low, color::Role::primary, std::nullopt, 1, 2, 1, StateColor{color::Role::on_surface, 0.1},
+     StateColor{color::Role::on_surface_variant, 0.38}, std::nullopt, 0},
 }};
 
 constexpr const ButtonSizeTokens& button_size(ButtonSize s) {

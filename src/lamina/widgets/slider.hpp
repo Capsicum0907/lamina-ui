@@ -6,6 +6,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/slider.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 
 namespace lamina::widgets {
@@ -15,6 +16,7 @@ struct SliderOptions {
     double min = 0.0;
     double max = 1.0;
     int steps = 0;
+    bool enabled = true;
 };
 
 class Slider {
@@ -37,12 +39,18 @@ public:
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
+    bool enabled() const { return enabled_.enabled(); }
+    void set_enabled(bool enabled);
+    bool can_focus() const { return enabled(); }
 
     bool handle(const input::PointerEvent& event);
     void cancel_interaction();
     bool handle(const input::KeyEvent& event);
-    void step(double dt_seconds) { focus_.step(dt_seconds); }
-    bool animating() const { return !focus_.settled(); }
+    void step(double dt_seconds) {
+        focus_.step(dt_seconds);
+        enabled_.step(dt_seconds);
+    }
+    bool animating() const { return !focus_.settled() || !enabled_.settled(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
@@ -60,6 +68,7 @@ private:
     bool dragging_ = false;
     double handle_width_ = tokens::slider_tokens.handle_width;
     FocusIndicator focus_;
+    Enablement enabled_;
 };
 
 }

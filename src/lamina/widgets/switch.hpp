@@ -8,6 +8,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/switch.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
@@ -17,6 +18,7 @@ struct SwitchOptions {
     bool checked = false;
     std::optional<icons::Icon> checked_icon = std::nullopt;
     std::optional<icons::Icon> unchecked_icon = std::nullopt;
+    bool enabled = true;
 };
 
 class Switch {
@@ -35,6 +37,9 @@ public:
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
+    bool enabled() const { return enabled_.enabled(); }
+    void set_enabled(bool enabled);
+    bool can_focus() const { return enabled(); }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
@@ -52,6 +57,7 @@ private:
     render::Point origin_{0.0, 0.0};
     PressState press_;
     FocusIndicator focus_;
+    Enablement enabled_;
     motion::Animated offset_;
     motion::Animated thumb_size_;
     motion::Animated state_layer_;

@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/shape.hpp"
 
 namespace lamina::tokens {
@@ -38,25 +39,36 @@ struct IconButtonColors {
     std::optional<color::Role> outline;
 };
 
+struct IconButtonDisabledColors {
+    std::optional<StateColor> container;
+    StateColor content;
+    std::optional<StateColor> outline;
+};
+
 struct IconButtonStyleTokens {
     IconButtonColors plain;
     IconButtonColors unchecked;
     IconButtonColors checked;
+    IconButtonDisabledColors disabled;
 };
 
 inline constexpr std::array<IconButtonStyleTokens, static_cast<std::size_t>(IconButtonStyle::count)> icon_button_styles{{
     {{color::Role::primary, color::Role::on_primary, std::nullopt},
      {color::Role::surface_container, color::Role::on_surface_variant, std::nullopt},
-     {color::Role::primary, color::Role::on_primary, std::nullopt}},
+     {color::Role::primary, color::Role::on_primary, std::nullopt},
+     {StateColor{color::Role::on_surface, 0.1}, StateColor{color::Role::on_surface, 0.38}, std::nullopt}},
     {{color::Role::secondary_container, color::Role::on_secondary_container, std::nullopt},
      {color::Role::secondary_container, color::Role::on_secondary_container, std::nullopt},
-     {color::Role::secondary, color::Role::on_secondary, std::nullopt}},
+     {color::Role::secondary, color::Role::on_secondary, std::nullopt},
+     {StateColor{color::Role::on_surface, 0.1}, StateColor{color::Role::on_surface, 0.38}, std::nullopt}},
     {{std::nullopt, color::Role::on_surface_variant, color::Role::outline_variant},
      {std::nullopt, color::Role::on_surface_variant, color::Role::outline_variant},
-     {color::Role::inverse_surface, color::Role::inverse_on_surface, std::nullopt}},
+     {color::Role::inverse_surface, color::Role::inverse_on_surface, std::nullopt},
+     {std::nullopt, StateColor{color::Role::on_surface, 0.38}, StateColor{color::Role::outline_variant, 0.38}}},
     {{std::nullopt, color::Role::on_surface_variant, std::nullopt},
      {std::nullopt, color::Role::on_surface_variant, std::nullopt},
-     {std::nullopt, color::Role::primary, std::nullopt}},
+     {std::nullopt, color::Role::primary, std::nullopt},
+     {std::nullopt, StateColor{color::Role::on_surface, 0.38}, std::nullopt}},
 }};
 
 constexpr const IconButtonSizeTokens& icon_button_size(IconButtonSize s) {

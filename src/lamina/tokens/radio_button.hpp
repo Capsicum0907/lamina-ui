@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 
 namespace lamina::tokens {
 
@@ -13,6 +14,8 @@ struct RadioButtonTokens {
     color::Role state_layer;
     color::Role selected;
     color::Role unselected;
+    StateColor disabled_selected;
+    StateColor disabled_unselected;
 };
 
 inline constexpr RadioButtonTokens radio_button_tokens{
@@ -24,6 +27,8 @@ inline constexpr RadioButtonTokens radio_button_tokens{
     .state_layer = color::Role::on_surface,
     .selected = color::Role::primary,
     .unselected = color::Role::on_surface_variant,
+    .disabled_selected = {color::Role::on_surface, 0.38},
+    .disabled_unselected = {color::Role::on_surface, 0.38},
 };
 
 }

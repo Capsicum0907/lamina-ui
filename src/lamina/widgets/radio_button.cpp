@@ -19,6 +19,7 @@ double target_dot(bool selected) {
 
 RadioButton::RadioButton(RadioButtonOptions options)
     : options_(options),
+      enabled_(options_.enabled),
       dot_radius_(target_dot(options_.selected), motion_scheme.fast_spatial()),
       selected_(options_.selected ? 1.0 : 0.0, motion_scheme.default_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()) {}
@@ -42,12 +43,26 @@ void RadioButton::set_selected(bool selected) {
 }
 
 void RadioButton::set_focused(bool focused) {
-    focus_.set_focused(focused);
+    focus_.set_focused(focused && enabled());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
+}
+
+void RadioButton::set_enabled(bool enabled) {
+    if (!enabled_.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        press_ = {};
+        focus_.set_focused(false);
+    }
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
 bool RadioButton::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
+    if (!enabled()) {
+        return false;
+    }
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         set_selected(true);
@@ -57,7 +72,7 @@ bool RadioButton::handle(const input::PointerEvent& e) {
 }
 
 bool RadioButton::handle(const input::KeyEvent& e) {
-    if (!focus_.activates(e, KeyActivation::space)) {
+    if (!enabled() || !focus_.activates(e, KeyActivation::space)) {
         return false;
     }
     set_selected(true);
@@ -74,16 +89,19 @@ void RadioButton::step(double dt) {
     selected_.step(dt);
     state_layer_.step(dt);
     focus_.step(dt);
+    enabled_.step(dt);
 }
 
 bool RadioButton::animating() const {
-    return !dot_radius_.settled() || !selected_.settled() || !state_layer_.settled() || !focus_.settled();
+    return !dot_radius_.settled() || !selected_.settled() || !state_layer_.settled() || !focus_.settled() || !enabled_.settled();
 }
 
 void RadioButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect r = bounds();
     const render::Point center{r.x + r.width / 2.0, r.y + r.height / 2.0};
-    const color::Argb c = color::mix(scheme[t.unselected], scheme[t.selected], selected_.value());
+    const double s = selected_.value();
+    const color::Argb c = enabled_.mix(color::mix(resolve(scheme, t.disabled_unselected), resolve(scheme, t.disabled_selected), s),
+                                       color::mix(scheme[t.unselected], scheme[t.selected], s));
     const double outer = t.icon_size / 2.0;
     render::Path ring = render::circle_path(center, outer);
     ring.append(render::circle_path(center, outer - t.stroke_width));

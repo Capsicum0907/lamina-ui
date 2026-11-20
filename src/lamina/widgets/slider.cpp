@@ -17,7 +17,7 @@ render::Path track_path(const render::Rect& r, double start_radius, double end_r
 
 }
 
-Slider::Slider(SliderOptions options) : options_(options) {
+Slider::Slider(SliderOptions options) : options_(options), enabled_(options.enabled) {
     options_.value = snapped(options_.value);
 }
 
@@ -116,12 +116,26 @@ void Slider::update_handle_width() {
 }
 
 void Slider::set_focused(bool focused) {
-    focus_.set_focused(focused);
+    focus_.set_focused(focused && enabled());
+    update_handle_width();
+}
+
+void Slider::set_enabled(bool enabled) {
+    if (!enabled_.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        dragging_ = false;
+        focus_.set_focused(false);
+    }
     update_handle_width();
 }
 
 bool Slider::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
+    if (!enabled()) {
+        return false;
+    }
     const double before = options_.value;
     switch (e.action) {
     case input::PointerAction::down:
@@ -155,7 +169,7 @@ void Slider::cancel_interaction() {
 }
 
 bool Slider::handle(const input::KeyEvent& e) {
-    if (!focus_.focused()) {
+    if (!enabled() || !focus_.focused()) {
         return false;
     }
     const double range = std::abs(options_.max - options_.min);
@@ -199,17 +213,22 @@ void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const double top = cy - t.track_height / 2.0;
     const double value_end = value_end_in_track();
     const double end_gap = t.handle_width / 2.0 + t.handle_track_gap;
+    auto color_of = [&](const tokens::StateColor& disabled, color::Role enabled) {
+        return enabled_.mix(resolve(scheme, disabled), scheme[enabled]);
+    };
 
     const double inactive_threshold = tw - end_gap - corner;
     if (value_end < inactive_threshold) {
         const double start = value_end + end_gap;
         canvas.fill_path(track_path({x0 + start, top, tw - start, t.track_height}, inside, corner),
-                         scheme[t.inactive_track]);
-        canvas.fill_path(render::circle_path({x0 + tw - corner, cy}, t.stop_indicator_size / 2.0), scheme[t.stop_indicator]);
+                         color_of(t.disabled_inactive_track, t.inactive_track));
+        canvas.fill_path(render::circle_path({x0 + tw - corner, cy}, t.stop_indicator_size / 2.0),
+                         color_of(t.disabled_stop_indicator, t.stop_indicator));
     }
     const double active_end = value_end - end_gap;
     if (active_end > corner) {
-        canvas.fill_path(track_path({x0, top, active_end, t.track_height}, corner, inside), scheme[t.active_track]);
+        canvas.fill_path(track_path({x0, top, active_end, t.track_height}, corner, inside),
+                         color_of(t.disabled_active_track, t.active_track));
     }
 
     const std::vector<double> ticks = tick_centers();
@@ -219,12 +238,13 @@ void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
             continue;
         }
         const bool active = local >= 0.0 && local <= active_end;
-        canvas.fill_path(render::circle_path({ticks[i], cy}, t.tick_size / 2.0), scheme[active ? t.active_tick : t.inactive_tick]);
+        canvas.fill_path(render::circle_path({ticks[i], cy}, t.tick_size / 2.0),
+                         active ? color_of(t.disabled_active_tick, t.active_tick) : color_of(t.disabled_inactive_tick, t.inactive_tick));
     }
 
     const double w = handle_width_;
     const render::Rect handle{handle_center_x() - w / 2.0, origin_.y, w, height()};
-    canvas.fill_path(render::rounded_rect_path(handle, render::uniform_radii(w / 2.0)), scheme[t.handle]);
+    canvas.fill_path(render::rounded_rect_path(handle, render::uniform_radii(w / 2.0)), color_of(t.disabled_handle, t.handle));
     focus_.paint(canvas, scheme, handle, w / 2.0);
 }
 

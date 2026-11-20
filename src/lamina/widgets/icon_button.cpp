@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/paint.hpp"
 
@@ -18,6 +19,7 @@ using tokens::motion_scheme;
 
 IconButton::IconButton(IconButtonOptions options)
     : options_(std::move(options)),
+      enabled_(options_.enabled),
       corner_(0.0, motion_scheme.default_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()),
       checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()),
@@ -71,12 +73,26 @@ void IconButton::set_icon(icons::Icon icon) {
 }
 
 void IconButton::set_focused(bool focused) {
-    focus_.set_focused(focused);
+    focus_.set_focused(focused && enabled());
+    retarget();
+}
+
+void IconButton::set_enabled(bool enabled) {
+    if (!enabled_.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        press_ = {};
+        focus_.set_focused(false);
+    }
     retarget();
 }
 
 bool IconButton::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
+    if (!enabled()) {
+        return false;
+    }
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked && options_.toggleable) {
         options_.checked = !options_.checked;
@@ -86,7 +102,7 @@ bool IconButton::handle(const input::PointerEvent& e) {
 }
 
 bool IconButton::handle(const input::KeyEvent& e) {
-    if (!focus_.activates(e, KeyActivation::space_or_enter)) {
+    if (!enabled() || !focus_.activates(e, KeyActivation::space_or_enter)) {
         return false;
     }
     if (options_.toggleable) {
@@ -107,10 +123,12 @@ void IconButton::step(double dt) {
     checked_.step(dt);
     icon_fade_.step(dt);
     focus_.step(dt);
+    enabled_.step(dt);
 }
 
 bool IconButton::animating() const {
-    return !corner_.settled() || !state_layer_.settled() || !checked_.settled() || !icon_fade_.settled() || !focus_.settled();
+    return !corner_.settled() || !state_layer_.settled() || !checked_.settled() || !icon_fade_.settled() || !focus_.settled() ||
+           !enabled_.settled();
 }
 
 void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -122,11 +140,16 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     const tokens::IconButtonColors& to = options_.toggleable ? style.checked : style.plain;
     const double t = checked_.value();
 
-    const color::Argb content = color::mix(scheme[from.content], scheme[to.content], t);
-    const color::Argb container = mix_optional(scheme, from.container, to.container, t);
-    const color::Argb outline = mix_optional(scheme, from.outline, to.outline, t);
+    const color::Argb enabled_content = color::mix(scheme[from.content], scheme[to.content], t);
+    const color::Argb enabled_container = mix_optional(scheme, from.container, to.container, t);
+    const color::Argb enabled_outline = mix_optional(scheme, from.outline, to.outline, t);
+    const double outline_presence = motion::lerp(from.outline ? 1.0 : 0.0, to.outline ? 1.0 : 0.0, std::clamp(t, 0.0, 1.0));
 
-    const color::Argb fill = color::state_layer(container, content, state_layer_.value());
+    const color::Argb content = enabled_.mix(resolve(scheme, style.disabled.content), enabled_content);
+    const color::Argb outline =
+        enabled_.mix(color::scale_alpha(resolve(scheme, style.disabled.outline), outline_presence), enabled_outline);
+    const color::Argb fill = enabled_.mix(resolve(scheme, style.disabled.container),
+                                          color::state_layer(enabled_container, enabled_content, state_layer_.value()));
     if (color::alpha(fill) != 0) {
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), fill);
     }

@@ -93,6 +93,7 @@ render::Path check_mark_path(const render::Rect& box, double draw_fraction, doub
 
 Checkbox::Checkbox(CheckboxOptions options)
     : options_(options),
+      enabled_(options_.enabled),
       check_fraction_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, motion_scheme.default_spatial()),
       gravitation_(options_.state == tokens::CheckboxState::indeterminate ? 1.0 : 0.0, motion_scheme.default_spatial()),
       checked_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, box_in_spring),
@@ -140,7 +141,18 @@ void Checkbox::set_state(tokens::CheckboxState next) {
 }
 
 void Checkbox::set_focused(bool focused) {
-    focus_.set_focused(focused);
+    focus_.set_focused(focused && enabled());
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
+}
+
+void Checkbox::set_enabled(bool enabled) {
+    if (!enabled_.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        press_ = {};
+        focus_.set_focused(false);
+    }
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
@@ -150,6 +162,9 @@ void Checkbox::toggle() {
 
 bool Checkbox::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
+    if (!enabled()) {
+        return false;
+    }
     const bool clicked = press_.update(e, touch_target(bounds()));
     if (clicked) {
         toggle();
@@ -159,7 +174,7 @@ bool Checkbox::handle(const input::PointerEvent& e) {
 }
 
 bool Checkbox::handle(const input::KeyEvent& e) {
-    if (!focus_.activates(e, KeyActivation::space)) {
+    if (!enabled() || !focus_.activates(e, KeyActivation::space)) {
         return false;
     }
     toggle();
@@ -185,19 +200,24 @@ void Checkbox::step(double dt) {
     checked_.step(dt);
     state_layer_.step(dt);
     focus_.step(dt);
+    enabled_.step(dt);
 }
 
 bool Checkbox::animating() const {
     return snap_off_in_ >= 0.0 || !check_fraction_.settled() || !gravitation_.settled() || !checked_.settled() ||
-           !state_layer_.settled() || !focus_.settled();
+           !state_layer_.settled() || !focus_.settled() || !enabled_.settled();
 }
 
 void Checkbox::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect b = box();
     const double p = checked_.value();
-    const color::Argb box_color = mix_optional(scheme, std::nullopt, t.checked_box, p);
-    const color::Argb border_color = color::mix(scheme[t.unchecked_border], scheme[t.checked_box], p);
-    const color::Argb check_color = mix_optional(scheme, std::nullopt, t.checkmark, p);
+    const color::Argb box_color = enabled_.mix(mix_resolved(scheme, std::nullopt, t.disabled_checked_box, p),
+                                               mix_optional(scheme, std::nullopt, t.checked_box, p));
+    const color::Argb border_color =
+        enabled_.mix(color::mix(resolve(scheme, t.disabled_unchecked_border), resolve(scheme, t.disabled_checked_box), p),
+                     color::mix(scheme[t.unchecked_border], scheme[t.checked_box], p));
+    const color::Argb check_color = enabled_.mix(mix_resolved(scheme, std::nullopt, t.disabled_checkmark, p),
+                                                 mix_optional(scheme, std::nullopt, t.checkmark, p));
 
     if (box_color == border_color) {
         canvas.fill_rounded_rect(b, render::uniform_radii(t.corner_radius), box_color);

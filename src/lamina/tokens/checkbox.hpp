@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 
 namespace lamina::tokens {
 
@@ -26,6 +27,9 @@ struct CheckboxTokens {
     color::Role checked_box;
     color::Role checkmark;
     color::Role unchecked_border;
+    StateColor disabled_checked_box;
+    StateColor disabled_checkmark;
+    StateColor disabled_unchecked_border;
 };
 
 inline constexpr CheckboxTokens checkbox_tokens{
@@ -43,6 +47,9 @@ inline constexpr CheckboxTokens checkbox_tokens{
     .checked_box = color::Role::primary,
     .checkmark = color::Role::on_primary,
     .unchecked_border = color::Role::on_surface_variant,
+    .disabled_checked_box = {color::Role::on_surface, 0.38},
+    .disabled_checkmark = {color::Role::surface},
+    .disabled_unchecked_border = {color::Role::on_surface, 0.38},
 };
 
 }

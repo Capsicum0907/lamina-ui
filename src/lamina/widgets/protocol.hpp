@@ -54,6 +54,12 @@ concept FocusGated = Focusable<W> && requires(const W& w) {
 };
 
 template <typename W>
+concept Disableable = requires(W& w, const W& cw, bool enabled) {
+    { cw.enabled() } -> std::convertible_to<bool>;
+    w.set_enabled(enabled);
+};
+
+template <typename W>
 concept Sized = requires(W& w, const W& cw, render::Point origin) {
     { cw.width() } -> std::convertible_to<double>;
     { cw.height() } -> std::convertible_to<double>;

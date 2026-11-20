@@ -10,6 +10,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/button.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
@@ -29,6 +30,7 @@ struct ButtonOptions {
     std::optional<icons::Icon> leading_icon = std::nullopt;
     std::optional<ButtonColors> colors = std::nullopt;
     icons::IconStyle icon_style = {};
+    bool enabled = true;
 };
 
 class Button {
@@ -47,6 +49,9 @@ public:
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
+    bool enabled() const { return enabled_.enabled(); }
+    void set_enabled(bool enabled);
+    bool can_focus() const { return enabled(); }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
@@ -64,6 +69,7 @@ private:
     void draw_icon(render::Canvas& canvas, const icons::Icon& icon, double x, double y, double size, color::Argb color,
                    double opacity) const;
     double target_state_layer() const;
+    double target_elevation() const;
     void retarget();
 
     ButtonOptions options_;
@@ -77,6 +83,7 @@ private:
     render::Point origin_{0.0, 0.0};
     PressState press_;
     FocusIndicator focus_;
+    Enablement enabled_;
     std::optional<icons::Icon> previous_icon_;
     motion::Animated press_amount_;
     motion::Animated squareness_;

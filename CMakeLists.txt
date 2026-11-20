@@ -214,6 +214,7 @@ if(LAMINA_BUILD_TESTS)
         tests/color_mix_test.cpp
         tests/color_scheme_test.cpp
         tests/dialog_test.cpp
+        tests/disabled_test.cpp
         tests/edit_buffer_test.cpp
         tests/edit_history_test.cpp
         tests/focus_indicator_test.cpp

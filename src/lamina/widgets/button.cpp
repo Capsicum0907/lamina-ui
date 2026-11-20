@@ -25,6 +25,7 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
                                tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)))),
       width_(0.0),
       height_(tokens::button_size(options_.size).height),
+      enabled_(options_.enabled),
       press_amount_(0.0, motion_scheme.default_effects()),
       squareness_(options_.shape == tokens::ButtonShape::square ? 1.0 : 0.0, motion_scheme.fast_spatial()),
       icon_fade_(1.0, motion_scheme.fast_effects()),
@@ -34,7 +35,7 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
     if (options_.colors) {
         focus_.set_color(options_.colors->focus_ring);
     }
-    elevation_.snap_to(tokens::elevation_dp[tokens::button_style(options_.style).elevation]);
+    elevation_.snap_to(target_elevation());
 }
 
 double Button::content_width() const {
@@ -111,26 +112,45 @@ double Button::target_state_layer() const {
     return focus_.state_layer_opacity(press_.state_layer_opacity());
 }
 
+double Button::target_elevation() const {
+    const auto& style = tokens::button_style(options_.style);
+    return enabled() ? state_elevation(style, press_) : tokens::elevation_dp[style.disabled_elevation];
+}
+
 void Button::retarget() {
     press_amount_.animate_to(press_.pressed ? 1.0 : 0.0);
     state_layer_.animate_to(target_state_layer());
-    elevation_.animate_to(state_elevation(tokens::button_style(options_.style), press_));
+    elevation_.animate_to(target_elevation());
 }
 
 void Button::set_focused(bool focused) {
-    focus_.set_focused(focused);
+    focus_.set_focused(focused && enabled());
+    retarget();
+}
+
+void Button::set_enabled(bool enabled) {
+    if (!enabled_.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        press_ = {};
+        focus_.set_focused(false);
+    }
     retarget();
 }
 
 bool Button::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
+    if (!enabled()) {
+        return false;
+    }
     const bool clicked = press_.update(e, bounds());
     retarget();
     return clicked;
 }
 
 bool Button::handle(const input::KeyEvent& e) {
-    return focus_.activates(e, KeyActivation::space_or_enter);
+    return enabled() && focus_.activates(e, KeyActivation::space_or_enter);
 }
 
 void Button::cancel_interaction() {
@@ -145,11 +165,12 @@ void Button::step(double dt) {
     state_layer_.step(dt);
     elevation_.step(dt);
     focus_.step(dt);
+    enabled_.step(dt);
 }
 
 bool Button::animating() const {
     return !press_amount_.settled() || !squareness_.settled() || !icon_fade_.settled() || !state_layer_.settled() ||
-           !elevation_.settled() || !focus_.settled();
+           !elevation_.settled() || !focus_.settled() || !enabled_.settled();
 }
 
 void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -158,17 +179,20 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const render::Rect r = bounds();
     const double radius = corner();
     const std::optional<color::Role> container = options_.colors ? options_.colors->container : style.container;
-    const color::Argb label_color = scheme[options_.colors ? options_.colors->content : style.label];
+    const color::Argb enabled_label = scheme[options_.colors ? options_.colors->content : style.label];
+    const color::Argb label_color = enabled_.mix(resolve(scheme, style.disabled_label), enabled_label);
     const render::Path shape = render::rounded_rect_path(r, render::uniform_radii(radius));
 
-    const color::Argb fill = color::state_layer(container ? scheme[*container] : 0, label_color, state_layer_.value());
+    const color::Argb enabled_fill = color::state_layer(container ? scheme[*container] : 0, enabled_label, state_layer_.value());
+    const color::Argb fill = enabled_.mix(resolve(scheme, style.disabled_container), enabled_fill);
     if (container) {
         paint_surface(canvas, r, radius, fill, elevation_.value(), scheme[color::Role::shadow]);
     } else if (color::alpha(fill) != 0) {
         canvas.fill_path(shape, fill);
     }
     if (style.outline) {
-        canvas.fill_path(render::ring_path(r, radius, size.outline_width), scheme[*style.outline], render::FillRule::even_odd);
+        const color::Argb outline = enabled_.mix(resolve(scheme, style.disabled_outline), scheme[*style.outline]);
+        canvas.fill_path(render::ring_path(r, radius, size.outline_width), outline, render::FillRule::even_odd);
     }
 
     focus_.paint(canvas, scheme, r, radius);
