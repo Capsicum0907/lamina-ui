@@ -61,6 +61,7 @@ add_library(lamina STATIC
     src/lamina/widgets/accessibility.cpp
     src/lamina/widgets/badge.cpp
     src/lamina/widgets/button.cpp
+    src/lamina/widgets/card.cpp
     src/lamina/widgets/checkbox.cpp
     src/lamina/widgets/chip.cpp
     src/lamina/widgets/chip_group.cpp
@@ -222,6 +223,7 @@ if(LAMINA_BUILD_TESTS)
         tests/calculator_layout_test.cpp
         tests/cancel_interaction_test.cpp
         tests/canvas_test.cpp
+        tests/card_test.cpp
         tests/checkbox_test.cpp
         tests/chip_test.cpp
         tests/color_mix_test.cpp
