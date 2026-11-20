@@ -16,8 +16,9 @@ This product includes software and data from the following projects:
   see third_party/NOTICE-androidx-graphics-shapes.md.
 
 - Material Symbols Rounded (https://github.com/google/material-design-icons)
-  Copyright Google LLC. Apache License 2.0 (assets/icons/LICENSE).
-  assets/icons/MaterialSymbolsRounded-subset.ttf is a modified subset.
+  Copyright Google LLC. Apache License 2.0 (third_party/material-symbols/LICENSE).
+  Vendored unchanged in third_party/material-symbols/; the icon fonts that
+  lamina_add_resources embeds in programs are modified subsets of it.
 
 - Noto Sans JP and Oswald, as renamed subsets in tests/fixtures/fonts/.
   SIL Open Font License 1.1 (license files in that directory).
