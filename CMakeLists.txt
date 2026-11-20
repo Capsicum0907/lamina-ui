@@ -69,7 +69,9 @@ add_library(lamina STATIC
     src/lamina/widgets/chip.cpp
     src/lamina/widgets/chip_group.cpp
     src/lamina/widgets/date_picker.cpp
+    src/lamina/widgets/date_range_picker.cpp
     src/lamina/widgets/dialog.cpp
+    src/lamina/widgets/docked_date_picker.cpp
     src/lamina/widgets/divider.cpp
     src/lamina/widgets/fab.cpp
     src/lamina/widgets/focus_manager.cpp
@@ -82,6 +84,7 @@ add_library(lamina STATIC
     src/lamina/widgets/navigation_bar.cpp
     src/lamina/widgets/navigation_rail.cpp
     src/lamina/widgets/overlay_stack.cpp
+    src/lamina/widgets/picker_dialog.cpp
     src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/scroll_area.cpp
@@ -235,6 +238,7 @@ if(LAMINA_BUILD_TESTS)
         tests/calculator_layout_test.cpp
         tests/cancel_interaction_test.cpp
         tests/date_picker_test.cpp
+        tests/date_range_picker_test.cpp
         tests/calendar_locale_test.cpp
         tests/calendar_test.cpp
         tests/canvas_test.cpp

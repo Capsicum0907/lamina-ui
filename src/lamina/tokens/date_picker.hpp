@@ -17,6 +17,7 @@ struct DatePickerTokens {
     double container_height;
     double header_height;
     double range_header_height;
+    double range_picker_height;
     double title_top;
     double header_start;
     double range_header_start;
@@ -64,9 +65,7 @@ struct DatePickerTokens {
     CornerSize docked_corner;
     double docked_elevation;
     double docked_gap;
-    double dialog_button_bottom;
-    double dialog_button_end;
-    double dialog_button_spacing;
+    double docked_icon_inset;
     icons::Symbol input_mode_symbol;
     icons::Symbol picker_mode_symbol;
     icons::Symbol menu_symbol;
@@ -81,6 +80,7 @@ inline constexpr DatePickerTokens date_picker_tokens{
     .container_height = 568.0,
     .header_height = 120.0,
     .range_header_height = 68.0,
+    .range_picker_height = 520.0,
     .title_top = 16.0,
     .header_start = 24.0,
     .range_header_start = 64.0,
@@ -128,9 +128,7 @@ inline constexpr DatePickerTokens date_picker_tokens{
     .docked_corner = CornerSize::large,
     .docked_elevation = 6.0,
     .docked_gap = 4.0,
-    .dialog_button_bottom = 8.0,
-    .dialog_button_end = 6.0,
-    .dialog_button_spacing = 8.0,
+    .docked_icon_inset = 24.0,
     .input_mode_symbol = builtin::icons::edit,
     .picker_mode_symbol = builtin::icons::date_range,
     .menu_symbol = builtin::icons::arrow_drop_down,

@@ -435,16 +435,11 @@ void DatePicker::add_focus_stops(FocusManager& focus) {
     add(forward_focus(next_button_, [this] { return days_shown(); }));
     add({[this] { return grid_focus_.focused(); },
          [this](bool f) {
-             if (f && !grid_focus_.focused()) {
-                 if (selected_ && calendar::year_month(*selected_) == displayed_) {
-                     focus_date_ = *selected_;
-                 } else if (calendar::year_month(today_) == displayed_) {
-                     focus_date_ = today_;
-                 } else if (calendar::year_month(focus_date_) != displayed_) {
-                     focus_date_ = calendar::first_day(displayed_);
-                 }
+             if (f) {
+                 focus_grid();
+             } else {
+                 grid_focus_.set_focused(false);
              }
-             grid_focus_.set_focused(f && enabled() && days_shown());
          },
          [this] { return enabled() && days_shown(); }, [this] { return day_bounds(focus_date_); }});
     add({[this] { return year_focus_.focused(); },
@@ -458,12 +453,26 @@ void DatePicker::add_focus_stops(FocusManager& focus) {
              year_focus_.set_focused(f && enabled() && years_open_);
          },
          [this] { return enabled() && picker_shown() && years_open_; }, [this] { return year_bounds(focus_year_); }});
-    add(forward_focus(*input_, [this] { return mode_ == DatePickerMode::input; }));
+    add({[this] { return input_->focused(); }, [this](bool f) { input_->set_focused(f); },
+         [this] { return mode_ == DatePickerMode::input && input_->can_focus(); }, [this] { return input_->bounds(); }});
 }
 
 bool DatePicker::focused() const {
     return toggle_.focused() || previous_button_.focused() || next_button_.focused() || menu_.focus.focused() || grid_focus_.focused() ||
            year_focus_.focused() || input_->focused();
+}
+
+void DatePicker::focus_grid() {
+    if (!grid_focus_.focused()) {
+        if (selected_ && calendar::year_month(*selected_) == displayed_) {
+            focus_date_ = *selected_;
+        } else if (calendar::year_month(today_) == displayed_) {
+            focus_date_ = today_;
+        } else if (calendar::year_month(focus_date_) != displayed_) {
+            focus_date_ = calendar::first_day(displayed_);
+        }
+    }
+    grid_focus_.set_focused(enabled() && days_shown());
 }
 
 void DatePicker::clear_focus() {

@@ -95,6 +95,7 @@ public:
     void add_focus_stops(FocusManager& focus);
     bool focused() const;
     void clear_focus();
+    void focus_grid();
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);
     AccessibleNode accessible() const;
