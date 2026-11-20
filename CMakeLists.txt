@@ -31,6 +31,7 @@ function(lamina_warnings target)
 endfunction()
 
 add_library(lamina STATIC
+    src/lamina/calendar/format.cpp
     src/lamina/color/mcu_scheme.cpp
     src/lamina/color/spec_2021.cpp
     src/lamina/color/spec_2025.cpp
@@ -225,6 +226,7 @@ if(LAMINA_BUILD_TESTS)
         tests/calculator_engine_test.cpp
         tests/calculator_layout_test.cpp
         tests/cancel_interaction_test.cpp
+        tests/calendar_test.cpp
         tests/canvas_test.cpp
         tests/card_test.cpp
         tests/checkbox_test.cpp
