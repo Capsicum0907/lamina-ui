@@ -14,6 +14,7 @@ struct CaptionRegions {
     render::Rect maximize{0.0, 0.0, 0.0, 0.0};
     render::Rect close{0.0, 0.0, 0.0, 0.0};
     std::vector<render::Rect> interactive;
+    bool report_drag_hover = false;
 };
 
 constexpr bool caption_contains(const render::Rect& r, render::Point p) {
@@ -36,6 +37,10 @@ inline CaptionHit hit_test(const CaptionRegions& regions, render::Point p_dp) {
         }
     }
     return caption_contains(regions.drag, p_dp) ? CaptionHit::drag : CaptionHit::client;
+}
+
+constexpr bool reports_hover(const CaptionRegions& regions, CaptionHit hit) {
+    return hit == CaptionHit::maximize || (hit == CaptionHit::drag && regions.report_drag_hover);
 }
 
 }

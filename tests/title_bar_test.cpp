@@ -77,6 +77,18 @@ TEST_CASE("caption hit testing puts buttons and interactive rects above the drag
     CHECK(input::hit_test(r, {10.0, 41.0}) == CaptionHit::client);
 }
 
+TEST_CASE("hover over the drag area is reported only when the regions ask for it") {
+    input::CaptionRegions r;
+    CHECK_FALSE(r.report_drag_hover);
+    CHECK(input::reports_hover(r, CaptionHit::maximize));
+    CHECK_FALSE(input::reports_hover(r, CaptionHit::drag));
+    CHECK_FALSE(input::reports_hover(r, CaptionHit::client));
+    r.report_drag_hover = true;
+    CHECK(input::reports_hover(r, CaptionHit::drag));
+    CHECK(input::reports_hover(r, CaptionHit::maximize));
+    CHECK_FALSE(input::reports_hover(r, CaptionHit::close));
+}
+
 TEST_CASE("the title bar puts its three buttons at the end and reports them as regions") {
     const auto& t = tokens::title_bar_tokens;
     const widgets::TitleBar bar = make_bar(600.0);

@@ -45,17 +45,17 @@ private:
         case WM_NCHITTEST:
             return self->hit(lp);
         case WM_NCMOUSEMOVE:
-            if (wp == HTMAXBUTTON) {
+            if (self->reported(wp)) {
                 self->track_leave();
                 self->push_at(input::PointerAction::move, lp);
-            } else if (self->over_maximize_) {
-                self->over_maximize_ = false;
+            } else if (self->hovering_) {
+                self->hovering_ = false;
                 self->push(input::PointerAction::leave, 0, 0);
             }
             break;
         case WM_NCMOUSELEAVE:
-            if (self->over_maximize_) {
-                self->over_maximize_ = false;
+            if (self->hovering_) {
+                self->hovering_ = false;
                 self->push(input::PointerAction::leave, 0, 0);
             }
             break;
@@ -154,11 +154,16 @@ private:
         return HTNOWHERE;
     }
 
+    bool reported(WPARAM hit) const {
+        const input::CaptionHit h = hit == HTMAXBUTTON ? input::CaptionHit::maximize : hit == HTCAPTION ? input::CaptionHit::drag : input::CaptionHit::client;
+        return input::reports_hover(regions_, h);
+    }
+
     void track_leave() {
-        if (over_maximize_) {
+        if (hovering_) {
             return;
         }
-        over_maximize_ = true;
+        hovering_ = true;
         TRACKMOUSEEVENT tme{sizeof(TRACKMOUSEEVENT), TME_LEAVE | TME_NONCLIENT, hwnd_, 0};
         TrackMouseEvent(&tme);
     }
@@ -193,7 +198,7 @@ private:
     HWND hwnd_;
     Uint32 pointer_event_;
     input::CaptionRegions regions_;
-    bool over_maximize_ = false;
+    bool hovering_ = false;
 };
 
 }
