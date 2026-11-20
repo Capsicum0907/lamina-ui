@@ -124,9 +124,9 @@ C `tokens/TypeScaleTokens.kt` (`VERSION: v0_103`) and W `_md-sys-typescale.scss`
 | Label M | 12 / 16 | 500 | 0.5 | 0.5 |
 | Label S | 11 / 16 | 500 | 0.5 | 0.5 |
 
-The two sources disagree on the three tracking values in bold. Each C value is the W value rounded to one decimal place with ties to even (−0.25 → −0.2, 0.15 → 0.2, 0.25 → 0.2), so W is taken to be the unrounded value. lamina-ui uses W.
+At `1b31f4ddbd0d` the two sources disagreed on the three tracking values in bold: each C value was the W value rounded to one decimal place with ties to even (−0.25 → −0.2, 0.15 → 0.2, 0.25 → 0.2), so W was taken to be the unrounded value and lamina-ui used W. Read again on 2026-11-21 at androidx `6068a9492ba8`, C has −0.25, 0.15 and 0.25 too, so the sources now agree.
 
-**Emphasized scale.** Same sizes and line heights. Weights: Display, Headline, Title L and Body are 500. Title M, Title S and Label are 700. W keeps the standard tracking. C has separate emphasized tracking values under a "TODO update with the generated tokens" note, so they are provisional.
+**Emphasized scale.** C `tokens/TypeScaleTokens.kt` at `6068a9492ba8` has `*EmphasizedSize`, `*EmphasizedLineHeight`, `*EmphasizedTracking` and `*EmphasizedWeight` for all 15 roles, read by `TypographyTokens.kt` into `displayLargeEmphasized` to `labelSmallEmphasized`: the same size, line height and tracking as the standard role; weight 500 (Medium) for Display, Headline, Title L and Body, and 700 (Bold) for Title M, Title S and Label. The values still sit under a "TODO update with the generated tokens once available" note, so they are provisional. lamina-ui has them as the 15 `*_emphasized` roles of `TypeRole`.
 
 ## Color
 
@@ -285,6 +285,32 @@ Read on 2026-11-20 from material-web at `9d2f79851cae` and from the Compose file
 - Snackbar: the action's focus ring uses inverse-primary, the action's own color, instead of secondary, which has too little contrast on the inverse-surface container. This is lamina-ui's own choice; `ButtonColors::focus_ring` sets the ring's role for any button.
 - A text field that accepts tabs leaves on Ctrl+Tab, as `AcceptsTab` text boxes do in WinForms and WPF, so it is no keyboard trap (WCAG 2.1 success criterion 2.1.2).
 
+## Disabled state
+
+Read on 2026-11-21 from androidx at `6068a9492ba8` (C below means that commit in this section): the disabled colors of each component's Compose defaults, which sometimes differ from the token file.
+
+| Component | Container | Content | Other |
+|---|---|---|---|
+| Filled, elevated button | on-surface 10 % | on-surface-variant 38 % | elevation Level 0 |
+| Tonal button | on-surface 12 % | on-surface 38 % | elevation 0 (`FilledTonalButtonTokens` is still `v0_103`) |
+| Outlined button | none | on-surface-variant 38 % | outline: outline-variant at 10 % (`outlinedButtonBorder(enabled)` uses `DisabledContainerOpacity`) |
+| Text button | none | on-surface-variant 38 % | |
+| Filled, tonal icon button | on-surface 10 % | on-surface 38 % | toggles use the same colors whatever the checked state |
+| Outlined icon button | none | on-surface 38 % | outline: outline-variant 38 % while unchecked, none while checked (`outlinedIconButtonVibrantBorder`) |
+| Standard icon button | none | on-surface 38 % | |
+| Switch | track: on-surface 12 % (checked), surface-container-highest 12 % (unchecked) | thumb: surface (checked), on-surface 38 % (unchecked); icon: on-surface 38 %, surface-container-highest 38 % | outline on-surface 12 % while unchecked; every color is composited over surface (`compositeOver(surface)`) |
+| Checkbox | box: on-surface 38 % when checked or indeterminate | check mark: surface | outline on-surface 38 % while unchecked |
+| Radio button | | on-surface 38 % | |
+| Slider | | handle on-surface 38 % composited over surface | active track and stop on-surface 38 %, inactive track on-surface 12 %; ticks crossed as when enabled (active ticks on-surface 12 %, inactive 38 %) |
+| Outlined text field | none | text, label, placeholder on-surface 38 % | outline on-surface 12 %, 1 dp |
+| Navigation bar and rail item | | icon and label: the unselected color at `DisabledAlpha` (0.38) | |
+| Menu item, grouped menu item | the group's container (no selected highlight) | text and icons on-surface 38 % | |
+
+- Compose switches every color at once when `enabled` changes; lamina-ui fades between the enabled and disabled colors on the default effects spring.
+- Compose snaps a button's elevation to its disabled level ("No transition when moving to a disabled state" in `Button.kt`); lamina-ui moves it on the elevation spring, so the transition stays continuous.
+- `Tab.kt` passes `enabled` only to `selectable` and has no disabled colors, and the tab tokens have none, so a disabled Compose tab looks enabled. lamina-ui draws a disabled tab's icon and label at `DisabledAlpha` (0.38), as the navigation items do; this is lamina-ui's own choice.
+- `FloatingActionButton` has no `enabled` parameter and the FAB tokens have no disabled colors, so lamina-ui's FAB has no disabled state.
+
 ## Components
 
 ### Button
@@ -298,7 +324,7 @@ C `tokens/Button{XSmall,Small,Medium,Large,XLarge}Tokens.kt` (height, square and
 
 ### Outlined text field
 
-C `tokens/OutlinedTextFieldTokens.kt` (56 dp high, extra-small corners, outline 1 dp and 2 dp when focused, Body L input and label, colors per state) and C `internal/TextFieldImpl.kt` (16 dp padding, Body S for the floating label), read into `lamina/tokens/text_field.hpp`. The selection is `primary` at 0.4 opacity, from `TextSelectionBackgroundOpacity` in C `MaterialTheme.kt`. The undo history keeps 100 steps (`undo_depth`) and ends a typing step after a pause of more than 1 s (`undo_pause_seconds`); Material 3 has no tokens for these, so they are lamina-ui's own values.
+C `tokens/OutlinedTextFieldTokens.kt` (56 dp high, extra-small corners, outline 1 dp and 2 dp when focused, Body L input and label, colors per state) and C `internal/TextFieldImpl.kt` (16 dp padding, Body S for the floating label), read into `lamina/tokens/text_field.hpp`. The placeholder, read on 2026-11-21 from C `internal/TextFieldImpl.kt` and `TextFieldDefaults.kt` at `6068a9492ba8`, is Body L in `InputPlaceholderColor` (on-surface-variant), on-surface at 38 % when disabled. Its opacity is 1 while the field has the focus, 0 when the field is unfocused and empty with a label (1 without a label), and 0 when it holds text; it moves on the slow effects spring from unfocused-empty to focused and from unfocused-not-empty to unfocused-empty, and on the fast effects spring otherwise (`placeholderOpacity`). It is drawn only while the text, including an IME composition, is empty, so the first character removes it at once. The selection is `primary` at 0.4 opacity, from `TextSelectionBackgroundOpacity` in C `MaterialTheme.kt`. The undo history keeps 100 steps (`undo_depth`) and ends a typing step after a pause of more than 1 s (`undo_pause_seconds`); Material 3 has no tokens for these, so they are lamina-ui's own values.
 
 ### Button icons
 
@@ -412,7 +438,7 @@ C `tokens/StandardMenuTokens.kt` (surface-container-low, tertiary-container and 
 - The optional group label is Label L in on-surface, at least 32 dp tall, with 12 dp before and 4 dp after it. The optional divider below it has 12 dp at the sides and 2 dp above and below.
 - Position: the candidates of the classic menu, with 48 dp from the top and bottom of the window and 8 dp from its sides (`MenuHorizontalMargin`, the default of `DropdownMenuPositionProvider`; the classic menu gets 0 from `AndroidMenu`). The open and close animation is the classic one.
 - What a click does is the app's choice in Compose; lamina-ui offers it per group as `MenuSelection`: `none` reports the item and closes the menu, `single` selects one item, `multiple` toggles (like `CheckableDropdownMenuItem`), and the menu stays open for the last two.
-- Not done: supporting text, disabled items, the vibrant colors (`VibrantMenuTokens.kt`), submenus, and a selected leading icon on an item without a leading icon (Compose expands it horizontally); `selected_leading_icon` only replaces an existing leading icon.
+- Not done: supporting text, the vibrant colors (`VibrantMenuTokens.kt`), submenus, and a selected leading icon on an item without a leading icon (Compose expands it horizontally); `selected_leading_icon` only replaces an existing leading icon.
 
 ### Dialog
 
@@ -423,6 +449,7 @@ C `tokens/DialogTokens.kt` (surface-container-high, extra-large corners, Headlin
 - The buttons are text buttons in an `AlertDialogFlowRow`: a flow row in the flipped layout direction with 8 dp between buttons, so on one line dismiss comes before confirm at the end, and when they do not fit, confirm stays on the first line and dismiss moves to the next, both at the end. Compose spaces the lines by 8 dp minus the 8 dp by which a button's 48 dp touch target exceeds its 40 dp height, that is 0 dp between 48 dp slots. lamina-ui lays the buttons out at their 40 dp height, so it puts that 8 dp back and the lines are 8 dp apart, as in Compose. The 4 dp of touch target below the last line is not added, so the last button is 24 dp from the bottom edge where Compose has 28 dp.
 - A headline that wraps to several lines is centered as a block as wide as its longest line. A wrapping Compose `Text` most likely takes the full maximum width, so with an icon its lines would start at the start edge (not verified). Single-line headlines are the same.
 - Compose leaves the enter and exit animation to the platform window. lamina-ui's own animation scales the surface from 0.8 with the default spatial spring and fades it and the scrim with the default effects spring.
+- Content (read at `6068a9492ba8`): `AlertDialogContent` puts the `text` composable in a `Box` with `weight(1f, fill = false)` and 24 dp below it, so arbitrary content fits there and shrinks when the dialog is too tall. Compose does not scroll it; the caller adds `verticalScroll`. lamina-ui puts the supporting text and `DialogOptions::content` in that slot and scrolls it in a `ScrollArea` itself. The height limit (the area less `window_margin`, 48 dp, above and below) and the 16 dp between the supporting text and the content (`supporting_text_content_space`) are lamina-ui's own: Compose leaves the height to the platform dialog window and has a single text slot. The dividers that the M3 guidelines show at the edges of scrolling dialog content are not drawn; Compose draws none either.
 
 ### Snackbar
 
@@ -430,6 +457,17 @@ C `tokens/SnackbarTokens.kt` (inverse-surface container, extra-small corners, Le
 
 - The height counts the lines of the message at the Body M line height (20 dp), so one line is 48 dp and two are 68 dp whatever the font's own ascent and descent.
 - Compose gives a snackbar with an action an indefinite duration by default; lamina-ui uses the short duration unless told otherwise, and holds the time while the pointer is over the snackbar, which Compose does not.
+
+### Tooltip
+
+Read on 2026-11-21 from C `Tooltip.kt`, `internal/BasicTooltip.kt`, `tokens/PlainTooltipTokens.kt` and `tokens/RichTooltipTokens.kt` (`VERSION: v0_210`) at `6068a9492ba8`, into `lamina/tokens/tooltip.hpp`.
+
+- Plain: inverse-surface container, inverse-on-surface Body S, extra-small (4 dp) corners, 8 × 4 dp padding (`PlainTooltipContentPadding`), at least 40 × 24 dp (`TooltipMinWidth`, `TooltipMinHeight`), at most 200 dp wide (`plainTooltipMaxWidth`), no shadow.
+- Rich: surface-container container, medium (12 dp) corners, Level 2 shadow (`ContainerElevation`), at most 320 dp wide, 16 dp at the sides. The title (Title S, on-surface-variant) has its first baseline 28 dp below the top (`HeightToSubheadFirstLine`); the text (Body M, on-surface-variant) has its first baseline 24 dp below the title when there is a title or an action (`HeightFromSubheadToTextFirstLine`) and 16 dp below it, or 4 dp above and below otherwise; the action (Label L, primary) is at least 36 dp tall with 8 dp below (`ActionLabelMinHeight`, `ActionLabelBottomPadding`). lamina-ui draws the action as a small text button.
+- Position (`TooltipPositionProviderImpl`): 4 dp from the anchor (`SpacingBetweenTooltipAndAnchor`); above: centered horizontally, below when it would leave the top, clamped to the window; below, left and right in the same way. The caret is drawn only when a caret shape is passed (none by default); `caretSize` is 16 × 8 dp and it points at the middle of the anchor (`caretX`). Compose draws the caret outside the tooltip with the same 4 dp spacing, so its tip reaches 4 dp into the anchor; lamina-ui adds the caret's height to the spacing, so the tip stays 4 dp from the anchor.
+- Motion: scale from 0.8 on the fast spatial spring and alpha on the fast effects spring (`MotionSchemeKeyTokens.FastSpatial`, `FastEffects`).
+- Showing (`BasicTooltip.kt`): a mouse entering the anchor shows the tooltip at once, with no delay, and leaving dismisses it unless it is persistent; a touch or stylus held for the long-press timeout shows it until it is lifted; keyboard focus on the anchor shows it, losing the focus dismisses it, and Escape dismisses it. A tooltip shown by focus or long press and not persistent dismisses itself after 1500 ms (`TooltipDuration`); one shown by hover stays while the pointer is there.
+- lamina-ui's choices: the hover delay is a token, `hover_show_delay_seconds`, set to Compose's 0, and `TooltipOptions::hover_delay_seconds` changes it per tooltip. The long-press time is 0.5 s (`long_press_seconds`), lamina-ui's own value; Compose uses the platform's `ViewConfiguration`. Compose shows one tooltip at a time through a shared `MutatorMutex`; lamina-ui does not enforce that. A press outside the anchor and the tooltip dismisses any shown tooltip. The heights count the lines of text at the type's line height, as the snackbar does. The rich action takes the keyboard focus through `FocusGated`, as the snackbar's action does, instead of Compose's forced focus into the popup on Tab.
 
 ### Circular progress indicator
 

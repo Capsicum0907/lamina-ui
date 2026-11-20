@@ -124,9 +124,9 @@ C の `tokens/TypeScaleTokens.kt`（`VERSION: v0_103`）と W の `_md-sys-types
 | Label M | 12 / 16 | 500 | 0.5 | 0.5 |
 | Label S | 11 / 16 | 500 | 0.5 | 0.5 |
 
-太字にした三つの字間は、二つの出典で値が違います。C の値はどれも、W の値を小数第 1 位で丸めたもの（ちょうど半分のときは偶数側へ：−0.25 → −0.2、0.15 → 0.2、0.25 → 0.2）になっているので、W が丸める前の値とみなし、lamina-ui は W に従います。
+`1b31f4ddbd0d` の時点では、太字にした三つの字間が二つの出典で違っていました。C の値はどれも、W の値を小数第 1 位で丸めたもの（ちょうど半分のときは偶数側へ：−0.25 → −0.2、0.15 → 0.2、0.25 → 0.2）だったので、W を丸める前の値とみなし、lamina-ui は W に従いました。2026-11-21 に androidx の `6068a9492ba8` で読み直すと、C も −0.25・0.15・0.25 になっていて、二つの出典は一致しています。
 
-**強調の段階。** 大きさと行の高さは同じで、太さだけが変わります。Display・Headline・Title L・Body は 500、Title M・Title S・Label は 700 です。W は字間を標準のまま使っています。C には強調用の字間が別にありますが、「生成したトークンが出たら差し替える」という注記の下に置かれた暫定の値です。
+**強調の段階。** `6068a9492ba8` の C の `tokens/TypeScaleTokens.kt` には、15 の役割すべてに `*EmphasizedSize`・`*EmphasizedLineHeight`・`*EmphasizedTracking`・`*EmphasizedWeight` があり、`TypographyTokens.kt` がそれを `displayLargeEmphasized` から `labelSmallEmphasized` に読み込みます。大きさ・行の高さ・字間は標準の役割と同じで、太さは Display・Headline・Title L・Body が 500（Medium）、Title M・Title S・Label が 700（Bold）です。これらの値はまだ「生成したトークンが出たら差し替える」という注記の下にあるので、暫定です。lamina-ui は `TypeRole` の 15 の `*_emphasized` として持っています。
 
 ## 色
 
@@ -285,6 +285,32 @@ lamina-ui は、輪（`lamina/tokens/focus.hpp`）とフォーカスの状態の
 - スナックバー：操作のフォーカスの枠は secondary ではなく、操作の文字と同じ inverse-primary で描きます。inverse-surface の面の上では secondary の差が小さく、見えにくいためです。これは lamina-ui 独自の決めごとです。どのボタンでも `ButtonColors::focus_ring` で枠の色の役割を指定できます。
 - タブを受け取る入力欄は、WinForms と WPF の `AcceptsTab` のテキストボックスと同じく Ctrl+Tab で外へ出られるので、キーボードの罠になりません（WCAG 2.1 の達成基準 2.1.2）。
 
+## 無効の状態
+
+2026-11-21 に androidx の `6068a9492ba8`（この節の C はこのコミット）で読みました。各部品の Compose の既定の無効の色で、トークンのファイルと違うこともあります。
+
+| 部品 | 入れ物 | 中身 | ほか |
+|---|---|---|---|
+| filled・elevated のボタン | on-surface 10 % | on-surface-variant 38 % | 高さ Level 0 |
+| tonal のボタン | on-surface 12 % | on-surface 38 % | 高さ 0（`FilledTonalButtonTokens` はまだ `v0_103`） |
+| outlined のボタン | なし | on-surface-variant 38 % | 枠線は outline-variant の 10 %（`outlinedButtonBorder(enabled)` が `DisabledContainerOpacity` を使います） |
+| text のボタン | なし | on-surface-variant 38 % | |
+| filled・tonal のアイコンボタン | on-surface 10 % | on-surface 38 % | 切り替え式も、オンかオフかによらず同じ色 |
+| outlined のアイコンボタン | なし | on-surface 38 % | 枠線はオフの間 outline-variant の 38 %、オンの間はなし（`outlinedIconButtonVibrantBorder`） |
+| standard のアイコンボタン | なし | on-surface 38 % | |
+| スイッチ | 溝：オンは on-surface 12 %、オフは surface-container-highest 12 % | つまみ：オンは surface、オフは on-surface 38 %。アイコン：on-surface 38 %・surface-container-highest 38 % | オフの間の枠線は on-surface 12 %。どの色も surface の上に重ねます（`compositeOver(surface)`） |
+| チェックボックス | 箱：オンと途中は on-surface 38 % | チェックの印：surface | オフの間の枠線は on-surface 38 % |
+| ラジオボタン | | on-surface 38 % | |
+| スライダー | | つまみは on-surface 38 % を surface の上に重ねた色 | 進んだ側の溝と終わりの点は on-surface 38 %、残りの溝は on-surface 12 %。目盛りは有効のときと同じく入れ替わります（進んだ側は on-surface 12 %、残りの側は 38 %） |
+| 枠線つきの入力欄 | なし | 文字・ラベル・案内の文字は on-surface 38 % | 枠線は on-surface 12 %、1 dp |
+| ナビゲーションバーとレールの項目 | | アイコンとラベル：選ばれていないときの色に `DisabledAlpha`（0.38） | |
+| メニューの項目・まとまりに分けたメニューの項目 | まとまりの入れ物の色（選んだ色にしない） | 文字とアイコンは on-surface 38 % | |
+
+- Compose は `enabled` が変わると色を一度に切り替えます。lamina-ui は既定の効果のばねで有効と無効の色の間を移します。
+- Compose はボタンの高さを無効の高さへ一度に変えます（`Button.kt` の「無効になるときは移り変わりなし」）。lamina-ui は高さのばねで動かし、移り変わりを途切れさせません。
+- `Tab.kt` は `enabled` を `selectable` に渡すだけで無効の色を持たず、タブのトークンにもありません。そのため Compose の無効なタブは有効なタブと同じに見えます。lamina-ui は、ナビゲーションの項目と同じく、無効なタブのアイコンとラベルを `DisabledAlpha`（0.38）で描きます。これは lamina-ui が決めたことです。
+- `FloatingActionButton` には `enabled` がなく、FAB のトークンにも無効の色がないので、lamina-ui の FAB にも無効の状態はありません。
+
 ## 部品
 
 ### ボタン
@@ -298,7 +324,7 @@ C の `tokens/Button{XSmall,Small,Medium,Large,XLarge}Tokens.kt`（高さ・四�
 
 ### 枠線つきの入力欄
 
-C の `tokens/OutlinedTextFieldTokens.kt`（高さ 56 dp・角は extra-small・枠線 1 dp で焦点時は 2 dp・入力とラベルは Body L・状態ごとの色）と C の `internal/TextFieldImpl.kt`（余白 16 dp・浮いたラベルは Body S）を `lamina/tokens/text_field.hpp` に写しました。選択範囲の色は `primary` の不透明度 0.4 で、C の `MaterialTheme.kt` の `TextSelectionBackgroundOpacity` から取りました。取り消しの履歴は 100 まで残し（`undo_depth`）、1 秒より長く手を止めると打った文字のまとまりを区切ります（`undo_pause_seconds`）。Material 3 にはこれらのトークンがないので、lamina-ui が決めた値です。
+C の `tokens/OutlinedTextFieldTokens.kt`（高さ 56 dp・角は extra-small・枠線 1 dp で焦点時は 2 dp・入力とラベルは Body L・状態ごとの色）と C の `internal/TextFieldImpl.kt`（余白 16 dp・浮いたラベルは Body S）を `lamina/tokens/text_field.hpp` に写しました。選択範囲の色は `primary` の不透明度 0.4 で、C の `MaterialTheme.kt` の `TextSelectionBackgroundOpacity` から取りました。薄い案内の文字（プレースホルダー）は、2026-11-21 に `6068a9492ba8` の C の `internal/TextFieldImpl.kt` と `TextFieldDefaults.kt` から読みました。Body L で、色は `InputPlaceholderColor`（on-surface-variant）、無効のときは on-surface の 38 % です。不透明度は、フォーカスがある間は 1、フォーカスがなく空でラベルがあるときは 0（ラベルがなければ 1）、文字があるときは 0 です。「フォーカスなしで空」から「フォーカスあり」へと、「フォーカスなしで文字あり」から「フォーカスなしで空」へは遅い効果のばね、それ以外は速い効果のばねで移ります（`placeholderOpacity`）。描くのは文字（IME の変換中の文字を含む）が空の間だけなので、最初の一文字ですぐに消えます。取り消しの履歴は 100 まで残し（`undo_depth`）、1 秒より長く手を止めると打った文字のまとまりを区切ります（`undo_pause_seconds`）。Material 3 にはこれらのトークンがないので、lamina-ui が決めた値です。
 
 ### ボタンのアイコン
 
@@ -412,7 +438,7 @@ C の `tokens/StandardMenuTokens.kt`（surface-container-low・選んだとき�
 - まとまりの見出しは Label L・on-surface で、高さ 32 dp 以上、前に 12 dp・後ろに 4 dp を空けます。その下の区切り線は、左右に 12 dp・上下に 2 dp を空けます。どちらも付けなくて構いません。
 - 置き場所：従来のメニューと同じ候補を試し、窓の上下から 48 dp、左右から 8 dp 離します（`MenuHorizontalMargin`。`DropdownMenuPositionProvider` の既定値です。従来のメニューは `AndroidMenu` から 0 を受け取ります）。開け閉めの動きは従来のメニューと同じです。
 - 押したときにどうするかは、Compose ではアプリが決めます。lamina-ui はまとまりごとに `MenuSelection` で選べます。`none` は項目を知らせてメニューを閉じ、`single` は一つを選び、`multiple` は切り替えます（`CheckableDropdownMenuItem` と同じ）。後の二つではメニューは開いたままです。
-- まだないもの：補足の文字、押せない項目、鮮やかな色（`VibrantMenuTokens.kt`）、入れ子のメニュー、前のアイコンがない項目に選んだときだけ出るアイコン（Compose は横に広げて出します）。`selected_leading_icon` は、すでにある前のアイコンを差し替えるだけです。
+- まだないもの：補足の文字、鮮やかな色（`VibrantMenuTokens.kt`）、入れ子のメニュー、前のアイコンがない項目に選んだときだけ出るアイコン（Compose は横に広げて出します）。`selected_leading_icon` は、すでにある前のアイコンを差し替えるだけです。
 
 ### ダイアログ
 
@@ -423,6 +449,7 @@ C の `tokens/DialogTokens.kt`（surface-container-high・extra-large の角・H
 - ボタンは `AlertDialogFlowRow` に並べたテキストボタンです。並べる向きを逆にした折り返しの行で、ボタンの間は 8 dp です。そのため一行なら閉じるボタンが確定のボタンの前に来て終わりの側にそろい、収まらなければ確定のボタンが一行目に残り、閉じるボタンが次の行に移ります。どちらも終わりの側にそろえます。Compose の行の間は、8 dp から「触れる範囲 48 dp がボタンの高さ 40 dp を超える 8 dp」を引いた値、つまり 48 dp の枠どうしの間で 0 dp です。lamina-ui はボタンを高さ 40 dp で並べるので、その 8 dp を戻し、Compose と同じく行と行は 8 dp 離れます。最後の行の下にある 4 dp の触れる範囲は足していないので、最後のボタンは下端から 24 dp です（Compose では 28 dp）。
 - 見出しが複数行に折り返すとき、lamina-ui は最も長い行の幅の塊として中央に置きます。Compose の折り返す文字は与えられた最大の幅を取るはずなので、アイコンがあっても各行は始めの側から並ぶと思われます（未確認）。一行の見出しは同じです。
 - Compose は現れるときと消えるときの動きを OS の窓に任せています。lamina-ui は独自に、面を 0.8 倍から標準の空間のばねで大きくし、面と幕を標準の効果のばねで現します。
+- 中身（`6068a9492ba8` で読みました）：`AlertDialogContent` は `text` の部品を `weight(1f, fill = false)` の `Box` に入れ、下に 24 dp を空けます。そのため好きな中身を置け、ダイアログが高すぎるときは縮みます。Compose はこれをスクロールさせず、呼ぶ側が `verticalScroll` を足します。lamina-ui は本文と `DialogOptions::content` をこの枠に入れ、自分で `ScrollArea` の中でスクロールさせます。高さの上限（範囲から上下に `window_margin` の 48 dp を引いた高さ）と、本文と中身の間の 16 dp（`supporting_text_content_space`）は lamina-ui が決めた値です。Compose は高さを OS のダイアログの窓に任せ、本文の枠も一つだけです。M3 の案内がスクロールする中身の端に描く区切り線は描きません。Compose も描きません。
 
 ### スナックバー
 
@@ -430,6 +457,17 @@ C の `tokens/SnackbarTokens.kt`（面は inverse-surface、角は extra-small�
 
 - 高さは知らせの行数に Body M の行の高さ（20 dp）を掛けて決めます。そのため、フォント自身の上下の高さにかかわらず、1 行で 48 dp、2 行で 68 dp です。
 - Compose は、操作のあるスナックバーの時間を既定で無期限にします。lamina-ui は指定がなければ短い時間を使い、ポインターが乗っている間は時間を止めます。Compose はこれをしません。
+
+### ツールチップ
+
+2026-11-21 に `6068a9492ba8` の C の `Tooltip.kt`・`internal/BasicTooltip.kt`・`tokens/PlainTooltipTokens.kt`・`tokens/RichTooltipTokens.kt`（`VERSION: v0_210`）を読み、`lamina/tokens/tooltip.hpp` に入れました。
+
+- 簡素なもの：入れ物は inverse-surface、文字は inverse-on-surface の Body S、角は extra-small（4 dp）、余白は 8 × 4 dp（`PlainTooltipContentPadding`）、大きさは 40 × 24 dp 以上（`TooltipMinWidth`・`TooltipMinHeight`）、幅は 200 dp まで（`plainTooltipMaxWidth`）、影なし。
+- 詳しいもの：入れ物は surface-container、角は medium（12 dp）、影は Level 2（`ContainerElevation`）、幅は 320 dp まで、左右の余白は 16 dp。見出し（Title S、on-surface-variant）は最初の行の基線を上から 28 dp に置きます（`HeightToSubheadFirstLine`）。本文（Body M、on-surface-variant）は、見出しか操作があるときは最初の行の基線を見出しの下 24 dp に置き（`HeightFromSubheadToTextFirstLine`）、下に 16 dp を空けます。どちらもないときは上下 4 dp です。操作（Label L、primary）は高さ 36 dp 以上で、下に 8 dp を空けます（`ActionLabelMinHeight`・`ActionLabelBottomPadding`）。lamina-ui は操作を小さいテキストボタンで描きます。
+- 置き場所（`TooltipPositionProviderImpl`）：部品から 4 dp（`SpacingBetweenTooltipAndAnchor`）。上に置くときは横は中央にそろえ、上にはみ出すなら下に置き、窓の中に収めます。下・左・右も同じ考え方です。吹き出しの先は、形を渡したときだけ描きます（既定ではなし）。`caretSize` は 16 × 8 dp で、部品の真ん中を指します（`caretX`）。Compose は吹き出しの先をツールチップの外に描き、間は同じ 4 dp のままなので、先が部品に 4 dp 食い込みます。lamina-ui は間に先の高さを足し、先と部品の間を 4 dp に保ちます。
+- 動き：速い空間のばねで 0.8 倍から大きくなり、速い効果のばねで不透明度が変わります（`MotionSchemeKeyTokens.FastSpatial`・`FastEffects`）。
+- 出し方（`BasicTooltip.kt`）：マウスが部品に入るとすぐ（待ちなしで）出て、出ると消えます（`persistent` でなければ）。指かペンで長押しすると、離すまで出ます。キーボードのフォーカスが部品に来ると出て、外れると消え、Escape でも消えます。フォーカスか長押しで出したもので `persistent` でないものは、1500 ms で自分で消えます（`TooltipDuration`）。ポインターで出したものは、ポインターが乗っている間は残ります。
+- lamina-ui が決めたこと：ポインターが乗ってから出るまでの待ちはトークン `hover_show_delay_seconds` で、Compose と同じ 0 にしてあり、`TooltipOptions::hover_delay_seconds` でツールチップごとに変えられます。長押しの時間 0.5 秒（`long_press_seconds`）は lamina-ui が決めた値です。Compose は OS の `ViewConfiguration` を使います。Compose は共有の `MutatorMutex` で一度に一つしか出しませんが、lamina-ui はこれを強制しません。部品とツールチップの外を押すと、出ているツールチップは消えます。高さは、スナックバーと同じく、行数に文字の段階の行の高さを掛けて数えます。詳しいツールチップの操作は、スナックバーの操作と同じく `FocusGated` でキーボードのフォーカスを受けます。Compose のように Tab でポップアップの中へ強制的にフォーカスを移すことはしません。
 
 ### 円形の進み具合の表示
 
