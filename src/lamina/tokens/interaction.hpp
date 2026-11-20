@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "lamina/color/scheme.hpp"
 
 namespace lamina::tokens {
@@ -19,6 +21,7 @@ struct StateColor {
     color::Role role;
     double opacity = 1.0;
     bool over_surface = false;
+    std::optional<color::Role> over = std::nullopt;
 };
 
 }

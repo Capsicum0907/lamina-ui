@@ -13,7 +13,10 @@ namespace lamina::widgets {
 
 inline color::Argb resolve(const color::ColorScheme& scheme, const tokens::StateColor& c) {
     const color::Argb argb = color::scale_alpha(scheme[c.role], c.opacity);
-    return c.over_surface ? color::source_over(argb, scheme[color::Role::surface]) : argb;
+    if (c.over_surface) {
+        return color::source_over(argb, scheme[color::Role::surface]);
+    }
+    return c.over ? color::source_over(argb, scheme[*c.over]) : argb;
 }
 
 inline color::Argb resolve(const color::ColorScheme& scheme, const std::optional<tokens::StateColor>& c) {

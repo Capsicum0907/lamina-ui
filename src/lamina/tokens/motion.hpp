@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 
+#include "lamina/motion/easing.hpp"
 #include "lamina/motion/spring.hpp"
 
 namespace lamina::tokens {
@@ -40,12 +41,7 @@ inline constexpr MotionScheme expressive_motion{
 
 inline constexpr const MotionScheme& motion_scheme = expressive_motion;
 
-struct CubicBezier {
-    double x1;
-    double y1;
-    double x2;
-    double y2;
-};
+using CubicBezier = motion::CubicBezier;
 
 namespace easing {
 inline constexpr CubicBezier emphasized{0.2, 0.0, 0.0, 1.0};
