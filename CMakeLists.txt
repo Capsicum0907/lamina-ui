@@ -63,10 +63,12 @@ add_library(lamina STATIC
     src/lamina/widgets/accessibility.cpp
     src/lamina/widgets/badge.cpp
     src/lamina/widgets/button.cpp
+    src/lamina/widgets/calendar_grid.cpp
     src/lamina/widgets/card.cpp
     src/lamina/widgets/checkbox.cpp
     src/lamina/widgets/chip.cpp
     src/lamina/widgets/chip_group.cpp
+    src/lamina/widgets/date_picker.cpp
     src/lamina/widgets/dialog.cpp
     src/lamina/widgets/divider.cpp
     src/lamina/widgets/fab.cpp
@@ -97,7 +99,8 @@ add_library(lamina STATIC
     src/lamina/widgets/top_app_bar.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
-set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close check)
+set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close check edit date_range arrow_drop_down arrow_drop_up keyboard_arrow_left
+    keyboard_arrow_right calendar_today keyboard schedule)
 get_property(lamina_builtin_icons GLOBAL PROPERTY LAMINA_BUILTIN_ICONS)
 lamina_icon_codepoints(lamina_builtin_codes lamina ${lamina_builtin_icons})
 lamina_write_resource_header("${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamina/include/lamina/builtin_resources.hpp" lamina::builtin
@@ -231,6 +234,7 @@ if(LAMINA_BUILD_TESTS)
         tests/calculator_engine_test.cpp
         tests/calculator_layout_test.cpp
         tests/cancel_interaction_test.cpp
+        tests/date_picker_test.cpp
         tests/calendar_locale_test.cpp
         tests/calendar_test.cpp
         tests/canvas_test.cpp
