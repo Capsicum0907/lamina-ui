@@ -165,3 +165,83 @@ TEST_CASE("focus narrows the handle and draws the ring around it until a press t
     s.handle({PointerAction::up, 100.0, 22.0});
     CHECK(s.handle_width() == doctest::Approx(tokens::slider_tokens.handle_width));
 }
+
+TEST_CASE("a vertical slider runs from the top by default and from the bottom when reversed") {
+    widgets::Slider down({.value = 0.0, .orientation = widgets::SliderOrientation::vertical});
+    down.arrange({0.0, 0.0, 44.0, 204.0});
+    CHECK(down.width() == 44.0);
+    CHECK(down.height() == 204.0);
+    CHECK(down.handle_center().y == doctest::Approx(2.0));
+    down.handle({PointerAction::down, 22.0, 152.0});
+    down.handle({PointerAction::up, 22.0, 152.0});
+    CHECK(down.value() == doctest::Approx(0.75));
+    widgets::Slider up({.value = 0.0, .orientation = widgets::SliderOrientation::vertical, .top_to_bottom = false});
+    up.arrange({0.0, 0.0, 44.0, 204.0});
+    CHECK(up.handle_center().y == doctest::Approx(202.0));
+    up.handle({PointerAction::down, 22.0, 52.0});
+    up.handle({PointerAction::up, 22.0, 52.0});
+    CHECK(up.value() == doctest::Approx(0.75));
+    CHECK(up.handle_rect().height == doctest::Approx(4.0));
+    CHECK(up.handle_rect().width == doctest::Approx(44.0));
+}
+
+TEST_CASE("a vertical slider takes Up and Down in the direction it is drawn, and no Left or Right") {
+    widgets::Slider s({.value = 0.5, .orientation = widgets::SliderOrientation::vertical});
+    s.arrange({0.0, 0.0, 44.0, 204.0});
+    s.set_focused(true);
+    CHECK(s.handle(input::KeyEvent{Key::down}));
+    CHECK(s.value() == doctest::Approx(0.51));
+    CHECK(s.handle(input::KeyEvent{Key::page_up}));
+    CHECK(s.value() == doctest::Approx(0.41));
+    CHECK_FALSE(s.handle(input::KeyEvent{Key::right}));
+    widgets::Slider r({.value = 0.5, .orientation = widgets::SliderOrientation::vertical, .top_to_bottom = false});
+    r.arrange({0.0, 0.0, 44.0, 204.0});
+    r.set_focused(true);
+    r.handle(input::KeyEvent{Key::up});
+    CHECK(r.value() == doctest::Approx(0.51));
+}
+
+TEST_CASE("a centered slider draws the active track from the middle toward the handle") {
+    auto s = make({.value = 0.75, .centered = true});
+    const double l = 200.0;
+    const double v = 150.0;
+    const auto segs = s.segments();
+    REQUIRE(segs.size() == 3);
+    CHECK(segs[0].active);
+    CHECK(segs[0].from == doctest::Approx(l / 2.0));
+    CHECK(segs[0].to == doctest::Approx(v - 8.0));
+    CHECK(segs[0].start_radius == 2.0);
+    CHECK(segs[1].to == doctest::Approx(l / 2.0 - 6.0));
+    CHECK(segs[2].from == doctest::Approx(v + 8.0));
+    s.set_value(0.25);
+    const auto left = s.segments();
+    CHECK(left[0].from == doctest::Approx(58.0));
+    CHECK(left[0].to == doctest::Approx(100.0));
+    CHECK(left[2].from == doctest::Approx(106.0));
+    s.set_value(0.5);
+    for (const auto& seg : s.segments()) {
+        CHECK_FALSE(seg.active);
+    }
+}
+
+TEST_CASE("a custom track corner keeps the inactive track down to zero width") {
+    auto plain = make({.value = 0.95});
+    CHECK(plain.segments().size() == 1);
+    auto shrinking = make({.value = 0.95, .track_corner = 4.0});
+    CHECK(shrinking.segments().size() == 2);
+}
+
+TEST_CASE("the value indicator shows the label while the handle is held or focused") {
+    widgets::Slider s({.value = 0.5, .value_label = [](double v) { return std::to_string(static_cast<int>(v * 100)); }}, fonts());
+    s.set_width(204.0);
+    CHECK_FALSE(s.value_indicator_shown());
+    s.handle({PointerAction::down, 102.0, 22.0});
+    CHECK(s.value_indicator_shown());
+    settle(s);
+    CHECK(s.value_indicator_scale() == doctest::Approx(1.0));
+    s.handle({PointerAction::up, 102.0, 22.0});
+    CHECK_FALSE(s.value_indicator_shown());
+    s.set_focused(true);
+    CHECK(s.value_indicator_shown());
+    CHECK(s.accessible().value == "50");
+}

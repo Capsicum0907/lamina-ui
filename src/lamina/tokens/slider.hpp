@@ -1,7 +1,10 @@
 #pragma once
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/motion/tween.hpp"
 #include "lamina/tokens/interaction.hpp"
+#include "lamina/tokens/motion.hpp"
+#include "lamina/tokens/typography.hpp"
 
 namespace lamina::tokens {
 
@@ -29,6 +32,13 @@ struct SliderTokens {
     StateColor disabled_active_tick;
     StateColor disabled_inactive_tick;
     StateColor disabled_stop_indicator;
+    color::Role value_indicator_container;
+    color::Role value_indicator_label;
+    TypeRole value_indicator_type;
+    double value_indicator_bottom_space;
+    double value_indicator_padding;
+    double value_indicator_min_size;
+    motion::TweenSpec value_indicator_scale;
 };
 
 inline constexpr SliderTokens slider_tokens{
@@ -55,6 +65,13 @@ inline constexpr SliderTokens slider_tokens{
     .disabled_active_tick = {color::Role::on_surface, 0.12},
     .disabled_inactive_tick = {color::Role::on_surface, 0.38},
     .disabled_stop_indicator = {color::Role::on_surface, 0.38},
+    .value_indicator_container = color::Role::inverse_surface,
+    .value_indicator_label = color::Role::inverse_on_surface,
+    .value_indicator_type = TypeRole::label_large,
+    .value_indicator_bottom_space = 12.0,
+    .value_indicator_padding = 4.0,
+    .value_indicator_min_size = 28.0,
+    .value_indicator_scale = {duration_ms::short_[1] / 1000.0, easing::emphasized},
 };
 
 }

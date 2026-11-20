@@ -34,7 +34,7 @@ static_assert(interactive<Fab> && Sized<Fab> && !WidthSettable<Fab> && !Measurab
 static_assert(interactive<Switch> && Sized<Switch> && !WidthSettable<Switch> && !Measurable<Switch>);
 static_assert(interactive<Checkbox> && Sized<Checkbox> && !WidthSettable<Checkbox> && !Measurable<Checkbox>);
 static_assert(interactive<RadioButton> && Sized<RadioButton> && !WidthSettable<RadioButton> && !Measurable<RadioButton>);
-static_assert(interactive<Slider> && HandlesKeys<Slider> && WidthSettable<Slider> && !Measurable<Slider>);
+static_assert(interactive<Slider> && HandlesKeys<Slider> && WidthSettable<Slider> && Measurable<Slider>);
 static_assert(interactive<TabRow> && WidthSettable<TabRow> && !Measurable<TabRow>);
 static_assert(interactive<NavigationBar> && WidthSettable<NavigationBar> && !Measurable<NavigationBar>);
 static_assert(interactive<NavigationRail> && Measurable<NavigationRail> && !Sized<NavigationRail>);

@@ -11,26 +11,65 @@ namespace {
 
 constexpr const tokens::SliderTokens& t = tokens::slider_tokens;
 
-render::Path track_path(const render::Rect& r, double start_radius, double end_radius) {
-    return render::rounded_rect_path(r, {start_radius, end_radius, end_radius, start_radius});
+double end_gap() {
+    return t.handle_width / 2.0 + t.handle_track_gap;
 }
 
 }
 
-Slider::Slider(SliderOptions options) : options_(options), enabled_(options.enabled) {
-    options_.value = snapped(options_.value);
+Slider::Slider(SliderOptions options) : options_(std::move(options)), enabled_(options_.enabled) {
+    options_.value = snap_value(options_.value, options_.min, options_.max, options_.steps);
+}
+
+Slider::Slider(SliderOptions options, const text::FontStack& fonts) : Slider(std::move(options)) {
+    fonts_ = fonts;
+}
+
+double Slider::width() const {
+    return vertical() ? t.handle_height : length_;
 }
 
 double Slider::height() const {
-    return t.handle_height;
+    return vertical() ? length_ : t.handle_height;
+}
+
+void Slider::set_width(double width) {
+    if (!vertical()) {
+        length_ = width;
+    }
+}
+
+layout::Size Slider::measure(const layout::Constraints& c) const {
+    if (vertical()) {
+        return {t.handle_height, std::isfinite(c.max_height) ? c.max_height : length_};
+    }
+    return {std::isfinite(c.max_width) ? c.max_width : length_, t.handle_height};
+}
+
+void Slider::arrange(const render::Rect& r) {
+    if (vertical()) {
+        length_ = r.height;
+        origin_ = {r.x + (r.width - t.handle_height) / 2.0, r.y};
+    } else {
+        length_ = r.width;
+        origin_ = {r.x, r.y + (r.height - t.handle_height) / 2.0};
+    }
 }
 
 render::Rect Slider::bounds() const {
-    return {origin_.x, origin_.y, width_, height()};
+    return {origin_.x, origin_.y, width(), height()};
+}
+
+SliderAxis Slider::axis() const {
+    return {bounds(), vertical(), vertical() && !options_.top_to_bottom, t.handle_width};
+}
+
+double Slider::corner() const {
+    return options_.track_corner.value_or(t.track_height / 2.0);
 }
 
 void Slider::set_value(double value) {
-    options_.value = snapped(value);
+    options_.value = snap_value(value, options_.min, options_.max, options_.steps);
 }
 
 double Slider::fraction() const {
@@ -41,83 +80,113 @@ double Slider::fraction() const {
     return std::clamp((options_.value - options_.min) / range, 0.0, 1.0);
 }
 
-double Slider::snapped(double value) const {
-    const double lo = std::min(options_.min, options_.max);
-    const double hi = std::max(options_.min, options_.max);
-    const double v = std::clamp(value, lo, hi);
-    if (options_.steps <= 0) {
-        return v;
-    }
-    const int intervals = options_.steps + 1;
-    double best = options_.min;
-    double best_distance = std::abs(v - best);
-    for (int i = 1; i <= intervals; ++i) {
-        const double tick = options_.min + (options_.max - options_.min) * i / intervals;
-        const double d = std::abs(v - tick);
-        if (d < best_distance) {
-            best = tick;
-            best_distance = d;
-        }
-    }
-    return best;
+double Slider::value_along() const {
+    return thumb_along(fraction(), axis().length(), corner(), options_.steps);
 }
 
-double Slider::track_x() const {
-    return origin_.x + t.handle_width / 2.0;
+double Slider::handle_width() const {
+    return narrowed_ ? t.pressed_handle_width : t.handle_width;
 }
 
-double Slider::track_width() const {
-    return std::max(0.0, width_ - t.handle_width);
-}
-
-bool Slider::on_first_or_last_tick() const {
-    const double f = fraction();
-    return f == 0.0 || f == 1.0;
-}
-
-double Slider::value_end_in_track() const {
-    const double corner = t.track_height / 2.0;
-    const double f = fraction();
-    if (options_.steps > 0 && !on_first_or_last_tick()) {
-        return (track_width() - 2.0 * corner) * f + corner;
-    }
-    return track_width() * f;
+render::Point Slider::handle_center() const {
+    return axis().point(value_along());
 }
 
 double Slider::handle_center_x() const {
-    return track_x() + value_end_in_track();
+    return handle_center().x;
+}
+
+render::Rect Slider::handle_rect() const {
+    const render::Point c = handle_center();
+    const double along = handle_width();
+    if (vertical()) {
+        return {c.x - t.handle_height / 2.0, c.y - along / 2.0, t.handle_height, along};
+    }
+    return {c.x - along / 2.0, c.y - t.handle_height / 2.0, along, t.handle_height};
 }
 
 std::vector<double> Slider::tick_centers() const {
     std::vector<double> out;
-    if (options_.steps <= 0) {
-        return out;
-    }
-    const double corner = t.track_height / 2.0;
-    const double start = track_x() + corner;
-    const double end = track_x() + track_width() - corner;
-    const int intervals = options_.steps + 1;
-    for (int i = 0; i <= intervals; ++i) {
-        out.push_back(start + (end - start) * i / intervals);
+    const SliderAxis a = axis();
+    for (double along : tick_alongs(options_.steps, a.length(), corner())) {
+        const render::Point p = a.point(along);
+        out.push_back(vertical() ? p.y : p.x);
     }
     return out;
 }
 
-double Slider::value_at(double x) const {
-    const double max_px = std::max(width_ - t.handle_width / 2.0, 0.0);
-    const double min_px = std::min(t.handle_width / 2.0, max_px);
-    const double offset = std::clamp(x - origin_.x, min_px, max_px);
-    const double f = max_px > min_px ? (offset - min_px) / (max_px - min_px) : 0.0;
-    return snapped(options_.min + (options_.max - options_.min) * f);
+std::vector<TrackSegment> Slider::segments() const {
+    const double l = axis().length();
+    const double c = corner();
+    const double inside = t.track_inside_corner;
+    const double v = value_along();
+    const double gap = end_gap();
+    const bool shrinking = (options_.track_corner.has_value() || vertical() || options_.centered) && options_.steps == 0;
+    const double threshold = shrinking ? 0.0 : c;
+    std::vector<TrackSegment> out;
+    if (!options_.centered) {
+        if (v - gap > threshold) {
+            out.push_back({0.0, v - gap, c, inside, true});
+        }
+        if (v < l - gap - threshold) {
+            out.push_back({v + gap, l, inside, c, false});
+        }
+        return out;
+    }
+    const double mid = l / 2.0;
+    const double side_gap = t.handle_track_gap;
+    const double active_threshold = shrinking ? 0.0 : inside;
+    double left_end = 0.0;
+    double right_start = 0.0;
+    if (v > mid) {
+        left_end = mid - side_gap;
+        right_start = v + gap;
+        if (v - gap - mid > active_threshold) {
+            out.push_back({mid, v - gap, inside, inside, true});
+        }
+    } else if (v < mid) {
+        left_end = v - gap;
+        right_start = mid + side_gap;
+        if (mid - (v + gap) > active_threshold) {
+            out.push_back({v + gap, mid, inside, inside, true});
+        }
+    } else {
+        left_end = v - gap;
+        right_start = v + gap;
+    }
+    if (left_end > threshold) {
+        out.push_back({0.0, left_end, c, inside, false});
+    }
+    if (right_start < l - threshold) {
+        out.push_back({right_start, l, inside, c, false});
+    }
+    return out;
 }
 
-void Slider::update_handle_width() {
-    handle_width_ = dragging_ || focus_.focused() ? t.pressed_handle_width : t.handle_width;
+double Slider::value_at(double x, double y) const {
+    const double f = axis().fraction_at(x, y);
+    return snap_value(options_.min + (options_.max - options_.min) * f, options_.min, options_.max, options_.steps);
+}
+
+std::string Slider::value_text() const {
+    return options_.value_label ? options_.value_label(options_.value) : std::string();
+}
+
+AccessibleNode Slider::accessible() const {
+    return {AccessibleRole::slider, options_.accessible_name, bounds(),
+            {.enabled = enabled(), .focusable = enabled(), .focused = focused(),
+             .range = AccessibleRange{options_.value, options_.min, options_.max}},
+            value_text()};
+}
+
+void Slider::update_handle() {
+    narrowed_ = dragging_ || focus_.focused();
+    indicator_.set_shown(static_cast<bool>(options_.value_label) && fonts_ && !vertical() && enabled() && narrowed_);
 }
 
 void Slider::set_focused(bool focused) {
     focus_.set_focused(focused && enabled());
-    update_handle_width();
+    update_handle();
 }
 
 void Slider::set_enabled(bool enabled) {
@@ -128,12 +197,13 @@ void Slider::set_enabled(bool enabled) {
         dragging_ = false;
         focus_.set_focused(false);
     }
-    update_handle_width();
+    update_handle();
 }
 
 bool Slider::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     if (!enabled()) {
+        update_handle();
         return false;
     }
     const double before = options_.value;
@@ -141,17 +211,17 @@ bool Slider::handle(const input::PointerEvent& e) {
     case input::PointerAction::down:
         if (contains(touch_target(bounds()), e.x_dp, e.y_dp)) {
             dragging_ = true;
-            options_.value = value_at(e.x_dp);
+            options_.value = value_at(e.x_dp, e.y_dp);
         }
         break;
     case input::PointerAction::move:
         if (dragging_) {
-            options_.value = value_at(e.x_dp);
+            options_.value = value_at(e.x_dp, e.y_dp);
         }
         break;
     case input::PointerAction::up:
         if (dragging_) {
-            options_.value = value_at(e.x_dp);
+            options_.value = value_at(e.x_dp, e.y_dp);
         }
         dragging_ = false;
         break;
@@ -159,93 +229,92 @@ bool Slider::handle(const input::PointerEvent& e) {
         dragging_ = false;
         break;
     }
-    update_handle_width();
+    update_handle();
     return options_.value != before;
 }
 
 void Slider::cancel_interaction() {
     dragging_ = false;
-    update_handle_width();
+    update_handle();
 }
 
 bool Slider::handle(const input::KeyEvent& e) {
     if (!enabled() || !focus_.focused()) {
         return false;
     }
-    const double range = std::abs(options_.max - options_.min);
-    const int intervals = options_.steps > 0 ? options_.steps + 1 : t.keyboard_steps_when_continuous;
-    const double delta = range / intervals;
-    const double page = std::clamp(intervals / t.keyboard_page_divisor, 1, t.keyboard_page_max_steps) * delta;
+    const SliderKeyStep k = slider_key_step(options_.min, options_.max, options_.steps);
     const double before = options_.value;
+    if (vertical()) {
+        const double sign = options_.top_to_bottom ? 1.0 : -1.0;
+        switch (e.key) {
+        case input::Key::up: set_value(options_.value - sign * k.delta); break;
+        case input::Key::down: set_value(options_.value + sign * k.delta); break;
+        case input::Key::page_up: set_value(options_.value - sign * k.page); break;
+        case input::Key::page_down: set_value(options_.value + sign * k.page); break;
+        case input::Key::home: set_value(options_.min); break;
+        case input::Key::end: set_value(options_.max); break;
+        default: return false;
+        }
+        return options_.value != before;
+    }
     switch (e.key) {
     case input::Key::left:
-    case input::Key::down:
-        set_value(options_.value - delta);
-        break;
+    case input::Key::down: set_value(options_.value - k.delta); break;
     case input::Key::right:
-    case input::Key::up:
-        set_value(options_.value + delta);
-        break;
-    case input::Key::page_down:
-        set_value(options_.value - page);
-        break;
-    case input::Key::page_up:
-        set_value(options_.value + page);
-        break;
-    case input::Key::home:
-        set_value(options_.min);
-        break;
-    case input::Key::end:
-        set_value(options_.max);
-        break;
-    default:
-        return false;
+    case input::Key::up: set_value(options_.value + k.delta); break;
+    case input::Key::page_down: set_value(options_.value - k.page); break;
+    case input::Key::page_up: set_value(options_.value + k.page); break;
+    case input::Key::home: set_value(options_.min); break;
+    case input::Key::end: set_value(options_.max); break;
+    default: return false;
     }
     return options_.value != before;
 }
 
+void Slider::step(double dt) {
+    focus_.step(dt);
+    enabled_.step(dt);
+    indicator_.step(dt);
+}
+
+bool Slider::animating() const {
+    return !focus_.settled() || !enabled_.settled() || !indicator_.settled();
+}
+
 void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const double corner = t.track_height / 2.0;
-    const double inside = t.track_inside_corner;
-    const double x0 = track_x();
-    const double tw = track_width();
-    const double cy = origin_.y + height() / 2.0;
-    const double top = cy - t.track_height / 2.0;
-    const double value_end = value_end_in_track();
-    const double end_gap = t.handle_width / 2.0 + t.handle_track_gap;
-    auto color_of = [&](const tokens::StateColor& disabled, color::Role enabled) {
-        return enabled_.mix(resolve(scheme, disabled), scheme[enabled]);
-    };
-
-    const double inactive_threshold = tw - end_gap - corner;
-    if (value_end < inactive_threshold) {
-        const double start = value_end + end_gap;
-        canvas.fill_path(track_path({x0 + start, top, tw - start, t.track_height}, inside, corner),
-                         color_of(t.disabled_inactive_track, t.inactive_track));
-        canvas.fill_path(render::circle_path({x0 + tw - corner, cy}, t.stop_indicator_size / 2.0),
-                         color_of(t.disabled_stop_indicator, t.stop_indicator));
+    const SliderAxis a = axis();
+    const SliderPalette palette = slider_palette(scheme, enabled_);
+    const std::vector<TrackSegment> segs = segments();
+    paint_track(canvas, a, t.track_height, segs, palette);
+    const double l = a.length();
+    const double c = corner();
+    const bool start_shown = std::any_of(segs.begin(), segs.end(), [](const TrackSegment& s) { return !s.active && s.from == 0.0; });
+    const bool end_shown = std::any_of(segs.begin(), segs.end(), [l](const TrackSegment& s) { return !s.active && s.to == l; });
+    if (end_shown) {
+        paint_stop(canvas, a, l - c, palette);
     }
-    const double active_end = value_end - end_gap;
-    if (active_end > corner) {
-        canvas.fill_path(track_path({x0, top, active_end, t.track_height}, corner, inside),
-                         color_of(t.disabled_active_track, t.active_track));
+    if (options_.centered && start_shown) {
+        paint_stop(canvas, a, c, palette);
     }
-
-    const std::vector<double> ticks = tick_centers();
-    for (std::size_t i = 0; i + 1 < ticks.size(); ++i) {
-        const double local = ticks[i] - x0;
-        if (local >= value_end - end_gap && local <= value_end + end_gap) {
-            continue;
+    std::vector<double> ticks = tick_alongs(options_.steps, l, c);
+    if (!ticks.empty()) {
+        ticks.pop_back();
+        if (options_.centered) {
+            ticks.erase(ticks.begin());
         }
-        const bool active = local >= 0.0 && local <= active_end;
-        canvas.fill_path(render::circle_path({ticks[i], cy}, t.tick_size / 2.0),
-                         active ? color_of(t.disabled_active_tick, t.active_tick) : color_of(t.disabled_inactive_tick, t.inactive_tick));
     }
-
-    const double w = handle_width_;
-    const render::Rect handle{handle_center_x() - w / 2.0, origin_.y, w, height()};
-    canvas.fill_path(render::rounded_rect_path(handle, render::uniform_radii(w / 2.0)), color_of(t.disabled_handle, t.handle));
-    focus_.paint(canvas, scheme, handle, w / 2.0);
+    const double v = value_along();
+    std::vector<std::pair<double, double>> hidden{{v - end_gap(), v + end_gap()}};
+    if (options_.centered) {
+        hidden.push_back({l / 2.0 - end_gap(), l / 2.0 + end_gap()});
+    }
+    paint_ticks(canvas, a, ticks, segs, hidden, palette);
+    const render::Rect handle = handle_rect();
+    paint_handle(canvas, handle, palette);
+    focus_.paint(canvas, scheme, handle, std::min(handle.width, handle.height) / 2.0);
+    if (fonts_ && options_.value_label) {
+        indicator_.paint(canvas, scheme, *fonts_, value_text(), handle);
+    }
 }
 
 }

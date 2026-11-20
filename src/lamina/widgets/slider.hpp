@@ -1,18 +1,24 @@
 #pragma once
 
+#include <functional>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/events.hpp"
+#include "lamina/layout/layout.hpp"
 #include "lamina/render/canvas.hpp"
-#include <string>
-
+#include "lamina/text/font.hpp"
 #include "lamina/tokens/slider.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
+#include "lamina/widgets/slider_track.hpp"
 
 namespace lamina::widgets {
+
+using SliderValueLabel = std::function<std::string(double)>;
 
 struct SliderOptions {
     double value = 0.0;
@@ -21,25 +27,42 @@ struct SliderOptions {
     int steps = 0;
     bool enabled = true;
     std::string accessible_name = {};
+    SliderOrientation orientation = SliderOrientation::horizontal;
+    bool top_to_bottom = true;
+    bool centered = false;
+    std::optional<double> track_corner = std::nullopt;
+    SliderValueLabel value_label = {};
 };
 
 class Slider {
 public:
     explicit Slider(SliderOptions options = {});
+    Slider(SliderOptions options, const text::FontStack& fonts);
 
-    double width() const { return width_; }
+    double width() const;
     double height() const;
-    void set_width(double width) { width_ = width; }
+    void set_width(double width);
+    void set_length(double length) { length_ = length; }
+    double length() const { return length_; }
     void set_origin(render::Point origin) { origin_ = origin; }
+    layout::Size measure(const layout::Constraints& c) const;
+    void arrange(const render::Rect& r);
     render::Rect bounds() const;
+    bool vertical() const { return options_.orientation == SliderOrientation::vertical; }
 
     double value() const { return options_.value; }
     void set_value(double value);
     double fraction() const;
     bool dragging() const { return dragging_; }
-    double handle_width() const { return handle_width_; }
+    double handle_width() const;
     double handle_center_x() const;
+    render::Point handle_center() const;
+    render::Rect handle_rect() const;
     std::vector<double> tick_centers() const;
+    std::vector<TrackSegment> segments() const;
+    bool value_indicator_shown() const { return indicator_.shown(); }
+    double value_indicator_scale() const { return indicator_.scale(); }
+    std::string value_text() const;
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
@@ -47,38 +70,31 @@ public:
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
     void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
-    AccessibleNode accessible() const {
-        return {AccessibleRole::slider, options_.accessible_name, bounds(),
-                {.enabled = enabled(), .focusable = enabled(), .focused = focused(),
-                 .range = AccessibleRange{options_.value, options_.min, options_.max}}};
-    }
+    AccessibleNode accessible() const;
 
     bool handle(const input::PointerEvent& event);
     void cancel_interaction();
     bool handle(const input::KeyEvent& event);
-    void step(double dt_seconds) {
-        focus_.step(dt_seconds);
-        enabled_.step(dt_seconds);
-    }
-    bool animating() const { return !focus_.settled() || !enabled_.settled(); }
+    void step(double dt_seconds);
+    bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
-    double track_x() const;
-    double track_width() const;
-    double value_end_in_track() const;
-    double snapped(double value) const;
-    double value_at(double x) const;
-    bool on_first_or_last_tick() const;
-    void update_handle_width();
+    SliderAxis axis() const;
+    double corner() const;
+    double value_along() const;
+    double value_at(double x, double y) const;
+    void update_handle();
 
     SliderOptions options_;
-    double width_ = 0.0;
+    std::optional<text::FontStack> fonts_;
+    double length_ = 0.0;
     render::Point origin_{0.0, 0.0};
     bool dragging_ = false;
-    double handle_width_ = tokens::slider_tokens.handle_width;
+    bool narrowed_ = false;
     FocusIndicator focus_;
     Enablement enabled_;
+    ValueIndicator indicator_;
 };
 
 }
