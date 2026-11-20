@@ -59,6 +59,14 @@ render::Path notched_ring_path(const render::Rect& r, double radius, double widt
     return p;
 }
 
+bool is_slot(char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+std::size_t slot_count(const std::string& mask) {
+    return static_cast<std::size_t>(std::count_if(mask.begin(), mask.end(), is_slot));
+}
+
 enum class Shortcut { none, select_all, copy, cut, paste, undo, redo };
 
 Shortcut shortcut(const input::KeyEvent& e) {
@@ -78,6 +86,16 @@ Shortcut shortcut(const input::KeyEvent& e) {
 
 }
 
+std::optional<char32_t> ascii_digit(char32_t c) {
+    if (c >= U'0' && c <= U'9') {
+        return c;
+    }
+    if (c >= U'０' && c <= U'９') {
+        return static_cast<char32_t>(U'0' + (c - U'０'));
+    }
+    return std::nullopt;
+}
+
 TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
@@ -92,7 +110,12 @@ TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
       focus_(0.0, motion_scheme.fast_effects()),
       hover_(0.0, motion_scheme.fast_effects()),
       placeholder_opacity_(0.0, motion_scheme.fast_effects()),
-      enabled_(options_.enabled) {
+      enabled_(options_.enabled),
+      supporting_(text::layout_line(fonts, options_.supporting_text, style_of(t.supporting_type))),
+      error_amount_(0.0, motion_scheme.default_effects()) {
+    if (masked()) {
+        options_.multiline = false;
+    }
     relayout();
     phase_ = input_phase();
     placeholder_opacity_.snap_to(phase_ == InputPhase::unfocused_not_empty || (phase_ == InputPhase::unfocused_empty && !options_.label.empty())
@@ -143,8 +166,102 @@ void TextField::set_enabled(bool enabled) {
     }
 }
 
-double TextField::height() const {
+double TextField::container_height() const {
     return options_.multiline ? std::max(t.height, content_height() + 2 * t.vertical_padding) : t.height;
+}
+
+double TextField::height() const {
+    const double extra = options_.supporting_text.empty() ? 0.0 : t.supporting_top_padding + supporting_.box_height();
+    return container_height() + extra;
+}
+
+void TextField::set_supporting_text(std::string text) {
+    options_.supporting_text = std::move(text);
+    supporting_ = text::layout_line(fonts_, options_.supporting_text, style_of(t.supporting_type));
+}
+
+void TextField::set_error(bool error) {
+    error_ = error;
+    error_amount_.animate_to(error ? 1.0 : 0.0);
+}
+
+std::size_t TextField::length_limit() const {
+    return masked() ? slot_count(options_.mask) : options_.max_length;
+}
+
+std::u32string TextField::accepted(std::u32string_view in) const {
+    std::u32string out;
+    for (char32_t c : in) {
+        if (options_.filter) {
+            if (const std::optional<char32_t> mapped = options_.filter(c)) {
+                out.push_back(*mapped);
+            }
+        } else {
+            out.push_back(c);
+        }
+    }
+    const std::size_t limit = length_limit();
+    if (limit > 0) {
+        const std::size_t kept = buffer_.text().size() - (buffer_.selection_end() - buffer_.selection_start());
+        const std::size_t room = kept >= limit ? 0 : limit - kept;
+        if (out.size() > room) {
+            out.resize(room);
+        }
+    }
+    return out;
+}
+
+std::size_t TextField::to_display(std::size_t raw) const {
+    if (!masked()) {
+        return raw;
+    }
+    const std::size_t length = buffer_.shown().size();
+    std::size_t slots = 0;
+    std::size_t display = 0;
+    for (char c : options_.mask) {
+        if (is_slot(c)) {
+            if (slots >= length || slots >= raw) {
+                break;
+            }
+            ++slots;
+        }
+        ++display;
+    }
+    return display;
+}
+
+std::size_t TextField::to_raw(std::size_t display) const {
+    if (!masked()) {
+        return display;
+    }
+    std::size_t raw = 0;
+    for (std::size_t i = 0; i < display && i < options_.mask.size(); ++i) {
+        raw += is_slot(options_.mask[i]) ? 1 : 0;
+    }
+    return std::min(raw, buffer_.shown().size());
+}
+
+std::string TextField::display_text() const {
+    const std::u32string_view shown = buffer_.shown();
+    if (!masked()) {
+        return text::encode_utf8(shown);
+    }
+    std::u32string out;
+    std::size_t used = 0;
+    for (char c : options_.mask) {
+        if (!is_slot(c)) {
+            if (used == 0) {
+                break;
+            }
+            out.push_back(static_cast<char32_t>(c));
+            continue;
+        }
+        if (used >= shown.size()) {
+            break;
+        }
+        out.push_back(shown[used++]);
+    }
+    return text::encode_utf8(out);
 }
 
 void TextField::set_width(double width) {
@@ -153,7 +270,7 @@ void TextField::set_width(double width) {
 }
 
 render::Rect TextField::bounds() const {
-    return {origin_.x, origin_.y, width(), height()};
+    return {origin_.x, origin_.y, width(), container_height()};
 }
 
 double TextField::text_left() const {
@@ -169,7 +286,7 @@ double TextField::content_height() const {
 }
 
 double TextField::input_top() const {
-    return origin_.y + (height() - content_height()) / 2.0;
+    return origin_.y + (container_height() - content_height()) / 2.0;
 }
 
 std::string TextField::text() const {
@@ -211,7 +328,7 @@ void TextField::set_focused(bool focused) {
 void TextField::relayout() {
     const text::TextStyle style = style_of(t.input_type);
     const std::u32string_view shown = buffer_.shown();
-    const std::string utf8 = text::encode_utf8(shown);
+    const std::string utf8 = display_text();
     if (options_.multiline) {
         lines_ = text::layout_paragraph(fonts_, utf8, style, inner_width()).lines;
     } else {
@@ -221,7 +338,7 @@ void TextField::relayout() {
     spans.reserve(lines_.size());
     line_tops_.assign(1, 0.0);
     for (const text::TextLine& line : lines_) {
-        spans.push_back({line.first, line.last});
+        spans.push_back(masked() ? text::LineSpan{0, shown.size()} : text::LineSpan{line.first, line.last});
         line_tops_.push_back(line_tops_.back() + line.box_height());
     }
     line_map_ = text::LineMap(shown, std::move(spans));
@@ -253,6 +370,9 @@ void TextField::reset_blink() {
 
 double TextField::x_in_line(std::size_t line, std::size_t shown) const {
     const text::TextLine& l = lines_[line];
+    if (masked()) {
+        return text::caret_x(l, to_display(shown));
+    }
     if (shown <= l.last) {
         return text::caret_x(l, shown);
     }
@@ -262,7 +382,7 @@ double TextField::x_in_line(std::size_t line, std::size_t shown) const {
 }
 
 std::size_t TextField::Geometry::index_at(std::size_t line, double x) const {
-    return text::index_at(field_.lines_[line], x);
+    return field_.to_raw(text::index_at(field_.lines_[line], x));
 }
 
 TextField::Hit TextField::hit(double x, double y) const {
@@ -271,7 +391,7 @@ TextField::Hit TextField::hit(double x, double y) const {
     while (k + 1 < lines_.size() && local_y >= line_tops_[k + 1]) {
         ++k;
     }
-    const std::size_t index = text::index_at(lines_[k], x - text_left() + scroll_x_);
+    const std::size_t index = to_raw(text::index_at(lines_[k], x - text_left() + scroll_x_));
     return {index, line_map_.wraps_at(k, index)};
 }
 
@@ -378,6 +498,9 @@ bool TextField::handle(const input::KeyEvent& e) {
         if (!options_.accepts_tab || e.shift || e.ctrl) {
             return false;
         }
+        if (accepted(U"\t").empty()) {
+            break;
+        }
         buffer_.insert(U"\t");
         break;
     default:
@@ -398,7 +521,7 @@ bool TextField::handle(const input::KeyEvent& e) {
             break;
         case Shortcut::paste:
             if (options_.clipboard) {
-                buffer_.insert(text::decode_utf8(options_.clipboard->text()));
+                buffer_.insert(accepted(text::decode_utf8(options_.clipboard->text())));
             }
             break;
         case Shortcut::undo:
@@ -427,7 +550,7 @@ void TextField::handle(const input::TextEvent& e) {
         return;
     }
     if (e.kind == input::TextEventKind::commit) {
-        buffer_.commit(text::decode_utf8(e.text));
+        buffer_.commit(accepted(text::decode_utf8(e.text)));
     } else {
         buffer_.compose(text::decode_utf8(e.text), e.cursor);
     }
@@ -450,11 +573,12 @@ void TextField::step(double dt) {
     hover_.step(dt);
     placeholder_opacity_.step(dt);
     enabled_.step(dt);
+    error_amount_.step(dt);
 }
 
 bool TextField::animating() const {
     return !label_progress_.settled() || !focus_.settled() || !hover_.settled() || !placeholder_opacity_.settled() ||
-           !enabled_.settled();
+           !enabled_.settled() || !error_amount_.settled();
 }
 
 double TextField::next_blink_seconds() const {
@@ -477,7 +601,10 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const double f = focus_.value();
     const double outline_width = t.outline_width + (t.focus_outline_width - t.outline_width) * f;
     const color::Argb idle_outline = color::mix(scheme[t.outline], scheme[t.hover_outline], hover_.value());
-    const color::Argb outline = enabled_.mix(resolve(scheme, t.disabled_outline), color::mix(idle_outline, scheme[t.focus_outline], f));
+    const double e = std::clamp(error_amount_.value(), 0.0, 1.0);
+    const color::Argb error_outline = color::mix(scheme[t.error], scheme[t.error_hover_outline], hover_.value() * (1.0 - f));
+    const color::Argb outline = enabled_.mix(resolve(scheme, t.disabled_outline),
+                                             color::mix(color::mix(idle_outline, scheme[t.focus_outline], f), error_outline, e));
 
     const double p = std::clamp(label_progress_.value(), 0.0, 1.0);
     const double small_scale = label_small_.style.size / label_large_.style.size;
@@ -494,12 +621,19 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const double float_top = r.y - label_large_.box_height() * scale / 2.0;
     const double label_top = rest_top + (float_top - rest_top) * p;
     const color::Argb idle_label = color::mix(scheme[t.label], scheme[t.hover_label], hover_.value());
-    const color::Argb label_color = enabled_.mix(resolve(scheme, t.disabled_label), color::mix(idle_label, scheme[t.focus_label], f));
+    const color::Argb label_color =
+        enabled_.mix(resolve(scheme, t.disabled_label), color::mix(color::mix(idle_label, scheme[t.focus_label], f), scheme[t.error], e));
     canvas.save();
     canvas.translate(text_left(), label_top);
     canvas.scale(scale);
     text::draw_line(canvas, fonts_, label_large_, {0.0, 0.0}, label_color);
     canvas.restore();
+
+    if (!options_.supporting_text.empty()) {
+        const color::Argb supporting =
+            enabled_.mix(resolve(scheme, t.disabled_supporting), color::mix(scheme[t.supporting], scheme[t.error], e));
+        text::draw_line(canvas, fonts_, supporting_, {text_left(), r.y + r.height + t.supporting_top_padding}, supporting);
+    }
 
     canvas.push_clip({text_left() - t.caret_width, r.y, inner_width() + 2 * t.caret_width, r.height});
     const double left = text_left() - scroll_x_;
@@ -550,7 +684,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const bool caret_on = std::fmod(blink_clock_, 2 * t.caret_blink_seconds) < t.caret_blink_seconds;
     if (focused_ && caret_on) {
         const render::Rect c = caret_area();
-        canvas.fill_rect({c.x - t.caret_width / 2.0, c.y, t.caret_width, c.height}, scheme[t.caret]);
+        canvas.fill_rect({c.x - t.caret_width / 2.0, c.y, t.caret_width, c.height}, color::mix(scheme[t.caret], scheme[t.error], e));
     }
     canvas.pop_clip();
 }

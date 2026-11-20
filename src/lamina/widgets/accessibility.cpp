@@ -50,6 +50,9 @@ void write(std::ostringstream& out, const AccessibleNode& node, int depth) {
     if (s.modal) {
         out << " modal";
     }
+    if (s.invalid) {
+        out << " invalid";
+    }
     if (!node.value.empty()) {
         out << " value=\"" << node.value << "\"";
     }

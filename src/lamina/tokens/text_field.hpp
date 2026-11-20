@@ -41,6 +41,12 @@ struct OutlinedTextFieldTokens {
     double vertical_padding = 16.0;
     std::size_t undo_depth = 100;
     double undo_pause_seconds = 1.0;
+    TypeRole supporting_type = TypeRole::body_small;
+    double supporting_top_padding = 4.0;
+    color::Role supporting = color::Role::on_surface_variant;
+    StateColor disabled_supporting = {color::Role::on_surface, 0.38};
+    color::Role error = color::Role::error;
+    color::Role error_hover_outline = color::Role::on_error_container;
 };
 
 inline constexpr OutlinedTextFieldTokens outlined_text_field{};

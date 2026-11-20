@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -18,6 +20,10 @@
 
 namespace lamina::widgets {
 
+using CharacterFilter = std::function<std::optional<char32_t>(char32_t)>;
+
+std::optional<char32_t> ascii_digit(char32_t c);
+
 struct TextFieldOptions {
     std::string label;
     std::string placeholder = {};
@@ -26,6 +32,10 @@ struct TextFieldOptions {
     input::Clipboard* clipboard = nullptr;
     bool enabled = true;
     std::string accessible_name = {};
+    std::string supporting_text = {};
+    CharacterFilter filter = {};
+    std::size_t max_length = 0;
+    std::string mask = {};
 };
 
 class TextField {
@@ -34,6 +44,7 @@ public:
 
     double width() const { return width_; }
     double height() const;
+    double container_height() const;
     void set_width(double width);
     void set_origin(render::Point origin) { origin_ = origin; }
     layout::Size measure(const layout::Constraints&) const { return {width_, height()}; }
@@ -48,9 +59,15 @@ public:
         return !options_.accessible_name.empty() ? options_.accessible_name : !options_.label.empty() ? options_.label : options_.placeholder;
     }
     AccessibleNode accessible() const {
-        return {AccessibleRole::text_field, accessible_name(), bounds(), {.enabled = enabled(), .focusable = enabled(), .focused = focused()},
-                text(), options_.label.empty() ? std::string() : options_.placeholder};
+        return {AccessibleRole::text_field, accessible_name(), bounds(),
+                {.enabled = enabled(), .focusable = enabled(), .focused = focused(), .invalid = error_},
+                text(), !options_.supporting_text.empty() ? options_.supporting_text : options_.label.empty() ? std::string() : options_.placeholder};
     }
+    const std::string& supporting_text() const { return options_.supporting_text; }
+    void set_supporting_text(std::string text);
+    bool error() const { return error_; }
+    void set_error(bool error);
+    std::string display_text() const;
     double placeholder_opacity() const { return placeholder_opacity_.value(); }
     bool placeholder_shown() const;
     bool multiline() const { return options_.multiline; }
@@ -108,6 +125,11 @@ private:
     double content_height() const;
 
     void copy_selection() const;
+    std::u32string accepted(std::u32string_view text) const;
+    std::size_t length_limit() const;
+    std::size_t to_display(std::size_t raw) const;
+    std::size_t to_raw(std::size_t display) const;
+    bool masked() const { return !options_.mask.empty(); }
     double x_in_line(std::size_t line, std::size_t shown) const;
     Hit hit(double x, double y) const;
 
@@ -136,6 +158,9 @@ private:
     InputPhase phase_ = InputPhase::unfocused_empty;
     motion::Animated placeholder_opacity_;
     Enablement enabled_;
+    text::TextLine supporting_;
+    bool error_ = false;
+    motion::Animated error_amount_;
 };
 
 }

@@ -58,6 +58,7 @@ struct AccessibleState {
     std::optional<bool> selected = std::nullopt;
     std::optional<AccessibleRange> range = std::nullopt;
     bool modal = false;
+    bool invalid = false;
 };
 
 struct AccessibleNode {

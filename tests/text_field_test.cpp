@@ -675,3 +675,58 @@ TEST_CASE("undo keys are taken but do nothing while an IME composition is open")
     f.handle(ctrl(Key::z));
     CHECK(f.text().empty());
 }
+
+TEST_CASE("a filter maps or drops typed and pasted characters and a limit caps the length") {
+    FakeClipboard clip;
+    widgets::TextField f = focused_field({.clipboard = &clip, .filter = widgets::ascii_digit, .max_length = 4});
+    f.handle(input::TextEvent{TextEventKind::commit, "1a2", 0});
+    CHECK(f.text() == "12");
+    f.handle(input::TextEvent{TextEventKind::commit, "\xef\xbc\x93", 0});
+    CHECK(f.text() == "123");
+    clip.contents = "4567";
+    f.handle(ctrl(Key::v));
+    CHECK(f.text() == "1234");
+    f.handle(input::KeyEvent{Key::left, true});
+    f.handle(input::TextEvent{TextEventKind::commit, "99", 0});
+    CHECK(f.text() == "1239");
+}
+
+TEST_CASE("a mask shows its delimiters between the typed characters while the text holds only the characters") {
+    widgets::TextField f = focused_field({.filter = widgets::ascii_digit, .mask = "MM/dd/yyyy"});
+    f.handle(input::TextEvent{TextEventKind::commit, "11", 0});
+    CHECK(f.text() == "11");
+    CHECK(f.display_text() == "11/");
+    f.handle(input::TextEvent{TextEventKind::commit, "212026999", 0});
+    CHECK(f.text() == "11212026");
+    CHECK(f.display_text() == "11/21/2026");
+    f.handle(input::KeyEvent{Key::backspace});
+    CHECK(f.display_text() == "11/21/202");
+    f.handle(input::KeyEvent{Key::home});
+    const double home = f.caret_area().x;
+    f.handle(input::KeyEvent{Key::right});
+    f.handle(input::KeyEvent{Key::right});
+    const double after_two = f.caret_area().x;
+    f.handle(input::KeyEvent{Key::right});
+    CHECK(f.cursor() == 3);
+    const double after_delimiter = f.caret_area().x;
+    CHECK(after_two > home);
+    CHECK(after_two - home > 2.0 * (after_delimiter - after_two) * 1.1);
+}
+
+TEST_CASE("supporting text sits below the field and an error turns it and the outline to the error color") {
+    widgets::TextField f = field({.supporting_text = "Hint"});
+    f.set_origin({0.0, 0.0});
+    const double line = text::layout_line(fonts(), "Hint", tokens::text_style(tokens::type_style(tokens::TypeRole::body_small))).box_height();
+    CHECK(f.container_height() == 56.0);
+    CHECK(f.height() == doctest::Approx(56.0 + 4.0 + line));
+    CHECK(f.bounds().height == 56.0);
+    f.set_error(true);
+    settle(f);
+    CHECK(f.accessible().state.invalid);
+    CHECK(f.accessible().description == "Hint");
+    thorvg::Canvas canvas(302, 90);
+    canvas.clear(scheme()[color::Role::surface]);
+    f.paint(canvas, scheme());
+    canvas.finish();
+    CHECK(canvas.pixel(150, 0) == scheme()[color::Role::error]);
+}
