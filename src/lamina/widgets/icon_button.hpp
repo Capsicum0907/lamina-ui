@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/events.hpp"
@@ -33,6 +35,7 @@ public:
 
     bool checked() const { return options_.checked; }
     void set_checked(bool checked);
+    void set_icon(icons::Icon icon);
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
@@ -55,6 +58,8 @@ private:
     motion::Animated corner_;
     motion::Animated state_layer_;
     motion::Animated checked_;
+    std::optional<icons::Icon> previous_icon_;
+    motion::Animated icon_fade_;
 };
 
 }

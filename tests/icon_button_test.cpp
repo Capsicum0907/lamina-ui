@@ -100,6 +100,27 @@ TEST_CASE("the icon of an icon button is drawn in the content color") {
     CHECK(canvas.pixel(4, 28) == 0xffffffff);
 }
 
+TEST_CASE("set_icon cross-fades from the old icon to the new one") {
+    widgets::IconButton b({icon(icons::Symbol::add), IconButtonStyle::standard, IconButtonSize::medium});
+    const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
+    auto ink = [&] {
+        thorvg::Canvas canvas(56, 56);
+        canvas.clear(0xffffffff);
+        b.paint(canvas, scheme);
+        return count_color(canvas, scheme[color::Role::on_surface_variant]);
+    };
+    const auto before = ink();
+    b.set_icon(icon(icons::Symbol::remove));
+    CHECK(b.animating());
+    b.step(0.02);
+    CHECK(ink() < before);
+    settle(b);
+    CHECK_FALSE(b.animating());
+    CHECK(ink() > 0);
+    b.set_icon(icon(icons::Symbol::remove));
+    CHECK_FALSE(b.animating());
+}
+
 TEST_CASE("FAB sizes and the Compose overrides") {
     CHECK(tokens::fab_size(tokens::FabSize::baseline).size == 56.0);
     CHECK(tokens::fab_size(tokens::FabSize::medium).size == 80.0);

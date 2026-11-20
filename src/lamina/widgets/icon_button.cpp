@@ -1,6 +1,7 @@
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/icon_button.hpp"
 
+#include <algorithm>
 #include <utility>
 
 #include "lamina/color/mix.hpp"
@@ -19,7 +20,8 @@ IconButton::IconButton(IconButtonOptions options)
     : options_(std::move(options)),
       corner_(0.0, motion_scheme.default_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()),
-      checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()) {
+      checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()),
+      icon_fade_(1.0, motion_scheme.fast_effects()) {
     corner_.snap_to(target_corner());
 }
 
@@ -58,6 +60,16 @@ void IconButton::set_checked(bool checked) {
     retarget();
 }
 
+void IconButton::set_icon(icons::Icon icon) {
+    if (icon.symbol == options_.icon.symbol) {
+        return;
+    }
+    previous_icon_ = std::move(options_.icon);
+    options_.icon = std::move(icon);
+    icon_fade_.snap_to(0.0);
+    icon_fade_.animate_to(1.0);
+}
+
 void IconButton::set_focused(bool focused) {
     focus_.set_focused(focused);
     retarget();
@@ -93,11 +105,12 @@ void IconButton::step(double dt) {
     corner_.step(dt);
     state_layer_.step(dt);
     checked_.step(dt);
+    icon_fade_.step(dt);
     focus_.step(dt);
 }
 
 bool IconButton::animating() const {
-    return !corner_.settled() || !state_layer_.settled() || !checked_.settled() || !focus_.settled();
+    return !corner_.settled() || !state_layer_.settled() || !checked_.settled() || !icon_fade_.settled() || !focus_.settled();
 }
 
 void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -121,7 +134,11 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
         canvas.fill_path(render::ring_path(r, radius, size.outline_width), outline, render::FillRule::even_odd);
     }
     focus_.paint(canvas, scheme, r, radius);
-    icons::draw_centered(canvas, options_.icon, r, size.icon_size, content);
+    const double fade = std::clamp(icon_fade_.value(), 0.0, 1.0);
+    if (previous_icon_ && fade < 1.0) {
+        icons::draw_centered(canvas, *previous_icon_, r, size.icon_size, color::scale_alpha(content, 1.0 - fade));
+    }
+    icons::draw_centered(canvas, options_.icon, r, size.icon_size, fade < 1.0 ? color::scale_alpha(content, fade) : content);
 }
 
 }
