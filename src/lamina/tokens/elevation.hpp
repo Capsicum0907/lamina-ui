@@ -4,6 +4,9 @@
 #include <array>
 #include <cstddef>
 
+#include "lamina/motion/tween.hpp"
+#include "lamina/tokens/motion.hpp"
+
 namespace lamina::tokens {
 
 inline constexpr std::array<double, 6> elevation_dp{0.0, 1.0, 3.0, 6.0, 8.0, 12.0};
@@ -47,5 +50,25 @@ constexpr ShadowLayer ambient_shadow(double level) {
     const double spread = clamp_step(level, 4) + 2 * clamp_step(level - 4, 1);
     return {y, blur, spread, ambient_shadow_opacity};
 }
+
+struct StateElevations {
+    double resting;
+    double hovered;
+    double focused;
+    double pressed;
+    double disabled;
+};
+
+struct ElevationTweens {
+    motion::TweenSpec incoming;
+    motion::TweenSpec outgoing;
+    motion::TweenSpec hover_outgoing;
+};
+
+inline constexpr ElevationTweens elevation_tweens{
+    .incoming = {0.12, easing::legacy},
+    .outgoing = {0.15, {0.4, 0.0, 0.6, 1.0}},
+    .hover_outgoing = {0.12, {0.4, 0.0, 0.6, 1.0}},
+};
 
 }

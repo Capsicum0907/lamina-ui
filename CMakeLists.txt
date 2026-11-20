@@ -62,6 +62,8 @@ add_library(lamina STATIC
     src/lamina/widgets/badge.cpp
     src/lamina/widgets/button.cpp
     src/lamina/widgets/checkbox.cpp
+    src/lamina/widgets/chip.cpp
+    src/lamina/widgets/chip_group.cpp
     src/lamina/widgets/dialog.cpp
     src/lamina/widgets/divider.cpp
     src/lamina/widgets/fab.cpp
@@ -221,6 +223,7 @@ if(LAMINA_BUILD_TESTS)
         tests/cancel_interaction_test.cpp
         tests/canvas_test.cpp
         tests/checkbox_test.cpp
+        tests/chip_test.cpp
         tests/color_mix_test.cpp
         tests/color_scheme_test.cpp
         tests/dialog_content_test.cpp
@@ -277,7 +280,7 @@ if(LAMINA_BUILD_TESTS)
     )
     lamina_add_resources(lamina_test_resources NAMESPACE lamina::test::res HEADER test_res.hpp
         ICONS add backspace bookmark check delete edit favorite grid_view home pause play_arrow remove search send settings
-              share star view_list visibility_off class 10k
+              share star view_list visibility_off class 10k close
         ICON_FONTS symbols filled:FILL=1
         FILES sans=tests/fixtures/fonts/lamina-test-sans.ttf empty=tests/resources/empty.bin)
     target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg lamina_test_resources calculator_engine timer_engine todo_engine mcu::mcu doctest::doctest)
