@@ -153,38 +153,18 @@ std::size_t input_pattern_digits(const InputPattern& pattern) {
     return n;
 }
 
-std::string input_pattern_placeholder(const InputPattern& pattern, std::string_view year, std::string_view month, std::string_view day) {
-    std::string out;
-    std::size_t i = 0;
-    const std::string_view p = pattern.pattern;
-    while (i < p.size()) {
-        if (!is_pattern_letter(p[i])) {
-            out.push_back(p[i]);
-            ++i;
-            continue;
-        }
-        const std::size_t n = run_length(p, i);
-        const std::string_view unit = p[i] == 'y' ? year : p[i] == 'M' ? month : day;
-        for (std::size_t k = 0; k < n; ++k) {
-            out.append(unit);
-        }
-        i += n;
-    }
-    return out;
-}
-
 std::string apply_input_pattern(const InputPattern& pattern, std::string_view digits) {
     std::string out;
     std::size_t used = 0;
     for (char c : pattern.pattern) {
+        if (!is_pattern_letter(c)) {
+            out.push_back(c);
+            continue;
+        }
         if (used >= digits.size()) {
             break;
         }
-        if (is_pattern_letter(c)) {
-            out.push_back(digits[used++]);
-        } else {
-            out.push_back(c);
-        }
+        out.push_back(digits[used++]);
     }
     return out;
 }

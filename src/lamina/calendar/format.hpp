@@ -29,7 +29,6 @@ struct InputPattern {
     char32_t delimiter;
 };
 
-std::string input_pattern_placeholder(const InputPattern& pattern, std::string_view year, std::string_view month, std::string_view day);
 std::size_t input_pattern_digits(const InputPattern& pattern);
 std::string apply_input_pattern(const InputPattern& pattern, std::string_view digits);
 std::optional<Date> parse_input(const InputPattern& pattern, std::string_view digits);
