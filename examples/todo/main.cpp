@@ -58,6 +58,7 @@ struct Config {
     examples::todo::HeaderStyle header;
     std::string field_label = "Add a task";
     icons::Symbol add_icon = examples::res::icons::add;
+    std::string add_name = "Add task";
     tokens::IconButtonStyle add_style = tokens::IconButtonStyle::filled;
     tokens::IconButtonSize add_size = tokens::IconButtonSize::medium;
     std::string empty_message = "Nothing to do";
@@ -119,7 +120,7 @@ int main(int argc, char** argv) {
         widgets::TitleBar title_bar({config.bar_title, icon_font, nullptr, config.background}, fonts);
         const double bar_height = window.client_title_bar() ? title_bar.height() : 0.0;
         widgets::TextField input({.label = config.field_label, .multiline = false, .clipboard = &window.clipboard()}, fonts);
-        widgets::IconButton add_button({icons::Icon{icon_font, config.add_icon}, config.add_style, config.add_size});
+        widgets::IconButton add_button({icons::Icon{icon_font, config.add_icon}, config.add_name, config.add_style, config.add_size});
         examples::todo::LayoutSettings layout_settings = config.layout;
         layout_settings.add_size = add_button.width();
         layout_settings.field_height = input.height();

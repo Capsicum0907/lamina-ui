@@ -72,8 +72,8 @@ void check_focus_protocol(W w, bool enter_activates) {
 
 TEST_CASE("buttons, icon buttons and FABs take the focus, show the ring and activate on Space or Enter") {
     check_focus_protocol(button(), true);
-    check_focus_protocol(widgets::IconButton({icon(), tokens::IconButtonStyle::filled}), true);
-    check_focus_protocol(widgets::Fab({icon()}), true);
+    check_focus_protocol(widgets::IconButton({icon(), "Add", tokens::IconButtonStyle::filled}), true);
+    check_focus_protocol(widgets::Fab({icon(), "Add"}), true);
 }
 
 TEST_CASE("checkboxes, switches and radio buttons take the focus, show the ring and activate on Space only") {
@@ -99,7 +99,7 @@ TEST_CASE("Space toggles a focused checkbox, switch and toggle icon button once 
     CHECK_FALSE(s.handle(enter));
     CHECK(s.checked());
 
-    widgets::IconButton t({icon(), tokens::IconButtonStyle::filled, tokens::IconButtonSize::small, tokens::ButtonShape::round,
+    widgets::IconButton t({icon(), "Favorite", tokens::IconButtonStyle::filled, tokens::IconButtonSize::small, tokens::ButtonShape::round,
                            tokens::IconButtonWidth::uniform, true});
     t.set_focused(true);
     CHECK(t.handle(enter));

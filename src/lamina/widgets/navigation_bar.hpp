@@ -21,6 +21,7 @@ namespace lamina::widgets {
 struct NavigationBarOptions {
     std::vector<NavigationItem> items;
     std::size_t selected = 0;
+    std::string accessible_name = {};
 };
 
 class NavigationBar {
@@ -47,6 +48,10 @@ public:
     bool enabled() const;
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    AccessibleNode accessible() const {
+        return navigation_accessible(options_.items, items_, options_.accessible_name, bounds(), options_.selected, focused(), focus_index_,
+                                     [this](std::size_t i) { return item_rect(i); });
+    }
     std::size_t focused_item() const { return focus_index_; }
 
     bool handle(const input::PointerEvent& event);

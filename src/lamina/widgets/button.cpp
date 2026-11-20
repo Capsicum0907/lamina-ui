@@ -31,6 +31,9 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
       icon_fade_(1.0, motion_scheme.fast_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()),
       elevation_(0.0, motion_scheme.default_effects()) {
+    if (options_.label.empty()) {
+        options_.accessible_name = required_name(std::move(options_.accessible_name), "A button without a label");
+    }
     width_ = intrinsic_width();
     if (options_.colors) {
         focus_.set_color(options_.colors->focus_ring);

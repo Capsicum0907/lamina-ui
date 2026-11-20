@@ -16,6 +16,7 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/widgets/access_key.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -44,6 +45,7 @@ struct MenuGroup {
 
 struct GroupedMenuOptions {
     std::vector<MenuGroup> groups;
+    std::string accessible_name = {};
 };
 
 struct MenuItemIndex {
@@ -89,6 +91,7 @@ public:
     bool access_keys_shown() const { return access_keys_shown_; }
     bool item_enabled(std::size_t group, std::size_t item) const { return groups_[group].items[item].enabled.enabled(); }
     void set_item_enabled(std::size_t group, std::size_t item, bool enabled);
+    std::optional<AccessibleNode> accessible() const;
 
     GroupedMenuResponse handle(const input::PointerEvent& event);
     GroupedMenuResponse handle(const input::KeyEvent& event);
@@ -112,10 +115,12 @@ private:
         motion::Animated selection;
         motion::AnimatedRadii corners;
         Enablement enabled;
+        std::string name = {};
     };
 
     struct Group {
         std::optional<text::TextLine> label;
+        std::string name;
         double label_y;
         double label_height;
         std::optional<double> divider_y;
@@ -143,6 +148,7 @@ private:
     std::vector<std::optional<input::Key>> enabled_access_keys() const;
 
     text::FontStack fonts_;
+    std::string accessible_name_;
     std::vector<Group> groups_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};

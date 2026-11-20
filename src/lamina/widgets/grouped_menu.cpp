@@ -44,14 +44,15 @@ tokens::Corners menu_item_corners(std::size_t index, std::size_t count) {
 }
 
 GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& fonts)
-    : fonts_(fonts), popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+    : fonts_(fonts), accessible_name_(options.accessible_name),
+      popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     const auto item_style = tokens::text_style(tokens::type_style(t.label));
     const auto group_label_style = tokens::text_style(tokens::type_style(t.group_label));
     double content = 0.0;
     double y = 0.0;
     for (std::size_t g = 0; g < options.groups.size(); ++g) {
         MenuGroup& spec = options.groups[g];
-        Group group{std::nullopt, 0.0, 0.0, std::nullopt, spec.selection, {}, y, 0.0, false, false, corner_springs()};
+        Group group{std::nullopt, spec.label, 0.0, 0.0, std::nullopt, spec.selection, {}, y, 0.0, false, false, corner_springs()};
         double gy = t.group_vertical_padding;
         if (!spec.label.empty()) {
             group.label = text::layout_line(fonts_, spec.label, group_label_style);
@@ -95,7 +96,7 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
             group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
                                    std::move(item.trailing_icon), std::move(access), item.selected, gy, height, {},
                                    motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, motion_scheme.fast_effects()),
-                                   corner_springs(), Enablement(item.enabled)});
+                                   corner_springs(), Enablement(item.enabled), item.label});
             gy += height;
         }
         group.height = gy + t.group_vertical_padding;
@@ -211,6 +212,27 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window, input::I
     set_active(source == input::InputSource::keyboard
                    ? first_enabled_item(flat_count(), [this](std::size_t i) { return flat_enabled(i); })
                    : std::nullopt);
+}
+
+std::optional<AccessibleNode> GroupedMenu::accessible() const {
+    if (!popup_.is_open()) {
+        return std::nullopt;
+    }
+    AccessibleNode menu{AccessibleRole::menu, accessible_name_, bounds()};
+    const std::optional<MenuItemIndex> focused = focused_item();
+    for (std::size_t g = 0; g < groups_.size(); ++g) {
+        const Group& group = groups_[g];
+        AccessibleNode node{AccessibleRole::menu_group, group.name, group_rect(g)};
+        for (std::size_t i = 0; i < group.items.size(); ++i) {
+            AccessibleState state{.enabled = item_enabled(g, i), .focused = focused && focused->group == g && focused->item == i};
+            if (group.selection != MenuSelection::none) {
+                state.selected = group.items[i].selected;
+            }
+            node.children.push_back({AccessibleRole::menu_item, group.items[i].name, item_rect(g, i), state});
+        }
+        menu.children.push_back(std::move(node));
+    }
+    return menu;
 }
 
 bool GroupedMenu::flat_enabled(std::size_t flat) const {

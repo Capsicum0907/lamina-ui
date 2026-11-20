@@ -5,7 +5,10 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
+#include <string>
+
 #include "lamina/tokens/slider.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 
@@ -17,6 +20,7 @@ struct SliderOptions {
     double max = 1.0;
     int steps = 0;
     bool enabled = true;
+    std::string accessible_name = {};
 };
 
 class Slider {
@@ -42,6 +46,12 @@ public:
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
+    AccessibleNode accessible() const {
+        return {AccessibleRole::slider, options_.accessible_name, bounds(),
+                {.enabled = enabled(), .focusable = enabled(), .focused = focused(),
+                 .range = AccessibleRange{options_.value, options_.min, options_.max}}};
+    }
 
     bool handle(const input::PointerEvent& event);
     void cancel_interaction();

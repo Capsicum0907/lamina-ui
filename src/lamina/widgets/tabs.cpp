@@ -28,7 +28,10 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
     const auto style = tokens::text_style(tokens::type_style(t.label));
     bool stacked = false;
     for (std::size_t i = 0; i < options_.tabs.size(); ++i) {
-        const TabItem& item = options_.tabs[i];
+        TabItem& item = options_.tabs[i];
+        if (item.label.empty()) {
+            item.accessible_name = required_name(std::move(item.accessible_name), "A tab without a label");
+        }
         std::optional<text::TextLine> label;
         if (!item.label.empty()) {
             label = text::layout_line(fonts_, item.label, style);
@@ -140,6 +143,18 @@ void TabRow::set_tab_enabled(std::size_t index, bool enabled) {
         }
     }
     retarget_state_layers();
+}
+
+AccessibleNode TabRow::accessible() const {
+    AccessibleNode row{AccessibleRole::tab_list, options_.accessible_name, bounds(),
+                       {.enabled = enabled(), .focusable = can_focus(), .focused = focused()}};
+    for (std::size_t i = 0; i < tabs_.size(); ++i) {
+        const TabItem& item = options_.tabs[i];
+        const bool on = i == options_.selected;
+        row.children.push_back({AccessibleRole::tab, item.accessible_name.empty() ? item.label : item.accessible_name, tab_rect(i),
+                                {.enabled = tab_enabled(i), .focused = focused() && on, .selected = on}});
+    }
+    return row;
 }
 
 void TabRow::set_enabled(bool enabled) {

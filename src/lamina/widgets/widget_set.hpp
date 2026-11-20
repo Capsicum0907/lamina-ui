@@ -11,6 +11,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/protocol.hpp"
 
 namespace lamina::widgets {
@@ -100,6 +101,12 @@ public:
         visit([enabled](Member& m) { m.set_enabled(enabled); });
     }
 
+    std::vector<AccessibleNode> accessible_nodes() const {
+        std::vector<AccessibleNode> out;
+        visit([&](const Member& m) { m.collect(out); });
+        return out;
+    }
+
     bool animating() const {
         return std::any_of(entries_.begin(), entries_.end(), [](const auto& e) { return !e->removed && e->animating(); });
     }
@@ -128,6 +135,7 @@ private:
         virtual bool animating() const = 0;
         virtual void cancel_interaction() = 0;
         virtual void set_enabled(bool enabled) = 0;
+        virtual void collect(std::vector<AccessibleNode>& out) const = 0;
         virtual bool deliver(const input::PointerEvent& e) = 0;
         virtual bool deliver(const input::KeyEvent& e) = 0;
         virtual bool deliver(const input::TextEvent& e) = 0;
@@ -165,6 +173,14 @@ private:
         void set_enabled(bool enabled) override {
             if constexpr (Disableable<Widget>) {
                 widget.set_enabled(enabled);
+            }
+        }
+        void collect(std::vector<AccessibleNode>& out) const override {
+            if constexpr (Accessible<Widget>) {
+                std::optional<AccessibleNode> node = widget.accessible();
+                if (node) {
+                    out.push_back(std::move(*node));
+                }
             }
         }
         bool deliver(const input::PointerEvent& e) override {

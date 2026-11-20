@@ -1,6 +1,7 @@
 #include "lamina/widgets/dialog.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <limits>
 #include <vector>
 
@@ -450,6 +451,35 @@ void Dialog::step(double dt) {
 bool Dialog::animating() const {
     return !popup_.settled() || confirm_.animating() || (dismiss_ && dismiss_->animating()) || (slot_ && scroll_.animating()) ||
            (content_ && content_->widgets && content_->widgets->animating());
+}
+
+std::optional<AccessibleNode> Dialog::accessible() const {
+    if (!popup_.is_open()) {
+        return std::nullopt;
+    }
+    AccessibleNode dialog{AccessibleRole::dialog, headline_.text(), surface_, {.modal = true}};
+    if (!supporting_.text().empty()) {
+        AccessibleNode text = supporting_.accessible();
+        text.bounds = scroll_.to_window(text.bounds);
+        dialog.children.push_back(std::move(text));
+    }
+    if (content_ && content_->widgets) {
+        std::vector<AccessibleNode> nodes = content_->widgets->accessible_nodes();
+        std::function<void(AccessibleNode&)> shift = [&](AccessibleNode& n) {
+            n.bounds = scroll_.to_window(n.bounds);
+            for (AccessibleNode& c : n.children) {
+                shift(c);
+            }
+        };
+        for (AccessibleNode& n : nodes) {
+            shift(n);
+            dialog.children.push_back(std::move(n));
+        }
+    }
+    for (DialogAction a : reading_order()) {
+        dialog.children.push_back(button(a).accessible());
+    }
+    return dialog;
 }
 
 void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {

@@ -18,11 +18,19 @@
 
 namespace lamina::widgets {
 
+struct TitleBarNames {
+    std::string minimize = "Minimize";
+    std::string maximize = "Maximize";
+    std::string restore = "Restore";
+    std::string close = "Close";
+};
+
 struct TitleBarOptions {
     std::string title;
     icons::IconFont icons;
     layout::NodePtr content = nullptr;
     std::optional<color::Role> container = std::nullopt;
+    TitleBarNames names = {};
 };
 
 enum class TitleBarAction { none, minimize, toggle_maximize, close };
@@ -50,6 +58,7 @@ public:
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+    AccessibleNode accessible() const;
 
 private:
     struct Button {

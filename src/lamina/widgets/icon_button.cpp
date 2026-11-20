@@ -24,6 +24,7 @@ IconButton::IconButton(IconButtonOptions options)
       state_layer_(0.0, motion_scheme.fast_effects()),
       checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()),
       icon_fade_(1.0, motion_scheme.fast_effects()) {
+    options_.accessible_name = required_name(std::move(options_.accessible_name), "An icon button");
     corner_.snap_to(target_corner());
 }
 

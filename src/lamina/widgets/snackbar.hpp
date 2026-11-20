@@ -51,6 +51,16 @@ public:
     bool animating() const;
     double next_wake_seconds() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+    std::optional<AccessibleNode> accessible() const {
+        if (!popup_.is_open()) {
+            return std::nullopt;
+        }
+        AccessibleNode node{AccessibleRole::status, message_.text(), surface_};
+        if (action_) {
+            node.children.push_back(action_->accessible());
+        }
+        return node;
+    }
 
 private:
     void relayout();

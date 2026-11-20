@@ -8,6 +8,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/typography.hpp"
+#include "lamina/widgets/accessibility.hpp"
 
 namespace lamina::widgets {
 
@@ -29,6 +30,8 @@ public:
     render::Rect bounds() const { return {origin_.x, origin_.y, block_.width, block_.height}; }
     std::size_t line_count() const { return block_.lines.size(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+    const std::string& text() const { return text_; }
+    AccessibleNode accessible() const { return {AccessibleRole::label, text_, bounds()}; }
 
 private:
     std::string text_;

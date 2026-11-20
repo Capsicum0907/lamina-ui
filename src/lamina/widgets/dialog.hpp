@@ -14,6 +14,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/dialog.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/label.hpp"
@@ -86,6 +87,7 @@ public:
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+    std::optional<AccessibleNode> accessible() const;
 
 private:
     std::vector<DialogAction> reading_order() const;

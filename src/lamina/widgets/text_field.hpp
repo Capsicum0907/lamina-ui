@@ -12,6 +12,7 @@
 #include "lamina/text/edit_buffer.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/text/line_map.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/interaction.hpp"
 
@@ -24,6 +25,7 @@ struct TextFieldOptions {
     bool accepts_tab = false;
     input::Clipboard* clipboard = nullptr;
     bool enabled = true;
+    std::string accessible_name = {};
 };
 
 class TextField {
@@ -42,6 +44,13 @@ public:
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    const std::string& accessible_name() const {
+        return !options_.accessible_name.empty() ? options_.accessible_name : !options_.label.empty() ? options_.label : options_.placeholder;
+    }
+    AccessibleNode accessible() const {
+        return {AccessibleRole::text_field, accessible_name(), bounds(), {.enabled = enabled(), .focusable = enabled(), .focused = focused()},
+                text(), options_.label.empty() ? std::string() : options_.placeholder};
+    }
     double placeholder_opacity() const { return placeholder_opacity_.value(); }
     bool placeholder_shown() const;
     bool multiline() const { return options_.multiline; }

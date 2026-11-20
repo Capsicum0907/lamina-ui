@@ -22,6 +22,7 @@ double label_height(const text::TextLine& line) {
 
 NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)), fonts_(fonts) {
+    name_navigation_items(options_.items);
     const auto style = tokens::text_style(tokens::type_style(t.label));
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         std::optional<text::TextLine> label;

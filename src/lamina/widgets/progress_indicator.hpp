@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+
+#include "lamina/widgets/accessibility.hpp"
+
 #include "lamina/color/scheme.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
@@ -46,6 +50,10 @@ public:
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+    void set_accessible_name(std::string name) { accessible_name_ = std::move(name); }
+    AccessibleNode accessible() const {
+        return {AccessibleRole::progress_indicator, accessible_name_, bounds(), {.range = AccessibleRange{progress(), 0.0, 1.0}}};
+    }
 
 private:
     double radius() const;
@@ -63,6 +71,7 @@ private:
     motion::Animated offset_;
     motion::Animated amplitude_;
     motion::Animated color_mix_;
+    std::string accessible_name_;
 };
 
 }

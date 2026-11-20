@@ -38,6 +38,15 @@ TitleBar::TitleBar(TitleBarOptions options, const text::FontStack& fonts)
       }},
       active_(1.0, motion_scheme.default_effects()) {}
 
+AccessibleNode TitleBar::accessible() const {
+    AccessibleNode bar{AccessibleRole::title_bar, title_.text(), bounds()};
+    const TitleBarNames& n = options_.names;
+    bar.children.push_back({AccessibleRole::button, n.minimize, button_rect(TitleBarAction::minimize)});
+    bar.children.push_back({AccessibleRole::button, maximized_ ? n.restore : n.maximize, button_rect(TitleBarAction::toggle_maximize)});
+    bar.children.push_back({AccessibleRole::button, n.close, button_rect(TitleBarAction::close)});
+    return bar;
+}
+
 double TitleBar::height() const {
     return title_bar_tokens.height;
 }

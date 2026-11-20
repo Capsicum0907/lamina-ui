@@ -15,6 +15,7 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/menu.hpp"
 #include "lamina/widgets/access_key.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -31,6 +32,7 @@ struct MenuItem {
 
 struct MenuOptions {
     std::vector<MenuItem> items;
+    std::string accessible_name = {};
 };
 
 struct MenuResponse {
@@ -66,6 +68,7 @@ public:
     std::size_t count() const { return items_.size(); }
     bool item_enabled(std::size_t index) const { return items_[index].enabled.enabled(); }
     void set_item_enabled(std::size_t index, bool enabled);
+    std::optional<AccessibleNode> accessible() const;
 
     MenuResponse handle(const input::PointerEvent& event);
     MenuResponse handle(const input::KeyEvent& event);
@@ -89,6 +92,8 @@ private:
     void reveal_access_keys();
 
     text::FontStack fonts_;
+    std::string accessible_name_;
+    std::vector<std::string> names_;
     std::vector<Item> items_;
     std::vector<std::optional<input::Key>> access_keys_;
     bool access_keys_shown_ = false;

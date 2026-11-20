@@ -60,7 +60,7 @@ TEST_CASE("cancel_interaction keeps a press on a checkbox, radio button, switch 
     widgets::Switch toggle;
     check_cancelled_click(toggle);
     CHECK_FALSE(toggle.checked());
-    widgets::Fab fab({icons::Icon{icon_font(), res::icons::edit}});
+    widgets::Fab fab({icons::Icon{icon_font(), res::icons::edit}, "Edit"});
     check_cancelled_click(fab);
 }
 

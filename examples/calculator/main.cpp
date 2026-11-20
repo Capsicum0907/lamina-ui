@@ -47,6 +47,7 @@ struct KeySpec {
     KeyPlacement placement;
     LabelSwitch label_switch = LabelSwitch::none;
     const char* alternate = nullptr;
+    const char* name = "";
 };
 
 struct KeyBinding {
@@ -94,7 +95,7 @@ struct Config {
         {"+", std::nullopt, Command::add, KeyRole::operation, {{3, 3}, {2, 4}, false}},
         {"0", std::nullopt, Command::digit_0, KeyRole::digit, {{4, 0}, {3, 0}, false}},
         {".", std::nullopt, Command::point, KeyRole::digit, {{4, 1}, {3, 1}, false}},
-        {"", examples::res::icons::backspace, Command::backspace, KeyRole::digit, {{4, 2}, {3, 2}, false}},
+        {"", examples::res::icons::backspace, Command::backspace, KeyRole::digit, {{4, 2}, {3, 2}, false}, LabelSwitch::none, nullptr, "Backspace"},
         {"=", std::nullopt, Command::equals, KeyRole::equals, {{4, 3}, {3, 4}, false}},
         {"√", std::nullopt, Command::square_root, KeyRole::operation, {{0, 0}, {0, 0}, true}, LabelSwitch::inverse, "x²"},
         {"Rad", std::nullopt, Command::angle_unit, KeyRole::operation, {{0, 0}, {0, 1}, true}, LabelSwitch::angle_unit, "Deg"},
@@ -174,7 +175,7 @@ int main(int argc, char** argv) {
                 icon = icons::Icon{icon_font, *spec.icon};
             }
             keys.push_back({widgets::Button({spec.label, ButtonStyle::tonal, config.key_size, ButtonShape::round, icon,
-                                             config.roles[static_cast<std::size_t>(spec.role)]},
+                                             config.roles[static_cast<std::size_t>(spec.role)], {}, true, spec.name},
                                             fonts),
                             &spec, AnimatedBox(config.move_spring), motion::Animated(1.0, config.fade_spring), true, -1.0, spec.label});
             placements.push_back(spec.placement);

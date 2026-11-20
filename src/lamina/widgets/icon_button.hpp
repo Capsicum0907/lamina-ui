@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -9,6 +10,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/icon_button.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -17,6 +19,7 @@ namespace lamina::widgets {
 
 struct IconButtonOptions {
     icons::Icon icon;
+    std::string accessible_name;
     tokens::IconButtonStyle style = tokens::IconButtonStyle::standard;
     tokens::IconButtonSize size = tokens::IconButtonSize::small;
     tokens::ButtonShape shape = tokens::ButtonShape::round;
@@ -44,6 +47,15 @@ public:
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    const std::string& accessible_name() const { return options_.accessible_name; }
+    void set_accessible_name(std::string name) { options_.accessible_name = required_name(std::move(name), "An icon button"); }
+    AccessibleNode accessible() const {
+        AccessibleState state{.enabled = enabled(), .focusable = enabled(), .focused = focused()};
+        if (options_.toggleable) {
+            state.toggle = options_.checked ? AccessibleToggle::on : AccessibleToggle::off;
+        }
+        return {options_.toggleable ? AccessibleRole::toggle_button : AccessibleRole::button, options_.accessible_name, bounds(), state};
+    }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);

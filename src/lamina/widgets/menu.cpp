@@ -76,7 +76,7 @@ render::Point menu_transform_origin(const render::Rect& anchor, const render::Re
 }
 
 Menu::Menu(MenuOptions options, const text::FontStack& fonts)
-    : fonts_(fonts), popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+    : fonts_(fonts), accessible_name_(options.accessible_name), popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     const auto style = tokens::text_style(tokens::type_style(t.label));
     double content = 0.0;
     for (auto& item : options.items) {
@@ -96,6 +96,7 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
             w += t.icon_size + t.icon_text_space;
         }
         content = std::max(content, w);
+        names_.push_back(item.label);
         access_keys_.push_back(key);
         items_.push_back({std::move(label), std::move(item.leading_icon), std::move(access), {},
                           motion::Animated(0.0, motion_scheme.fast_effects()), Enablement(item.enabled)});
@@ -137,6 +138,17 @@ void Menu::set_item_enabled(std::size_t index, bool enabled) {
         }
     }
     retarget_state_layers(items_, active_);
+}
+
+std::optional<AccessibleNode> Menu::accessible() const {
+    if (!popup_.is_open()) {
+        return std::nullopt;
+    }
+    AccessibleNode menu{AccessibleRole::menu, accessible_name_, bounds()};
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        menu.children.push_back({AccessibleRole::menu_item, names_[i], item_rect(i), {.enabled = item_enabled(i), .focused = active_ == i}});
+    }
+    return menu;
 }
 
 std::vector<std::optional<input::Key>> Menu::enabled_access_keys() const {

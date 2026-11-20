@@ -10,6 +10,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/button.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -31,6 +32,7 @@ struct ButtonOptions {
     std::optional<ButtonColors> colors = std::nullopt;
     icons::IconStyle icon_style = {};
     bool enabled = true;
+    std::string accessible_name = {};
 };
 
 class Button {
@@ -52,6 +54,11 @@ public:
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    const std::string& accessible_name() const { return options_.accessible_name.empty() ? options_.label : options_.accessible_name; }
+    void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
+    AccessibleNode accessible() const {
+        return {AccessibleRole::button, accessible_name(), bounds(), {.enabled = enabled(), .focusable = enabled(), .focused = focused()}};
+    }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);

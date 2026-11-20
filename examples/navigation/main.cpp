@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 
         widgets::Label header({"Navigation", layout.header_type, layout.text, false}, fonts);
         widgets::Label status({"—", layout.caption_type, layout.caption, false}, fonts);
-        widgets::IconButton dark_toggle({icon(examples::res::icons::dark_mode), tokens::IconButtonStyle::outlined, tokens::IconButtonSize::small,
+        widgets::IconButton dark_toggle({icon(examples::res::icons::dark_mode), "Dark theme", tokens::IconButtonStyle::outlined, tokens::IconButtonSize::small,
                                          tokens::ButtonShape::round, tokens::IconButtonWidth::uniform, true});
         auto report = [&status](std::string s) { status.set_text(std::move(s)); };
 
@@ -135,8 +135,8 @@ int main(int argc, char** argv) {
                                     fonts);
 
         const std::vector<std::string> sections{"Mail", "Starred", "Sent", "Contacts"};
-        widgets::IconButton rail_open({icon(examples::res::icons::menu)});
-        widgets::IconButton rail_close({icon(examples::res::icons::menu_open)});
+        widgets::IconButton rail_open({icon(examples::res::icons::menu), "Expand navigation"});
+        widgets::IconButton rail_close({icon(examples::res::icons::menu_open), "Collapse navigation"});
         auto rail_toggle = std::make_shared<layout::Stack>(std::vector<layout::NodePtr>{widgets::node(rail_open), widgets::node(rail_close)});
         auto rail_header = layout::row({layout::spacer({layout.rail_header_inset, 0.0}), rail_toggle});
         widgets::NavigationRail rail({{{icon(examples::res::icons::mail), sections[0], {}, layout.selected_icon},

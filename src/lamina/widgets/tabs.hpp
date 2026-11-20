@@ -12,6 +12,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/tabs.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -24,6 +25,7 @@ struct TabItem {
     std::string label;
     std::optional<icons::Icon> icon = std::nullopt;
     bool enabled = true;
+    std::string accessible_name = {};
 };
 
 struct TabRowOptions {
@@ -31,6 +33,7 @@ struct TabRowOptions {
     tokens::TabStyle style = tokens::TabStyle::primary;
     std::size_t selected = 0;
     TabIconPosition icon_position = TabIconPosition::top;
+    std::string accessible_name = {};
 };
 
 class TabRow {
@@ -57,6 +60,7 @@ public:
     bool enabled() const;
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    AccessibleNode accessible() const;
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);

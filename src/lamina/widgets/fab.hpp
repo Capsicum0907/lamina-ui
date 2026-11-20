@@ -1,11 +1,14 @@
 #pragma once
 
+#include <string>
+
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/fab.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
@@ -13,6 +16,7 @@ namespace lamina::widgets {
 
 struct FabOptions {
     icons::Icon icon;
+    std::string accessible_name;
     tokens::FabSize size = tokens::FabSize::baseline;
     tokens::FabStyle style = tokens::FabStyle::primary_container;
 };
@@ -28,6 +32,11 @@ public:
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
+    const std::string& accessible_name() const { return options_.accessible_name; }
+    void set_accessible_name(std::string name) { options_.accessible_name = required_name(std::move(name), "A FAB"); }
+    AccessibleNode accessible() const {
+        return {AccessibleRole::button, options_.accessible_name, bounds(), {.focusable = true, .focused = focused()}};
+    }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);

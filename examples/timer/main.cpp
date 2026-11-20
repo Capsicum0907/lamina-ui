@@ -45,6 +45,7 @@ struct PadSpec {
     std::optional<icons::Symbol> icon;
     PadKey kind;
     int digit;
+    const char* name = "";
 };
 
 struct PresetSpec {
@@ -60,6 +61,7 @@ struct ControlSpec {
     double label_ratio;
     double icon_ratio;
     icons::IconStyle icon_style = {};
+    const char* name = "";
 };
 
 constexpr icons::IconStyle filled_icon{.fill = 1.0};
@@ -86,18 +88,21 @@ struct Config {
         {"9", std::nullopt, PadKey::digit, 9},
         {"00", std::nullopt, PadKey::double_zero, 0},
         {"0", std::nullopt, PadKey::digit, 0},
-        {"", examples::res::icons::backspace, PadKey::backspace, 0},
+        {"", examples::res::icons::backspace, PadKey::backspace, 0, "Backspace"},
     }};
     std::array<PresetSpec, examples::timer::preset_count> presets{{{"1m", 60}, {"5m", 300}, {"10m", 600}, {"15m", 900}}};
     widgets::ButtonColors preset_colors{color::Role::secondary_container, color::Role::on_secondary_container};
     double preset_label_ratio = 0.4;
-    ControlSpec start{"", examples::res::icons::play_arrow, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.42, filled_icon};
-    ControlSpec toggle{"", examples::res::icons::pause, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.5, filled_icon};
+    ControlSpec start{"", examples::res::icons::play_arrow, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.42, filled_icon, "Start"};
+    ControlSpec toggle{"", examples::res::icons::pause, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.5, filled_icon, "Pause"};
     ControlSpec add{"+1:00", std::nullopt, {color::Role::secondary_container, color::Role::on_secondary_container},
                     ButtonShape::round, 0.34, 0.0};
     ControlSpec reset{"", examples::res::icons::refresh, {color::Role::secondary_container, color::Role::on_secondary_container},
-                      ButtonShape::round, 0.0, 0.42};
+                      ButtonShape::round, 0.0, 0.42, {}, "Reset"};
     icons::Symbol pause_icon = examples::res::icons::pause;
+    const char* pause_name = "Pause";
+    const char* resume_name = "Resume";
+    const char* stop_name = "Stop";
     icons::Symbol resume_icon = examples::res::icons::play_arrow;
     icons::Symbol stop_icon = examples::res::icons::stop;
     widgets::CircularProgressOptions ring{.thickness = 10.0, .track_thickness = 10.0, .gap = 8.0, .amplitude = 3.0, .wavelength = 42.0};
@@ -161,12 +166,12 @@ struct View {
 
 widgets::Button make_button(const char* label, std::optional<icons::Symbol> icon, widgets::ButtonColors colors, ButtonShape shape,
                             const icons::IconStyle& icon_style, tokens::ButtonSize size, const icons::IconFont& icon_font,
-                            const text::FontStack& fonts) {
+                            const text::FontStack& fonts, const char* name) {
     std::optional<icons::Icon> i;
     if (icon) {
         i = icons::Icon{icon_font, *icon};
     }
-    return widgets::Button({label, ButtonStyle::tonal, size, shape, i, colors, icon_style}, fonts);
+    return widgets::Button({label, ButtonStyle::tonal, size, shape, i, colors, icon_style, true, name}, fonts);
 }
 
 void fit(View& v, double label_ratio, double icon_ratio, double label_size, double icon_size) {
@@ -233,14 +238,14 @@ int main(int argc, char** argv) {
         widgets::CircularProgressIndicator ring(config.ring);
 
         auto view = [&](const char* label, std::optional<icons::Symbol> icon, widgets::ButtonColors colors, ButtonShape shape,
-                        const icons::IconStyle& icon_style = {}) {
-            return View{make_button(label, icon, colors, shape, icon_style, config.button_size, icon_font, fonts),
+                        const icons::IconStyle& icon_style = {}, const char* name = "") {
+            return View{make_button(label, icon, colors, shape, icon_style, config.button_size, icon_font, fonts, name),
                         AnimatedBox(config.move_spring)};
         };
-        auto control = [&](const ControlSpec& c) { return view(c.label, c.icon, c.colors, c.shape, c.icon_style); };
+        auto control = [&](const ControlSpec& c) { return view(c.label, c.icon, c.colors, c.shape, c.icon_style, c.name); };
         std::vector<View> pad;
         for (const PadSpec& p : config.pad) {
-            pad.push_back(view(p.label, p.icon, config.key_colors, ButtonShape::round));
+            pad.push_back(view(p.label, p.icon, config.key_colors, ButtonShape::round, {}, p.name));
         }
         std::vector<View> presets;
         for (const PresetSpec& p : config.presets) {
@@ -337,6 +342,9 @@ int main(int argc, char** argv) {
                                            : state == State::finished ? config.stop_icon
                                                                       : config.resume_icon;
                 toggle.button.set_icon(icons::Icon{icon_font, icon});
+                toggle.button.set_accessible_name(state == State::running    ? config.pause_name
+                                                  : state == State::finished ? config.stop_name
+                                                                             : config.resume_name);
                 ring.set_colors(state == State::finished ? config.finished_colors : config.running_colors);
                 shown_state = state;
             }

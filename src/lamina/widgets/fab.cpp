@@ -17,6 +17,7 @@ using tokens::motion_scheme;
 
 Fab::Fab(FabOptions options)
     : options_(std::move(options)), state_layer_(0.0, motion_scheme.fast_effects()), elevation_(0.0, motion_scheme.default_effects()) {
+    options_.accessible_name = required_name(std::move(options_.accessible_name), "A FAB");
     elevation_.snap_to(state_elevation(tokens::fab_style(options_.style), press_));
 }
 

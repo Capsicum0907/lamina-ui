@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
@@ -8,6 +9,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/switch.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -19,6 +21,7 @@ struct SwitchOptions {
     std::optional<icons::Icon> checked_icon = std::nullopt;
     std::optional<icons::Icon> unchecked_icon = std::nullopt;
     bool enabled = true;
+    std::string accessible_name = {};
 };
 
 class Switch {
@@ -40,6 +43,12 @@ public:
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
+    AccessibleNode accessible() const {
+        return {AccessibleRole::switch_control, options_.accessible_name, bounds(),
+                {.enabled = enabled(), .focusable = enabled(), .focused = focused(),
+                 .toggle = options_.checked ? AccessibleToggle::on : AccessibleToggle::off}};
+    }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);

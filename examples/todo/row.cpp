@@ -41,7 +41,7 @@ TaskRow::TaskRow(const Item& item, const RowStyle& style, const text::FontStack&
       text_(item.text),
       done_(item.done),
       check_({check_state(item.done)}),
-      remove_({icons::Icon{icon_font, style.remove_icon}, tokens::IconButtonStyle::standard, tokens::IconButtonSize::small}),
+      remove_({icons::Icon{icon_font, style.remove_icon}, style.remove_name, tokens::IconButtonStyle::standard, tokens::IconButtonSize::small}),
       box_(style.move_spring),
       presence_(0.0, style.fade_spring),
       done_amount_(item.done ? 1.0 : 0.0, style.fade_spring),

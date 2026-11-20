@@ -55,7 +55,7 @@ widgets::Button button(tokens::ButtonStyle style = tokens::ButtonStyle::filled) 
 }
 
 widgets::IconButton icon_button(tokens::IconButtonStyle style = tokens::IconButtonStyle::filled) {
-    widgets::IconButton b({{icon_font(), res::icons::add}, style});
+    widgets::IconButton b({{icon_font(), res::icons::add}, "Add", style});
     b.set_origin({10.0, 10.0});
     return b;
 }

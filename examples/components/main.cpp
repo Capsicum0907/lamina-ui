@@ -155,14 +155,14 @@ int main(int argc, char** argv) {
         Row icon_buttons{"Icon buttons"};
         for (const auto& [style, name] : icon_styles) {
             const std::string n = name;
-            auto* b = add<widgets::IconButton>(controls, icon_buttons.items, widgets::IconButtonOptions{icon(examples::res::icons::settings), style});
+            auto* b = add<widgets::IconButton>(controls, icon_buttons.items, widgets::IconButtonOptions{icon(examples::res::icons::settings), "Settings (" + n + ")", style});
             b->on_click = [&report, n] { report("Icon button: " + n); };
         }
         const Symbol toggle_symbols[] = {examples::res::icons::favorite, examples::res::icons::star, examples::res::icons::bookmark, examples::res::icons::notifications};
         for (std::size_t i = 0; i < std::size(icon_styles); ++i) {
             const std::string n = icon_styles[i].second;
             auto* b = add<widgets::IconButton>(controls, icon_buttons.items,
-                                               widgets::IconButtonOptions{icon(toggle_symbols[i]), icon_styles[i].first,
+                                               widgets::IconButtonOptions{icon(toggle_symbols[i]), "Toggle (" + n + ")", icon_styles[i].first,
                                                                           IconButtonSize::small, ButtonShape::round,
                                                                           IconButtonWidth::uniform, true});
             auto& w = b->widget;
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
             const auto shape = i % 2 == 0 ? ButtonShape::round : ButtonShape::square;
             const auto width = i == 1 ? IconButtonWidth::wide : IconButtonWidth::uniform;
             auto* b = add<widgets::IconButton>(controls, sizes.items,
-                                               widgets::IconButtonOptions{icon(examples::res::icons::palette), IconButtonStyle::tonal, size_list[i], shape, width});
+                                               widgets::IconButtonOptions{icon(examples::res::icons::palette), "Size " + std::to_string(i), IconButtonStyle::tonal, size_list[i], shape, width});
             b->on_click = [&report, i] { report("Size " + std::to_string(i)); };
         }
         rows.push_back(std::move(sizes));
@@ -189,10 +189,10 @@ int main(int argc, char** argv) {
             {tokens::FabSize::large, examples::res::icons::mail},
         };
         for (const auto& [size, symbol] : fab_list) {
-            auto* f = add<widgets::Fab>(controls, fabs.items, widgets::FabOptions{icon(symbol), size});
+            auto* f = add<widgets::Fab>(controls, fabs.items, widgets::FabOptions{icon(symbol), "FAB", size});
             f->on_click = [&report] { report("FAB"); };
         }
-        auto* secondary = add<widgets::Fab>(controls, fabs.items, widgets::FabOptions{icon(examples::res::icons::search), tokens::FabSize::baseline,
+        auto* secondary = add<widgets::Fab>(controls, fabs.items, widgets::FabOptions{icon(examples::res::icons::search), "Search", tokens::FabSize::baseline,
                                                                           tokens::FabStyle::secondary_container});
         secondary->on_click = [&report] { report("FAB: secondary"); };
         rows.push_back(std::move(fabs));
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
         }
         rows.push_back(std::move(radios));
 
-        widgets::IconButton dark_toggle({icon(options.dark ? examples::res::icons::light_mode : examples::res::icons::dark_mode), IconButtonStyle::outlined,
+        widgets::IconButton dark_toggle({icon(options.dark ? examples::res::icons::light_mode : examples::res::icons::dark_mode), "Dark theme", IconButtonStyle::outlined,
                                          IconButtonSize::small, ButtonShape::round, IconButtonWidth::uniform, true});
         controls.add(dark_toggle);
         widgets::Label header({"\u90e8\u54c1", layout.header_type, layout.text, false}, fonts);
@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
 
         const char* title = "lamina-ui components";
         sdl3::Window window({title, 1100, examples::window_height_dp(860, want_title_bar), want_title_bar}, examples::window_canvas());
-        widgets::IconButton bar_search({icon(examples::res::icons::search), IconButtonStyle::standard, IconButtonSize::extra_small});
+        widgets::IconButton bar_search({icon(examples::res::icons::search), "Search", IconButtonStyle::standard, IconButtonSize::extra_small});
         widgets::TitleBar title_bar({title, icon_font, layout::row({widgets::centered_node(bar_search)})}, fonts);
         layout::NodePtr root = page;
         if (window.client_title_bar()) {

@@ -35,7 +35,7 @@ TEST_CASE("icon button sizes follow the size tokens") {
 TEST_CASE("a uniform icon button is square at every size") {
     for (auto size : {IconButtonSize::extra_small, IconButtonSize::small, IconButtonSize::medium, IconButtonSize::large,
                       IconButtonSize::extra_large}) {
-        widgets::IconButton b({icon(), IconButtonStyle::filled, size});
+        widgets::IconButton b({icon(), "Add", IconButtonStyle::filled, size});
         CHECK(b.width() == b.height());
     }
 }
@@ -49,7 +49,7 @@ TEST_CASE("icon button colors follow the token files") {
 }
 
 TEST_CASE("a toggleable icon button flips on click, a plain one does not") {
-    widgets::IconButton toggle({icon(), IconButtonStyle::tonal, IconButtonSize::small, tokens::ButtonShape::round,
+    widgets::IconButton toggle({icon(), "Favorite", IconButtonStyle::tonal, IconButtonSize::small, tokens::ButtonShape::round,
                                 IconButtonWidth::uniform, true});
     toggle.set_origin({10.0, 10.0});
     CHECK_FALSE(toggle.checked());
@@ -60,7 +60,7 @@ TEST_CASE("a toggleable icon button flips on click, a plain one does not") {
     toggle.handle({PointerAction::up, 30.0, 30.0});
     CHECK_FALSE(toggle.checked());
 
-    widgets::IconButton plain({icon(), IconButtonStyle::filled});
+    widgets::IconButton plain({icon(), "Add", IconButtonStyle::filled});
     plain.set_origin({10.0, 10.0});
     plain.handle({PointerAction::down, 30.0, 30.0});
     CHECK(plain.handle({PointerAction::up, 30.0, 30.0}));
@@ -68,14 +68,14 @@ TEST_CASE("a toggleable icon button flips on click, a plain one does not") {
 }
 
 TEST_CASE("an icon button reaches the 48 dp touch target") {
-    widgets::IconButton b({icon(), IconButtonStyle::filled, IconButtonSize::small});
+    widgets::IconButton b({icon(), "Add", IconButtonStyle::filled, IconButtonSize::small});
     b.set_origin({10.0, 10.0});
     b.handle({PointerAction::down, 7.0, 30.0});
     CHECK(b.handle({PointerAction::up, 7.0, 30.0}));
 }
 
 TEST_CASE("pressing a round icon button squares its corners") {
-    widgets::IconButton b({icon(), IconButtonStyle::filled, IconButtonSize::medium});
+    widgets::IconButton b({icon(), "Add", IconButtonStyle::filled, IconButtonSize::medium});
     b.set_origin({0.0, 0.0});
     thorvg::Canvas canvas(60, 60);
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
@@ -91,7 +91,7 @@ TEST_CASE("pressing a round icon button squares its corners") {
 }
 
 TEST_CASE("the icon of an icon button is drawn in the content color") {
-    widgets::IconButton b({icon(res::icons::add), IconButtonStyle::standard, IconButtonSize::medium});
+    widgets::IconButton b({icon(res::icons::add), "Add", IconButtonStyle::standard, IconButtonSize::medium});
     thorvg::Canvas canvas(56, 56);
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     canvas.clear(0xffffffff);
@@ -101,7 +101,7 @@ TEST_CASE("the icon of an icon button is drawn in the content color") {
 }
 
 TEST_CASE("set_icon cross-fades from the old icon to the new one") {
-    widgets::IconButton b({icon(res::icons::add), IconButtonStyle::standard, IconButtonSize::medium});
+    widgets::IconButton b({icon(res::icons::add), "Add", IconButtonStyle::standard, IconButtonSize::medium});
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     auto ink = [&] {
         thorvg::Canvas canvas(56, 56);
@@ -132,7 +132,7 @@ TEST_CASE("FAB sizes and the Compose overrides") {
 }
 
 TEST_CASE("a FAB clicks and paints its container") {
-    widgets::Fab fab({icon(res::icons::edit)});
+    widgets::Fab fab({icon(res::icons::edit), "Edit"});
     fab.set_origin({20.0, 20.0});
     fab.handle({PointerAction::down, 40.0, 40.0});
     CHECK(fab.handle({PointerAction::up, 40.0, 40.0}));

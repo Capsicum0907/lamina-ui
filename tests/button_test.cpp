@@ -106,13 +106,14 @@ TEST_CASE("set_size during a press keeps the corners springing toward the presse
 }
 
 TEST_CASE("an icon-only button leaves no gap for the missing label") {
-    widgets::Button b({"", ButtonStyle::tonal, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), res::icons::backspace}}, fonts());
+    widgets::Button b({"", ButtonStyle::tonal, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), res::icons::backspace}, std::nullopt, {}, true, "Backspace"}, fonts());
     const auto& size = tokens::button_size(ButtonSize::large);
     CHECK(b.width() == doctest::Approx(size.leading_space + size.icon_size + size.trailing_space));
 }
 
 TEST_CASE("ButtonOptions::colors replaces the style's container and content roles") {
     widgets::ButtonOptions options{"", ButtonStyle::text, ButtonSize::small, ButtonShape::square};
+    options.accessible_name = "Swatch";
     options.colors = widgets::ButtonColors{color::Role::tertiary_container, color::Role::on_tertiary_container};
     widgets::Button b(options, fonts());
     b.set_origin({10.0, 10.0});
@@ -181,7 +182,7 @@ TEST_CASE("set_content_scale scales the drawn label without changing the size") 
 }
 
 TEST_CASE("set_shape morphs a round button to its square corners on a spring and back") {
-    widgets::Button b({"", ButtonStyle::filled, ButtonSize::large, ButtonShape::round}, fonts());
+    widgets::Button b({"", ButtonStyle::filled, ButtonSize::large, ButtonShape::round, std::nullopt, std::nullopt, {}, true, "Key"}, fonts());
     b.set_size(96.0, 96.0);
     b.set_origin({10.0, 10.0});
     thorvg::Canvas canvas(140, 140);
@@ -203,7 +204,8 @@ TEST_CASE("set_shape morphs a round button to its square corners on a spring and
 }
 
 TEST_CASE("set_icon cross-fades to the new icon and keeps the size of a sized button") {
-    widgets::Button b({"", ButtonStyle::filled, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), res::icons::play_arrow}},
+    widgets::Button b({"", ButtonStyle::filled, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), res::icons::play_arrow},
+                       std::nullopt, {}, true, "Play"},
                       fonts());
     b.set_size(96.0, 96.0);
     b.set_icon(icons::Icon{icon_font(), res::icons::pause});
@@ -219,6 +221,7 @@ TEST_CASE("ButtonOptions::icon_style draws the icon with other symbol axes") {
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     auto ink = [&](double fill) {
         widgets::ButtonOptions o{"", ButtonStyle::text, ButtonSize::large, ButtonShape::round, icons::Icon{icon_font(), res::icons::pause}};
+        o.accessible_name = "Pause";
         o.icon_style.fill = fill;
         widgets::Button b(o, fonts());
         thorvg::Canvas canvas(140, 120);

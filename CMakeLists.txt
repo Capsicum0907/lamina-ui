@@ -58,6 +58,7 @@ add_library(lamina STATIC
     src/lamina/text/word_boundary.cpp
     src/lamina/layout/layout.cpp
     src/lamina/widgets/access_key.cpp
+    src/lamina/widgets/accessibility.cpp
     src/lamina/widgets/button.cpp
     src/lamina/widgets/checkbox.cpp
     src/lamina/widgets/dialog.cpp
@@ -204,6 +205,7 @@ if(LAMINA_BUILD_TESTS)
     find_package(doctest CONFIG REQUIRED)
     add_executable(lamina_tests
         tests/access_key_test.cpp
+        tests/accessibility_test.cpp
         tests/animated_test.cpp
         tests/button_test.cpp
         tests/calculator_engine_test.cpp

@@ -4,7 +4,10 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include <string>
+
 #include "lamina/tokens/checkbox.hpp"
+#include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -14,6 +17,7 @@ namespace lamina::widgets {
 struct CheckboxOptions {
     tokens::CheckboxState state = tokens::CheckboxState::off;
     bool enabled = true;
+    std::string accessible_name = {};
 };
 
 render::Path check_mark_path(const render::Rect& box, double draw_fraction, double center_gravitation, double stroke_width);
@@ -37,6 +41,14 @@ public:
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);
     bool can_focus() const { return enabled(); }
+    void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
+    AccessibleNode accessible() const {
+        const AccessibleToggle toggle = options_.state == tokens::CheckboxState::on              ? AccessibleToggle::on
+                                        : options_.state == tokens::CheckboxState::indeterminate ? AccessibleToggle::mixed
+                                                                                                 : AccessibleToggle::off;
+        return {AccessibleRole::checkbox, options_.accessible_name, bounds(),
+                {.enabled = enabled(), .focusable = enabled(), .focused = focused(), .toggle = toggle}};
+    }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
