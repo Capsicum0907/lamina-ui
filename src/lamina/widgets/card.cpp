@@ -159,10 +159,6 @@ void Card::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     const color::Argb enabled_fill = color::state_layer(container, scheme[t.state_layer], state_layer_.value());
     const color::Argb fill = enabled_.mix(resolve(scheme, s.disabled_container), enabled_fill);
     paint_surface(canvas, rect_, r, fill, elevation_.value(), scheme[color::Role::shadow]);
-    if (s.outline) {
-        const color::Argb outline = enabled_.mix(resolve(scheme, s.disabled_outline), scheme[*s.outline]);
-        canvas.fill_path(render::ring_path(rect_, r, t.outline_width), outline, render::FillRule::even_odd);
-    }
     if (options_.widgets) {
         canvas.push_clip(render::rounded_rect_path(rect_, render::uniform_radii(r)));
         const double content = motion::lerp(s.disabled_content.opacity, 1.0, enabled_.amount());
@@ -172,6 +168,10 @@ void Card::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
             options_.widgets->paint(canvas, scheme);
         }
         canvas.pop_clip();
+    }
+    if (s.outline) {
+        const color::Argb outline = enabled_.mix(resolve(scheme, s.disabled_outline), scheme[*s.outline]);
+        canvas.fill_path(render::ring_path(rect_, r, t.outline_width), outline, render::FillRule::even_odd);
     }
     focus_.paint(canvas, scheme, rect_, r);
 }

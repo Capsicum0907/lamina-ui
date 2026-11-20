@@ -4,6 +4,7 @@
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/card.hpp"
 #include "lamina/widgets/label.hpp"
+#include "lamina/widgets/list_item.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/widget_set.hpp"
 #include "lamina_thorvg/canvas.hpp"
@@ -146,6 +147,19 @@ TEST_CASE("a card holds any content, routes input to it and does not press under
     CHECK_FALSE(button.enabled());
     card.set_enabled(true);
     CHECK(button.enabled());
+}
+
+TEST_CASE("an outlined card draws its border over content that fills it, as Modifier.border does") {
+    widgets::WidgetSet content;
+    auto& item = content.emplace<widgets::ListItem>(widgets::ListItemSpec{"Row"}, fonts());
+    Card card({CardStyle::outlined, false, true, widgets::measured_node(item), &content});
+    card.measure(layout::Constraints::tight({200.0, 56.0}));
+    card.arrange({0.0, 0.0, 200.0, 56.0});
+    thorvg::Canvas canvas(200, 56);
+    canvas.clear(0xffffffff);
+    card.paint(canvas, scheme());
+    CHECK(canvas.pixel(100, 0) == scheme()[color::Role::outline_variant]);
+    CHECK(canvas.pixel(0, 28) == scheme()[color::Role::outline_variant]);
 }
 
 TEST_CASE("cards satisfy the widget concepts") {
