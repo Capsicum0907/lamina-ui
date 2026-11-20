@@ -28,6 +28,7 @@ struct IconButtonOptions {
     bool toggleable = false;
     bool checked = false;
     bool enabled = true;
+    std::optional<color::Role> content = std::nullopt;
 };
 
 class IconButton {

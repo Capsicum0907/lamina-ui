@@ -89,6 +89,7 @@ add_library(lamina STATIC
     src/lamina/widgets/text_field.cpp
     src/lamina/widgets/title_bar.cpp
     src/lamina/widgets/tooltip.cpp
+    src/lamina/widgets/top_app_bar.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
 set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close)
@@ -278,6 +279,7 @@ if(LAMINA_BUILD_TESTS)
         tests/timer_layout_test.cpp
         tests/todo_engine_test.cpp
         tests/tooltip_test.cpp
+        tests/top_app_bar_test.cpp
         tests/todo_layout_test.cpp
         tests/tokens_test.cpp
         tests/widget_set_test.cpp

@@ -147,7 +147,8 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     const tokens::IconButtonColors& to = options_.toggleable ? style.checked : style.plain;
     const double t = checked_.value();
 
-    const color::Argb enabled_content = color::mix(scheme[from.content], scheme[to.content], t);
+    const color::Argb enabled_content =
+        options_.content ? scheme[*options_.content] : color::mix(scheme[from.content], scheme[to.content], t);
     const color::Argb enabled_container = mix_optional(scheme, from.container, to.container, t);
     const color::Argb enabled_outline = mix_optional(scheme, from.outline, to.outline, t);
     const double outline_presence = motion::lerp(from.outline ? 1.0 : 0.0, to.outline ? 1.0 : 0.0, std::clamp(t, 0.0, 1.0));

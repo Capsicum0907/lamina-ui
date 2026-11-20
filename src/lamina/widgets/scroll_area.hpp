@@ -38,6 +38,7 @@ public:
 
     void step(double dt_seconds);
     bool animating() const;
+    bool dragging() const { return dragging_; }
     double next_wake_seconds() const;
     double bar_visibility() const { return visibility_.value(); }
     std::optional<render::Rect> thumb() const;
