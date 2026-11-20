@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <memory>
@@ -41,6 +42,12 @@ public:
 
     bool handle(const input::KeyEvent& e);
     bool move_focus(FocusDirection direction);
+    bool advance(FocusDirection direction);
+    bool has_focus() const { return focused_member() != nullptr; }
+    bool any_can_focus() const {
+        return std::any_of(entries_.begin(), entries_.end(), [](const auto& m) { return m->can_focus(); });
+    }
+    std::optional<render::Rect> focused_bounds() const;
     void clear_focus();
     void suspend();
     void resume();
@@ -60,6 +67,7 @@ private:
         virtual void set_focused(bool focused) = 0;
         virtual std::optional<render::Rect> caret_area() const = 0;
         virtual std::optional<double> next_wake_seconds() const = 0;
+        virtual std::optional<render::Rect> bounds() const = 0;
     };
 
     template <typename W>
@@ -93,6 +101,13 @@ private:
             if constexpr (TextInput<W>) {
                 const double seconds = widget.next_blink_seconds();
                 return seconds < 0.0 ? std::nullopt : std::optional<double>(seconds);
+            } else {
+                return std::nullopt;
+            }
+        }
+        std::optional<render::Rect> bounds() const override {
+            if constexpr (requires(const W& w) { { w.bounds() } -> std::convertible_to<render::Rect>; }) {
+                return widget.bounds();
             } else {
                 return std::nullopt;
             }

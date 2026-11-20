@@ -213,6 +213,7 @@ if(LAMINA_BUILD_TESTS)
         tests/checkbox_test.cpp
         tests/color_mix_test.cpp
         tests/color_scheme_test.cpp
+        tests/dialog_content_test.cpp
         tests/dialog_test.cpp
         tests/disabled_items_test.cpp
         tests/disabled_test.cpp

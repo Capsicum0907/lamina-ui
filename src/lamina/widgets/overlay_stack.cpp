@@ -38,6 +38,10 @@ bool OverlayStack::handle(const input::TextEvent& e) {
     return route(e);
 }
 
+bool OverlayStack::handle(const input::WheelEvent& e) {
+    return route(e);
+}
+
 bool OverlayStack::empty() const {
     return std::none_of(layers_.begin(), layers_.end(), [](const auto& layer) { return layer->live(); });
 }

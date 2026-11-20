@@ -38,6 +38,31 @@ bool FocusManager::move_focus(FocusDirection direction) {
     return false;
 }
 
+bool FocusManager::advance(FocusDirection direction) {
+    const std::size_t n = entries_.size();
+    const auto current = std::find_if(entries_.begin(), entries_.end(), [](const auto& m) { return m->focused(); });
+    const bool forward = direction == FocusDirection::next;
+    const auto at = static_cast<std::ptrdiff_t>(current - entries_.begin());
+    std::ptrdiff_t i = current == entries_.end() ? (forward ? -1 : static_cast<std::ptrdiff_t>(n)) : at;
+    for (i += forward ? 1 : -1; i >= 0 && i < static_cast<std::ptrdiff_t>(n); i += forward ? 1 : -1) {
+        Member& m = *entries_[static_cast<std::size_t>(i)];
+        if (!m.can_focus()) {
+            continue;
+        }
+        if (current != entries_.end()) {
+            (*current)->set_focused(false);
+        }
+        m.set_focused(true);
+        return true;
+    }
+    return false;
+}
+
+std::optional<render::Rect> FocusManager::focused_bounds() const {
+    const Member* m = focused_member();
+    return m ? m->bounds() : std::nullopt;
+}
+
 void FocusManager::clear_focus() {
     for (auto& m : entries_) {
         m->set_focused(false);

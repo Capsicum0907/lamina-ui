@@ -67,6 +67,7 @@ public:
     bool handle(const input::PointerEvent& e);
     bool handle(const input::KeyEvent& e);
     bool handle(const input::TextEvent& e);
+    bool handle(const input::WheelEvent& e);
     bool empty() const;
 
 private:
@@ -79,6 +80,7 @@ private:
         virtual bool deliver(const input::PointerEvent& e) = 0;
         virtual bool deliver(const input::KeyEvent& e) = 0;
         virtual bool deliver(const input::TextEvent& e) = 0;
+        virtual bool deliver(const input::WheelEvent& e) = 0;
         bool live() const { return !stale && !removed && open(); }
         Modality modality;
         bool stale = false;
@@ -96,6 +98,13 @@ private:
         bool deliver(const input::KeyEvent& e) override { return forward(e); }
         bool deliver(const input::TextEvent& e) override {
             if constexpr (HandlesText<W>) {
+                return forward(e);
+            } else {
+                return false;
+            }
+        }
+        bool deliver(const input::WheelEvent& e) override {
+            if constexpr (requires { widget.handle(e); }) {
                 return forward(e);
             } else {
                 return false;

@@ -42,7 +42,7 @@ static_assert(interactive<TextField> && HandlesKeys<TextField> && HandlesText<Te
 static_assert(Paintable<Label> && Measurable<Label> && !Steppable<Label> && !HandlesPointer<Label> && !Cancellable<Label>);
 static_assert(interactive<Menu> && HandlesKeys<Menu> && Cancellable<Menu> && !Placeable<Menu>);
 static_assert(interactive<GroupedMenu> && HandlesKeys<GroupedMenu> && Cancellable<GroupedMenu> && !Placeable<GroupedMenu>);
-static_assert(interactive<Dialog> && HandlesKeys<Dialog> && !HandlesText<Dialog> && !Placeable<Dialog>);
+static_assert(interactive<Dialog> && HandlesKeys<Dialog> && HandlesText<Dialog> && !Placeable<Dialog>);
 static_assert(Cancellable<Button> && Cancellable<IconButton> && Cancellable<Fab> && Cancellable<Switch> && Cancellable<Checkbox> &&
               Cancellable<RadioButton> && Cancellable<Slider> && Cancellable<TabRow> && Cancellable<NavigationBar> &&
               Cancellable<NavigationRail> && Cancellable<TextField> && Cancellable<Dialog> && Cancellable<WidgetSet>);

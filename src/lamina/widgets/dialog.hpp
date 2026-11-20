@@ -15,12 +15,21 @@
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/dialog.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/popup_transition.hpp"
+#include "lamina/widgets/scroll_area.hpp"
+#include "lamina/widgets/widget_set.hpp"
 
 namespace lamina::widgets {
 
 enum class DialogAction { confirm, dismiss };
+
+struct DialogContent {
+    layout::NodePtr node;
+    WidgetSet* widgets = nullptr;
+    FocusManager* focus = nullptr;
+};
 
 struct DialogOptions {
     std::string headline;
@@ -29,6 +38,7 @@ struct DialogOptions {
     std::string dismiss_label;
     std::optional<icons::Icon> icon = std::nullopt;
     std::optional<DialogAction> default_action = std::nullopt;
+    std::optional<DialogContent> content = std::nullopt;
 };
 
 enum class DialogResult { none, confirmed, dismissed };
@@ -54,12 +64,24 @@ public:
     std::optional<render::Rect> dismiss_bounds() const;
     std::optional<render::Rect> icon_bounds() const;
     render::Rect headline_bounds() const { return headline_.bounds(); }
+    std::optional<render::Rect> content_viewport() const;
+    double content_height() const { return slot_content_height_; }
+    bool content_scrolls() const { return slot_ && scroll_.max_offset() > 0.0; }
+    const ScrollArea& content_scroll() const { return scroll_; }
     std::size_t button_lines() const { return actions_->line_count(); }
     std::optional<DialogAction> focused_action() const;
     bool focus_shown() const { return focus_shown_; }
+    bool content_focused() const;
+    bool action_enabled(DialogAction action) const;
+    void set_action_enabled(DialogAction action, bool enabled);
+
+    std::optional<render::Rect> caret_area() const;
+    std::optional<double> next_wake_seconds() const;
 
     DialogResult handle(const input::PointerEvent& event);
     DialogResult handle(const input::KeyEvent& event);
+    bool handle(const input::TextEvent& event);
+    bool handle(const input::WheelEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
@@ -67,18 +89,32 @@ public:
 
 private:
     std::vector<DialogAction> reading_order() const;
+    std::vector<DialogAction> enabled_order() const;
     Button& button(DialogAction action);
+    const Button& button(DialogAction action) const;
     DialogResult result_of(DialogAction action);
     void show_focus(DialogAction action);
     void clear_focus();
+    void clear_action_focus();
+    void tab(bool backward);
+    bool content_has_stops() const;
+    void reveal_content_focus();
+    void deliver_to_content(const input::PointerEvent& e);
+    layout::Size measure_root(const render::Rect& area);
 
     Label headline_;
     Label supporting_;
     Button confirm_;
     std::optional<Button> dismiss_;
     std::optional<icons::Icon> icon_;
+    std::optional<DialogContent> content_;
     render::Point icon_origin_{0.0, 0.0};
     std::shared_ptr<layout::Flow> actions_;
+    layout::NodePtr slot_;
+    layout::NodePtr slot_inner_;
+    double slot_limit_ = layout::unbounded;
+    double slot_content_height_ = 0.0;
+    ScrollArea scroll_;
     layout::NodePtr root_;
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     render::Rect surface_{0.0, 0.0, 0.0, 0.0};

@@ -13,6 +13,8 @@ struct DialogTokens {
     double padding;
     double headline_bottom_space;
     double supporting_text_bottom_space;
+    double supporting_text_content_space;
+    double window_margin;
     double min_width;
     double max_width;
     double button_space;
@@ -37,6 +39,8 @@ inline constexpr DialogTokens dialog_tokens{
     .padding = 24.0,
     .headline_bottom_space = 16.0,
     .supporting_text_bottom_space = 24.0,
+    .supporting_text_content_space = 16.0,
+    .window_margin = 48.0,
     .min_width = 280.0,
     .max_width = 560.0,
     .button_space = 8.0,

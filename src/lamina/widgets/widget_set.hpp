@@ -82,6 +82,7 @@ public:
 
     bool handle(const input::PointerEvent& e) { return deliver(e); }
     bool handle(const input::KeyEvent& e) { return deliver(e); }
+    bool handle(const input::TextEvent& e) { return deliver(e); }
 
     void step(double dt_seconds) {
         visit([&](Member& m) { m.step(dt_seconds); });
@@ -129,6 +130,7 @@ private:
         virtual void set_enabled(bool enabled) = 0;
         virtual bool deliver(const input::PointerEvent& e) = 0;
         virtual bool deliver(const input::KeyEvent& e) = 0;
+        virtual bool deliver(const input::TextEvent& e) = 0;
         bool removed = false;
     };
 
@@ -174,6 +176,13 @@ private:
         }
         bool deliver(const input::KeyEvent& e) override {
             if constexpr (HandlesKeys<Widget>) {
+                return forward(e);
+            } else {
+                return false;
+            }
+        }
+        bool deliver(const input::TextEvent& e) override {
+            if constexpr (HandlesText<Widget>) {
                 return forward(e);
             } else {
                 return false;
