@@ -132,6 +132,12 @@ bool IconButton::animating() const {
            !enabled_.settled();
 }
 
+render::Rect IconButton::icon_rect() const {
+    const double s = tokens::icon_button_size(options_.size).icon_size;
+    const render::Rect r = bounds();
+    return {r.x + (r.width - s) / 2.0, r.y + (r.height - s) / 2.0, s, s};
+}
+
 void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const auto& style = tokens::icon_button_style(options_.style);
     const auto& size = tokens::icon_button_size(options_.size);
@@ -163,6 +169,7 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
         icons::draw_centered(canvas, *previous_icon_, r, size.icon_size, color::scale_alpha(content, 1.0 - fade));
     }
     icons::draw_centered(canvas, options_.icon, r, size.icon_size, fade < 1.0 ? color::scale_alpha(content, fade) : content);
+    paint_badge(canvas, scheme, badge_, icon_rect());
 }
 
 }

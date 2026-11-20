@@ -54,6 +54,8 @@ public:
     void set_focused(bool focused);
     bool item_enabled(std::size_t index) const { return items_[index].enabled.enabled(); }
     void set_item_enabled(std::size_t index, bool enabled);
+    void set_item_badge(std::size_t index, std::optional<BadgeSpec> badge) { badges_.set(options_.items, index, std::move(badge)); }
+    const std::optional<Badge>& item_badge(std::size_t index) const { return badges_.at(index); }
     bool enabled() const { return row_enabled_; }
     void set_enabled(bool enabled);
     bool can_focus() const { return row_enabled_ && any_item_enabled(items_); }
@@ -108,6 +110,7 @@ private:
 
     NavigationRailOptions options_;
     text::FontStack fonts_;
+    NavigationBadges badges_;
     std::vector<Item> items_;
     motion::Animated min_width_;
     motion::Animated full_width_;

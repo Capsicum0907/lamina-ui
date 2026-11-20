@@ -21,7 +21,7 @@ double label_height(const text::TextLine& line) {
 }
 
 NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack& fonts)
-    : options_(std::move(options)), fonts_(fonts) {
+    : options_(std::move(options)), fonts_(fonts), badges_(options_.items, fonts_) {
     name_navigation_items(options_.items);
     const auto style = tokens::text_style(tokens::type_style(t.label));
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
@@ -187,6 +187,9 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
         icons::draw_centered(canvas, spec.icon, full, t.icon_size,
                              item.enabled.mix(resolve(scheme, t.disabled_icon), color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k)),
                              icons::mix(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
+        badges_.paint(canvas, scheme, i,
+                      {full.x + (full.width - t.icon_size) / 2.0, full.y + (full.height - t.icon_size) / 2.0, t.icon_size, t.icon_size},
+                      item_rect(i));
         if (item.label) {
             const double x = full.x + (full.width - item.label->width) / 2.0;
             text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space},

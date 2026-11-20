@@ -11,6 +11,7 @@
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/icon_button.hpp"
 #include "lamina/widgets/accessibility.hpp"
+#include "lamina/widgets/badge.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -41,6 +42,9 @@ public:
     bool checked() const { return options_.checked; }
     void set_checked(bool checked);
     void set_icon(icons::Icon icon);
+    void set_badge(std::optional<Badge> badge) { badge_ = std::move(badge); }
+    const std::optional<Badge>& badge() const { return badge_; }
+    render::Rect icon_rect() const;
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
@@ -54,7 +58,8 @@ public:
         if (options_.toggleable) {
             state.toggle = options_.checked ? AccessibleToggle::on : AccessibleToggle::off;
         }
-        return {options_.toggleable ? AccessibleRole::toggle_button : AccessibleRole::button, options_.accessible_name, bounds(), state};
+        return {options_.toggleable ? AccessibleRole::toggle_button : AccessibleRole::button, options_.accessible_name, bounds(), state, {},
+                badge_ ? badge_->description() : std::string()};
     }
 
     bool handle(const input::PointerEvent& event);
@@ -77,6 +82,7 @@ private:
     motion::Animated state_layer_;
     motion::Animated checked_;
     std::optional<icons::Icon> previous_icon_;
+    std::optional<Badge> badge_;
     motion::Animated icon_fade_;
 };
 

@@ -21,6 +21,7 @@ using tokens::motion_scheme;
 NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
+      badges_(options_.items, fonts_),
       min_width_(options_.expanded ? t.expanded_min_width : t.collapsed_width, motion_scheme.default_spatial()),
       full_width_(options_.expanded ? t.expanded_max_width : t.collapsed_width, motion_scheme.default_spatial()),
       item_space_(options_.expanded ? t.expanded_item_space : t.collapsed_item_space, motion_scheme.default_spatial()),
@@ -336,6 +337,7 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
         spec.icon.font.draw(canvas, spec.icon.symbol, {icon.x, icon.y}, t.icon_size,
                             item.enabled.mix(resolve(scheme, t.disabled_icon), color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k)),
                             icons::mix(spec.style, spec.selected_style, k));
+        badges_.paint(canvas, scheme, i, icon, item_rect(i));
         if (g.label_opacity > 0.0) {
             const render::Rect label = label_rect(i);
             const double mode = std::clamp(item.label_mode.value(), 0.0, 1.0);
