@@ -9,11 +9,14 @@ enum class PointerAction { move, down, up, leave };
 
 enum class InputSource { pointer, keyboard };
 
+enum class PointerKind { mouse, touch, pen };
+
 struct PointerEvent {
     PointerAction action;
     double x_dp;
     double y_dp;
     int clicks = 0;
+    PointerKind kind = PointerKind::mouse;
 };
 
 enum class Key {

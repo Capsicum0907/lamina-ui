@@ -31,6 +31,7 @@ public:
     std::size_t line_count() const { return block_.lines.size(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
     const std::string& text() const { return text_; }
+    double first_baseline() const { return block_.lines.empty() ? 0.0 : block_.lines.front().baseline; }
     AccessibleNode accessible() const { return {AccessibleRole::label, text_, bounds()}; }
 
 private:
