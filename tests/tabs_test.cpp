@@ -15,7 +15,7 @@ widgets::TabRow make(TabStyle style, bool icons = false) {
     for (const char* label : {"One", "Two", "Three"}) {
         widgets::TabItem item{label};
         if (icons) {
-            item.icon = icons::Icon{icon_font(), icons::Symbol::home};
+            item.icon = icons::Icon{icon_font(), res::icons::home};
         }
         items.push_back(item);
     }
@@ -46,7 +46,7 @@ TEST_CASE("tab tokens follow the navigation tab tokens and Tab.kt") {
 TEST_CASE("a tab row is 48 dp high, or 72 dp with icons above the labels") {
     CHECK(make(TabStyle::primary).height() == 48.0);
     CHECK(make(TabStyle::primary, true).height() == 72.0);
-    std::vector<widgets::TabItem> items{{"A", icons::Icon{icon_font(), icons::Symbol::home}}};
+    std::vector<widgets::TabItem> items{{"A", icons::Icon{icon_font(), res::icons::home}}};
     widgets::TabRow leading({items, TabStyle::primary, 0, widgets::TabIconPosition::leading}, fonts());
     CHECK(leading.height() == 48.0);
 }

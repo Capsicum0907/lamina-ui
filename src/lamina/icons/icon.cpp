@@ -5,29 +5,27 @@
 #include <stdexcept>
 #include <utility>
 
+#include "lamina/builtin_resources.hpp"
+
 namespace lamina::icons {
 
 IconFont::IconFont(std::shared_ptr<text::Font> font) : font_(std::move(font)) {
     if (!font_) {
         throw std::invalid_argument("icon font is null");
     }
-    for (Symbol s : all_symbols) {
+    for (Symbol s : builtin::all_icons) {
         if (!has(s)) {
-            throw std::invalid_argument("icon font lacks a symbol of the lamina symbol table");
+            throw std::invalid_argument("icon font lacks a symbol that lamina draws itself; cut it with lamina_add_resources");
         }
     }
 }
 
-IconFont IconFont::from_file(const std::string& path) {
-    return IconFont(text::Font::from_file(path));
-}
-
-IconFont IconFont::from_directory(const std::string& directory) {
-    return from_file(directory + "/" + symbols_font_file);
+IconFont IconFont::from_resource(const resources::Resource& resource) {
+    return IconFont(text::Font::from_resource(resource));
 }
 
 bool IconFont::has(Symbol symbol) const {
-    return font_->glyph_for(static_cast<char32_t>(symbol)) != 0;
+    return font_->glyph_for(symbol.code) != 0;
 }
 
 render::Path IconFont::path(Symbol symbol, render::Point top_left, double size, const IconStyle& style) const {
@@ -39,7 +37,7 @@ render::Path IconFont::path(Symbol symbol, render::Point top_left, double size, 
         {text::axis_tag('G', 'R', 'A', 'D'), static_cast<float>(style.grade)},
         {text::axis_tag('o', 'p', 's', 'z'), static_cast<float>(opsz)},
     }};
-    const render::Path& em = font_->glyph_outline_em(font_->glyph_for(static_cast<char32_t>(symbol)), axes);
+    const render::Path& em = font_->glyph_outline_em(font_->glyph_for(symbol.code), axes);
     return em.transformed({size, 0.0, 0.0, size, top_left.x, top_left.y + size});
 }
 

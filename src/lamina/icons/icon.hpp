@@ -2,12 +2,12 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 
 #include "lamina/color/scheme.hpp"
-#include "lamina/icons/symbols.hpp"
+#include "lamina/icons/symbol.hpp"
 #include "lamina/motion/lerp.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/resources/resource.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/icon.hpp"
 
@@ -28,8 +28,7 @@ constexpr IconStyle mix(const IconStyle& a, const IconStyle& b, double k) {
 class IconFont {
 public:
     explicit IconFont(std::shared_ptr<text::Font> font);
-    static IconFont from_file(const std::string& path);
-    static IconFont from_directory(const std::string& directory);
+    static IconFont from_resource(const resources::Resource& resource);
 
     const text::Font& font() const { return *font_; }
     bool has(Symbol symbol) const;

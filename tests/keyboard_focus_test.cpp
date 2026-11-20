@@ -24,7 +24,7 @@ constexpr input::KeyEvent held_space{Key::space, false, false, true};
 constexpr input::KeyEvent tab{Key::tab, false};
 
 icons::Icon icon() {
-    return {icon_font(), icons::Symbol::favorite};
+    return {icon_font(), res::icons::favorite};
 }
 
 widgets::Button button() {

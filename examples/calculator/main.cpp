@@ -21,8 +21,8 @@
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/title_bar.hpp"
 #include "lamina_sdl3/app.hpp"
-#include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
+#include "res.hpp"
 
 using namespace lamina;
 using examples::AnimatedBox;
@@ -94,7 +94,7 @@ struct Config {
         {"+", std::nullopt, Command::add, KeyRole::operation, {{3, 3}, {2, 4}, false}},
         {"0", std::nullopt, Command::digit_0, KeyRole::digit, {{4, 0}, {3, 0}, false}},
         {".", std::nullopt, Command::point, KeyRole::digit, {{4, 1}, {3, 1}, false}},
-        {"", icons::Symbol::backspace, Command::backspace, KeyRole::digit, {{4, 2}, {3, 2}, false}},
+        {"", examples::res::icons::backspace, Command::backspace, KeyRole::digit, {{4, 2}, {3, 2}, false}},
         {"=", std::nullopt, Command::equals, KeyRole::equals, {{4, 3}, {3, 4}, false}},
         {"√", std::nullopt, Command::square_root, KeyRole::operation, {{0, 0}, {0, 0}, true}, LabelSwitch::inverse, "x²"},
         {"Rad", std::nullopt, Command::angle_unit, KeyRole::operation, {{0, 0}, {0, 1}, true}, LabelSwitch::angle_unit, "Deg"},
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
         const Config config;
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const icons::IconFont icon_font = sdl3::bundled_icon_font();
+        const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
         const auto& size_tokens = tokens::button_size(config.key_size);
         const double label_size = tokens::type_style(size_tokens.label).size_sp;

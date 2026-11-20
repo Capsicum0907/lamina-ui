@@ -21,6 +21,7 @@
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "res.hpp"
 #include "todo/engine.hpp"
 #include "todo/layout.hpp"
 
@@ -39,7 +40,7 @@ struct RowStyle {
     tokens::CornerSize corner = tokens::CornerSize::medium;
     color::Role focus_ring = color::Role::secondary;
     double focus_ring_width = 2.0;
-    icons::Symbol remove_icon = icons::Symbol::delete_;
+    icons::Symbol remove_icon = res::icons::delete_;
     motion::SpringSpec move_spring = tokens::motion_scheme.default_spatial();
     motion::SpringSpec fade_spring = tokens::motion_scheme.default_effects();
 };
@@ -134,7 +135,7 @@ struct HeaderStyle {
     std::string clear_label = "Clear completed";
     tokens::TypeRole title_type = tokens::TypeRole::title_small;
     color::Role title_color = color::Role::on_surface_variant;
-    icons::Symbol chevron = icons::Symbol::expand_more;
+    icons::Symbol chevron = res::icons::expand_more;
     double chevron_size = 24.0;
     color::Role chevron_color = color::Role::on_surface_variant;
 };

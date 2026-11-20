@@ -5,6 +5,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/font.hpp"
+#include "test_res.hpp"
 
 namespace lamina::test {
 

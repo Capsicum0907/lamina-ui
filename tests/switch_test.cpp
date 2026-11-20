@@ -47,12 +47,12 @@ TEST_CASE("the switch thumb grows while pressed and with an icon") {
     settle(s);
     CHECK(s.thumb_size() == doctest::Approx(16.0));
 
-    widgets::Switch with_icon({false, std::nullopt, icons::Icon{icon_font(), icons::Symbol::close}});
+    widgets::Switch with_icon({false, std::nullopt, icons::Icon{icon_font(), res::icons::close}});
     CHECK(with_icon.thumb_size() == doctest::Approx(24.0));
 }
 
 TEST_CASE("a checked switch paints a primary track and its check icon") {
-    widgets::Switch s({true, icons::Icon{icon_font(), icons::Symbol::check}});
+    widgets::Switch s({true, icons::Icon{icon_font(), res::icons::check}});
     thorvg::Canvas canvas(52, 32);
     canvas.clear(0xffffffff);
     s.paint(canvas, scheme());

@@ -42,7 +42,7 @@ void check_cancelled_click(W& w) {
 
 std::vector<widgets::NavigationItem> items() {
     std::vector<widgets::NavigationItem> list;
-    for (auto [symbol, label] : {std::pair{icons::Symbol::home, "Home"}, std::pair{icons::Symbol::search, "Search"}}) {
+    for (auto [symbol, label] : {std::pair{res::icons::home, "Home"}, std::pair{res::icons::search, "Search"}}) {
         list.push_back({icons::Icon{icon_font(), symbol}, label});
     }
     return list;
@@ -60,7 +60,7 @@ TEST_CASE("cancel_interaction keeps a press on a checkbox, radio button, switch 
     widgets::Switch toggle;
     check_cancelled_click(toggle);
     CHECK_FALSE(toggle.checked());
-    widgets::Fab fab({icons::Icon{icon_font(), icons::Symbol::edit}});
+    widgets::Fab fab({icons::Icon{icon_font(), res::icons::edit}});
     check_cancelled_click(fab);
 }
 

@@ -1,7 +1,8 @@
 #pragma once
 
+#include "lamina/builtin_resources.hpp"
 #include "lamina/color/scheme.hpp"
-#include "lamina/icons/symbols.hpp"
+#include "lamina/icons/symbol.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 
@@ -58,7 +59,7 @@ inline constexpr TitleBarTokens title_bar_tokens{
     .state_layer = color::Role::on_surface,
     .close_container = color::Role::error,
     .close_icon = color::Role::on_error,
-    .close_symbol = icons::Symbol::close,
+    .close_symbol = builtin::icons::close,
 };
 
 }

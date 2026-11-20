@@ -2,12 +2,20 @@
 
 [日本語](README.ja.md)
 
-Cuts the Material Symbols variable font down to the symbols lamina-ui names, and writes the matching C++ table. The list of names is `NAMES` in `subset.py`; it is the only place to change.
-
-Download `MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf` and its `.codepoints` file from `variablefont/` of [google/material-design-icons](https://github.com/google/material-design-icons), then run (fontTools required):
+The build-time tool behind `lamina_add_resources` ([docs/resources.md](../../docs/resources.md)): it cuts a Material Symbols variable font down to the icons a target lists, once per icon font of the target. CMake runs it; it is not meant to be run by hand.
 
 ```
-python -B -I tools/icon-subset/subset.py <font.ttf> <font.codepoints> <repository root>
+python -B -I tools/icon-subset/subset.py <source font> <manifest> <output directory>
 ```
 
-It writes `assets/icons/MaterialSymbolsRounded-subset.ttf` (the four variation axes and the name table are kept; ligatures and hinting are dropped) and `src/lamina/icons/symbols.hpp`. A name that is a C++ keyword gets a trailing underscore (`delete_`). Copy the repository's `LICENSE` to `assets/icons/LICENSE` and update the commit in the README attribution.
+The manifest, which CMake writes as `lamina_resources/<target>/icons.txt` in the build tree, has one line per icon font and one per icon:
+
+```
+font symbols
+font filled FILL=1
+icon e145
+```
+
+It writes `<output directory>/<id>.ttf` for each font line. The four variation axes and the name table are kept, the ligature table and hinting are dropped, and the axes on the font line are pinned (`fontTools.varLib.instancer`). It fails if the source lacks one of the codepoints. The timestamp in the font header is left as it is in the source, so the same inputs give the same bytes.
+
+It needs fontTools, and brotli to read the WOFF2 source; `requirements.txt` pins the versions it was tried with (`python -m pip install -r tools/icon-subset/requirements.txt`).

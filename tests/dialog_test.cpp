@@ -108,7 +108,7 @@ namespace {
 
 widgets::DialogOptions with_icon() {
     widgets::DialogOptions o = options();
-    o.icon = icons::Icon{icon_font(), icons::Symbol::delete_};
+    o.icon = icons::Icon{icon_font(), res::icons::delete_};
     return o;
 }
 

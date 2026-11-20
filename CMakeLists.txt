@@ -20,6 +20,7 @@ if(LAMINA_BUILD_TESTS)
 endif()
 
 add_subdirectory(third_party/material-color-utilities)
+include(cmake/LaminaResources.cmake)
 
 function(lamina_warnings target)
     if(MSVC)
@@ -81,7 +82,12 @@ add_library(lamina STATIC
     src/lamina/widgets/title_bar.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
-target_include_directories(lamina PUBLIC src)
+set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close)
+get_property(lamina_builtin_icons GLOBAL PROPERTY LAMINA_BUILTIN_ICONS)
+lamina_icon_codepoints(lamina_builtin_codes lamina ${lamina_builtin_icons})
+lamina_write_resource_header("${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamina/include/lamina/builtin_resources.hpp" lamina::builtin
+    ICONS ${lamina_builtin_icons} CODES ${lamina_builtin_codes})
+target_include_directories(lamina PUBLIC src "${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamina/include")
 target_compile_features(lamina PUBLIC cxx_std_20)
 function(lamina_find_vcpkg_library var name)
     find_library(${var}_RELEASE NAMES ${name} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH REQUIRED)
@@ -140,11 +146,14 @@ if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
 endif()
 
 function(lamina_add_example name dir)
+    cmake_parse_arguments(PARSE_ARGV 2 arg "" "" "ICONS")
     add_executable(${name} examples/${dir}/main.cpp)
     target_link_libraries(${name} PRIVATE lamina lamina_sdl3 lamina_examples_common)
+    if(arg_ICONS)
+        lamina_add_resources(${name}_resources NAMESPACE lamina::examples::res HEADER res.hpp ICONS ${arg_ICONS})
+        target_link_libraries(${name} PRIVATE ${name}_resources)
+    endif()
     lamina_warnings(${name})
-    add_custom_command(TARGET ${name} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:${name}>/assets")
 endfunction()
 
 if(LAMINA_BUILD_EXAMPLES)
@@ -162,15 +171,22 @@ if(LAMINA_BUILD_EXAMPLES)
     lamina_add_example(text_field text_field)
     lamina_add_example(shapes_gallery shapes)
     lamina_add_example(layout_demo layout)
-    lamina_add_example(components components)
-    lamina_add_example(navigation navigation)
-    lamina_add_example(calculator calculator)
+    lamina_add_example(components components ICONS
+        add remove close check check_small search menu settings home favorite star bookmark delete edit share
+        content_copy send mail person notifications info warning error visibility visibility_off refresh download
+        upload play_arrow pause stop light_mode dark_mode palette arrow_back arrow_forward arrow_upward arrow_downward
+        chevron_left chevron_right expand_more expand_less more_vert more_horiz menu_open view_list grid_view backspace
+        task_alt)
+    lamina_add_example(navigation navigation ICONS
+        bookmark check content_copy dark_mode delete download edit favorite grid_view home mail menu menu_open more_vert
+        person refresh search send settings share star view_list)
+    lamina_add_example(calculator calculator ICONS backspace)
     target_sources(calculator PRIVATE examples/calculator/display.cpp)
     target_link_libraries(calculator PRIVATE calculator_engine)
-    lamina_add_example(timer timer)
+    lamina_add_example(timer timer ICONS backspace pause play_arrow refresh stop)
     target_sources(timer PRIVATE examples/timer/readout.cpp)
     target_link_libraries(timer PRIVATE timer_engine)
-    lamina_add_example(todo todo)
+    lamina_add_example(todo todo ICONS add delete expand_more task_alt)
     target_sources(todo PRIVATE examples/todo/row.cpp examples/todo/storage.cpp)
     target_link_libraries(todo PRIVATE todo_engine)
 endif()
@@ -222,6 +238,7 @@ if(LAMINA_BUILD_TESTS)
         tests/progress_indicator_test.cpp
         tests/protocol_test.cpp
         tests/radio_button_test.cpp
+        tests/resources_test.cpp
         tests/scroll_area_test.cpp
         tests/shapes_test.cpp
         tests/slider_test.cpp
@@ -242,9 +259,25 @@ if(LAMINA_BUILD_TESTS)
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
     )
-    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg calculator_engine timer_engine todo_engine mcu::mcu doctest::doctest)
+    lamina_add_resources(lamina_test_resources NAMESPACE lamina::test::res HEADER test_res.hpp
+        ICONS add backspace bookmark check delete edit favorite grid_view home pause play_arrow remove search send settings
+              share star view_list visibility_off class 10k
+        ICON_FONTS symbols filled:FILL=1
+        FILES sans=tests/fixtures/fonts/lamina-test-sans.ttf empty=tests/resources/empty.bin)
+    target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg lamina_test_resources calculator_engine timer_engine todo_engine mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
-    target_compile_definitions(lamina_tests PRIVATE LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts")
-    target_compile_definitions(lamina_tests PRIVATE LAMINA_ICONS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/icons")
+    target_compile_definitions(lamina_tests PRIVATE
+        LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts"
+        LAMINA_SYMBOLS_CODEPOINTS="${LAMINA_SYMBOLS_CODEPOINTS}")
     add_test(NAME lamina_tests COMMAND lamina_tests)
+
+    add_executable(lamina_resources_misspelled EXCLUDE_FROM_ALL tests/resources/misspelled.cpp)
+    target_link_libraries(lamina_resources_misspelled PRIVATE lamina_test_resources)
+    add_test(NAME lamina_resources_misspelled_constant
+        COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target lamina_resources_misspelled --config $<CONFIG>)
+    set_tests_properties(lamina_resources_misspelled_constant PROPERTIES
+        PASS_REGULAR_EXPRESSION "error C2039: 'settinsg';no member named 'settinsg'")
+    add_test(NAME lamina_resources_unknown_icon
+        COMMAND ${CMAKE_COMMAND} "-DLAMINA_SYMBOLS_CODEPOINTS=${LAMINA_SYMBOLS_CODEPOINTS}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/resources/unknown_icon.cmake")
+    set_tests_properties(lamina_resources_unknown_icon PROPERTIES PASS_REGULAR_EXPRESSION "no icon named 'settinsg'")
 endif()

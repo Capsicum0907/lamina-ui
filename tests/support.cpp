@@ -10,7 +10,7 @@ const text::FontStack& fonts() {
 }
 
 const icons::IconFont& icon_font() {
-    static const icons::IconFont font = icons::IconFont::from_directory(LAMINA_ICONS_DIR);
+    static const icons::IconFont font = icons::IconFont::from_resource(res::fonts::symbols);
     return font;
 }
 

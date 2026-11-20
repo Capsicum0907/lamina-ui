@@ -14,7 +14,7 @@ using tokens::IconButtonWidth;
 
 namespace {
 
-icons::Icon icon(icons::Symbol s = icons::Symbol::favorite) {
+icons::Icon icon(icons::Symbol s = res::icons::favorite) {
     return {icon_font(), s};
 }
 
@@ -91,7 +91,7 @@ TEST_CASE("pressing a round icon button squares its corners") {
 }
 
 TEST_CASE("the icon of an icon button is drawn in the content color") {
-    widgets::IconButton b({icon(icons::Symbol::add), IconButtonStyle::standard, IconButtonSize::medium});
+    widgets::IconButton b({icon(res::icons::add), IconButtonStyle::standard, IconButtonSize::medium});
     thorvg::Canvas canvas(56, 56);
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     canvas.clear(0xffffffff);
@@ -101,7 +101,7 @@ TEST_CASE("the icon of an icon button is drawn in the content color") {
 }
 
 TEST_CASE("set_icon cross-fades from the old icon to the new one") {
-    widgets::IconButton b({icon(icons::Symbol::add), IconButtonStyle::standard, IconButtonSize::medium});
+    widgets::IconButton b({icon(res::icons::add), IconButtonStyle::standard, IconButtonSize::medium});
     const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
     auto ink = [&] {
         thorvg::Canvas canvas(56, 56);
@@ -110,14 +110,14 @@ TEST_CASE("set_icon cross-fades from the old icon to the new one") {
         return count_color(canvas, scheme[color::Role::on_surface_variant]);
     };
     const auto before = ink();
-    b.set_icon(icon(icons::Symbol::remove));
+    b.set_icon(icon(res::icons::remove));
     CHECK(b.animating());
     b.step(0.02);
     CHECK(ink() < before);
     settle(b);
     CHECK_FALSE(b.animating());
     CHECK(ink() > 0);
-    b.set_icon(icon(icons::Symbol::remove));
+    b.set_icon(icon(res::icons::remove));
     CHECK_FALSE(b.animating());
 }
 
@@ -132,7 +132,7 @@ TEST_CASE("FAB sizes and the Compose overrides") {
 }
 
 TEST_CASE("a FAB clicks and paints its container") {
-    widgets::Fab fab({icon(icons::Symbol::edit)});
+    widgets::Fab fab({icon(res::icons::edit)});
     fab.set_origin({20.0, 20.0});
     fab.handle({PointerAction::down, 40.0, 40.0});
     CHECK(fab.handle({PointerAction::up, 40.0, 40.0}));

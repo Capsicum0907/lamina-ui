@@ -29,6 +29,7 @@
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
+#include "res.hpp"
 #include "todo/engine.hpp"
 #include "todo/layout.hpp"
 #include "todo/row.hpp"
@@ -56,11 +57,11 @@ struct Config {
     examples::todo::RowStyle row;
     examples::todo::HeaderStyle header;
     std::string field_label = "Add a task";
-    icons::Symbol add_icon = icons::Symbol::add;
+    icons::Symbol add_icon = examples::res::icons::add;
     tokens::IconButtonStyle add_style = tokens::IconButtonStyle::filled;
     tokens::IconButtonSize add_size = tokens::IconButtonSize::medium;
     std::string empty_message = "Nothing to do";
-    icons::Symbol empty_icon = icons::Symbol::task_alt;
+    icons::Symbol empty_icon = examples::res::icons::task_alt;
     double empty_icon_size = 48.0;
     double empty_gap = 12.0;
     tokens::TypeRole empty_type = tokens::TypeRole::body_large;
@@ -96,7 +97,7 @@ int main(int argc, char** argv) {
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const std::optional<std::string> data_dir = examples::take_option(argc, argv, config.data_dir_option);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const icons::IconFont icon_font = sdl3::bundled_icon_font();
+        const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
         if (data_dir) {
             std::filesystem::create_directories(*data_dir);

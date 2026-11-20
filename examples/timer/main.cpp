@@ -23,8 +23,8 @@
 #include "lamina/widgets/progress_indicator.hpp"
 #include "lamina/widgets/title_bar.hpp"
 #include "lamina_sdl3/app.hpp"
-#include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
+#include "res.hpp"
 #include "timer/engine.hpp"
 #include "timer/layout.hpp"
 #include "timer/readout.hpp"
@@ -86,20 +86,20 @@ struct Config {
         {"9", std::nullopt, PadKey::digit, 9},
         {"00", std::nullopt, PadKey::double_zero, 0},
         {"0", std::nullopt, PadKey::digit, 0},
-        {"", icons::Symbol::backspace, PadKey::backspace, 0},
+        {"", examples::res::icons::backspace, PadKey::backspace, 0},
     }};
     std::array<PresetSpec, examples::timer::preset_count> presets{{{"1m", 60}, {"5m", 300}, {"10m", 600}, {"15m", 900}}};
     widgets::ButtonColors preset_colors{color::Role::secondary_container, color::Role::on_secondary_container};
     double preset_label_ratio = 0.4;
-    ControlSpec start{"", icons::Symbol::play_arrow, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.42, filled_icon};
-    ControlSpec toggle{"", icons::Symbol::pause, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.5, filled_icon};
+    ControlSpec start{"", examples::res::icons::play_arrow, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.42, filled_icon};
+    ControlSpec toggle{"", examples::res::icons::pause, {color::Role::primary, color::Role::on_primary}, ButtonShape::square, 0.0, 0.5, filled_icon};
     ControlSpec add{"+1:00", std::nullopt, {color::Role::secondary_container, color::Role::on_secondary_container},
                     ButtonShape::round, 0.34, 0.0};
-    ControlSpec reset{"", icons::Symbol::refresh, {color::Role::secondary_container, color::Role::on_secondary_container},
+    ControlSpec reset{"", examples::res::icons::refresh, {color::Role::secondary_container, color::Role::on_secondary_container},
                       ButtonShape::round, 0.0, 0.42};
-    icons::Symbol pause_icon = icons::Symbol::pause;
-    icons::Symbol resume_icon = icons::Symbol::play_arrow;
-    icons::Symbol stop_icon = icons::Symbol::stop;
+    icons::Symbol pause_icon = examples::res::icons::pause;
+    icons::Symbol resume_icon = examples::res::icons::play_arrow;
+    icons::Symbol stop_icon = examples::res::icons::stop;
     widgets::CircularProgressOptions ring{.thickness = 10.0, .track_thickness = 10.0, .gap = 8.0, .amplitude = 3.0, .wavelength = 42.0};
     widgets::ProgressColors running_colors{};
     widgets::ProgressColors finished_colors{color::Role::error, color::Role::error_container};
@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
         const Config config;
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const icons::IconFont icon_font = sdl3::bundled_icon_font();
+        const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
         const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
         const auto& size_tokens = tokens::button_size(config.button_size);
         const double label_size = tokens::type_style(size_tokens.label).size_sp;

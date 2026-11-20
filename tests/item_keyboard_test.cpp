@@ -49,8 +49,8 @@ widgets::TabRow tab_row() {
 
 std::vector<widgets::NavigationItem> navigation_items() {
     std::vector<widgets::NavigationItem> items;
-    for (auto [symbol, label] : {std::pair{icons::Symbol::home, "Home"}, std::pair{icons::Symbol::search, "Search"},
-                                 std::pair{icons::Symbol::settings, "Settings"}}) {
+    for (auto [symbol, label] : {std::pair{res::icons::home, "Home"}, std::pair{res::icons::search, "Search"},
+                                 std::pair{res::icons::settings, "Settings"}}) {
         items.push_back({icons::Icon{icon_font(), symbol}, label});
     }
     return items;

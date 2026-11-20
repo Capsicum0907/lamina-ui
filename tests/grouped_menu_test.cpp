@@ -17,18 +17,18 @@ icons::Icon icon(icons::Symbol s) {
 }
 
 widgets::GroupedMenu make() {
-    widgets::MenuGroup view{{{"List", icon(icons::Symbol::view_list), std::nullopt, std::nullopt, true},
-                             {"Grid", icon(icons::Symbol::grid_view)}},
+    widgets::MenuGroup view{{{"List", icon(res::icons::view_list), std::nullopt, std::nullopt, true},
+                             {"Grid", icon(res::icons::grid_view)}},
                             "View",
                             true,
                             MenuSelection::single};
-    widgets::MenuGroup options{{{"Bookmarked", icon(icons::Symbol::bookmark), std::nullopt, icon(icons::Symbol::check)},
-                                {"Starred", icon(icons::Symbol::star)},
-                                {"Hidden", icon(icons::Symbol::visibility_off)}},
+    widgets::MenuGroup options{{{"Bookmarked", icon(res::icons::bookmark), std::nullopt, icon(res::icons::check)},
+                                {"Starred", icon(res::icons::star)},
+                                {"Hidden", icon(res::icons::visibility_off)}},
                                {},
                                false,
                                MenuSelection::multiple};
-    widgets::MenuGroup actions{{{"Share", icon(icons::Symbol::share)}}};
+    widgets::MenuGroup actions{{{"Share", icon(res::icons::share)}}};
     return widgets::GroupedMenu({{view, options, actions}}, fonts());
 }
 

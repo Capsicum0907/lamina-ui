@@ -26,9 +26,9 @@
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/title_bar.hpp"
 #include "lamina/widgets/widget_set.hpp"
-#include "lamina_sdl3/resources.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
+#include "res.hpp"
 
 using namespace lamina;
 using icons::Symbol;
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
         const Layout layout;
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const icons::IconFont icon_font = sdl3::bundled_icon_font();
+        const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
 
         color::SchemeOptions options = color::default_scheme_options;
@@ -78,16 +78,16 @@ int main(int argc, char** argv) {
 
         widgets::Label header({"Navigation", layout.header_type, layout.text, false}, fonts);
         widgets::Label status({"—", layout.caption_type, layout.caption, false}, fonts);
-        widgets::IconButton dark_toggle({icon(Symbol::dark_mode), tokens::IconButtonStyle::outlined, tokens::IconButtonSize::small,
+        widgets::IconButton dark_toggle({icon(examples::res::icons::dark_mode), tokens::IconButtonStyle::outlined, tokens::IconButtonSize::small,
                                          tokens::ButtonShape::round, tokens::IconButtonWidth::uniform, true});
         auto report = [&status](std::string s) { status.set_text(std::move(s)); };
 
-        widgets::TabRow primary_tabs({{{"Flights", icon(Symbol::send)}, {"Trips", icon(Symbol::bookmark)}, {"Explore", icon(Symbol::search)}},
+        widgets::TabRow primary_tabs({{{"Flights", icon(examples::res::icons::send)}, {"Trips", icon(examples::res::icons::bookmark)}, {"Explore", icon(examples::res::icons::search)}},
                                       tokens::TabStyle::primary},
                                      fonts);
         widgets::TabRow secondary_tabs({{{"Overview"}, {"Specifications"}, {"レビュー"}, {"FAQ"}}, tokens::TabStyle::secondary},
                                        fonts);
-        widgets::TabRow leading_tabs({{{"Mail", icon(Symbol::mail)}, {"People", icon(Symbol::person)}},
+        widgets::TabRow leading_tabs({{{"Mail", icon(examples::res::icons::mail)}, {"People", icon(examples::res::icons::person)}},
                                       tokens::TabStyle::primary,
                                       0,
                                       widgets::TabIconPosition::leading},
@@ -96,53 +96,53 @@ int main(int argc, char** argv) {
         widgets::Slider stepped({60.0, 0.0, 100.0, 4});
 
         widgets::Button menu_button({"Options", tokens::ButtonStyle::outlined, tokens::ButtonSize::small, tokens::ButtonShape::round,
-                                     icon(Symbol::more_vert)},
+                                     icon(examples::res::icons::more_vert)},
                                     fonts);
         widgets::Button dialog_button({"Delete draft", tokens::ButtonStyle::filled, tokens::ButtonSize::small, tokens::ButtonShape::round,
-                                       icon(Symbol::delete_)},
+                                       icon(examples::res::icons::delete_)},
                                       fonts);
         const std::vector<std::string> menu_labels{"Edit", "Share", "Copy", "Settings", "ダウンロード"};
-        widgets::Menu menu({{{menu_labels[0], icon(Symbol::edit)},
-                             {menu_labels[1], icon(Symbol::share)},
-                             {menu_labels[2], icon(Symbol::content_copy)},
-                             {menu_labels[3], icon(Symbol::settings)},
-                             {menu_labels[4], icon(Symbol::download), input::Key::d}}},
+        widgets::Menu menu({{{menu_labels[0], icon(examples::res::icons::edit)},
+                             {menu_labels[1], icon(examples::res::icons::share)},
+                             {menu_labels[2], icon(examples::res::icons::content_copy)},
+                             {menu_labels[3], icon(examples::res::icons::settings)},
+                             {menu_labels[4], icon(examples::res::icons::download), input::Key::d}}},
                            fonts);
         widgets::Button grouped_button({"View", tokens::ButtonStyle::outlined, tokens::ButtonSize::small, tokens::ButtonShape::round,
-                                        icon(Symbol::view_list)},
+                                        icon(examples::res::icons::view_list)},
                                        fonts);
         widgets::Button wrap_button({"Reset", tokens::ButtonStyle::tonal, tokens::ButtonSize::small, tokens::ButtonShape::round,
-                                     icon(Symbol::refresh)},
+                                     icon(examples::res::icons::refresh)},
                                     fonts);
         widgets::GroupedMenu grouped_menu(
-            {{{{{"List", icon(Symbol::view_list), std::nullopt, std::nullopt, true}, {"Grid", icon(Symbol::grid_view)}},
+            {{{{{"List", icon(examples::res::icons::view_list), std::nullopt, std::nullopt, true}, {"Grid", icon(examples::res::icons::grid_view)}},
                "Layout",
                true,
                widgets::MenuSelection::single},
-              {{{"Bookmarked", icon(Symbol::bookmark), std::nullopt, icon(Symbol::check)},
-                {"Starred", icon(Symbol::star), std::nullopt, std::nullopt, false, input::Key::r}},
+              {{{"Bookmarked", icon(examples::res::icons::bookmark), std::nullopt, icon(examples::res::icons::check)},
+                {"Starred", icon(examples::res::icons::star), std::nullopt, std::nullopt, false, input::Key::r}},
                {},
                false,
                widgets::MenuSelection::multiple},
-              {{{"Share", icon(Symbol::share), std::nullopt, std::nullopt, false, input::Key::h}, {"Settings", icon(Symbol::settings)}}}}},
+              {{{"Share", icon(examples::res::icons::share), std::nullopt, std::nullopt, false, input::Key::h}, {"Settings", icon(examples::res::icons::settings)}}}}},
             fonts);
         const std::vector<std::vector<std::string>> grouped_labels{{"List", "Grid"}, {"Bookmarked", "Starred"}, {"Share", "Settings"}};
         widgets::Dialog dialog({"Discard draft?", "This draft will be deleted from this device and cannot be restored.", "Discard", "Cancel",
-                                icon(Symbol::delete_)},
+                                icon(examples::res::icons::delete_)},
                                fonts);
         widgets::Dialog wrap_dialog({"Reset all settings?", "Every setting returns to its default value. Your drafts are kept.",
                                      "Reset every setting to its default value", "Keep my current settings as they are"},
                                     fonts);
 
         const std::vector<std::string> sections{"Mail", "Starred", "Sent", "Contacts"};
-        widgets::IconButton rail_open({icon(Symbol::menu)});
-        widgets::IconButton rail_close({icon(Symbol::menu_open)});
+        widgets::IconButton rail_open({icon(examples::res::icons::menu)});
+        widgets::IconButton rail_close({icon(examples::res::icons::menu_open)});
         auto rail_toggle = std::make_shared<layout::Stack>(std::vector<layout::NodePtr>{widgets::node(rail_open), widgets::node(rail_close)});
         auto rail_header = layout::row({layout::spacer({layout.rail_header_inset, 0.0}), rail_toggle});
-        widgets::NavigationRail rail({{{icon(Symbol::mail), sections[0], {}, layout.selected_icon},
-                                       {icon(Symbol::star), sections[1], {}, layout.selected_icon},
-                                       {icon(Symbol::send), sections[2], {}, layout.selected_icon},
-                                       {icon(Symbol::person), sections[3], {}, layout.selected_icon}},
+        widgets::NavigationRail rail({{{icon(examples::res::icons::mail), sections[0], {}, layout.selected_icon},
+                                       {icon(examples::res::icons::star), sections[1], {}, layout.selected_icon},
+                                       {icon(examples::res::icons::send), sections[2], {}, layout.selected_icon},
+                                       {icon(examples::res::icons::person), sections[3], {}, layout.selected_icon}},
                                       0,
                                       false,
                                       rail_header},
@@ -150,10 +150,10 @@ int main(int argc, char** argv) {
         auto rail_button = [&rail, &rail_open, &rail_close]() -> widgets::IconButton& { return rail.expanded() ? rail_close : rail_open; };
 
         const std::vector<std::string> destinations{"Home", "Search", "Favorites", "Settings"};
-        widgets::NavigationBar nav({{{icon(Symbol::home), destinations[0], {}, layout.selected_icon},
-                                     {icon(Symbol::search), destinations[1], {}, layout.selected_icon},
-                                     {icon(Symbol::favorite), destinations[2], {}, layout.selected_icon},
-                                     {icon(Symbol::settings), destinations[3], {}, layout.selected_icon}}},
+        widgets::NavigationBar nav({{{icon(examples::res::icons::home), destinations[0], {}, layout.selected_icon},
+                                     {icon(examples::res::icons::search), destinations[1], {}, layout.selected_icon},
+                                     {icon(examples::res::icons::favorite), destinations[2], {}, layout.selected_icon},
+                                     {icon(examples::res::icons::settings), destinations[3], {}, layout.selected_icon}}},
                                    fonts);
 
         widgets::Label primary_caption({"Primary tabs", layout.caption_type, layout.caption, false}, fonts);

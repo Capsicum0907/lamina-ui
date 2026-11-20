@@ -16,7 +16,7 @@ using input::PointerAction;
 namespace {
 
 widgets::Menu make() {
-    return widgets::Menu({{{"Edit", icons::Icon{icon_font(), icons::Symbol::edit}}, {"Share"}, {"Delete"}}}, fonts());
+    return widgets::Menu({{{"Edit", icons::Icon{icon_font(), res::icons::edit}}, {"Share"}, {"Delete"}}}, fonts());
 }
 
 constexpr layout::Size window{400.0, 600.0};

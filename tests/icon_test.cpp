@@ -51,7 +51,7 @@ bool same_pixels(render::Canvas& a, render::Canvas& b) {
 }
 
 TEST_CASE("every symbol of the table is in the subset font") {
-    for (Symbol s : icons::all_symbols) {
+    for (Symbol s : res::all_icons) {
         CHECK(icon_font().has(s));
         CHECK_FALSE(icon_font().path(s, {0.0, 0.0}, 24.0).empty());
     }
@@ -60,7 +60,7 @@ TEST_CASE("every symbol of the table is in the subset font") {
 TEST_CASE("an icon is drawn inside its size by size box") {
     thorvg::Canvas canvas(64, 64);
     canvas.clear(0xffffffff);
-    icon_font().draw(canvas, Symbol::settings, {16.0, 16.0}, 32.0, 0xff000000);
+    icon_font().draw(canvas, res::icons::settings, {16.0, 16.0}, 32.0, 0xff000000);
     const Ink i = ink(canvas, 0xffffffff);
     CHECK(i.count > 100);
     CHECK(i.min_x >= 16);
@@ -74,12 +74,12 @@ TEST_CASE("an icon is drawn inside its size by size box") {
 TEST_CASE("the FILL axis changes the outline") {
     thorvg::Canvas canvas(48, 48);
     canvas.clear(0xffffffff);
-    icon_font().draw(canvas, Symbol::favorite, {0.0, 0.0}, 48.0, 0xff000000);
+    icon_font().draw(canvas, res::icons::favorite, {0.0, 0.0}, 48.0, 0xff000000);
     const int outlined = ink(canvas, 0xffffffff).count;
     canvas.clear(0xffffffff);
     icons::IconStyle filled;
     filled.fill = 1.0;
-    icon_font().draw(canvas, Symbol::favorite, {0.0, 0.0}, 48.0, 0xff000000, filled);
+    icon_font().draw(canvas, res::icons::favorite, {0.0, 0.0}, 48.0, 0xff000000, filled);
     const int solid = ink(canvas, 0xffffffff).count;
     CHECK(solid > outlined + 100);
 }
@@ -91,10 +91,10 @@ TEST_CASE("the weight axis thickens the strokes") {
     icons::IconStyle bold;
     bold.weight = 700.0;
     canvas.clear(0xffffffff);
-    icon_font().draw(canvas, Symbol::add, {0.0, 0.0}, 48.0, 0xff000000, thin);
+    icon_font().draw(canvas, res::icons::add, {0.0, 0.0}, 48.0, 0xff000000, thin);
     const int light = ink(canvas, 0xffffffff).count;
     canvas.clear(0xffffffff);
-    icon_font().draw(canvas, Symbol::add, {0.0, 0.0}, 48.0, 0xff000000, bold);
+    icon_font().draw(canvas, res::icons::add, {0.0, 0.0}, 48.0, 0xff000000, bold);
     CHECK(ink(canvas, 0xffffffff).count > light);
 }
 
@@ -102,7 +102,7 @@ TEST_CASE("a button with a leading icon is wider by the icon and its spacing") {
     const auto& size = tokens::button_size(tokens::ButtonSize::medium);
     widgets::Button plain({"Send", tokens::ButtonStyle::filled, tokens::ButtonSize::medium, tokens::ButtonShape::round}, fonts());
     widgets::Button with_icon({"Send", tokens::ButtonStyle::filled, tokens::ButtonSize::medium, tokens::ButtonShape::round,
-                               icons::Icon{icon_font(), Symbol::send}},
+                               icons::Icon{icon_font(), res::icons::send}},
                               fonts());
     CHECK(with_icon.width() == doctest::Approx(plain.width() + size.icon_size + size.icon_label_space));
 }
@@ -125,10 +125,10 @@ TEST_CASE("mixing icon styles interpolates the axes and switches the optical siz
 }
 
 TEST_CASE("draw_centered puts the icon box in the middle of a rect or around a point") {
-    const icons::Icon icon{icon_font(), Symbol::settings};
+    const icons::Icon icon{icon_font(), res::icons::settings};
     thorvg::Canvas expected(64, 64);
     expected.clear(0xffffffff);
-    icon_font().draw(expected, Symbol::settings, {16.0, 12.0}, 32.0, 0xff000000);
+    icon_font().draw(expected, res::icons::settings, {16.0, 12.0}, 32.0, 0xff000000);
 
     thorvg::Canvas in_rect(64, 64);
     in_rect.clear(0xffffffff);
