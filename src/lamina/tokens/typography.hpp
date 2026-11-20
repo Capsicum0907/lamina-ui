@@ -23,10 +23,38 @@ enum class TypeRole : std::size_t {
     label_large,
     label_medium,
     label_small,
+    display_large_emphasized,
+    display_medium_emphasized,
+    display_small_emphasized,
+    headline_large_emphasized,
+    headline_medium_emphasized,
+    headline_small_emphasized,
+    title_large_emphasized,
+    title_medium_emphasized,
+    title_small_emphasized,
+    body_large_emphasized,
+    body_medium_emphasized,
+    body_small_emphasized,
+    label_large_emphasized,
+    label_medium_emphasized,
+    label_small_emphasized,
     count,
 };
 
+inline constexpr std::size_t base_type_role_count = static_cast<std::size_t>(TypeRole::display_large_emphasized);
 inline constexpr std::size_t type_role_count = static_cast<std::size_t>(TypeRole::count);
+
+constexpr bool is_emphasized(TypeRole role) {
+    return static_cast<std::size_t>(role) >= base_type_role_count;
+}
+
+constexpr TypeRole base_role(TypeRole role) {
+    return is_emphasized(role) ? static_cast<TypeRole>(static_cast<std::size_t>(role) - base_type_role_count) : role;
+}
+
+constexpr TypeRole emphasized(TypeRole role) {
+    return static_cast<TypeRole>(static_cast<std::size_t>(base_role(role)) + base_type_role_count);
+}
 
 struct TypeStyle {
     double size_sp;
@@ -41,7 +69,7 @@ inline constexpr int medium = 500;
 inline constexpr int bold = 700;
 }
 
-inline constexpr std::array<TypeStyle, type_role_count> type_scale{{
+inline constexpr std::array<TypeStyle, base_type_role_count> type_scale{{
     {57, 64, font_weight::regular, -0.25},
     {45, 52, font_weight::regular, 0.0},
     {36, 44, font_weight::regular, 0.0},
@@ -59,7 +87,7 @@ inline constexpr std::array<TypeStyle, type_role_count> type_scale{{
     {11, 16, font_weight::medium, 0.5},
 }};
 
-inline constexpr std::array<int, type_role_count> emphasized_weight{
+inline constexpr std::array<int, base_type_role_count> emphasized_weight{
     font_weight::medium, font_weight::medium, font_weight::medium,
     font_weight::medium, font_weight::medium, font_weight::medium,
     font_weight::medium, font_weight::bold, font_weight::bold,
@@ -68,9 +96,9 @@ inline constexpr std::array<int, type_role_count> emphasized_weight{
 };
 
 constexpr TypeStyle type_style(TypeRole role, bool emphasized = false) {
-    const auto i = static_cast<std::size_t>(role);
+    const auto i = static_cast<std::size_t>(base_role(role));
     TypeStyle style = type_scale[i];
-    if (emphasized) {
+    if (emphasized || is_emphasized(role)) {
         style.weight = emphasized_weight[i];
     }
     return style;

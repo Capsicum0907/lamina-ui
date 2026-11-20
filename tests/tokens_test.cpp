@@ -37,7 +37,7 @@ struct WebTypeStyle {
 
 constexpr double px_per_rem = 16.0;
 
-constexpr std::array<WebTypeStyle, type_role_count> material_web_type_scale{{
+constexpr std::array<WebTypeStyle, base_type_role_count> material_web_type_scale{{
     {3.5625, 4.0, -0.015625},
     {2.8125, 3.25, 0.0},
     {2.25, 2.75, 0.0},
@@ -58,7 +58,7 @@ constexpr std::array<WebTypeStyle, type_role_count> material_web_type_scale{{
 }
 
 TEST_CASE("type scale matches the material-web tokens") {
-    for (std::size_t i = 0; i < type_role_count; ++i) {
+    for (std::size_t i = 0; i < base_type_role_count; ++i) {
         const auto& web = material_web_type_scale[i];
         const auto style = type_style(static_cast<TypeRole>(i));
         CAPTURE(i);
@@ -69,7 +69,7 @@ TEST_CASE("type scale matches the material-web tokens") {
 }
 
 TEST_CASE("emphasized styles change only the weight") {
-    for (std::size_t i = 0; i < type_role_count; ++i) {
+    for (std::size_t i = 0; i < base_type_role_count; ++i) {
         const auto role = static_cast<TypeRole>(i);
         const auto plain = type_style(role);
         const auto strong = type_style(role, true);
@@ -79,6 +79,29 @@ TEST_CASE("emphasized styles change only the weight") {
         CHECK(strong.tracking_sp == plain.tracking_sp);
         CHECK(strong.weight > plain.weight);
     }
+}
+
+TEST_CASE("each role has an emphasized role with Compose's emphasized weight") {
+    constexpr std::array<int, base_type_role_count> compose_weights{500, 500, 500, 500, 500, 500, 500, 700, 700,
+                                                                    500, 500, 500, 700, 700, 700};
+    for (std::size_t i = 0; i < base_type_role_count; ++i) {
+        const auto role = static_cast<TypeRole>(i);
+        const auto strong = emphasized(role);
+        CAPTURE(i);
+        CHECK(is_emphasized(strong));
+        CHECK_FALSE(is_emphasized(role));
+        CHECK(base_role(strong) == role);
+        CHECK(emphasized(strong) == strong);
+        const auto style = type_style(strong);
+        const auto plain = type_style(role);
+        CHECK(style.weight == compose_weights[i]);
+        CHECK(style.size_sp == plain.size_sp);
+        CHECK(style.line_height_sp == plain.line_height_sp);
+        CHECK(style.tracking_sp == plain.tracking_sp);
+        CHECK(type_style(role, true).weight == style.weight);
+    }
+    CHECK(emphasized(TypeRole::display_large) == TypeRole::display_large_emphasized);
+    CHECK(emphasized(TypeRole::label_small) == TypeRole::label_small_emphasized);
 }
 
 TEST_CASE("elevation and state layer tokens") {
