@@ -381,6 +381,16 @@ void Window::set_minimum_size(double width_dp, double height_dp) {
     SDL_SetWindowMinimumSize(impl_->window, impl_->to_window(width_dp), impl_->to_window(height_dp));
 }
 
+void Window::set_always_on_top(bool on_top) {
+    if (!SDL_SetWindowAlwaysOnTop(impl_->window, on_top)) {
+        std::fprintf(stderr, "lamina: cannot change always on top (%s)\n", SDL_GetError());
+    }
+}
+
+void* Window::native_handle() const {
+    return SDL_GetPointerProperty(SDL_GetWindowProperties(impl_->window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+}
+
 void Window::close() {
     impl_->close_requested = true;
 }

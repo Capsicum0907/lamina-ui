@@ -18,9 +18,9 @@ todo --title-bar
 
 ## 層の分け方
 
-- `lamina/input/caption.hpp`（中核。描画の土台に依存しません）：`CaptionRegions` は、帯のつかんで動かせる範囲、三つのボタンの矩形、帯の中に置いたアプリの部品の矩形を dp で持ちます。`hit_test` は点がどれに当たるかを返します。ボタンとアプリの部品は、つかむ範囲より優先します。
+- `lamina/input/caption.hpp`（中核。描画の土台に依存しません）：`CaptionRegions` は、帯のつかんで動かせる範囲、三つのボタンの矩形、帯の中に置いたアプリの部品の矩形を dp で持ちます。`hit_test` は点がどれに当たるかを返します。ボタンとアプリの部品は、つかむ範囲より優先します。`report_drag_hover`（既定はオフ）を付けると、つかむ範囲の上でのポインターの動きも知らせます。どの範囲が知らせるかは `reports_hover` が答えます。ジャケットだけを表示し、ポインターが乗っている間だけボタンを浮かび上がらせる再生画面のように、窓全体がつかむ範囲になるアプリにはこれが要ります。キャプションの範囲の上では、Windows がクライアントのマウスの動きを送らないためです。
 - `lamina/widgets/title_bar.hpp`：`TitleBar` は、題名、差し込む部品（任意）、最小化・最大化（元に戻す）・閉じるのボタンを並べ、配色から描き、`regions(interactive)` で範囲を返します。`handle` は `TitleBarAction` を返し、どう動くかはアプリが決めます。大きさ・色・記号は `lamina/tokens/title_bar.hpp` にあります。閉じるボタンは Material Symbols の `close` を `icon_size` の大きさで描きます。最小化・最大化・元に戻すは、一辺 `glyph_box` の正方形の中に太さ `glyph_stroke` の線で描く図形で、描かれた部分の大きさを閉じるボタンの印にそろえています（半分以上塗られた画素で 8 × 8 dp）。Material Symbols のこれらの記号は、枠の中で占める割合がそれぞれ違い、大きく見えていました。
-- `lamina_sdl3`：`WindowOptions::client_title_bar` で自前のタイトルバーを頼みます。`Window::client_title_bar()` は有効かどうかを返し、`set_caption_regions` は毎フレーム範囲を受け取り、`minimize`・`toggle_maximize`・`close` が操作を行います。`Frame` には `maximized` と `active` を足しました。
+- `lamina_sdl3`：`WindowOptions::client_title_bar` で自前のタイトルバーを頼みます。`Window::client_title_bar()` は有効かどうかを返し、`set_caption_regions` は毎フレーム範囲を受け取り、`minimize`・`toggle_maximize`・`close` が操作を行います。`Frame` には `maximized` と `active` を足しました。`set_always_on_top` は窓をほかの窓より手前に保ちます。`native_handle` は、タスクバーのボタンのような OS ごとのコードのために `HWND` を返します（ほかの OS では null）。
 - Win32 のコードはすべて `lamina_sdl3/caption_frame_win32.cpp` にあります。CMake がこれを組み込むのは、Windows で `LAMINA_CLIENT_TITLE_BAR` が有効（既定）のときだけです。それ以外では `caption_frame_none.cpp` を組み込み、これは「使えない」と答えます。このとき `client_title_bar` を頼んでも OS の枠になります。ウィンドウは標準エラー出力に一行書き、`client_title_bar()` は false を返し、`set_caption_regions` は何もしません。`sdl3::client_title_bar_supported()` はウィンドウを作る前に答えるので、例は帯の付かないウィンドウに帯の高さを足しません。Windows でも `-DLAMINA_CLIENT_TITLE_BAR=OFF` で組み立てると、同じように OS の枠になります。
 
 ## Windows に任せる所と lamina が行う所
@@ -28,7 +28,7 @@ todo --title-bar
 SDL 3.4 は、枠なしで大きさを変えられるウィンドウに、キャプション・システムメニュー・太い枠・最大化ボタンの属性を付けます。クライアント領域をウィンドウ全体に広げ、最大化したときは作業領域に合わせ、大きさを変えている間も描き直します。lamina は、ウィンドウの処理を一段かぶせて次を行います。
 
 - `WM_NCHITTEST` に答えます。縁は大きさの変更（ウィンドウの DPI（※画面の細かさの設定）に合わせた枠の幅を使い、最大化中は除きます）、最大化ボタンの上は `HTMAXBUTTON`（Windows 11 のスナップレイアウトが出ます）、つかむ範囲は `HTCAPTION`、それ以外は `HTCLIENT` です。ドラッグでの移動、ダブルクリックでの最大化、画面端へのスナップ、影は Windows が行います。
-- 最大化ボタンの上のクライアント外のマウスの知らせを lamina のポインタの出来事に直し、ほかのボタンと同じように反応させます。
+- 最大化ボタンの上のクライアント外のマウスの知らせを lamina のポインタの出来事に直し、ほかのボタンと同じように反応させます。`report_drag_hover` があれば、つかむ範囲の上の動きもポインターの移動に、そこから出たこと（`WM_NCMOUSELEAVE`）もポインターが離れた知らせに直します。押したことは Windows に渡すので、ドラッグでの移動はそのまま使えます。
 - つかむ範囲を右クリックするとシステムメニューを開きます。`Alt+Space` もメニューまで通します（SDL はそのままだとこのメニューの命令を捨てます）。
 - DWM（※Windows の画面合成の仕組み）に角を丸めるよう頼みます。
 
