@@ -487,6 +487,77 @@ Material 3 defines no scroll bar, and Compose Material 3 has none: every value i
 - The offset moves on the default effects spring because it is critically damped: a spatial spring of the expressive scheme overshoots, which would scroll past the ends of the content.
 - 64 dp per wheel notch, 48 dp kept on screen by Page Up and Page Down, a 4 dp thumb that widens to 8 dp under the pointer, 2 dp from the edge, at least 16 dp long, `on_surface` at 38 % (50 % under the pointer), a 12 dp strip at the end edge that counts as over the bar, and hiding 1 s after scrolling stops.
 
+### Elevation tweens
+
+Read on 2026-11-21 from C `internal/Elevation.kt` at `6068a9492ba8`, into `lamina/tokens/elevation.hpp` (`elevation_tweens`) and `widgets/interaction_elevation.hpp`.
+
+- Compose moves a chip's or a card's elevation with tweens, not springs: toward a hover, focus, press or drag in 120 ms with `FastOutSlowInEasing` (0.4, 0, 0.2, 1); back to rest in 150 ms with (0.4, 0, 0.6, 1), or in 120 ms after a hover. The interaction that started last decides the target (`interactions.lastOrNull()`), and a disabled component snaps to its disabled elevation. lamina-ui does the same with `motion::Tweened`. The buttons of the first stage still move their elevation on a spring.
+
+### Divider
+
+C `Divider.kt` and `tokens/DividerTokens.kt` (`VERSION: v0_117`) at `6068a9492ba8`: 1 dp of outline-variant, as wide as the space (horizontal) or as tall (vertical), into `lamina/tokens/divider.hpp`.
+
+- Compose has no inset: a caller pads the divider. C `tokens/ListTokens.kt` has `DividerLeadingSpace` and `DividerTrailingSpace` of 16 dp that nothing in Compose uses, and material-web's divider (W at `9d2f79851cae`, `divider/internal/_divider.scss`) pads 16 px for `inset`, `inset-start` and `inset-end`. lamina-ui's `DividerInset` takes those 16 dp.
+- The accessible role `separator` is lamina-ui's; Compose's divider has no semantics.
+
+### Badge
+
+C `Badge.kt` and `tokens/BadgeTokens.kt` at `6068a9492ba8`, into `lamina/tokens/badge.hpp`.
+
+- Small badge: 6 dp (`Size`), full corners. Large badge: at least 16 dp (`LargeSize`), full corners, 4 dp inside the ends (`Badge.kt`), Label S. Both error with on-error content.
+- `BadgedBox`: a badge wider than 6 dp has content; its start is 12 dp before the anchor's end edge (`BadgeWithContentHorizontalOffset`) and its bottom 14 dp below the anchor's top (`BadgeWithContentVerticalOffset`), so a 16 dp badge rises 2 dp above the anchor. A dot uses 6 dp for both (`BadgeOffset`), which puts it inside the top end corner. The `BadgeEndRuler` and `BadgeTopRuler` set by `Modifier.badgeBounds()` on the navigation items keep it inside the item; without them nothing is clamped. lamina-ui applies the item's bounds on the navigation bar and rail and no bounds on icon buttons.
+- In Compose the badge goes on the icon (`IconButton { BadgedBox { Icon } }`, the icon slot of a navigation item); lamina-ui anchors it to the icon's 24 dp square, also while the rail moves its icons.
+- Compose does not shorten a count. `"999+"` appears only in the samples (`samples/BadgeSamples.kt`); `badge_count` with its maximum of 999 is lamina-ui's helper for that style.
+- Compose gives the badge no semantics and `NavigationBarItem` clears the icon's semantics while a label is shown; lamina-ui puts the badge's description in the item's or button's accessible description.
+
+### Chips
+
+C `Chip.kt` and `tokens/{Assist,Filter,Input,Suggestion}ChipTokens.kt` at `6068a9492ba8`, into `lamina/tokens/chip.hpp`.
+
+- 32 dp minimum height, small (8 dp) corners, Label L, 18 dp icons, 24 dp avatar (full corners, 38 % alpha while disabled). Content padding 8 dp at both ends and `ChipArrangement(8 dp)`, which puts 8 dp between the leading slot, the label and the trailing slot even when a slot is empty, so a bare label has 16 dp at each side. Input chips pad 4 dp at the start with an avatar or without a leading icon and 8 dp with an icon, and 8 dp at the end with a trailing icon, 4 dp without (`InputChipDefaults.contentPadding`).
+- Colors (`*ChipDefaults`): assist flat: no container, on-surface label, primary icons, 1 dp outline-variant outline; elevated: surface-container-low, no outline. Suggestion: like assist with an on-surface-variant label. Filter: on-surface-variant label, primary leading and on-surface-variant trailing icon; selected: secondary-container with on-secondary-container content and no outline (0 dp). Input: like filter, with an on-surface-variant leading icon that turns primary when selected. Disabled: content on-surface at 38 %, outline on-surface at 12 %, elevated and selected containers on-surface at 12 %; a disabled chip uses the disabled colors whatever its selection.
+- Elevation: flat 0 (the flat filter chip rises to 1 dp on hover); elevated 1 dp, 3 dp on hover, 0 when disabled; 8 dp while dragged, which lamina-ui has no use for yet.
+- Filter and input chips are `Role.Checkbox` with the selection; assist and suggestion chips `Role.Button`. The touch target is 48 dp.
+- `AnimatingChipContent`: the leading slot appears with `expandHorizontally` on the fast spatial spring and a fade-in on the slow effects spring, and leaves with `shrinkHorizontally` on the default effects spring and a fade-out on the fast effects spring; replacing one icon with another changes it at once. Colors and the outline switch at once in Compose; lamina-ui fades them on the default effects spring.
+- Not taken over: the `shapes:` overloads (`ChipShapes`, a morph between 12 dp, full and 8 dp corners on the fast spatial spring) and the tonal colors that go with them; dragging.
+- lamina-ui's own: Compose's trailing icon is part of the chip and has no action. lamina-ui gives a `removable` input chip a remove target on its trailing icon (an accessible button named "Remove …" inside the chip, with a state layer of its own), as material-web's input chip has a remove button, and removes it on Delete or Backspace, which material-web does not. `ChipGroup` follows material-web's chip set (W `chips/internal/chip-set.ts`, `_chip-set.scss`): 8 px gaps, wrapping, one Tab stop with ArrowLeft and ArrowRight wrapping past disabled chips, Home and End. Compose has no chip group (its samples put chips in a `FlowRow` with 4 dp padding around each) and makes every chip its own Tab stop. The fade and shrink of a removed chip and the glide of the chips that move are lamina-ui's.
+
+### Card
+
+C `Card.kt`, `Surface.kt` and `tokens/{Elevated,Filled,Outlined}CardTokens.kt` at `6068a9492ba8`, into `lamina/tokens/card.hpp`.
+
+- Medium (12 dp) corners for all three. Containers: elevated surface-container-low, filled surface-container-highest, outlined surface with a 1 dp outline-variant border; content on-surface.
+- Disabled (`CardDefaults.*cardColors`): filled surface-variant at 38 % over surface-container-highest; elevated surface at 38 % over surface, which is surface; outlined surface; content on-surface at 38 %. The outlined border is outline at 12 % composited over the elevated card's container, surface-container-low (`outlinedCardBorder`), not over surface; lamina-ui follows it.
+- Elevation: filled 0, 1 dp on hover; elevated 1 dp, 3 dp on hover, 1 dp when disabled; outlined 0 in every state (`Card.kt` sets its pressed, focused and hovered elevations to the default, so its hover token is unused); dragged 6 or 8 dp, unused in lamina-ui. A card without `onClick` has a fixed elevation; a clickable one moves with the elevation tweens.
+- `Surface` draws the border over the content (`Modifier.border`) and clips the content to the shape; lamina-ui does both.
+- A clickable card is a `clickable` `Surface` with no role and a 48 dp minimum; a plain one is a container (`isContainer`). lamina-ui reports `button` and `group`. Compose leaves a disabled card's content to `LocalContentColor`; lamina-ui paints the whole content at 38 %, since its labels carry their own color roles.
+
+### List
+
+C `ListItem.kt`, `ListItemDefaults.kt` and `tokens/ListTokens.kt` at `6068a9492ba8`, into `lamina/tokens/list.hpp`. lamina-ui follows the interactive `ListItem` overloads (the classic one, with 8 and 12 dp vertical padding, is deprecated).
+
+- Padding 16 dp at the start and end and 10 dp above and below (`ListItemDefaults.ContentPadding`), 12 dp between the slots and the text (`ItemBetweenSpace`). Minimum heights 56, 72 and 88 dp for one, two and three lines; three lines with both an overline and supporting text or with supporting text over more than one line. The slots and the text are centered while the inside is under 60 dp, (88 + 72) / 2 − 10 − 10, and aligned to the top above it.
+- Headline Body L in on-surface; overline Label S, supporting text Body M and the slots in on-surface-variant; trailing text Label S. Selected or checked: secondary-container with on-secondary-container content. Disabled: content on-surface at 38 % on surface, whatever the selection.
+- Shapes: extra-small (4 dp) at rest, medium (12 dp) on hover, large (16 dp) when focused, pressed or selected (`shapeForInteraction`), on the fast spatial spring; colors on the default effects spring (`updateTransition`); state layers from the content color.
+- A selectable item is `Role.RadioButton` with `selected`, a toggleable one `Role.Checkbox` with its state, which also gives it the selected colors; a clickable one has no role (lamina-ui: `list_item`).
+- Compose defines but does not enforce slot sizes; lamina-ui sizes the slots by the tokens: icons 24 dp, avatars 40 dp (primary-container with on-primary-container Title M initials), images 56 dp with small corners (`ItemLeadingImageExpressiveShape`), and a checkbox or radio button 24 dp and a switch 52 × 32 dp, the sizes Compose's controls take inside an item. A control in a slot follows the item, as in Compose's samples where it has no `onCheckedChange`.
+- Keyboard: Compose makes each item its own focus stop. `ListView` follows material-web's list (W `list/internal/list-controller.ts`): one stop, ArrowUp and ArrowDown wrapping past disabled rows, Home and End; Page Up and Page Down and the inward focus ring of the row are lamina-ui's. Compose shows the pressed shape while Space or Enter is held; lamina-ui has no key release, so a key acts at once without the pressed shape.
+- `ListView`, the row height estimates and `overscan_rows` (2) are lamina-ui's; Compose's lazy lists are a separate library.
+
+### Top app bar
+
+C `AppBar.kt` and `tokens/AppBar{,Small,Medium,Large,MediumFlexible,LargeFlexible}Tokens.kt` at `6068a9492ba8`, into `lamina/tokens/top_app_bar.hpp`.
+
+- Heights: small and center-aligned 64 dp; medium 112; large 152; medium flexible 112, or 136 with a subtitle; large flexible 120, or 152 with a subtitle; the two-row bars collapse to 64. Titles: Title L in one row; Headline S (medium), Headline M (large, medium flexible), Display S (large flexible) in the bottom row; the top row of a two-row bar uses Title L, with a Label M subtitle. Subtitles: Label M in one row, Label L (medium flexible) and Title M (large flexible) in the bottom row. The flexible bars use the plain type roles, not the emphasized ones.
+- Colors: surface, surface-container when scrolled; navigation icon and title on-surface, actions and subtitle on-surface-variant. No shadow.
+- 4 dp at both ends (`TopAppBarHorizontalPadding`); the title starts at max(12 dp, the navigation slot) plus 4 dp, so 16 dp without and 56 dp with a 48 dp navigation slot; a centered title is centered on the whole bar and pushed in only when it would cross the icons. The bottom title sits 24 dp (medium) or 28 dp (large) from the bottom, measured from its last baseline.
+- `TopAppBarState`: `heightOffsetLimit` is minus the bar's height (single row) or minus the bottom row's (two rows); `collapsedFraction` is `heightOffset / limit`; `overlappedFraction` is `|contentOffset| / |limit|`, capped at 1. `pinned` only counts the content; `enter_always` moves the bar by every scroll first; `exit_until_collapsed` takes scrolls toward the end first and gives the bar back only what the content cannot use at its top.
+- Small bars: the container takes the scrolled color when `overlappedFraction` passes 0.01, on the default effects spring. Two-row bars: `lerp(container, scrolled, FastOutLinearInEasing(f))` with no animation; the bottom title fades as 1 − f and the top title as `TopTitleAlphaEasing` (0.8, 0, 0.8, 0.15); the bottom row shrinks and clips its title.
+- Settling: Compose settles in `onPostFling`, after a fling or a drag of the bar: below 1 % or at 100 % it stays, otherwise it goes to the nearer end with `snapAnimationSpec`, the default effects spring. lamina-ui has no fling; it settles when the scroll area comes to rest (no target left and no thumb drag) and moves the content with the bar.
+- Not taken over: the fling of the bar's own drag (lamina-ui's bar cannot be dragged), and the swallowing in `onPreScroll`, which hands the whole delta to the bar when it moved at all, even past its limit; lamina-ui hands the rest to the content.
+- Semantics: Compose's bar is a traversal group with no role and its titles have no `heading`; lamina-ui reports a `toolbar` with a `label` for the title. A two-row bar exposes the top title from half collapsed on, as `hideTopRowSemantics` does.
+
 ## Open questions
 
 - Components other than those above are not surveyed yet.
+- Not implemented from the components of the second stage: the `shapes:` chip overloads (`ChipShapes`), `SegmentedListItem` with its 2 dp gaps and per-position corners, dragged chips, cards and list items, and dragging a top app bar itself.

@@ -487,6 +487,77 @@ Material 3 にはスクロールバーの定めがなく、Compose Material 3 �
 - 送る量は標準の効果のばねで動かします。臨界減衰なので行き過ぎません。Expressive の空間のばねは行き過ぎるので、中身の端を越えて送ってしまいます。
 - ホイール 1 ノッチで 64 dp、Page Up と Page Down で画面に残す 48 dp、幅 4 dp のつまみ（ポインターを乗せると 8 dp）、端から 2 dp、長さは 16 dp 以上、`on_surface` の 38 %（乗せると 50 %）、バーの上とみなす終わりの側の帯 12 dp、送り終えてから消えるまで 1 秒です。
 
+### 高さのトゥイーン
+
+2026-11-21 に `6068a9492ba8` の C の `internal/Elevation.kt` を読み、`lamina/tokens/elevation.hpp`（`elevation_tweens`）と `widgets/interaction_elevation.hpp` に入れました。
+
+- Compose はチップとカードの高さ（影）を、ばねでなくトゥイーンで動かします。マウスが乗る・フォーカス・押す・引きずるに向かうときは 120 ms の `FastOutSlowInEasing`（0.4, 0, 0.2, 1）、元に戻るときは 150 ms の（0.4, 0, 0.6, 1）、マウスが離れたあとは 120 ms です。目標は最後に始まった操作で決まり（`interactions.lastOrNull()`）、無効になるとすぐに無効の高さへ切り替わります。lamina-ui は `motion::Tweened` で同じことをします。第 1 段階のボタンは、今もばねで高さを動かします。
+
+### 区切り線
+
+2026-11-21 に `6068a9492ba8` の C の `Divider.kt` と `tokens/DividerTokens.kt`（`VERSION: v0_117`）を読み、`lamina/tokens/divider.hpp` に入れました。outline-variant の 1 dp で、横の線は場所の幅いっぱい、縦の線は高さいっぱいです。
+
+- Compose には空ける指定がなく、呼ぶ側が余白を付けます。C の `tokens/ListTokens.kt` には 16 dp の `DividerLeadingSpace` と `DividerTrailingSpace` がありますが、Compose のどこからも使われていません。material-web の区切り線（W の `9d2f79851cae`、`divider/internal/_divider.scss`）は、`inset`・`inset-start`・`inset-end` で 16 px を空けます。lamina-ui の `DividerInset` はこの 16 dp を使います。
+- 読み上げ用の役割 `separator` は lamina-ui が決めたものです。Compose の区切り線には意味づけがありません。
+
+### バッジ
+
+2026-11-21 に `6068a9492ba8` の C の `Badge.kt` と `tokens/BadgeTokens.kt` を読み、`lamina/tokens/badge.hpp` に入れました。
+
+- 小さいバッジは 6 dp（`Size`）の丸。大きいバッジは 16 dp 以上（`LargeSize`）で角は丸く、両端の内側に 4 dp（`Badge.kt`）、文字は Label S です。どちらも error の上に on-error です。
+- `BadgedBox`：幅が 6 dp より広いバッジは中身を持つとみなし、印の終わりの辺の 12 dp 手前から始め（`BadgeWithContentHorizontalOffset`）、下の辺を印の上の辺から 14 dp 下に置きます（`BadgeWithContentVerticalOffset`）。16 dp のバッジは印より 2 dp 上に出ます。点はどちらも 6 dp（`BadgeOffset`）で、上の終わりの角の内側に収まります。ナビゲーションの項目では `Modifier.badgeBounds()` が `BadgeEndRuler` と `BadgeTopRuler` を決め、バッジを項目の中に収めます。この定規がなければ何も収めません。lamina-ui は、ナビゲーションバーとレールでは項目の範囲に収め、アイコンボタンでは収めません。
+- Compose ではバッジはアイコンに付けます（`IconButton { BadgedBox { Icon } }`、ナビゲーションの項目のアイコンの枠）。lamina-ui はアイコンの 24 dp の四角に付け、レールがアイコンを動かす間もついていきます。
+- Compose は数を短くしません。`"999+"` は見本（`samples/BadgeSamples.kt`）に出てくるだけで、上限 999 の `badge_count` は、その書き方のために lamina-ui が足したものです。
+- Compose はバッジに意味づけを付けず、`NavigationBarItem` はラベルを出している間アイコンの意味づけを消します。lamina-ui は、バッジの説明を項目やボタンの読み上げ用の説明に入れます。
+
+### チップ
+
+2026-11-21 に `6068a9492ba8` の C の `Chip.kt` と `tokens/{Assist,Filter,Input,Suggestion}ChipTokens.kt` を読み、`lamina/tokens/chip.hpp` に入れました。
+
+- 高さは 32 dp 以上、角は small（8 dp）、文字は Label L、アイコンは 18 dp、アバターは 24 dp（丸く切り抜き、無効の間は 38 %）。両端の余白は 8 dp で、`ChipArrangement(8 dp)` が先頭の枠・文字・末尾の枠の間に、枠が空でも 8 dp を空けます。そのため文字だけなら両側が 16 dp になります。入力チップは、アバターがあるか先頭のアイコンがないときは始まりの側を 4 dp、アイコンがあるときは 8 dp にし、末尾のアイコンがあれば終わりの側を 8 dp、なければ 4 dp にします（`InputChipDefaults.contentPadding`）。
+- 色（`*ChipDefaults`）：アシストの平らなものは入れ物なし、文字は on-surface、アイコンは primary、枠線は outline-variant の 1 dp。浮いたものは surface-container-low で枠線なし。提案はアシストと同じで、文字が on-surface-variant。フィルターは、文字が on-surface-variant、先頭のアイコンが primary、末尾のアイコンが on-surface-variant で、選ぶと secondary-container の上に on-secondary-container になり、枠線は消えます（0 dp）。入力はフィルターと同じで、先頭のアイコンが on-surface-variant、選ぶと primary です。無効の色は、中身が on-surface の 38 %、枠線が on-surface の 12 %、浮いた入れ物と選ばれた入れ物が on-surface の 12 % で、選ばれているかどうかに関わらず無効の色を使います。
+- 高さ（影）：平らなものは 0（平らなフィルターチップはマウスが乗ると 1 dp）。浮いたものは 1 dp、乗ると 3 dp、無効で 0。引きずる間の 8 dp は、lamina-ui ではまだ使いません。
+- フィルターと入力のチップは選択つきの `Role.Checkbox`、アシストと提案は `Role.Button` です。当たりは 48 dp です。
+- `AnimatingChipContent`：先頭の枠は、速い空間のばねの `expandHorizontally` と遅い効果のばねの浮かび上がりで現れ、標準の効果のばねの `shrinkHorizontally` と速い効果のばねの消え方で消えます。アイコンを別のアイコンに替えるときはすぐに替わります。Compose は色と枠線をすぐに切り替えますが、lamina-ui は標準の効果のばねで移します。
+- 取り入れていないもの：`shapes:` の版（`ChipShapes`。12 dp・丸・8 dp の角の間を速い空間のばねで形を変える）と、それと組の色。引きずる操作。
+- lamina-ui が決めたこと：Compose の末尾のアイコンはチップの一部で、操作を持ちません。lamina-ui は、material-web の入力チップに外すボタンがあるのにならい、`removable` の入力チップの末尾のアイコンに外すための当たり（チップの中の「Remove …」という名前の読み上げ用のボタン。状態の重ねも自分で持ちます）を付けました。Delete と Backspace でも外せますが、これは material-web にもありません。`ChipGroup` は material-web のチップの組（W の `chips/internal/chip-set.ts`・`_chip-set.scss`）に従います：8 px の間、折り返し、Tab の止まり位置一つ、無効なチップを飛ばして端で戻る ArrowLeft と ArrowRight、Home と End。Compose にはチップの組がなく（見本ではチップをそれぞれ 4 dp の余白つきで `FlowRow` に並べます）、チップがそれぞれ Tab の止まり位置です。外したチップが縮んで消えることと、動くチップが滑ることは lamina-ui が決めました。
+
+### カード
+
+2026-11-21 に `6068a9492ba8` の C の `Card.kt`・`Surface.kt`・`tokens/{Elevated,Filled,Outlined}CardTokens.kt` を読み、`lamina/tokens/card.hpp` に入れました。
+
+- 角はどれも medium（12 dp）。入れ物は、浮いたカードが surface-container-low、塗ったカードが surface-container-highest、枠線のカードが surface で outline-variant の 1 dp の枠線、中身は on-surface です。
+- 無効（`CardDefaults.*cardColors`）：塗ったカードは surface-container-highest の上に surface-variant の 38 %、浮いたカードは surface の上に surface の 38 %（つまり surface）、枠線のカードは surface、中身は on-surface の 38 % です。枠線のカードの線は、surface ではなく浮いたカードの入れ物 surface-container-low の上に outline の 12 % を重ねた色で（`outlinedCardBorder`）、lamina-ui もそれに従います。
+- 高さ（影）：塗ったカードは 0、乗ると 1 dp。浮いたカードは 1 dp、乗ると 3 dp、無効で 1 dp。枠線のカードはどの状態でも 0 です（`Card.kt` が押下・フォーカス・乗ったときの高さを既定の値にするので、乗ったときのトークンは使われません）。引きずる間の 6 dp と 8 dp は lamina-ui では使いません。`onClick` のないカードの高さは動かず、押せるカードは高さのトゥイーンで動きます。
+- `Surface` は枠線を中身の上に描き（`Modifier.border`）、中身を形で切り抜きます。lamina-ui も両方そうします。
+- 押せるカードは役割なしの `clickable` な `Surface` で、48 dp 以上です。押せないカードは入れ物（`isContainer`）です。lamina-ui は `button` と `group` を返します。Compose は無効なカードの中身を `LocalContentColor` に任せますが、lamina-ui のラベルはそれぞれ色の役割を持つので、中身全体を 38 % で描きます。
+
+### リスト
+
+2026-11-21 に `6068a9492ba8` の C の `ListItem.kt`・`ListItemDefaults.kt`・`tokens/ListTokens.kt` を読み、`lamina/tokens/list.hpp` に入れました。lamina-ui は操作できる版の `ListItem` に従います（上下の余白が 8 dp と 12 dp の従来の版は非推奨です）。
+
+- 余白は始まりと終わりに 16 dp、上下に 10 dp（`ListItemDefaults.ContentPadding`）、枠と文字の間は 12 dp（`ItemBetweenSpace`）です。最小の高さは 1 行・2 行・3 行で 56・72・88 dp で、小見出しと補足の文が両方あるか、補足の文が 2 行以上になると 3 行です。内側の高さが 60 dp（(88 + 72) / 2 − 10 − 10）未満なら枠と文字を縦の中央に、それ以上なら上にそろえます。
+- 見出しは on-surface の Body L、小見出しは Label S、補足の文は Body M、枠は on-surface-variant、末尾の文字は Label S です。選ばれた項目や入っている項目は secondary-container の上に on-secondary-container です。無効なら、選ばれているかどうかに関わらず surface の上に on-surface の 38 % です。
+- 形：止まっているときは extra-small（4 dp）、マウスが乗ると medium（12 dp）、フォーカス・押下・選択で large（16 dp）（`shapeForInteraction`）。速い空間のばねで動きます。色は標準の効果のばね（`updateTransition`）、状態の重ねは中身の色です。
+- 選べる項目は `selected` つきの `Role.RadioButton`、切り替えられる項目は状態つきの `Role.Checkbox` で、入っていると選ばれた色にもなります。押せるだけの項目は役割なしです（lamina-ui は `list_item`）。
+- Compose は枠の大きさのトークンを持ちますが、強制しません。lamina-ui はトークンどおりの大きさにします：アイコン 24 dp、アバター 40 dp（primary-container の上に on-primary-container の Title M の頭文字）、画像 56 dp で角は small（`ItemLeadingImageExpressiveShape`）。チェックボックスとラジオボタンは 24 dp、スイッチは 52 × 32 dp で、Compose の部品が項目の中で取る大きさです。枠の部品は項目に従います。Compose の見本でも `onCheckedChange` を渡していません。
+- キー：Compose は項目ごとにフォーカスの止まり位置を作ります。`ListView` は material-web のリスト（W の `list/internal/list-controller.ts`）に従い、止まり位置一つで、無効な行を飛ばして端で戻る ArrowUp と ArrowDown、Home と End を受けます。Page Up と Page Down、行の内側に描くフォーカスの輪は lamina-ui が決めました。Compose は Space か Enter を押している間、押した形を見せますが、lamina-ui はキーを離したことを受け取れないので、押した形を見せずにすぐ動きます。
+- `ListView`、行の高さの見積もり、`overscan_rows`（2）は lamina-ui が決めたものです。Compose の遅延リストは別のライブラリです。
+
+### トップアプリバー
+
+2026-11-21 に `6068a9492ba8` の C の `AppBar.kt` と `tokens/AppBar{,Small,Medium,Large,MediumFlexible,LargeFlexible}Tokens.kt` を読み、`lamina/tokens/top_app_bar.hpp` に入れました。
+
+- 高さ：小さいものと中央そろえは 64 dp、中くらいは 112、大きいものは 152、中くらいの伸縮するものは 112（副題つきで 136）、大きい伸縮するものは 120（副題つきで 152）。2 段のバーは 64 まで縮みます。題名：1 段では Title L、下の段では Headline S（中くらい）・Headline M（大きいもの、中くらいの伸縮するもの）・Display S（大きい伸縮するもの）。2 段のバーの上の段は Title L で、副題は Label M です。副題：1 段では Label M、下の段では Label L（中くらいの伸縮するもの）と Title M（大きい伸縮するもの）。伸縮するバーも強調でない文字の段階を使います。
+- 色：surface、スクロールすると surface-container。戻るアイコンと題名は on-surface、操作と副題は on-surface-variant。影はありません。
+- 両端に 4 dp（`TopAppBarHorizontalPadding`）。題名は max(12 dp, 戻るアイコンの枠) に 4 dp を足した所から始まるので、アイコンなしで 16 dp、48 dp の枠があれば 56 dp です。中央そろえの題名はバー全体の中央に置き、アイコンにかかるときだけ内側へ押します。下の段の題名は、最後の行の基線から測って下から 24 dp（中くらい）か 28 dp（大きいもの）に置きます。
+- `TopAppBarState`：`heightOffsetLimit` は、1 段ではバーの高さ、2 段では下の段の高さにマイナスを付けたもの。`collapsedFraction` は `heightOffset / limit`、`overlappedFraction` は `|contentOffset| / |limit|` で、1 を超えません。`pinned` は中身の動きを数えるだけ、`enter_always` はどのスクロールもまずバーを動かし、`exit_until_collapsed` は先へ送るスクロールをまずバーが取り、中身が先頭で使い切れなかった分だけバーを戻します。
+- 小さいバー：`overlappedFraction` が 0.01 を超えると、標準の効果のばねでスクロール時の色へ移ります。2 段のバー：アニメーションなしで `lerp(container, scrolled, FastOutLinearInEasing(f))`。下の題名は 1 − f、上の題名は `TopTitleAlphaEasing`（0.8, 0, 0.8, 0.15）で現れ消えします。下の段は縮み、題名を切り抜きます。
+- 止まり方：Compose は `onPostFling`（はじいたあとか、バー自身を引きずったあと）で止め方を決めます。1 % 未満か 100 % ならそのまま、それ以外は近いほうの端へ `snapAnimationSpec`（標準の効果のばね）で動きます。lamina-ui にははじく動きがないので、スクロールする範囲が止まったとき（目標が残っておらず、つまみも引きずっていないとき）に止め方を決め、中身もバーと一緒に動かします。
+- 取り入れていないもの：バー自身を引きずってはじく動き（lamina-ui のバーは引きずれません）。`onPreScroll` が、バーが少しでも動けば限界を超えた分も含めて差分をすべてバーに渡してしまう点。lamina-ui は残りを中身に渡します。
+- 意味づけ：Compose のバーは役割なしのたどる順のまとまりで、題名に `heading` はありません。lamina-ui は `toolbar` と、題名の `label` を返します。2 段のバーは、`hideTopRowSemantics` と同じく、半分縮んだ所から上の段の題名を見せます。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
+- 第 2 段階の部品で作っていないもの：チップの `shapes:` の版（`ChipShapes`）、2 dp の間と位置ごとの角を持つ `SegmentedListItem`、チップ・カード・リストの項目を引きずる操作、トップアプリバー自身を引きずる操作。
