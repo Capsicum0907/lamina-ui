@@ -67,8 +67,8 @@ struct Layout {
     double symbol_size = 24.0;
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
-    double page_tabs_width = 560.0;
-    std::array<const char*, 4> page_names{"Basics", "Chips & cards", "Lists", "App bars & badges"};
+    double page_tabs_width = 700.0;
+    std::array<const char*, 5> page_names{"Basics", "Chips & cards", "Lists", "App bars & badges", "Inputs"};
 };
 
 class PageSwitch final : public layout::Node {
@@ -220,6 +220,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
     pages.push_back(make_chips_page(context));
     pages.push_back(make_lists_page(context));
     pages.push_back(make_bars_page(context));
+    pages.push_back(make_inputs_page(context));
 
     auto toggle_row = layout::row({widgets::node(switch_label), widgets::node(*enabled_switch)});
     toggle_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
@@ -742,7 +743,8 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.header_widgets.handle(k);
     }
     for (const auto& t : frame.text) {
-        if (g.current_page()) {
+        if (Page* p = g.current_page()) {
+            p->handle(t);
             continue;
         }
         if (!g.overlay.handle(t)) {
@@ -810,8 +812,8 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
 }
 
 std::optional<render::Rect> Gallery::caret_area() const {
-    if (impl_->current_page()) {
-        return std::nullopt;
+    if (Page* p = impl_->current_page()) {
+        return p->caret_area();
     }
     if (const auto caret = impl_->dialog->caret_area()) {
         return caret;

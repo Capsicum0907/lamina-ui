@@ -33,6 +33,8 @@ public:
     virtual bool handle(const input::PointerEvent& event) = 0;
     virtual bool handle(const input::KeyEvent& event) = 0;
     virtual bool handle(const input::WheelEvent& event) = 0;
+    virtual void handle(const input::TextEvent&) {}
+    virtual std::optional<render::Rect> caret_area() const { return std::nullopt; }
     virtual void step(double dt_seconds) = 0;
     virtual bool animating() const = 0;
     virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
@@ -48,5 +50,6 @@ public:
 std::unique_ptr<Page> make_chips_page(PageContext context);
 std::unique_ptr<Page> make_lists_page(PageContext context);
 std::unique_ptr<Page> make_bars_page(PageContext context);
+std::unique_ptr<Page> make_inputs_page(PageContext context);
 
 }

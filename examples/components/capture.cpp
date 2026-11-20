@@ -337,6 +337,24 @@ const std::map<std::string, Scene>& stills() {
              d.move_to({720.0, 845.0}, 0.2);
              d.wait(0.8);
          }},
+        {"inputs", [](Driver& d, examples::components::Gallery&) { show_page(d, "Inputs"); }},
+        {"inputs_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Inputs");
+             d.set_cursor(false);
+             tab_to(d, g, "Travel mode");
+             d.key(Key::right);
+             tab_to(d, g, "Range end");
+             d.key(Key::left);
+             d.wait(0.4);
+         }},
+        {"inputs_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Inputs");
+             d.move_to("Enabled", 0.1);
+             d.click();
+             d.move_to({720.0, 845.0}, 0.1);
+         }},
         {"disabled",
          [](Driver& d, examples::components::Gallery&) {
              d.move_to("Enabled", 0.1);
