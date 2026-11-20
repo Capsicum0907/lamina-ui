@@ -51,6 +51,11 @@ public:
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
+    bool item_enabled(std::size_t index) const { return items_[index].enabled.enabled(); }
+    void set_item_enabled(std::size_t index, bool enabled);
+    bool enabled() const;
+    void set_enabled(bool enabled);
+    bool can_focus() const { return enabled(); }
     std::size_t focused_item() const { return focus_index_; }
 
     bool handle(const input::PointerEvent& event);
@@ -70,6 +75,7 @@ private:
         motion::Animated position;
         motion::Animated color;
         motion::Animated label_mode;
+        Enablement enabled;
     };
 
     struct Geometry {

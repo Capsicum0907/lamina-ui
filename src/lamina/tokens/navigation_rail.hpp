@@ -36,6 +36,8 @@ struct NavigationRailTokens {
     color::Role inactive_icon;
     color::Role inactive_label;
     color::Role state_layer;
+    StateColor disabled_icon;
+    StateColor disabled_label;
 };
 
 inline constexpr NavigationRailTokens navigation_rail_tokens{
@@ -68,6 +70,8 @@ inline constexpr NavigationRailTokens navigation_rail_tokens{
     .inactive_icon = color::Role::on_surface_variant,
     .inactive_label = color::Role::on_surface_variant,
     .state_layer = color::Role::on_surface,
+    .disabled_icon = {color::Role::on_surface_variant, disabled_alpha},
+    .disabled_label = {color::Role::on_surface_variant, disabled_alpha},
 };
 
 }

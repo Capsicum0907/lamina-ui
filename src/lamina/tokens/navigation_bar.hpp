@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/typography.hpp"
 
 namespace lamina::tokens {
@@ -20,6 +21,8 @@ struct NavigationBarTokens {
     color::Role inactive_icon;
     color::Role inactive_label;
     color::Role state_layer;
+    StateColor disabled_icon;
+    StateColor disabled_label;
 };
 
 inline constexpr NavigationBarTokens navigation_bar_tokens{
@@ -37,6 +40,8 @@ inline constexpr NavigationBarTokens navigation_bar_tokens{
     .inactive_icon = color::Role::on_surface_variant,
     .inactive_label = color::Role::on_surface_variant,
     .state_layer = color::Role::on_surface,
+    .disabled_icon = {color::Role::on_surface_variant, disabled_alpha},
+    .disabled_label = {color::Role::on_surface_variant, disabled_alpha},
 };
 
 }

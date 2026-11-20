@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 
@@ -27,6 +28,8 @@ struct MenuTokens {
     double window_horizontal_margin;
     double closed_scale;
     double focus_ring_corner;
+    StateColor disabled_label;
+    StateColor disabled_leading_icon;
 };
 
 inline constexpr MenuTokens menu_tokens{
@@ -48,6 +51,8 @@ inline constexpr MenuTokens menu_tokens{
     .window_horizontal_margin = 0.0,
     .closed_scale = 0.8,
     .focus_ring_corner = 0.0,
+    .disabled_label = {color::Role::on_surface, 0.38},
+    .disabled_leading_icon = {color::Role::on_surface, 0.38},
 };
 
 }

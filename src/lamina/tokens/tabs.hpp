@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/typography.hpp"
 
 namespace lamina::tokens {
@@ -42,6 +43,7 @@ struct TabTokens {
     color::Role divider;
     TypeRole label;
     double focus_ring_corner;
+    double disabled_content_opacity;
 };
 
 inline constexpr TabTokens tab_tokens{
@@ -57,6 +59,7 @@ inline constexpr TabTokens tab_tokens{
     .divider = color::Role::outline_variant,
     .label = TypeRole::title_small,
     .focus_ring_corner = 0.0,
+    .disabled_content_opacity = disabled_alpha,
 };
 
 }

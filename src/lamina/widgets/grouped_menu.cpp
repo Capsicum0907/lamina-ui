@@ -95,7 +95,7 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
             group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
                                    std::move(item.trailing_icon), std::move(access), item.selected, gy, height, {},
                                    motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, motion_scheme.fast_effects()),
-                                   corner_springs()});
+                                   corner_springs(), Enablement(item.enabled)});
             gy += height;
         }
         group.height = gy + t.group_vertical_padding;
@@ -208,7 +208,45 @@ void GroupedMenu::open(const render::Rect& anchor, layout::Size window, input::I
     }
     access_keys_shown_ = source == input::InputSource::keyboard;
     access_keys_fade_.snap_to(access_keys_shown_ ? 1.0 : 0.0);
-    set_active(source == input::InputSource::keyboard && flat_count() > 0 ? std::optional<std::size_t>(0) : std::nullopt);
+    set_active(source == input::InputSource::keyboard
+                   ? first_enabled_item(flat_count(), [this](std::size_t i) { return flat_enabled(i); })
+                   : std::nullopt);
+}
+
+bool GroupedMenu::flat_enabled(std::size_t flat) const {
+    const MenuItemIndex at = item_at(flat);
+    return item_enabled(at.group, at.item);
+}
+
+std::size_t GroupedMenu::flat_index(std::size_t group, std::size_t item) const {
+    std::size_t flat = item;
+    for (std::size_t g = 0; g < group; ++g) {
+        flat += groups_[g].items.size();
+    }
+    return flat;
+}
+
+void GroupedMenu::set_item_enabled(std::size_t group, std::size_t item, bool enabled) {
+    if (group >= groups_.size() || item >= groups_[group].items.size() || !groups_[group].items[item].enabled.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        disable_item(groups_[group].items, item);
+        if (active_ == flat_index(group, item)) {
+            set_active(std::nullopt);
+        }
+    }
+    retarget_state_layers();
+}
+
+std::vector<std::optional<input::Key>> GroupedMenu::enabled_access_keys() const {
+    std::vector<std::optional<input::Key>> keys = access_keys_;
+    for (std::size_t i = 0; i < keys.size(); ++i) {
+        if (!flat_enabled(i)) {
+            keys[i].reset();
+        }
+    }
+    return keys;
 }
 
 void GroupedMenu::close() {
@@ -242,11 +280,7 @@ MenuItemIndex GroupedMenu::item_at(std::size_t flat) const {
 }
 
 std::optional<input::Key> GroupedMenu::access_key(std::size_t group, std::size_t item) const {
-    std::size_t flat = item;
-    for (std::size_t g = 0; g < group; ++g) {
-        flat += groups_[g].items.size();
-    }
-    return access_keys_[flat];
+    return access_keys_[flat_index(group, item)];
 }
 
 std::optional<MenuItemIndex> GroupedMenu::focused_item() const {
@@ -290,7 +324,7 @@ GroupedMenuResponse GroupedMenu::handle(const input::PointerEvent& e) {
         }
         for (std::size_t i = 0; i < group.items.size(); ++i) {
             Item& item = group.items[i];
-            if (item.press.update(e, item_rect(g, i))) {
+            if (item.press.update(e, item.enabled.enabled() ? item_rect(g, i) : render::Rect{})) {
                 response.chosen = MenuItemIndex{g, i};
             }
         }
@@ -321,13 +355,14 @@ GroupedMenuResponse GroupedMenu::handle(const input::KeyEvent& e) {
         }
         return response;
     }
-    if (const std::optional<std::size_t> target = menu_key_target(e, active_, flat_count())) {
+    if (const std::optional<std::size_t> target =
+            menu_key_target(e, active_, flat_count(), [this](std::size_t i) { return flat_enabled(i); })) {
         reveal_access_keys();
         set_active(target);
         response.consumed = true;
         return response;
     }
-    if (const std::optional<AccessKeyMatch> match = match_access_key(e, access_keys_, active_)) {
+    if (const std::optional<AccessKeyMatch> match = match_access_key(e, enabled_access_keys(), active_)) {
         response.consumed = true;
         reveal_access_keys();
         if (match->unique && e.repeat) {
@@ -358,6 +393,7 @@ void GroupedMenu::step(double dt) {
             item.state_layer.step(dt);
             item.selection.step(dt);
             item.corners.step(dt);
+            item.enabled.step(dt);
         }
     }
 }
@@ -368,7 +404,7 @@ bool GroupedMenu::animating() const {
     }
     return std::any_of(groups_.begin(), groups_.end(), [](const Group& g) {
         return !g.corners.settled() || std::any_of(g.items.begin(), g.items.end(), [](const Item& item) {
-                   return !item.state_layer.settled() || !item.selection.settled() || !item.corners.settled();
+                   return !item.state_layer.settled() || !item.selection.settled() || !item.corners.settled() || !item.enabled.settled();
                });
     });
 }
@@ -402,8 +438,9 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
             const render::Rect ir = item_rect(g, i);
             const render::CornerRadii radii = item_radii(g, i);
             const double k = std::clamp(item.selection.value(), 0.0, 1.0);
-            if (k > 0.0) {
-                canvas.fill_path(render::rounded_rect_path(ir, radii), color::mix(s[t.group_container], s[t.selected_container], k));
+            const double fill = k * item.enabled.amount();
+            if (fill > 0.0) {
+                canvas.fill_path(render::rounded_rect_path(ir, radii), color::mix(s[t.group_container], s[t.selected_container], fill));
             }
             if (item.state_layer.value() > 0.0) {
                 const color::Argb layer = color::mix(scheme[t.state_layer], scheme[t.selected_state_layer], k);
@@ -415,12 +452,13 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
             if (item.leading_icon) {
                 const icons::Icon& icon = item.selected && item.selected_leading_icon ? *item.selected_leading_icon : *item.leading_icon;
                 icon.font.draw(canvas, icon.symbol, {x, cy - t.leading_icon_size / 2.0}, t.leading_icon_size,
-                               color::mix(s[t.leading_icon], s[t.selected_leading_icon], k));
+                               item.enabled.mix(resolve(s, t.disabled_leading_icon), color::mix(s[t.leading_icon], s[t.selected_leading_icon], k)));
                 x += t.leading_icon_size + t.icon_text_space;
             }
             if (item.label) {
                 const render::Point top_left{x, cy - item.label->box_height() / 2.0};
-                const color::Argb label_color = color::mix(s[t.label_color], s[t.selected_label], k);
+                const color::Argb label_color =
+                    item.enabled.mix(resolve(s, t.disabled_label), color::mix(s[t.label_color], s[t.selected_label], k));
                 text::draw_line(canvas, fonts_, *item.label, top_left, label_color);
                 if (item.access && access_keys_fade_.value() > 0.0) {
                     paint_access_key(canvas, fonts_, *item.access, *item.label, top_left,
@@ -431,7 +469,8 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
                 const double tx = ir.x + ir.width - t.item_horizontal_padding - t.trailing_icon_size;
                 item.trailing_icon->font.draw(canvas, item.trailing_icon->symbol, {tx, cy - t.trailing_icon_size / 2.0},
                                               t.trailing_icon_size,
-                                              color::mix(s[t.trailing_icon], s[t.selected_trailing_icon], k));
+                                              item.enabled.mix(resolve(s, t.disabled_trailing_icon),
+                                                               color::mix(s[t.trailing_icon], s[t.selected_trailing_icon], k)));
             }
         }
     }

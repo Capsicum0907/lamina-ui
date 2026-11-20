@@ -12,6 +12,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/tabs.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 
@@ -22,6 +23,7 @@ enum class TabIconPosition { top, leading };
 struct TabItem {
     std::string label;
     std::optional<icons::Icon> icon = std::nullopt;
+    bool enabled = true;
 };
 
 struct TabRowOptions {
@@ -50,6 +52,11 @@ public:
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
+    bool tab_enabled(std::size_t index) const { return tabs_[index].enabled.enabled(); }
+    void set_tab_enabled(std::size_t index, bool enabled);
+    bool enabled() const;
+    void set_enabled(bool enabled);
+    bool can_focus() const { return enabled(); }
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
@@ -65,6 +72,7 @@ private:
         PressState press;
         motion::Animated state_layer;
         motion::Animated selected;
+        Enablement enabled;
     };
 
     double tab_width() const;

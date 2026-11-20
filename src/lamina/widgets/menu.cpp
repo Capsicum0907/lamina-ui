@@ -98,7 +98,7 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
         content = std::max(content, w);
         access_keys_.push_back(key);
         items_.push_back({std::move(label), std::move(item.leading_icon), std::move(access), {},
-                          motion::Animated(0.0, motion_scheme.fast_effects())});
+                          motion::Animated(0.0, motion_scheme.fast_effects()), Enablement(item.enabled)});
     }
     width_ = std::clamp(content, t.item_min_width, t.item_max_width);
 }
@@ -121,7 +121,32 @@ void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSou
     popup_.open();
     access_keys_shown_ = source == input::InputSource::keyboard;
     access_keys_fade_.snap_to(access_keys_shown_ ? 1.0 : 0.0);
-    set_active(source == input::InputSource::keyboard && !items_.empty() ? std::optional<std::size_t>(0) : std::nullopt);
+    set_active(source == input::InputSource::keyboard
+                   ? first_enabled_item(items_.size(), [this](std::size_t i) { return item_enabled(i); })
+                   : std::nullopt);
+}
+
+void Menu::set_item_enabled(std::size_t index, bool enabled) {
+    if (index >= items_.size() || !items_[index].enabled.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        disable_item(items_, index);
+        if (active_ == index) {
+            set_active(std::nullopt);
+        }
+    }
+    retarget_state_layers(items_, active_);
+}
+
+std::vector<std::optional<input::Key>> Menu::enabled_access_keys() const {
+    std::vector<std::optional<input::Key>> keys = access_keys_;
+    for (std::size_t i = 0; i < keys.size(); ++i) {
+        if (!item_enabled(i)) {
+            keys[i].reset();
+        }
+    }
+    return keys;
 }
 
 void Menu::close() {
@@ -155,7 +180,7 @@ MenuResponse Menu::handle(const input::PointerEvent& e) {
         set_active(std::nullopt);
     }
     response.consumed = e.action != input::PointerAction::leave;
-    response.chosen = update_presses(items_, e, [this](std::size_t i) { return item_rect(i); });
+    response.chosen = update_presses(items_, e, [this](std::size_t i) { return item_enabled(i) ? item_rect(i) : render::Rect{}; });
     retarget_state_layers(items_, active_);
     if (response.chosen) {
         close();
@@ -181,13 +206,14 @@ MenuResponse Menu::handle(const input::KeyEvent& e) {
         }
         return response;
     }
-    if (const std::optional<std::size_t> target = menu_key_target(e, active_, items_.size())) {
+    if (const std::optional<std::size_t> target =
+            menu_key_target(e, active_, items_.size(), [this](std::size_t i) { return item_enabled(i); })) {
         reveal_access_keys();
         set_active(target);
         response.consumed = true;
         return response;
     }
-    if (const std::optional<AccessKeyMatch> match = match_access_key(e, access_keys_, active_)) {
+    if (const std::optional<AccessKeyMatch> match = match_access_key(e, enabled_access_keys(), active_)) {
         response.consumed = true;
         reveal_access_keys();
         if (match->unique && e.repeat) {
@@ -213,6 +239,7 @@ void Menu::step(double dt) {
     access_keys_fade_.step(dt);
     for (Item& item : items_) {
         item.state_layer.step(dt);
+        item.enabled.step(dt);
     }
 }
 
@@ -220,7 +247,7 @@ bool Menu::animating() const {
     if (!popup_.settled() || !focus_.settled() || !access_keys_fade_.settled()) {
         return true;
     }
-    return std::any_of(items_.begin(), items_.end(), [](const Item& item) { return !item.state_layer.settled(); });
+    return motion::any_unsettled(items_, &Item::state_layer, &Item::enabled);
 }
 
 void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -234,10 +261,10 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     popup_.scale_about(canvas, pivot_);
     const color::ColorScheme s = color::faded(scheme, a);
     paint_surface(canvas, r, radius, s[t.container], tokens::elevation_dp[t.elevation], s[color::Role::shadow]);
-    const color::Argb label_color = s[t.label_color];
-    const color::Argb icon_color = s[t.leading_icon];
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
+        const color::Argb label_color = item.enabled.mix(resolve(s, t.disabled_label), s[t.label_color]);
+        const color::Argb icon_color = item.enabled.mix(resolve(s, t.disabled_leading_icon), s[t.leading_icon]);
         const render::Rect ir = item_rect(i);
         if (item.state_layer.value() > 0.0) {
             canvas.fill_rect(ir, color::scale_alpha(color::with_alpha(scheme[t.state_layer], item.state_layer.value()), a));

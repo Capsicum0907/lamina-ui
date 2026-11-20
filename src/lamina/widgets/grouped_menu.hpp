@@ -16,6 +16,7 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/widgets/access_key.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/popup_transition.hpp"
@@ -31,6 +32,7 @@ struct GroupedMenuItem {
     std::optional<icons::Icon> trailing_icon = std::nullopt;
     bool selected = false;
     std::optional<input::Key> access_key = std::nullopt;
+    bool enabled = true;
 };
 
 struct MenuGroup {
@@ -85,6 +87,8 @@ public:
     bool focus_shown() const { return focus_.focused(); }
     std::optional<input::Key> access_key(std::size_t group, std::size_t item) const;
     bool access_keys_shown() const { return access_keys_shown_; }
+    bool item_enabled(std::size_t group, std::size_t item) const { return groups_[group].items[item].enabled.enabled(); }
+    void set_item_enabled(std::size_t group, std::size_t item, bool enabled);
 
     GroupedMenuResponse handle(const input::PointerEvent& event);
     GroupedMenuResponse handle(const input::KeyEvent& event);
@@ -107,6 +111,7 @@ private:
         motion::Animated state_layer;
         motion::Animated selection;
         motion::AnimatedRadii corners;
+        Enablement enabled;
     };
 
     struct Group {
@@ -133,6 +138,9 @@ private:
     void set_active(std::optional<std::size_t> flat);
     void reveal_access_keys();
     void retarget_state_layers();
+    bool flat_enabled(std::size_t flat) const;
+    std::size_t flat_index(std::size_t group, std::size_t item) const;
+    std::vector<std::optional<input::Key>> enabled_access_keys() const;
 
     text::FontStack fonts_;
     std::vector<Group> groups_;

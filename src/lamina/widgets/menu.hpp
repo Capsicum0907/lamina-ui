@@ -15,6 +15,7 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/menu.hpp"
 #include "lamina/widgets/access_key.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/popup_transition.hpp"
@@ -25,6 +26,7 @@ struct MenuItem {
     std::string label;
     std::optional<icons::Icon> leading_icon = std::nullopt;
     std::optional<input::Key> access_key = std::nullopt;
+    bool enabled = true;
 };
 
 struct MenuOptions {
@@ -61,6 +63,9 @@ public:
     bool focus_shown() const { return focus_.focused(); }
     std::optional<input::Key> access_key(std::size_t index) const { return access_keys_[index]; }
     bool access_keys_shown() const { return access_keys_shown_; }
+    std::size_t count() const { return items_.size(); }
+    bool item_enabled(std::size_t index) const { return items_[index].enabled.enabled(); }
+    void set_item_enabled(std::size_t index, bool enabled);
 
     MenuResponse handle(const input::PointerEvent& event);
     MenuResponse handle(const input::KeyEvent& event);
@@ -76,9 +81,11 @@ private:
         std::optional<AccessKeyLabel> access;
         PressState press;
         motion::Animated state_layer;
+        Enablement enabled;
     };
 
     void set_active(std::optional<std::size_t> index);
+    std::vector<std::optional<input::Key>> enabled_access_keys() const;
     void reveal_access_keys();
 
     text::FontStack fonts_;

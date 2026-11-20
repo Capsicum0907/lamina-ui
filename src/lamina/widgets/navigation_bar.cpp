@@ -30,7 +30,8 @@ NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack
         }
         const double on = i == options_.selected ? 1.0 : 0.0;
         items_.push_back({std::move(label), {}, motion::Animated(0.0, motion_scheme.fast_effects()),
-                          motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(on, motion_scheme.default_effects())});
+                          motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(on, motion_scheme.default_effects()),
+                          Enablement(options_.items[i].enabled)});
     }
 }
 
@@ -84,11 +85,37 @@ void NavigationBar::retarget_state_layers() {
 }
 
 void NavigationBar::set_focused(bool focused) {
+    focused = focused && can_focus();
     if (focused && !focus_.focused()) {
-        focus_index_ = options_.selected;
+        focus_index_ = navigation_focus_start(items_, options_.selected);
     }
     focus_.set_focused(focused);
     retarget_state_layers();
+}
+
+bool NavigationBar::enabled() const {
+    return any_item_enabled(items_);
+}
+
+void NavigationBar::set_item_enabled(std::size_t index, bool enabled) {
+    if (index >= items_.size() || !items_[index].enabled.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        disable_item(items_, index);
+        if (!can_focus()) {
+            focus_.set_focused(false);
+        } else if (focus_index_ == index) {
+            focus_index_ = navigation_focus_start(items_, index);
+        }
+    }
+    retarget_state_layers();
+}
+
+void NavigationBar::set_enabled(bool enabled) {
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        set_item_enabled(i, enabled);
+    }
 }
 
 bool NavigationBar::handle(const input::KeyEvent& e) {
@@ -96,14 +123,15 @@ bool NavigationBar::handle(const input::KeyEvent& e) {
         return false;
     }
     if (focus_.activates(e, KeyActivation::space_or_enter)) {
-        if (focus_index_ == options_.selected) {
+        if (focus_index_ == options_.selected || !item_enabled(focus_index_)) {
             return false;
         }
         select(focus_index_);
         retarget_state_layers();
         return true;
     }
-    if (const std::optional<std::size_t> target = item_key_target(e, focus_index_, items_.size(), ItemAxis::horizontal)) {
+    if (const std::optional<std::size_t> target = item_key_target(e, focus_index_, items_.size(), ItemAxis::horizontal,
+                                                                  [this](std::size_t i) { return item_enabled(i); })) {
         focus_index_ = *target;
         retarget_state_layers();
     }
@@ -112,8 +140,9 @@ bool NavigationBar::handle(const input::KeyEvent& e) {
 
 bool NavigationBar::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
-    const bool selected = select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
-                           [this](std::size_t i) { select(i); });
+    const bool selected = select_on_click(
+        items_, e, options_.selected, [this](std::size_t i) { return item_enabled(i) ? item_rect(i) : render::Rect{}; },
+        [this](std::size_t i) { select(i); });
     retarget_state_layers();
     return selected;
 }
@@ -129,11 +158,12 @@ void NavigationBar::step(double dt) {
         item.state_layer.step(dt);
         item.indicator.step(dt);
         item.color.step(dt);
+        item.enabled.step(dt);
     }
 }
 
 bool NavigationBar::animating() const {
-    return !focus_.settled() || motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::color);
+    return !focus_.settled() || motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::color, &Item::enabled);
 }
 
 void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -153,12 +183,13 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
                              color::with_alpha(scheme[t.state_layer], item.state_layer.value()));
         }
         const double k = item.color.value();
-        icons::draw_centered(canvas, spec.icon, full, t.icon_size, color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k),
+        icons::draw_centered(canvas, spec.icon, full, t.icon_size,
+                             item.enabled.mix(resolve(scheme, t.disabled_icon), color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k)),
                              icons::mix(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
         if (item.label) {
             const double x = full.x + (full.width - item.label->width) / 2.0;
             text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space},
-                            color::mix(scheme[t.inactive_label], scheme[t.active_label], k));
+                            item.enabled.mix(resolve(scheme, t.disabled_label), color::mix(scheme[t.inactive_label], scheme[t.active_label], k)));
         }
     }
     if (!items_.empty()) {

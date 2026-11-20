@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/item_focus.hpp"
 
@@ -34,8 +35,8 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
         }
         stacked = stacked || (label && item.icon && options_.icon_position == TabIconPosition::top);
         const double on = i == options_.selected ? 1.0 : 0.0;
-        tabs_.push_back(
-            {std::move(label), item.icon, {}, motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, fade_in_spring)});
+        tabs_.push_back({std::move(label), item.icon, {}, motion::Animated(0.0, motion_scheme.fast_effects()),
+                         motion::Animated(on, fade_in_spring), Enablement(item.enabled)});
     }
     height_ = stacked ? t.icon_and_label_height : t.height;
 }
@@ -120,14 +121,38 @@ void TabRow::retarget_state_layers() {
 }
 
 void TabRow::set_focused(bool focused) {
-    focus_.set_focused(focused);
+    focus_.set_focused(focused && can_focus());
     retarget_state_layers();
+}
+
+bool TabRow::enabled() const {
+    return any_item_enabled(tabs_);
+}
+
+void TabRow::set_tab_enabled(std::size_t index, bool enabled) {
+    if (index >= tabs_.size() || !tabs_[index].enabled.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        disable_item(tabs_, index);
+        if (!can_focus()) {
+            focus_.set_focused(false);
+        }
+    }
+    retarget_state_layers();
+}
+
+void TabRow::set_enabled(bool enabled) {
+    for (std::size_t i = 0; i < tabs_.size(); ++i) {
+        set_tab_enabled(i, enabled);
+    }
 }
 
 bool TabRow::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
-    const bool selected = select_on_click(tabs_, e, options_.selected, [this](std::size_t i) { return tab_rect(i); },
-                                          [this](std::size_t i) { select(i); });
+    const bool selected = select_on_click(
+        tabs_, e, options_.selected, [this](std::size_t i) { return tab_enabled(i) ? tab_rect(i) : render::Rect{}; },
+        [this](std::size_t i) { select(i); });
     retarget_state_layers();
     return selected;
 }
@@ -136,7 +161,8 @@ bool TabRow::handle(const input::KeyEvent& e) {
     if (!focus_.focused()) {
         return false;
     }
-    const std::optional<std::size_t> target = item_key_target(e, options_.selected, tabs_.size(), ItemAxis::horizontal);
+    const std::optional<std::size_t> target = item_key_target(e, options_.selected, tabs_.size(), ItemAxis::horizontal,
+                                                              [this](std::size_t i) { return tab_enabled(i); });
     if (!target || *target == options_.selected) {
         return false;
     }
@@ -157,6 +183,7 @@ void TabRow::step(double dt) {
     for (Tab& tab : tabs_) {
         tab.state_layer.step(dt);
         tab.selected.step(dt);
+        tab.enabled.step(dt);
     }
 }
 
@@ -164,7 +191,7 @@ bool TabRow::animating() const {
     if (!indicator_offset_.settled() || !indicator_width_.settled() || !focus_.settled()) {
         return true;
     }
-    return motion::any_unsettled(tabs_, &Tab::state_layer, &Tab::selected);
+    return motion::any_unsettled(tabs_, &Tab::state_layer, &Tab::selected, &Tab::enabled);
 }
 
 void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme, const Tab& tab, const render::Rect& r) const {
@@ -173,7 +200,9 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
     if (tab.state_layer.value() > 0.0) {
         canvas.fill_rect(r, color::with_alpha(active, tab.state_layer.value()));
     }
-    const color::Argb content = color::mix(scheme[style.inactive_content], active, tab.selected.value());
+    const color::Argb content =
+        color::scale_alpha(color::mix(scheme[style.inactive_content], active, tab.selected.value()),
+                           motion::lerp(t.disabled_content_opacity, 1.0, tab.enabled.amount()));
     const double cx = r.x + r.width / 2.0;
     const double cy = r.y + r.height / 2.0;
 

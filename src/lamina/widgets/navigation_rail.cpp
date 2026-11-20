@@ -35,7 +35,8 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
                           text::layout_line(fonts_, options_.items[i].label, start_style), {},
                           motion::Animated(0.0, motion_scheme.fast_effects()),
                           motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(mode, motion_scheme.default_spatial()),
-                          motion::Animated(on, motion_scheme.default_effects()), motion::Animated(mode, motion_scheme.default_effects())});
+                          motion::Animated(on, motion_scheme.default_effects()), motion::Animated(mode, motion_scheme.default_effects()),
+                          Enablement(options_.items[i].enabled)});
     }
     update_width();
 }
@@ -218,11 +219,37 @@ void NavigationRail::retarget_state_layers() {
 }
 
 void NavigationRail::set_focused(bool focused) {
+    focused = focused && can_focus();
     if (focused && !focus_.focused()) {
-        focus_index_ = options_.selected;
+        focus_index_ = navigation_focus_start(items_, options_.selected);
     }
     focus_.set_focused(focused);
     retarget_state_layers();
+}
+
+bool NavigationRail::enabled() const {
+    return any_item_enabled(items_);
+}
+
+void NavigationRail::set_item_enabled(std::size_t index, bool enabled) {
+    if (index >= items_.size() || !items_[index].enabled.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        disable_item(items_, index);
+        if (!can_focus()) {
+            focus_.set_focused(false);
+        } else if (focus_index_ == index) {
+            focus_index_ = navigation_focus_start(items_, index);
+        }
+    }
+    retarget_state_layers();
+}
+
+void NavigationRail::set_enabled(bool enabled) {
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        set_item_enabled(i, enabled);
+    }
 }
 
 bool NavigationRail::handle(const input::KeyEvent& e) {
@@ -230,14 +257,15 @@ bool NavigationRail::handle(const input::KeyEvent& e) {
         return false;
     }
     if (focus_.activates(e, KeyActivation::space_or_enter)) {
-        if (focus_index_ == options_.selected) {
+        if (focus_index_ == options_.selected || !item_enabled(focus_index_)) {
             return false;
         }
         select(focus_index_);
         retarget_state_layers();
         return true;
     }
-    if (const std::optional<std::size_t> target = item_key_target(e, focus_index_, items_.size(), ItemAxis::vertical)) {
+    if (const std::optional<std::size_t> target = item_key_target(e, focus_index_, items_.size(), ItemAxis::vertical,
+                                                                  [this](std::size_t i) { return item_enabled(i); })) {
         focus_index_ = *target;
         retarget_state_layers();
     }
@@ -246,8 +274,9 @@ bool NavigationRail::handle(const input::KeyEvent& e) {
 
 bool NavigationRail::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
-    const bool selected = select_on_click(items_, e, options_.selected, [this](std::size_t i) { return item_rect(i); },
-                           [this](std::size_t i) { select(i); });
+    const bool selected = select_on_click(
+        items_, e, options_.selected, [this](std::size_t i) { return item_enabled(i) ? item_rect(i) : render::Rect{}; },
+        [this](std::size_t i) { select(i); });
     retarget_state_layers();
     return selected;
 }
@@ -269,6 +298,7 @@ void NavigationRail::step(double dt) {
         item.position.step(dt);
         item.color.step(dt);
         item.label_mode.step(dt);
+        item.enabled.step(dt);
     }
     update_width();
 }
@@ -277,7 +307,8 @@ bool NavigationRail::animating() const {
     if (!min_width_.settled() || !full_width_.settled() || !item_space_.settled() || !item_min_height_.settled() || !focus_.settled()) {
         return true;
     }
-    return motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::position, &Item::color, &Item::label_mode);
+    return motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::position, &Item::color, &Item::label_mode,
+                                 &Item::enabled);
 }
 
 void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -303,12 +334,13 @@ void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& sch
         const double k = std::clamp(item.color.value(), 0.0, 1.0);
         const render::Rect icon = icon_rect(i);
         spec.icon.font.draw(canvas, spec.icon.symbol, {icon.x, icon.y}, t.icon_size,
-                            color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k), icons::mix(spec.style, spec.selected_style, k));
+                            item.enabled.mix(resolve(scheme, t.disabled_icon), color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k)),
+                            icons::mix(spec.style, spec.selected_style, k));
         if (g.label_opacity > 0.0) {
             const render::Rect label = label_rect(i);
             const double mode = std::clamp(item.label_mode.value(), 0.0, 1.0);
             const color::Argb active = color::mix(scheme[t.top_active_label], scheme[t.start_active_label], mode);
-            const color::Argb c = color::mix(scheme[t.inactive_label], active, k);
+            const color::Argb c = item.enabled.mix(resolve(scheme, t.disabled_label), color::mix(scheme[t.inactive_label], active, k));
             const text::TextLine& line = label_line(i);
             const double y = label.y + (label.height - line.box_height()) / 2.0;
             text::draw_line(canvas, fonts_, line, {label.x, y},

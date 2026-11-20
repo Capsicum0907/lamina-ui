@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 
@@ -54,6 +55,9 @@ struct GroupedMenuTokens {
     double window_vertical_margin;
     double window_horizontal_margin;
     double closed_scale;
+    StateColor disabled_label;
+    StateColor disabled_leading_icon;
+    StateColor disabled_trailing_icon;
 };
 
 inline constexpr GroupedMenuTokens grouped_menu_tokens{
@@ -102,6 +106,9 @@ inline constexpr GroupedMenuTokens grouped_menu_tokens{
     .window_vertical_margin = 48.0,
     .window_horizontal_margin = 8.0,
     .closed_scale = 0.8,
+    .disabled_label = {color::Role::on_surface, 0.38},
+    .disabled_leading_icon = {color::Role::on_surface, 0.38},
+    .disabled_trailing_icon = {color::Role::on_surface, 0.38},
 };
 
 }
