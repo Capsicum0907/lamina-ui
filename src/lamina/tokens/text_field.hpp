@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 
@@ -27,6 +28,11 @@ struct OutlinedTextFieldTokens {
     color::Role hover_outline = color::Role::on_surface;
     color::Role focus_outline = color::Role::primary;
     color::Role caret = color::Role::primary;
+    color::Role placeholder = color::Role::on_surface_variant;
+    StateColor disabled_input = {color::Role::on_surface, 0.38};
+    StateColor disabled_label = {color::Role::on_surface, 0.38};
+    StateColor disabled_outline = {color::Role::on_surface, 0.12};
+    StateColor disabled_placeholder = {color::Role::on_surface, 0.38};
     double caret_width = 2.0;
     double caret_blink_seconds = 0.5;
     double composition_underline = 1.0;

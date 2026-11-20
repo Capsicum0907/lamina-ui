@@ -87,10 +87,60 @@ TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
                .history = {.depth = t.undo_depth, .pause_seconds = t.undo_pause_seconds}}),
       label_large_(text::layout_line(fonts, options_.label, style_of(t.label_type))),
       label_small_(text::layout_line(fonts, options_.label, style_of(t.minimized_label_type))),
+      placeholder_(text::layout_line(fonts, options_.placeholder, style_of(t.input_type))),
       label_progress_(0.0, motion_scheme.fast_spatial()),
       focus_(0.0, motion_scheme.fast_effects()),
-      hover_(0.0, motion_scheme.fast_effects()) {
+      hover_(0.0, motion_scheme.fast_effects()),
+      placeholder_opacity_(0.0, motion_scheme.fast_effects()),
+      enabled_(options_.enabled) {
     relayout();
+    phase_ = input_phase();
+    placeholder_opacity_.snap_to(phase_ == InputPhase::unfocused_not_empty || (phase_ == InputPhase::unfocused_empty && !options_.label.empty())
+                                     ? 0.0
+                                     : 1.0);
+}
+
+TextField::InputPhase TextField::input_phase() const {
+    if (focused_) {
+        return InputPhase::focused;
+    }
+    return buffer_.text().empty() && !buffer_.composing() ? InputPhase::unfocused_empty : InputPhase::unfocused_not_empty;
+}
+
+void TextField::update_phase() {
+    const InputPhase next = input_phase();
+    if (next == phase_) {
+        return;
+    }
+    const bool slow = (phase_ == InputPhase::unfocused_empty && next == InputPhase::focused) ||
+                      (phase_ == InputPhase::unfocused_not_empty && next == InputPhase::unfocused_empty);
+    placeholder_opacity_.set_spec(slow ? motion_scheme.slow_effects() : motion_scheme.fast_effects());
+    phase_ = next;
+    switch (next) {
+    case InputPhase::focused:
+        placeholder_opacity_.animate_to(1.0);
+        break;
+    case InputPhase::unfocused_empty:
+        placeholder_opacity_.animate_to(options_.label.empty() ? 1.0 : 0.0);
+        break;
+    case InputPhase::unfocused_not_empty:
+        placeholder_opacity_.animate_to(0.0);
+        break;
+    }
+}
+
+bool TextField::placeholder_shown() const {
+    return !options_.placeholder.empty() && buffer_.text().empty() && !buffer_.composing() && placeholder_opacity_.value() > 0.0;
+}
+
+void TextField::set_enabled(bool enabled) {
+    if (!enabled_.set(enabled)) {
+        return;
+    }
+    if (!enabled) {
+        set_focused(false);
+        cancel_interaction();
+    }
 }
 
 double TextField::height() const {
@@ -141,6 +191,7 @@ std::string TextField::selected_text() const {
 }
 
 void TextField::set_focused(bool focused) {
+    focused = focused && enabled();
     if (focused_ == focused) {
         return;
     }
@@ -154,6 +205,7 @@ void TextField::set_focused(bool focused) {
     reset_blink();
     focus_.animate_to(focused_ ? 1.0 : 0.0);
     label_progress_.animate_to(focused_ || !buffer_.text().empty() ? 1.0 : 0.0);
+    update_phase();
 }
 
 void TextField::relayout() {
@@ -175,6 +227,7 @@ void TextField::relayout() {
     line_map_ = text::LineMap(shown, std::move(spans));
     update_scroll();
     label_progress_.animate_to(focused_ || !buffer_.text().empty() || buffer_.composing() ? 1.0 : 0.0);
+    update_phase();
 }
 
 void TextField::update_scroll() {
@@ -240,6 +293,9 @@ void TextField::copy_selection() const {
 }
 
 bool TextField::handle(const input::PointerEvent& e) {
+    if (!enabled()) {
+        return false;
+    }
     press_.update(e, bounds());
     hover_.animate_to(press_.hovered ? 1.0 : 0.0);
     if (e.action == input::PointerAction::up) {
@@ -392,10 +448,13 @@ void TextField::step(double dt) {
     label_progress_.step(dt);
     focus_.step(dt);
     hover_.step(dt);
+    placeholder_opacity_.step(dt);
+    enabled_.step(dt);
 }
 
 bool TextField::animating() const {
-    return !label_progress_.settled() || !focus_.settled() || !hover_.settled();
+    return !label_progress_.settled() || !focus_.settled() || !hover_.settled() || !placeholder_opacity_.settled() ||
+           !enabled_.settled();
 }
 
 double TextField::next_blink_seconds() const {
@@ -418,7 +477,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const double f = focus_.value();
     const double outline_width = t.outline_width + (t.focus_outline_width - t.outline_width) * f;
     const color::Argb idle_outline = color::mix(scheme[t.outline], scheme[t.hover_outline], hover_.value());
-    const color::Argb outline = color::mix(idle_outline, scheme[t.focus_outline], f);
+    const color::Argb outline = enabled_.mix(resolve(scheme, t.disabled_outline), color::mix(idle_outline, scheme[t.focus_outline], f));
 
     const double p = std::clamp(label_progress_.value(), 0.0, 1.0);
     const double small_scale = label_small_.style.size / label_large_.style.size;
@@ -435,7 +494,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const double float_top = r.y - label_large_.box_height() * scale / 2.0;
     const double label_top = rest_top + (float_top - rest_top) * p;
     const color::Argb idle_label = color::mix(scheme[t.label], scheme[t.hover_label], hover_.value());
-    const color::Argb label_color = color::mix(idle_label, scheme[t.focus_label], f);
+    const color::Argb label_color = enabled_.mix(resolve(scheme, t.disabled_label), color::mix(idle_label, scheme[t.focus_label], f));
     canvas.save();
     canvas.translate(text_left(), label_top);
     canvas.scale(scale);
@@ -445,6 +504,13 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     canvas.push_clip({text_left() - t.caret_width, r.y, inner_width() + 2 * t.caret_width, r.height});
     const double left = text_left() - scroll_x_;
     const double top = input_top();
+    const color::Argb input_color = enabled_.mix(resolve(scheme, t.disabled_input), scheme[t.input]);
+
+    if (placeholder_shown()) {
+        const color::Argb placeholder = enabled_.mix(resolve(scheme, t.disabled_placeholder), scheme[t.placeholder]);
+        text::draw_line(canvas, fonts_, placeholder_, {text_left(), top},
+                        color::scale_alpha(placeholder, std::clamp(placeholder_opacity_.value(), 0.0, 1.0)));
+    }
 
     if (focused_ && buffer_.has_selection()) {
         const color::Argb selection = color::with_alpha(scheme[t.selection], t.selection_opacity);
@@ -463,7 +529,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     }
 
     for (std::size_t k = 0; k < lines_.size(); ++k) {
-        text::draw_line(canvas, fonts_, lines_[k], {left, top + line_tops_[k]}, scheme[t.input]);
+        text::draw_line(canvas, fonts_, lines_[k], {left, top + line_tops_[k]}, input_color);
     }
 
     const std::size_t composition_first = buffer_.composition_first();
@@ -478,7 +544,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         const double x1 = x_in_line(k, b);
         canvas.fill_rect({left + x0, top + line_tops_[k] + lines_[k].baseline + t.composition_underline * 2, x1 - x0,
                           t.composition_underline},
-                         scheme[t.input]);
+                         input_color);
     }
 
     const bool caret_on = std::fmod(blink_clock_, 2 * t.caret_blink_seconds) < t.caret_blink_seconds;

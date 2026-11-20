@@ -12,15 +12,18 @@
 #include "lamina/text/edit_buffer.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/text/line_map.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
 
 struct TextFieldOptions {
     std::string label;
+    std::string placeholder = {};
     bool multiline = false;
     bool accepts_tab = false;
     input::Clipboard* clipboard = nullptr;
+    bool enabled = true;
 };
 
 class TextField {
@@ -36,6 +39,11 @@ public:
     render::Rect bounds() const;
     bool focused() const { return focused_; }
     void set_focused(bool focused);
+    bool enabled() const { return enabled_.enabled(); }
+    void set_enabled(bool enabled);
+    bool can_focus() const { return enabled(); }
+    double placeholder_opacity() const { return placeholder_opacity_.value(); }
+    bool placeholder_shown() const;
     bool multiline() const { return options_.multiline; }
     bool accepts_tab() const { return options_.accepts_tab; }
     void set_clipboard(input::Clipboard* clipboard) { options_.clipboard = clipboard; }
@@ -78,6 +86,10 @@ private:
         const TextField& field_;
     };
 
+    enum class InputPhase { focused, unfocused_empty, unfocused_not_empty };
+
+    InputPhase input_phase() const;
+    void update_phase();
     void relayout();
     void reset_blink();
     void update_scroll();
@@ -104,6 +116,7 @@ private:
 
     text::TextLine label_large_;
     text::TextLine label_small_;
+    text::TextLine placeholder_;
 
     bool focused_ = false;
     PressState press_;
@@ -111,6 +124,9 @@ private:
     motion::Animated label_progress_;
     motion::Animated focus_;
     motion::Animated hover_;
+    InputPhase phase_ = InputPhase::unfocused_empty;
+    motion::Animated placeholder_opacity_;
+    Enablement enabled_;
 };
 
 }
