@@ -13,17 +13,26 @@ namespace {
 constexpr const tokens::MenuBarTokens& t = tokens::menu_bar_tokens;
 using tokens::motion_scheme;
 
-void sync_enabled(Menu& menu, const ShortcutRegistry& commands) {
+}
+
+void apply_shortcuts(std::vector<MenuItem>& items, const ShortcutRegistry& commands) {
+    for (MenuItem& item : items) {
+        if (!item.command.empty() && !item.shortcut) {
+            item.shortcut = commands.chord(item.command);
+        }
+        apply_shortcuts(item.submenu, commands);
+    }
+}
+
+void sync_commands(Menu& menu, const ShortcutRegistry& commands) {
     for (std::size_t i = 0; i < menu.count(); ++i) {
         if (!menu.command(i).empty() && commands.contains(menu.command(i))) {
             menu.set_item_enabled(i, commands.enabled(menu.command(i)));
         }
         if (Menu* sub = menu.submenu(i)) {
-            sync_enabled(*sub, commands);
+            sync_commands(*sub, commands);
         }
     }
-}
-
 }
 
 MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
@@ -40,7 +49,9 @@ MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
             access = access_key_label(fonts_, spec.label, label, *key);
             w += access->suffix_width();
         }
-        prepare(spec.items);
+        if (commands_) {
+            apply_shortcuts(spec.items, *commands_);
+        }
         menus_.push_back(std::make_unique<Menu>(
             MenuOptions{std::move(spec.items), spec.label, density_, options.icon_font, options.shortcut_format}, fonts_));
         names_.push_back(spec.label);
@@ -50,15 +61,6 @@ MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
         x += w;
     }
     width_ = x + t.start_padding;
-}
-
-void MenuBar::prepare(std::vector<MenuItem>& items) const {
-    for (MenuItem& item : items) {
-        if (commands_ && !item.command.empty() && !item.shortcut) {
-            item.shortcut = commands_->chord(item.command);
-        }
-        prepare(item.submenu);
-    }
 }
 
 double MenuBar::height() const {
@@ -107,7 +109,7 @@ void MenuBar::refresh_commands() {
         return;
     }
     for (auto& m : menus_) {
-        sync_enabled(*m, *commands_);
+        sync_commands(*m, *commands_);
     }
 }
 
@@ -135,7 +137,7 @@ void MenuBar::open(std::size_t index, input::InputSource source) {
         menus_[*open_]->close();
     }
     if (commands_) {
-        sync_enabled(*menus_[index], *commands_);
+        sync_commands(*menus_[index], *commands_);
     }
     menus_[index]->open(item_rect(index), window_, source, t.window_margin, t.window_margin);
     open_ = index;

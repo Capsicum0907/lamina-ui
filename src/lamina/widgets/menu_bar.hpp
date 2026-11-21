@@ -47,6 +47,9 @@ struct MenuBarResponse {
     std::string command = {};
 };
 
+void apply_shortcuts(std::vector<MenuItem>& items, const ShortcutRegistry& commands);
+void sync_commands(Menu& menu, const ShortcutRegistry& commands);
+
 class MenuBar {
 public:
     MenuBar(MenuBarOptions options, const text::FontStack& fonts);
@@ -102,7 +105,6 @@ private:
     std::optional<std::size_t> item_at(double x, double y) const;
     std::optional<std::size_t> access_match(const input::KeyEvent& e) const;
     void reveal_access_keys(bool shown);
-    void prepare(std::vector<MenuItem>& items) const;
 
     text::FontStack fonts_;
     std::string accessible_name_;
