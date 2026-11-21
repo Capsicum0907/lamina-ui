@@ -133,21 +133,21 @@ const PickerStrings japanese_strings{
 
 const CalendarLocale& english_us() {
     static const CalendarLocale locale{
-        "en-US", Weekday::sunday, english_names, "MMMM y", "MMM d, y", "EEEE, MMMM d, y", {"MM/dd/yyyy", U'/'}, false, english_strings,
+        "en-US", Weekday::sunday, english_names, "MMMM y", "MMM d, y", "EEEE, MMMM d, y", {"MM/dd/yyyy", U'/'}, false, "h:mm a", "HH:mm", english_strings,
     };
     return locale;
 }
 
 const CalendarLocale& english_gb() {
     static const CalendarLocale locale{
-        "en-GB", Weekday::monday, english_names, "MMMM y", "d MMM y", "EEEE d MMMM y", {"dd/MM/yyyy", U'/'}, true, english_strings,
+        "en-GB", Weekday::monday, english_names, "MMMM y", "d MMM y", "EEEE d MMMM y", {"dd/MM/yyyy", U'/'}, true, "h:mm a", "HH:mm", english_strings,
     };
     return locale;
 }
 
 const CalendarLocale& japanese() {
     static const CalendarLocale locale{
-        "ja-JP", Weekday::sunday, japanese_names, "y年M月", "y年M月d日", "y年M月d日EEEE", {"yyyy/MM/dd", U'/'}, true, japanese_strings,
+        "ja-JP", Weekday::sunday, japanese_names, "y年M月", "y年M月d日", "y年M月d日EEEE", {"yyyy/MM/dd", U'/'}, true, "a h:mm", "H:mm", japanese_strings,
     };
     return locale;
 }

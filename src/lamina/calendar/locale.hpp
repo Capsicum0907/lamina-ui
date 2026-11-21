@@ -69,6 +69,8 @@ struct CalendarLocale {
     std::string long_date_pattern;
     InputPattern input;
     bool uses_24_hour_clock;
+    std::string time_12_pattern;
+    std::string time_24_pattern;
     PickerStrings strings;
 };
 
