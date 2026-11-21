@@ -455,9 +455,8 @@ const std::map<std::string, Scene>& stills() {
              d.move_to("Switch to text input mode", 0.3);
              d.click();
              d.wait(0.6);
-             d.type("13", 0.05);
-             d.type("2", 0.05);
-             d.type("12026", 0.05);
+             d.ctrl_key(Key::a, "Ctrl+A");
+             d.type("13212026", 0.05);
              d.move_to({1100.0, 600.0}, 0.2);
          }},
         {"dates_dialog",
