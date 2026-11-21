@@ -33,15 +33,6 @@ struct ToolbarsLayout {
 
 const ToolbarsLayout toolbars_layout;
 
-const char* slot_name(ToolbarSlot s) {
-    switch (s) {
-    case ToolbarSlot::leading: return "leading";
-    case ToolbarSlot::trailing: return "trailing";
-    case ToolbarSlot::content: break;
-    }
-    return "content";
-}
-
 class ToolbarsPage final : public BasePage {
 public:
     explicit ToolbarsPage(PageContext context) : BasePage(std::move(context)) {
@@ -160,17 +151,16 @@ public:
                 }
                 const widgets::FloatingToolbarResponse r = t->handle(e);
                 if (r.clicked) {
-                    ctx.report(t->accessible().name + ": " + t->action(r.clicked->slot, r.clicked->index).accessible_name() + " (" +
-                               slot_name(r.clicked->slot) + ")");
+                    ctx.report("Toolbar: " + t->action(r.clicked->slot, r.clicked->index).accessible_name());
                 }
                 if (r.fab_clicked) {
-                    ctx.report(t->accessible().name + ": FAB");
+                    ctx.report("Toolbar: FAB");
                 }
                 used = used || r.consumed;
             }
             if (f.bar && !used) {
                 if (const auto i = f.bar->handle(e)) {
-                    ctx.report("Bottom app bar: " + f.bar->action(*i).accessible_name());
+                    ctx.report("Bottom bar: " + f.bar->action(*i).accessible_name());
                     used = true;
                 }
             }
@@ -200,10 +190,10 @@ public:
             for (auto& t : f->toolbars) {
                 const widgets::FloatingToolbarResponse r = t->handle(e);
                 if (r.clicked) {
-                    ctx.report(t->accessible().name + ": " + t->action(r.clicked->slot, r.clicked->index).accessible_name());
+                    ctx.report("Toolbar: " + t->action(r.clicked->slot, r.clicked->index).accessible_name());
                 }
                 if (r.fab_clicked) {
-                    ctx.report(t->accessible().name + ": FAB");
+                    ctx.report("Toolbar: FAB");
                 }
                 if (r.consumed) {
                     return true;
@@ -211,7 +201,7 @@ public:
             }
             if (f->bar) {
                 if (const auto i = f->bar->handle(e)) {
-                    ctx.report("Bottom app bar: " + f->bar->action(*i).accessible_name());
+                    ctx.report("Bottom bar: " + f->bar->action(*i).accessible_name());
                     return true;
                 }
             }
@@ -238,7 +228,7 @@ public:
             for (std::size_t i = 0; i < f->toolbars.size(); ++i) {
                 if (const auto next = f->expansion[i].scrolled_to(offset)) {
                     f->toolbars[i]->set_expanded(*next);
-                    ctx.report(f->toolbars[i]->accessible().name + (*next ? ": expanded" : ": collapsed"));
+                    ctx.report(*next ? "Toolbar: expanded" : "Toolbar: collapsed");
                 }
                 f->toolbars[i]->step(dt);
             }

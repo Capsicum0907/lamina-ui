@@ -223,7 +223,7 @@ private:
     bool report(ButtonGroup& g, const widgets::ButtonGroupResponse& r) {
         if (r.clicked) {
             const std::size_t i = *r.clicked;
-            std::string text = g.accessible().name + ": " + g.item_name(i);
+            std::string text = "Group: " + g.item_name(i);
             if (g.button(i).toggleable()) {
                 text += g.checked(i) ? " on" : " off";
             }
@@ -280,13 +280,13 @@ private:
     }
 
     bool report(SplitButton& s, const widgets::SplitButtonResponse& r) {
-        const std::string name = s.accessible().name;
+        const std::string name = "Split";
         if (r.leading_clicked) {
             ctx.report(name + ": " + s.leading().accessible_name());
         } else if (r.chosen && s.menu()) {
             ctx.report(name + ": item " + std::to_string(*r.chosen + 1));
         } else if (r.trailing_toggled) {
-            ctx.report(name + (s.checked() ? ": menu open" : ": menu closed"));
+            ctx.report(name + (s.checked() ? ": menu open" : ": menu shut"));
         }
         return r.consumed;
     }
@@ -335,7 +335,7 @@ private:
             auto& f = controls.emplace_with<widgets::ExtendedFab>(
                 [this](widgets::ExtendedFab& w, bool clicked) {
                     if (clicked) {
-                        ctx.report("Extended FAB: " + w.accessible_name());
+                        ctx.report("FAB: " + w.accessible_name());
                     }
                 },
                 widgets::ExtendedFabOptions{label, icon(s), size}, ctx.fonts);
@@ -349,7 +349,7 @@ private:
                     for (widgets::ExtendedFab* f : made) {
                         f->set_expanded(!b.checked());
                     }
-                    ctx.report(b.checked() ? "Extended FABs: collapsed" : "Extended FABs: expanded");
+                    ctx.report(b.checked() ? "FABs: collapsed" : "FABs: expanded");
                 }
             },
             [this] {
