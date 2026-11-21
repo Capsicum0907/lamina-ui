@@ -1,5 +1,7 @@
 #include "lamina/widgets/pattern_strings.hpp"
 
+#include <initializer_list>
+
 namespace lamina::widgets {
 
 const PatternStrings& english_us_patterns() {
@@ -20,6 +22,15 @@ const PatternStrings& english_us_patterns() {
         .more_options = "More options",
         .expand_toolbar = "Expand toolbar",
         .collapse_toolbar = "Collapse toolbar",
+        .primary_pane = "Primary pane",
+        .secondary_pane = "Secondary pane",
+        .tertiary_pane = "Tertiary pane",
+        .pane_expansion_drag_handle = "Pane expansion drag handle",
+        .pane_split_state = "Current pane split, %s",
+        .pane_split_action = "Change pane split to %s",
+        .proportion_anchor = "%d percent",
+        .start_offset_anchor = "%d DPs from start",
+        .end_offset_anchor = "%d DPs from end",
     };
     return strings;
 }
@@ -52,8 +63,29 @@ const PatternStrings& japanese_patterns() {
         .more_options = "その他のオプション",
         .expand_toolbar = "ツールバーを開きます",
         .collapse_toolbar = "ツールバーを閉じます",
+        .primary_pane = "プライマリ ペイン",
+        .secondary_pane = "セカンダリ ペイン",
+        .tertiary_pane = "ターシャリ ペイン",
+        .pane_expansion_drag_handle = "ペインの展開のドラッグ ハンドル",
+        .pane_split_state = "現在のペイン分割、%s",
+        .pane_split_action = "ペインの分割を %s に変更",
+        .proportion_anchor = "%d パーセント",
+        .start_offset_anchor = "開始地点から %d DP",
+        .end_offset_anchor = "終了地点から %d DP",
     };
     return strings;
+}
+
+std::string format_pattern(std::string_view pattern, std::string_view value) {
+    for (const std::string_view slot : {std::string_view("%s"), std::string_view("%d")}) {
+        if (const std::size_t at = pattern.find(slot); at != std::string_view::npos) {
+            std::string out(pattern.substr(0, at));
+            out += value;
+            out += pattern.substr(at + slot.size());
+            return out;
+        }
+    }
+    return std::string(pattern);
 }
 
 }
