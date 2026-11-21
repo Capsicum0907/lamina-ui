@@ -26,6 +26,10 @@ concept TabAccepting = Focusable<W> && requires(const W& w) {
 
 enum class FocusDirection { next, previous };
 
+class FocusManager;
+
+bool chain_focus(const std::vector<FocusManager*>& parts, FocusDirection direction, bool wrap);
+
 class FocusManager {
 public:
     template <Focusable W>

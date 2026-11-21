@@ -16,6 +16,7 @@
 #include "lamina/tokens/dialog.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/content_slot.hpp"
 #include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/popup_transition.hpp"
@@ -26,11 +27,7 @@ namespace lamina::widgets {
 
 enum class DialogAction { confirm, dismiss };
 
-struct DialogContent {
-    layout::NodePtr node;
-    WidgetSet* widgets = nullptr;
-    FocusManager* focus = nullptr;
-};
+using DialogContent = ContentSlot;
 
 struct DialogOptions {
     std::string headline;

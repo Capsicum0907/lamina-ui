@@ -122,4 +122,46 @@ FocusManager::Member* FocusManager::member(const void* id) const {
     return it == entries_.end() ? nullptr : it->get();
 }
 
+bool chain_focus(const std::vector<FocusManager*>& parts, FocusDirection direction, bool wrap) {
+    const auto n = static_cast<std::ptrdiff_t>(parts.size());
+    const bool forward = direction == FocusDirection::next;
+    std::ptrdiff_t at = -1;
+    for (std::ptrdiff_t i = 0; i < n; ++i) {
+        if (parts[static_cast<std::size_t>(i)]->has_focus()) {
+            at = i;
+            break;
+        }
+    }
+    if (at < 0) {
+        for (std::ptrdiff_t k = 0; k < n; ++k) {
+            FocusManager& part = *parts[static_cast<std::size_t>(forward ? k : n - 1 - k)];
+            if (part.any_can_focus()) {
+                return part.advance(direction);
+            }
+        }
+        return false;
+    }
+    FocusManager& current = *parts[static_cast<std::size_t>(at)];
+    if (current.advance(direction)) {
+        return true;
+    }
+    for (std::ptrdiff_t k = 1; k <= n; ++k) {
+        std::ptrdiff_t j = forward ? at + k : at - k;
+        if (j < 0 || j >= n) {
+            if (!wrap) {
+                return false;
+            }
+            j = (j % n + n) % n;
+        }
+        FocusManager& part = *parts[static_cast<std::size_t>(j)];
+        if (!part.any_can_focus()) {
+            continue;
+        }
+        current.clear_focus();
+        part.clear_focus();
+        return part.advance(direction);
+    }
+    return true;
+}
+
 }

@@ -68,6 +68,7 @@ add_library(lamina STATIC
     src/lamina/widgets/card.cpp
     src/lamina/widgets/checkbox.cpp
     src/lamina/widgets/chip.cpp
+    src/lamina/widgets/content_host.cpp
     src/lamina/widgets/chip_group.cpp
     src/lamina/widgets/date_picker.cpp
     src/lamina/widgets/date_range_picker.cpp
@@ -85,6 +86,7 @@ add_library(lamina STATIC
     src/lamina/widgets/navigation_bar.cpp
     src/lamina/widgets/navigation_rail.cpp
     src/lamina/widgets/overlay_stack.cpp
+    src/lamina/widgets/pattern_strings.cpp
     src/lamina/widgets/picker_dialog.cpp
     src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
@@ -252,6 +254,7 @@ if(LAMINA_BUILD_TESTS)
         tests/chip_test.cpp
         tests/color_mix_test.cpp
         tests/color_scheme_test.cpp
+        tests/content_host_test.cpp
         tests/dialog_content_test.cpp
         tests/dialog_test.cpp
         tests/disabled_items_test.cpp
