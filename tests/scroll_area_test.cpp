@@ -242,3 +242,70 @@ TEST_CASE("the bar is painted only while visible") {
     s.paint(canvas, scheme());
     CHECK(canvas.pixel(204, 30) != 0xffffffff);
 }
+
+TEST_CASE("a scroll area scrolls sideways with the horizontal wheel and with Shift and the wheel") {
+    ScrollArea s = make(1000.0);
+    s.set_content_width(800.0);
+    CHECK(s.max_offset_x() == 600.0);
+    s.handle(input::WheelEvent{100.0, 100.0, 1.0, 0.0});
+    settle(s);
+    CHECK(s.offset_x() == doctest::Approx(t.wheel_step));
+    CHECK(s.offset() == 0.0);
+    s.handle(input::WheelEvent{100.0, 100.0, 0.0, 2.0, true});
+    settle(s);
+    CHECK(s.offset_x() == doctest::Approx(3.0 * t.wheel_step));
+    CHECK(s.offset() == 0.0);
+    wheel(s, 1.0);
+    settle(s);
+    CHECK(s.offset() == doctest::Approx(t.wheel_step));
+    s.handle(input::WheelEvent{100.0, 100.0, 50.0, 0.0});
+    settle(s);
+    CHECK(s.offset_x() == 600.0);
+}
+
+TEST_CASE("Shift and the wheel still scroll a scroll area that cannot scroll sideways") {
+    ScrollArea s = make(1000.0);
+    CHECK(s.handle(input::WheelEvent{100.0, 100.0, 0.0, 1.0, true}));
+    settle(s);
+    CHECK(s.offset() == doctest::Approx(t.wheel_step));
+}
+
+TEST_CASE("content coordinates follow both offsets") {
+    ScrollArea s = make(1000.0);
+    s.set_content_width(800.0);
+    s.jump_to(100.0);
+    s.jump_to_x(50.0);
+    const input::PointerEvent in = s.to_content({PointerAction::move, 20.0, 30.0});
+    CHECK(in.x_dp == 60.0);
+    CHECK(in.y_dp == 110.0);
+    const render::Rect r = s.to_window({60.0, 110.0, 10.0, 10.0});
+    CHECK(r.x == 20.0);
+    CHECK(r.y == 30.0);
+    s.ensure_visible_x(700.0, 760.0);
+    settle(s);
+    CHECK(s.offset_x() == 560.0);
+}
+
+TEST_CASE("the horizontal bar runs along the bottom and drags the content sideways") {
+    ScrollArea s = make(1000.0);
+    s.set_content_width(800.0);
+    s.scroll_by_x(1.0);
+    settle(s);
+    s.jump_to_x(0.0);
+    const std::optional<render::Rect> thumb = s.thumb_x();
+    REQUIRE(thumb.has_value());
+    CHECK(thumb->y + thumb->height == doctest::Approx(20.0 + 300.0 - t.bar_margin));
+    CHECK(thumb->width < 200.0);
+    const std::optional<render::Rect> vertical = s.thumb();
+    REQUIRE(vertical.has_value());
+    CHECK(vertical->y + vertical->height <= 20.0 + 300.0 - t.bar_hit_width);
+    const double y = 20.0 + 300.0 - t.bar_margin - 2.0;
+    const double x = thumb->x + thumb->width / 2.0;
+    CHECK(s.handle(input::PointerEvent{PointerAction::down, x, y}));
+    CHECK(s.dragging());
+    CHECK(s.to_content({PointerAction::move, x, y}).action == PointerAction::leave);
+    s.handle(input::PointerEvent{PointerAction::move, x + 20.0, y});
+    CHECK(s.offset_x() > 0.0);
+    s.handle(input::PointerEvent{PointerAction::up, x + 20.0, y});
+    CHECK_FALSE(s.dragging());
+}

@@ -136,7 +136,10 @@ struct WheelEvent {
     double y_dp;
     double dx;
     double dy;
+    bool shift = false;
 };
+
+enum class Cursor { arrow, text, pointer, resize_horizontal, resize_vertical, move, not_allowed };
 
 struct KeyEvent {
     Key key;

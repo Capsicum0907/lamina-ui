@@ -9,6 +9,7 @@
 #include "lamina/input/caption.hpp"
 #include "lamina/input/clipboard.hpp"
 #include "lamina/input/events.hpp"
+#include "lamina/layout/window_size_class.hpp"
 #include "lamina/render/canvas.hpp"
 
 namespace lamina::sdl3 {
@@ -31,6 +32,7 @@ struct Frame {
     std::vector<input::WheelEvent> wheel;
     std::vector<input::KeyEvent> keys;
     std::vector<input::TextEvent> text;
+    layout::WindowSizeClass size_class = {};
 };
 
 bool client_title_bar_supported();
@@ -47,6 +49,7 @@ public:
     void on_live_resize(std::function<void(const Frame&)> redraw);
     void wake_after(double seconds);
     void set_text_input(const std::optional<render::Rect>& caret_area_dp);
+    void set_cursor(input::Cursor cursor);
     input::Clipboard& clipboard();
     render::Canvas& canvas();
     void present();

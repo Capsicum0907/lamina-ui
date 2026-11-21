@@ -1,6 +1,7 @@
 #include "lamina_sdl3/window.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -39,6 +40,10 @@ input::PointerKind pointer_kind(SDL_MouseID which) {
 constexpr double nanoseconds_per_second = 1e9;
 constexpr double max_frame_seconds = 0.1;
 constexpr double milliseconds_per_second = 1000.0;
+constexpr std::array<SDL_SystemCursor, 7> system_cursors{SDL_SYSTEM_CURSOR_DEFAULT,   SDL_SYSTEM_CURSOR_TEXT,      SDL_SYSTEM_CURSOR_POINTER,
+                                                       SDL_SYSTEM_CURSOR_EW_RESIZE, SDL_SYSTEM_CURSOR_NS_RESIZE, SDL_SYSTEM_CURSOR_MOVE,
+                                                       SDL_SYSTEM_CURSOR_NOT_ALLOWED};
+constexpr std::size_t cursor_count = system_cursors.size();
 constexpr const char* unavailable_title_bar_message = "lamina: the client-drawn title bar is not available; using the system frame\n";
 
 std::optional<Key> to_key(SDL_Keycode k) {
@@ -134,6 +139,8 @@ struct Window::Impl {
     Uint32 caption_pointer_event = 0;
     std::unique_ptr<detail::CaptionFrame> caption;
     bool close_requested = false;
+    std::array<SDL_Cursor*, cursor_count> cursors{};
+    input::Cursor cursor = input::Cursor::arrow;
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
@@ -149,6 +156,7 @@ struct Window::Impl {
         frame.scale = scale();
         frame.width_dp = pw / frame.scale;
         frame.height_dp = ph / frame.scale;
+        frame.size_class = layout::compute_window_size_class(frame.width_dp, frame.height_dp);
         const SDL_WindowFlags flags = SDL_GetWindowFlags(window);
         frame.maximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
         frame.active = (flags & SDL_WINDOW_INPUT_FOCUS) != 0;
@@ -261,6 +269,11 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
 
 Window::~Window() {
     impl_->caption.reset();
+    for (SDL_Cursor* c : impl_->cursors) {
+        if (c) {
+            SDL_DestroyCursor(c);
+        }
+    }
     if (impl_->texture) {
         SDL_DestroyTexture(impl_->texture);
     }
@@ -336,7 +349,8 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_MOUSE_WHEEL: {
             const float flip = e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f;
-            frame.wheel.push_back({impl_->to_dp(e.wheel.mouse_x), impl_->to_dp(e.wheel.mouse_y), flip * e.wheel.x, -flip * e.wheel.y});
+            frame.wheel.push_back({impl_->to_dp(e.wheel.mouse_x), impl_->to_dp(e.wheel.mouse_y), flip * e.wheel.x, -flip * e.wheel.y,
+                                   (SDL_GetModState() & SDL_KMOD_SHIFT) != 0});
             break;
         }
         case SDL_EVENT_KEY_DOWN:
@@ -412,6 +426,23 @@ void Window::close() {
 void Window::wake_after(double seconds) {
     if (impl_->wake_seconds < 0.0 || seconds < impl_->wake_seconds) {
         impl_->wake_seconds = std::max(0.0, seconds);
+    }
+}
+
+void Window::set_cursor(input::Cursor cursor) {
+    if (cursor == impl_->cursor) {
+        return;
+    }
+    impl_->cursor = cursor;
+    const auto i = static_cast<std::size_t>(cursor);
+    if (i >= cursor_count) {
+        return;
+    }
+    if (!impl_->cursors[i]) {
+        impl_->cursors[i] = SDL_CreateSystemCursor(system_cursors[i]);
+    }
+    if (impl_->cursors[i]) {
+        SDL_SetCursor(impl_->cursors[i]);
     }
 }
 
