@@ -30,7 +30,7 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
       label_(text::layout_line(fonts, options_.label,
                                tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)))),
       width_(0.0),
-      height_(tokens::button_size(options_.size).height),
+      height_(tokens::button_density(options_.size).at(options_.density)),
       enabled_(options_.enabled),
       press_amount_(0.0, motion_scheme.default_effects()),
       squareness_(options_.shape == tokens::ButtonShape::square ? 1.0 : 0.0, motion_scheme.fast_spatial()),
@@ -109,6 +109,13 @@ void Button::set_size(double width, double height) {
     sized_ = true;
     width_ = width;
     height_ = height;
+}
+
+void Button::set_density(tokens::Density density) {
+    options_.density = density;
+    if (!sized_) {
+        height_ = tokens::button_density(options_.size).at(density);
+    }
 }
 
 render::Rect Button::bounds() const {

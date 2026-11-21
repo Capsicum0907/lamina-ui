@@ -9,6 +9,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/button.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/icon_button.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/badge.hpp"
@@ -29,6 +30,7 @@ struct IconButtonOptions {
     bool checked = false;
     bool enabled = true;
     std::optional<color::Role> content = std::nullopt;
+    tokens::Density density = {};
 };
 
 class IconButton {
@@ -39,6 +41,8 @@ public:
     double height() const;
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
 
     bool checked() const { return options_.checked; }
     void set_checked(bool checked);

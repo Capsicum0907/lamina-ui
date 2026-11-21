@@ -10,6 +10,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/button.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/animated_corners.hpp"
 #include "lamina/widgets/enablement.hpp"
@@ -62,6 +63,7 @@ struct ButtonOptions {
     std::optional<ButtonPadding> padding = std::nullopt;
     std::optional<double> min_width = std::nullopt;
     std::optional<double> icon_size = std::nullopt;
+    tokens::Density density = {};
 };
 
 class Button {
@@ -71,6 +73,8 @@ public:
     double width() const { return width_; }
     double height() const { return height_; }
     void set_size(double width, double height);
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
     void set_label(std::string label);
     void set_content_scale(double label_scale, double icon_scale);
     void set_shape(tokens::ButtonShape shape);

@@ -101,6 +101,12 @@ public:
         visit([enabled](Member& m) { m.set_enabled(enabled); });
     }
 
+    void set_density(tokens::Density density) {
+        density_ = density;
+        visit([density](Member& m) { m.set_density(density); });
+    }
+    tokens::Density density() const { return density_; }
+
     std::vector<AccessibleNode> accessible_nodes() const {
         std::vector<AccessibleNode> out;
         visit([&](const Member& m) { m.collect(out); });
@@ -135,6 +141,7 @@ private:
         virtual bool animating() const = 0;
         virtual void cancel_interaction() = 0;
         virtual void set_enabled(bool enabled) = 0;
+        virtual void set_density(tokens::Density density) = 0;
         virtual void collect(std::vector<AccessibleNode>& out) const = 0;
         virtual bool deliver(const input::PointerEvent& e) = 0;
         virtual bool deliver(const input::KeyEvent& e) = 0;
@@ -173,6 +180,11 @@ private:
         void set_enabled(bool enabled) override {
             if constexpr (Disableable<Widget>) {
                 widget.set_enabled(enabled);
+            }
+        }
+        void set_density(tokens::Density density) override {
+            if constexpr (Densifiable<Widget>) {
+                widget.set_density(density);
             }
         }
         void collect(std::vector<AccessibleNode>& out) const override {
@@ -268,6 +280,7 @@ private:
 
     std::vector<std::unique_ptr<Member>> entries_;
     mutable int depth_ = 0;
+    tokens::Density density_{};
 };
 
 }

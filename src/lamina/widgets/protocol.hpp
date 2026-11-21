@@ -7,6 +7,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/render/geometry.hpp"
+#include "lamina/tokens/density.hpp"
 
 namespace lamina::widgets {
 
@@ -57,6 +58,12 @@ template <typename W>
 concept Disableable = requires(W& w, const W& cw, bool enabled) {
     { cw.enabled() } -> std::convertible_to<bool>;
     w.set_enabled(enabled);
+};
+
+template <typename W>
+concept Densifiable = requires(W& w, const W& cw, tokens::Density density) {
+    { cw.density() } -> std::convertible_to<tokens::Density>;
+    w.set_density(density);
 };
 
 template <typename W>

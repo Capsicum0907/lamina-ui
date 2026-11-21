@@ -267,6 +267,7 @@ if(LAMINA_BUILD_TESTS)
         tests/calculator_layout_test.cpp
         tests/cancel_interaction_test.cpp
         tests/date_picker_test.cpp
+        tests/density_test.cpp
         tests/date_range_picker_test.cpp
         tests/calendar_locale_test.cpp
         tests/calendar_test.cpp

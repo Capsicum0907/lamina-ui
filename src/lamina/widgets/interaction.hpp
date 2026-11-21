@@ -14,9 +14,9 @@ constexpr bool contains(const render::Rect& r, double x, double y) {
     return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 }
 
-constexpr render::Rect touch_target(const render::Rect& r) {
-    const double w = std::max(r.width, tokens::minimum_interactive_size);
-    const double h = std::max(r.height, tokens::minimum_interactive_size);
+constexpr render::Rect touch_target(const render::Rect& r, double minimum = tokens::minimum_interactive_size) {
+    const double w = std::max(r.width, minimum);
+    const double h = std::max(r.height, minimum);
     return {r.x - (w - r.width) / 2.0, r.y - (h - r.height) / 2.0, w, h};
 }
 

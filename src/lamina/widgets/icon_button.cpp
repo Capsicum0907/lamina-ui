@@ -29,11 +29,17 @@ IconButton::IconButton(IconButtonOptions options)
 }
 
 double IconButton::width() const {
-    return tokens::icon_button_width(options_.size, options_.width);
+    const double removed = tokens::icon_button_size(options_.size).height - height();
+    return std::max(tokens::icon_button_size(options_.size).icon_size, tokens::icon_button_width(options_.size, options_.width) - removed);
 }
 
 double IconButton::height() const {
-    return tokens::icon_button_size(options_.size).height;
+    return tokens::icon_button_density(options_.size).at(options_.density);
+}
+
+void IconButton::set_density(tokens::Density density) {
+    options_.density = density;
+    corner_.snap_to(target_corner());
 }
 
 render::Rect IconButton::bounds() const {
@@ -94,7 +100,7 @@ bool IconButton::handle(const input::PointerEvent& e) {
     if (!enabled()) {
         return false;
     }
-    const bool clicked = press_.update(e, touch_target(bounds()));
+    const bool clicked = press_.update(e, touch_target(bounds(), tokens::minimum_target(options_.density)));
     if (clicked && options_.toggleable) {
         options_.checked = !options_.checked;
     }
