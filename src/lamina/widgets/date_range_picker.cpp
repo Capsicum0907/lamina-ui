@@ -600,7 +600,10 @@ void DateRangePicker::paint(render::Canvas& canvas, const color::ColorScheme& sc
     const double slot = tokens::minimum_interactive_size;
     const double row_top = origin_.y + header_height() - t.divider_thickness - slot - t.toggle_bottom;
     const double headline_y = row_top + (slot + t.toggle_bottom - t.headline_bottom - headline_line.box_height()) / 2.0;
+    const double headline_width = t.container_width - start - t.header_end - (options_.show_mode_toggle ? slot : 0.0);
+    canvas.push_clip({origin_.x + start, origin_.y, headline_width, header_height()});
     text::draw_line(canvas, fonts_, headline_line, {origin_.x + start, headline_y}, dim(scheme[k.headline], e));
+    canvas.pop_clip();
     if (options_.show_mode_toggle) {
         toggle_.paint(canvas, scheme);
     }
