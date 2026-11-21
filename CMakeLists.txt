@@ -93,6 +93,7 @@ add_library(lamina STATIC
     src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/scroll_area.cpp
+    src/lamina/widgets/search_bar.cpp
     src/lamina/widgets/segmented_button.cpp
     src/lamina/widgets/range_slider.cpp
     src/lamina/widgets/side_sheet.cpp
@@ -294,6 +295,7 @@ if(LAMINA_BUILD_TESTS)
         tests/range_slider_test.cpp
         tests/resources_test.cpp
         tests/scroll_area_test.cpp
+        tests/search_bar_test.cpp
         tests/segmented_button_test.cpp
         tests/shapes_test.cpp
         tests/side_sheet_test.cpp
