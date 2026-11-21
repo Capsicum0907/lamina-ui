@@ -344,6 +344,7 @@ if(LAMINA_BUILD_TESTS)
         tests/tokens_test.cpp
         tests/wavy_progress_test.cpp
         tests/widget_set_test.cpp
+        tests/window_size_class_test.cpp
         tests/word_boundary_test.cpp
     )
     lamina_add_resources(lamina_test_resources NAMESPACE lamina::test::res HEADER test_res.hpp
