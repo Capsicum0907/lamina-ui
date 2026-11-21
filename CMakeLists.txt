@@ -78,7 +78,9 @@ add_library(lamina STATIC
     src/lamina/widgets/dialog.cpp
     src/lamina/widgets/docked_date_picker.cpp
     src/lamina/widgets/divider.cpp
+    src/lamina/widgets/extended_fab.cpp
     src/lamina/widgets/fab.cpp
+    src/lamina/widgets/fab_menu.cpp
     src/lamina/widgets/focus_manager.cpp
     src/lamina/widgets/grouped_menu.cpp
     src/lamina/widgets/icon_button.cpp
@@ -276,6 +278,7 @@ if(LAMINA_BUILD_TESTS)
         tests/divider_test.cpp
         tests/edit_buffer_test.cpp
         tests/edit_history_test.cpp
+        tests/fab_menu_test.cpp
         tests/focus_indicator_test.cpp
         tests/focus_manager_test.cpp
         tests/font_ownership_test.cpp
