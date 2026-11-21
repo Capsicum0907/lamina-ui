@@ -4,6 +4,7 @@
 #include <exception>
 #include <fstream>
 #include <functional>
+#include <initializer_list>
 #include <map>
 #include <optional>
 #include <stdexcept>
@@ -1513,12 +1514,248 @@ const std::map<std::string, Scene>& pattern_videos() {
     return scenes;
 }
 
-const Scene* find_scene(const std::map<std::string, Scene>& a, const std::map<std::string, Scene>& b, const std::string& name) {
-    if (const auto it = a.find(name); it != a.end()) {
-        return &it->second;
+void hold_on(Driver& d, render::Point p, double move, double hold) {
+    d.move_to(p, move);
+    d.press();
+    d.wait(hold);
+    d.release();
+}
+
+void scroll_frame(Driver& d, examples::components::Gallery& g, const std::string& list, double dy, int notches, double pause) {
+    const render::Rect r = bounds_of(g, list);
+    d.move_to({r.x + r.width / 2.0, r.y + r.height * 0.4}, 0.5);
+    for (int i = 0; i < notches; ++i) {
+        d.wheel(dy);
+        d.wait(pause);
     }
-    const auto it = b.find(name);
-    return it == b.end() ? nullptr : &it->second;
+}
+
+const std::map<std::string, Scene>& expressive_stills() {
+    static const std::map<std::string, Scene> scenes{
+        {"groups", [](Driver& d, examples::components::Gallery&) { show_page(d, "Groups"); }},
+        {"groups_pressed",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Groups");
+             d.move_to(centre_in(g, "Connected", "Month"), 0.4);
+             d.press();
+             d.wait(0.6);
+         }},
+        {"groups_overflow",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Groups");
+             click_at(d, centre_in(g, "Overflow", "More options"), 0.4);
+             d.wait(0.6);
+             d.move_to(centre_in(g, "Overflow", "Layers"), 0.4);
+         }},
+        {"groups_split",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Groups");
+             click_at(d, centre_in(g, "Medium split button", "More send options"), 0.4);
+             d.wait(0.8);
+             d.move_to(centre_in(g, "Medium split button", "Save draft"), 0.4);
+         }},
+        {"groups_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Groups");
+             tab_to(d, g, "Coffee");
+         }},
+        {"groups_tooltip",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Groups");
+             d.move_to(centre_in(g, "Small split button", "More send options"), 0.4);
+             d.wait(1.2);
+         }},
+        {"groups_collapsed",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Groups");
+             click_named(d, "Collapse", 0.4);
+             d.wait(0.8);
+         }},
+        {"groups_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Groups");
+             toggle_enabled(d);
+         }},
+        {"progress",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Progress");
+             d.wait(1.3);
+         }},
+        {"progress_running",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Progress");
+             click_named(d, "Run", 0.4);
+             d.wait(1.9);
+         }},
+        {"progress_handoff",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Progress");
+             click_named(d, "Indeterminate", 0.4);
+             d.wait(1.0);
+         }},
+        {"toolbars", [](Driver& d, examples::components::Gallery&) { show_page(d, "Toolbars"); }},
+        {"toolbars_scrolled",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Toolbars");
+             scroll_frame(d, g, "Photos list", 1.0, 3, 0.15);
+             scroll_frame(d, g, "Notes list", 1.0, 3, 0.15);
+             scroll_frame(d, g, "Inbox list", 1.0, 3, 0.15);
+             d.move_to({720.0, 845.0}, 0.3);
+             d.wait(1.0);
+         }},
+        {"toolbars_menu",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Toolbars");
+             click_at(d, centre_in(g, "New item", "New"), 0.4);
+             d.wait(0.9);
+             d.move_to(centre_in(g, "New item", "Meeting"), 0.4);
+         }},
+        {"toolbars_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Toolbars");
+             tab_to(d, g, "Edit");
+             d.key(Key::tab);
+             d.wait(0.3);
+         }},
+        {"toolbars_tooltip",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Toolbars");
+             d.move_to(centre_in(g, "Format", "Color"), 0.4);
+             d.wait(1.2);
+         }},
+        {"toolbars_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Toolbars");
+             toggle_enabled(d);
+         }},
+    };
+    return scenes;
+}
+
+const std::map<std::string, Scene>& expressive_videos() {
+    static const std::map<std::string, Scene> scenes{
+        {"button_groups",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Groups");
+             d.wait(0.4);
+             for (const char* name : {"Day", "Month", "Year", "Week"}) {
+                 hold_on(d, centre_in(g, "Connected", name), 0.5, 0.45);
+                 d.wait(0.5);
+             }
+             for (const char* name : {"Food", "Coffee", "Work"}) {
+                 hold_on(d, centre_in(g, "Connected icons", name), 0.5, 0.4);
+                 d.wait(0.4);
+             }
+             for (const char* name : {"Bluetooth", "Location"}) {
+                 hold_on(d, centre_in(g, "Standard", name), 0.5, 0.35);
+                 d.wait(0.4);
+             }
+             click_at(d, centre_in(g, "Actions", "Copy"), 0.5);
+             d.wait(0.5);
+             click_at(d, centre_in(g, "Overflow", "More options"), 0.6);
+             d.wait(0.8);
+             click_at(d, centre_in(g, "Overflow", "Filter"), 0.6);
+             d.wait(1.0);
+         }},
+        {"split_button",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Groups");
+             d.wait(0.4);
+             click_at(d, centre_in(g, "Small split button", "Send"), 0.6);
+             d.wait(0.5);
+             click_at(d, centre_in(g, "Small split button", "More send options"), 0.5);
+             d.wait(1.0);
+             click_at(d, centre_in(g, "Small split button", "Schedule send"), 0.6);
+             d.wait(0.9);
+             hold_on(d, centre_in(g, "Large split button", "Send"), 0.6, 0.5);
+             d.wait(0.5);
+             click_at(d, centre_in(g, "Large split button", "More send options"), 0.5);
+             d.wait(1.0);
+             d.move_to(centre_in(g, "Large split button", "Discard"), 0.5);
+             d.wait(0.4);
+             d.key(Key::escape);
+             d.wait(0.9);
+             click_at(d, centre_in(g, "Outlined split button", "Outlined options"), 0.6);
+             d.wait(0.9);
+             click_at(d, centre_in(g, "Outlined split button", "Outlined options"), 0.3);
+             d.wait(1.0);
+         }},
+        {"fab_menu",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Toolbars");
+             d.wait(0.4);
+             click_at(d, centre_in(g, "New item", "New"), 0.8);
+             d.wait(1.2);
+             click_at(d, centre_in(g, "New item", "New"), 0.4);
+             d.wait(1.0);
+             click_at(d, centre_in(g, "New item", "New"), 0.4);
+             d.wait(1.0);
+             click_at(d, centre_in(g, "New item", "Chat"), 0.6);
+             d.wait(1.2);
+             d.move_to(centre_in(g, "New item", "New"), 0.5);
+             d.wait(0.2);
+             d.key(Key::enter);
+             d.wait(1.0);
+             d.key(Key::down);
+             d.wait(0.4);
+             d.key(Key::tab);
+             d.wait(0.4);
+             d.key(Key::escape);
+             d.wait(1.2);
+         }},
+        {"loading",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Progress");
+             d.move_to({720.0, 845.0}, 0.0);
+             d.set_cursor(false);
+             d.wait(5.0);
+             d.set_cursor(true);
+             d.move_to(centre_by(g, [](const widgets::AccessibleNode& n) { return n.name == "Progress" && n.role == widgets::AccessibleRole::slider; }), 0.8);
+             d.drag_to({d.pointer().x - 250.0, d.pointer().y}, 1.6);
+             d.drag_to({d.pointer().x + 300.0, d.pointer().y}, 2.4);
+             d.wait(0.8);
+         }},
+        {"wavy_progress",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Progress");
+             d.wait(0.6);
+             click_named(d, "Run", 0.6);
+             d.wait(5.6);
+             click_named(d, "Indeterminate", 0.6);
+             d.wait(1.5);
+             click_named(d, "Indeterminate", 0.4);
+             d.wait(1.6);
+         }},
+        {"toolbars",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Toolbars");
+             d.wait(0.4);
+             scroll_frame(d, g, "Photos list", 1.0, 4, 0.18);
+             d.wait(0.8);
+             scroll_frame(d, g, "Photos list", -1.0, 3, 0.18);
+             d.wait(0.8);
+             click_at(d, centre_in(g, "Photo tools", "Favorite"), 0.5);
+             d.wait(0.4);
+             scroll_frame(d, g, "Notes list", 1.0, 4, 0.18);
+             d.wait(0.8);
+             scroll_frame(d, g, "Notes list", -1.0, 3, 0.18);
+             d.wait(0.8);
+             scroll_frame(d, g, "Inbox list", 1.0, 2, 0.25);
+             d.wait(1.0);
+             scroll_frame(d, g, "Inbox list", -1.0, 2, 0.25);
+             d.wait(1.0);
+         }},
+    };
+    return scenes;
+}
+
+const Scene* find_scene(std::initializer_list<const std::map<std::string, Scene>*> maps, const std::string& name) {
+    for (const auto* m : maps) {
+        if (const auto it = m->find(name); it != m->end()) {
+            return &it->second;
+        }
+    }
+    return nullptr;
 }
 
 int usage() {
@@ -1556,7 +1793,7 @@ int main(int argc, char** argv) {
         gallery.set_dark(dark);
 
         if (mode == "still") {
-            const Scene* found = find_scene(stills(), pattern_stills(), scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills()}, scene);
             if (!found || argc < 6) {
                 return usage();
             }
@@ -1576,7 +1813,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "tree") {
-            const Scene* found = find_scene(stills(), pattern_stills(), scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills()}, scene);
             if (!found) {
                 return usage();
             }
@@ -1592,7 +1829,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "video") {
-            const Scene* found = find_scene(videos(), pattern_videos(), scene);
+            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos()}, scene);
             if (!found) {
                 return usage();
             }
