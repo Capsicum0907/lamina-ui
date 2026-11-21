@@ -81,6 +81,8 @@ add_library(lamina STATIC
     src/lamina/widgets/extended_fab.cpp
     src/lamina/widgets/fab.cpp
     src/lamina/widgets/fab_menu.cpp
+    src/lamina/widgets/flexible_bottom_app_bar.cpp
+    src/lamina/widgets/floating_toolbar.cpp
     src/lamina/widgets/focus_manager.cpp
     src/lamina/widgets/grouped_menu.cpp
     src/lamina/widgets/icon_button.cpp
@@ -279,6 +281,7 @@ if(LAMINA_BUILD_TESTS)
         tests/edit_buffer_test.cpp
         tests/edit_history_test.cpp
         tests/fab_menu_test.cpp
+        tests/floating_toolbar_test.cpp
         tests/focus_indicator_test.cpp
         tests/focus_manager_test.cpp
         tests/font_ownership_test.cpp
