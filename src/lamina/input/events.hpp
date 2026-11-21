@@ -17,6 +17,7 @@ struct PointerEvent {
     double y_dp;
     int clicks = 0;
     PointerKind kind = PointerKind::mouse;
+    double time_seconds = 0.0;
 };
 
 enum class Key {

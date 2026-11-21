@@ -318,17 +318,20 @@ bool Window::next_frame(Frame& frame, bool animating) {
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             return false;
         case SDL_EVENT_MOUSE_MOTION:
-            frame.pointer.push_back({PointerAction::move, impl_->to_dp(e.motion.x), impl_->to_dp(e.motion.y), 0, pointer_kind(e.motion.which)});
+            frame.pointer.push_back({PointerAction::move, impl_->to_dp(e.motion.x), impl_->to_dp(e.motion.y), 0, pointer_kind(e.motion.which),
+                                     static_cast<double>(e.motion.timestamp) / nanoseconds_per_second});
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             if (e.button.button == SDL_BUTTON_LEFT) {
                 frame.pointer.push_back(
-                    {PointerAction::down, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), e.button.clicks, pointer_kind(e.button.which)});
+                    {PointerAction::down, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), e.button.clicks, pointer_kind(e.button.which),
+                     static_cast<double>(e.button.timestamp) / nanoseconds_per_second});
             }
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (e.button.button == SDL_BUTTON_LEFT) {
-                frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which)});
+                frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which),
+                                         static_cast<double>(e.button.timestamp) / nanoseconds_per_second});
             }
             break;
         case SDL_EVENT_MOUSE_WHEEL: {

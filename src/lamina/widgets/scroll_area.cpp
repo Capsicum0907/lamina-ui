@@ -164,7 +164,10 @@ input::PointerEvent ScrollArea::to_content(const input::PointerEvent& e) const {
     if (e.action == input::PointerAction::leave || dragging_ || !contains(viewport_, e.x_dp, e.y_dp) || over_bar(e.x_dp, e.y_dp)) {
         return {input::PointerAction::leave, 0.0, 0.0};
     }
-    return {e.action, e.x_dp - viewport_.x, e.y_dp - viewport_.y + offset_.value(), e.clicks};
+    input::PointerEvent inside = e;
+    inside.x_dp = e.x_dp - viewport_.x;
+    inside.y_dp = e.y_dp - viewport_.y + offset_.value();
+    return inside;
 }
 
 render::Rect ScrollArea::to_window(const render::Rect& r) const {

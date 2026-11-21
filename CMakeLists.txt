@@ -38,6 +38,7 @@ add_library(lamina STATIC
     src/lamina/color/spec_2025.cpp
     src/lamina/icons/icon.cpp
     src/lamina/motion/spring.cpp
+    src/lamina/motion/velocity_tracker.cpp
     src/lamina/render/canvas.cpp
     src/lamina/render/geometry.cpp
     src/lamina/render/path.cpp
@@ -234,6 +235,7 @@ if(LAMINA_BUILD_TESTS)
     add_executable(lamina_tests
         tests/access_key_test.cpp
         tests/accessibility_test.cpp
+        tests/anchored_draggable_test.cpp
         tests/animated_test.cpp
         tests/badge_test.cpp
         tests/button_test.cpp
