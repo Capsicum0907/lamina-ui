@@ -46,6 +46,7 @@ public:
     void restore();
     void translate(double dx, double dy);
     void scale(double factor);
+    void rotate(double radians);
     void push_clip(const Rect& rect);
     void push_clip(const Path& path);
     void pop_clip();

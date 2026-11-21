@@ -61,6 +61,23 @@ public:
         canvas.fill_path(render::ring_path(outer, radius + grow, t.thickness), color::scale_alpha(scheme[color_.value_or(t.color)], a),
                          render::FillRule::even_odd);
     }
+    void paint(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& shape, const render::CornerRadii& radii) const {
+        const double a = amount();
+        if (a <= 0.0) {
+            return;
+        }
+        const tokens::FocusIndicatorTokens& t = tokens::focus_indicator;
+        const double grow = t.outer_offset + t.thickness;
+        const double inset = t.outer_offset;
+        auto widen = [](const render::CornerRadii& r, double by) {
+            return render::CornerRadii{r.top_left + by, r.top_right + by, r.bottom_right + by, r.bottom_left + by};
+        };
+        const render::Rect outer{shape.x - grow, shape.y - grow, shape.width + 2.0 * grow, shape.height + 2.0 * grow};
+        const render::Rect inner{shape.x - inset, shape.y - inset, shape.width + 2.0 * inset, shape.height + 2.0 * inset};
+        render::Path ring = render::rounded_rect_path(outer, widen(radii, grow));
+        ring.append(render::rounded_rect_path(inner, widen(radii, inset)));
+        canvas.fill_path(ring, color::scale_alpha(scheme[color_.value_or(t.color)], a), render::FillRule::even_odd);
+    }
     void paint_inward(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& shape, double radius) const {
         paint_inward(canvas, scheme, shape, render::uniform_radii(radius));
     }

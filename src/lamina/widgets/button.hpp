@@ -11,6 +11,7 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/widgets/accessibility.hpp"
+#include "lamina/widgets/animated_corners.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
@@ -23,6 +24,23 @@ struct ButtonColors {
     std::optional<color::Role> focus_ring = std::nullopt;
 };
 
+struct ButtonShapes {
+    tokens::Corners shape;
+    tokens::Corners pressed;
+    std::optional<tokens::Corners> checked = std::nullopt;
+    motion::SpringSpec spring = tokens::toggle_button_motion.shape;
+};
+
+struct ButtonToggle {
+    bool checked = false;
+    bool radio = false;
+    bool checked_colors = true;
+    double checked_overlay = 0.0;
+    bool fill_checked_icon = true;
+};
+
+ButtonShapes toggle_button_shapes(tokens::ButtonSize size);
+
 struct ButtonOptions {
     std::string label;
     tokens::ButtonStyle style = tokens::ButtonStyle::filled;
@@ -33,6 +51,9 @@ struct ButtonOptions {
     icons::IconStyle icon_style = {};
     bool enabled = true;
     std::string accessible_name = {};
+    std::optional<ButtonToggle> toggle = std::nullopt;
+    std::optional<ButtonShapes> shapes = std::nullopt;
+    bool center_optically = false;
 };
 
 class Button {
@@ -48,6 +69,16 @@ public:
     void set_icon(std::optional<icons::Icon> icon);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
+    double intrinsic_width() const;
+    render::CornerRadii corner_radii() const;
+    double content_offset() const;
+    void set_icon_rotation(double radians) { icon_rotation_ = radians; }
+    void set_shapes(ButtonShapes shapes);
+
+    bool pressed() const { return press_.pressed; }
+    bool toggleable() const { return options_.toggle.has_value(); }
+    bool checked() const { return options_.toggle && options_.toggle->checked; }
+    void set_checked(bool checked);
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
@@ -56,9 +87,7 @@ public:
     bool can_focus() const { return enabled(); }
     const std::string& accessible_name() const { return options_.accessible_name.empty() ? options_.label : options_.accessible_name; }
     void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
-    AccessibleNode accessible() const {
-        return {AccessibleRole::button, accessible_name(), bounds(), {.enabled = enabled(), .focusable = enabled(), .focused = focused()}};
-    }
+    AccessibleNode accessible() const;
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
@@ -69,15 +98,18 @@ public:
 
 private:
     double content_width() const;
-    double intrinsic_width() const;
     double rest_corner() const;
     double pressed_corner() const;
     double corner() const;
     void draw_icon(render::Canvas& canvas, const icons::Icon& icon, double x, double y, double size, color::Argb color,
-                   double opacity) const;
+                   double opacity, const icons::IconStyle& style) const;
     double target_state_layer() const;
     double target_elevation() const;
     void retarget();
+    tokens::Corners target_corners() const;
+    void activate();
+    void paint_outline(render::Canvas& canvas, const render::Rect& r, const render::CornerRadii& radii, double width,
+                       color::Argb color) const;
 
     ButtonOptions options_;
     text::FontStack fonts_;
@@ -97,6 +129,10 @@ private:
     motion::Animated icon_fade_;
     motion::Animated state_layer_;
     motion::Animated elevation_;
+    std::optional<AnimatedCorners> corners_;
+    motion::Animated checked_amount_;
+    motion::Animated border_;
+    double icon_rotation_ = 0.0;
 };
 
 }

@@ -5,7 +5,9 @@
 #include <optional>
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/motion/spring.hpp"
 #include "lamina/tokens/interaction.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 
@@ -63,12 +65,61 @@ inline constexpr std::array<ButtonStyleTokens, static_cast<std::size_t>(ButtonSt
      StateColor{color::Role::on_surface_variant, 0.38}, std::nullopt, 0},
 }};
 
+struct ToggleButtonColorTokens {
+    std::optional<color::Role> container;
+    color::Role content;
+    color::Role checked_container;
+    color::Role checked_content;
+    StateColor disabled_container;
+    StateColor disabled_content;
+};
+
+inline constexpr std::array<std::optional<ToggleButtonColorTokens>, static_cast<std::size_t>(ButtonStyle::count)> toggle_button_styles{{
+    ToggleButtonColorTokens{color::Role::surface_container, color::Role::on_surface_variant, color::Role::primary, color::Role::on_primary,
+                            StateColor{color::Role::on_surface, 0.1}, StateColor{color::Role::on_surface_variant, 0.38}},
+    ToggleButtonColorTokens{color::Role::secondary_container, color::Role::on_secondary_container, color::Role::secondary,
+                            color::Role::on_secondary, StateColor{color::Role::on_surface, 0.1}, StateColor{color::Role::on_surface_variant, 0.38}},
+    ToggleButtonColorTokens{std::nullopt, color::Role::on_surface_variant, color::Role::inverse_surface, color::Role::inverse_on_surface,
+                            StateColor{color::Role::outline_variant, 0.1}, StateColor{color::Role::on_surface_variant, 0.38}},
+    std::nullopt,
+    ToggleButtonColorTokens{color::Role::surface_container_low, color::Role::primary, color::Role::primary, color::Role::on_primary,
+                            StateColor{color::Role::on_surface, 0.1}, StateColor{color::Role::on_surface_variant, 0.38}},
+}};
+
+struct ToggleButtonMotion {
+    motion::SpringSpec shape;
+    motion::SpringSpec border_width;
+    motion::SpringSpec colors;
+};
+
+inline constexpr ToggleButtonMotion toggle_button_motion{
+    .shape = motion_scheme.fast_spatial(),
+    .border_width = motion_scheme.fast_spatial(),
+    .colors = motion_scheme.default_effects(),
+};
+
 constexpr const ButtonSizeTokens& button_size(ButtonSize s) {
     return button_sizes[static_cast<std::size_t>(s)];
 }
 
 constexpr const ButtonStyleTokens& button_style(ButtonStyle s) {
     return button_styles[static_cast<std::size_t>(s)];
+}
+
+constexpr const std::optional<ToggleButtonColorTokens>& toggle_button_style(ButtonStyle s) {
+    return toggle_button_styles[static_cast<std::size_t>(s)];
+}
+
+constexpr Corners toggle_button_rest_corners(ButtonSize) {
+    return all_corners(CornerSize::full);
+}
+
+constexpr Corners toggle_button_pressed_corners(ButtonSize s) {
+    return all_corners(button_size(s).pressed_corner);
+}
+
+constexpr Corners toggle_button_checked_corners(ButtonSize s) {
+    return all_corners(button_size(s).square_corner);
 }
 
 }

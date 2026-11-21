@@ -321,6 +321,7 @@ if(LAMINA_BUILD_TESTS)
         tests/tooltip_test.cpp
         tests/top_app_bar_test.cpp
         tests/todo_layout_test.cpp
+        tests/toggle_button_test.cpp
         tests/tokens_test.cpp
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp

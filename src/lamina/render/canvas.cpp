@@ -10,7 +10,7 @@ void Canvas::fill_path(const Path& path, color::Argb color, FillRule rule) {
 }
 
 void Canvas::fill_shadow(const Path& path, const Shadow& shadow) {
-    const double s = transform_.a;
+    const double s = std::hypot(transform_.a, transform_.b);
     Shadow device = shadow;
     device.offset_x *= s;
     device.offset_y *= s;
@@ -51,6 +51,12 @@ void Canvas::translate(double dx, double dy) {
 
 void Canvas::scale(double factor) {
     transform_ = transform_.then_local({factor, 0.0, 0.0, factor, 0.0, 0.0});
+}
+
+void Canvas::rotate(double radians) {
+    const double c = std::cos(radians);
+    const double s = std::sin(radians);
+    transform_ = transform_.then_local({c, s, -s, c, 0.0, 0.0});
 }
 
 void Canvas::push_clip(const Rect& rect) {

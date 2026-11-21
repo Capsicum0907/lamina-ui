@@ -37,6 +37,8 @@ struct Corners {
     CornerSize top_end;
     CornerSize bottom_end;
     CornerSize bottom_start;
+
+    friend constexpr bool operator==(const Corners&, const Corners&) = default;
 };
 
 constexpr Corners all_corners(CornerSize size) {

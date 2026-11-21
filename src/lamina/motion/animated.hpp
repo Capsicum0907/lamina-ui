@@ -16,6 +16,10 @@ public:
         target_ = value;
     }
     void set_spec(motion::SpringSpec spec) { spec_ = spec; }
+    void restart(double value, double velocity, double target) {
+        state_ = {value, velocity};
+        target_ = target;
+    }
 
     void step(double dt_seconds) {
         if (settled()) {
@@ -26,6 +30,7 @@ public:
     }
 
     double value() const { return state_.value; }
+    double velocity() const { return state_.velocity; }
     double target() const { return target_; }
     bool settled(SettleThreshold threshold = default_settle_threshold) const {
         return is_settled(state_, target_, threshold);
