@@ -11,6 +11,10 @@ namespace {
 
 constexpr char32_t tab = U'	';
 
+Instance instance_of(const TextStyle& style) {
+    return {style.weight, style.size};
+}
+
 struct TabStops {
     std::size_t font = 0;
     std::uint32_t glyph = 0;
@@ -25,7 +29,7 @@ TabStops tab_stops(const FontStack& fonts, const TextStyle& style) {
         return stops;
     }
     stops.font = fonts.font_for(U' ');
-    const std::vector<ShapedGlyph> space = fonts.fonts()[stops.font]->shape(U" ", 0, style.weight);
+    const std::vector<ShapedGlyph> space = fonts.fonts()[stops.font]->shape(U" ", 0, instance_of(style));
     if (!space.empty()) {
         stops.glyph = space.front().glyph;
         stops.interval = (space.front().advance_em * style.size + style.tracking) * style.tab_width;
@@ -65,7 +69,7 @@ TextLine shape_range(const FontStack& fonts, std::u32string_view text, std::size
         line.ascent = std::max(line.ascent, e.ascender * style.size);
         line.descent = std::max(line.descent, -e.descender * style.size);
 
-        for (const ShapedGlyph& g : font.shape(text.substr(start, end - start), start, style.weight)) {
+        for (const ShapedGlyph& g : font.shape(text.substr(start, end - start), start, instance_of(style))) {
             line.glyphs.push_back({font_index, g.glyph, g.cluster, x + g.offset_x_em * style.size, -g.offset_y_em * style.size});
             x += g.advance_em * style.size + style.tracking;
             tracked = true;
@@ -193,7 +197,7 @@ render::Path line_path(const FontStack& fonts, const TextLine& line, render::Poi
     render::Path out;
     const double s = line.style.size;
     for (const PositionedGlyph& g : line.glyphs) {
-        const render::Path& outline = fonts.fonts()[g.font]->glyph_outline_em(g.glyph, line.style.weight);
+        const render::Path& outline = fonts.fonts()[g.font]->glyph_outline_em(g.glyph, instance_of(line.style));
         const render::Affine m{s, 0.0, 0.0, s, top_left.x + g.x, top_left.y + line.baseline + g.y};
         out.append(outline.transformed(m));
     }

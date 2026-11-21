@@ -45,6 +45,20 @@ struct UnderlineMetrics {
     double thickness;
 };
 
+struct Instance {
+    int weight;
+    double optical_size;
+};
+
+namespace axes {
+inline constexpr std::uint32_t weight = axis_tag('w', 'g', 'h', 't');
+inline constexpr std::uint32_t optical_size = axis_tag('o', 'p', 's', 'z');
+inline constexpr std::uint32_t width = axis_tag('w', 'd', 't', 'h');
+inline constexpr std::uint32_t slant = axis_tag('s', 'l', 'n', 't');
+inline constexpr std::uint32_t roundness = axis_tag('R', 'O', 'N', 'D');
+inline constexpr std::uint32_t grade = axis_tag('G', 'R', 'A', 'D');
+}
+
 class Font {
 public:
     static std::shared_ptr<Font> from_file(const std::string& path, unsigned face_index = 0);
@@ -54,14 +68,19 @@ public:
     Font(const Font&) = delete;
     Font& operator=(const Font&) = delete;
 
+    std::shared_ptr<Font> with_variations(std::vector<Variation> pinned) const;
+    const std::vector<Variation>& pinned_variations() const;
+    bool has_axis(std::uint32_t tag) const;
+    std::vector<Variation> variations(Instance instance) const;
+
     unsigned units_per_em() const;
     bool has_codepoint(char32_t codepoint) const;
     FontExtents extents_em() const;
     UnderlineMetrics underline_em() const;
-    const render::Path& glyph_outline_em(std::uint32_t glyph, int weight) const;
+    const render::Path& glyph_outline_em(std::uint32_t glyph, Instance instance) const;
     std::uint32_t glyph_for(char32_t codepoint) const;
     const render::Path& glyph_outline_em(std::uint32_t glyph, std::span<const Variation> variations) const;
-    std::vector<ShapedGlyph> shape(std::u32string_view text, std::size_t cluster_base, int weight) const;
+    std::vector<ShapedGlyph> shape(std::u32string_view text, std::size_t cluster_base, Instance instance) const;
 
 private:
     struct Impl;

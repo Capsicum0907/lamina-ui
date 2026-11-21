@@ -1,6 +1,7 @@
 #include "lamina/text/font.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <stdexcept>
 #include <utility>
@@ -13,7 +14,8 @@ namespace lamina::text {
 
 namespace {
 
-constexpr hb_tag_t weight_axis = HB_TAG('w', 'g', 'h', 't');
+constexpr hb_tag_t weight_axis = axes::weight;
+constexpr hb_tag_t optical_size_axis = axes::optical_size;
 constexpr char32_t replacement_character = 0xfffd;
 
 struct OutlineSink {
@@ -76,14 +78,17 @@ struct Font::Impl {
     hb_face_t* face = nullptr;
     hb_font_t* base = nullptr;
     bool variable_weight = false;
-    mutable std::map<int, hb_font_t*> by_weight;
-    mutable std::map<std::pair<int, std::uint32_t>, render::Path> outlines;
+    bool variable_optical_size = false;
+    std::vector<Variation> pinned;
+    using InstanceKey = std::pair<int, int>;
+    mutable std::map<InstanceKey, hb_font_t*> by_instance;
+    mutable std::map<std::pair<InstanceKey, std::uint32_t>, render::Path> outlines;
     using VariationKey = std::vector<std::pair<std::uint32_t, float>>;
     mutable std::map<VariationKey, hb_font_t*> by_variation;
     mutable std::map<std::pair<VariationKey, std::uint32_t>, render::Path> varied_outlines;
 
     ~Impl() {
-        for (auto& [w, f] : by_weight) {
+        for (auto& [k, f] : by_instance) {
             hb_font_destroy(f);
         }
         for (auto& [k, f] : by_variation) {
@@ -93,18 +98,43 @@ struct Font::Impl {
         hb_face_destroy(face);
     }
 
-    hb_font_t* font_for_weight(int weight) const {
-        if (!variable_weight) {
+    bool pins(std::uint32_t tag) const {
+        return std::any_of(pinned.begin(), pinned.end(), [tag](const Variation& v) { return v.tag == tag; });
+    }
+
+    InstanceKey key(Instance instance) const {
+        const int weight = variable_weight && !pins(weight_axis) ? instance.weight : 0;
+        const int optical_size = variable_optical_size && !pins(optical_size_axis) ? static_cast<int>(std::lround(instance.optical_size)) : 0;
+        return {weight, optical_size};
+    }
+
+    std::vector<hb_variation_t> settings(InstanceKey k) const {
+        std::vector<hb_variation_t> values;
+        for (const Variation& v : pinned) {
+            values.push_back({v.tag, v.value});
+        }
+        if (k.first != 0) {
+            values.push_back({weight_axis, static_cast<float>(k.first)});
+        }
+        if (k.second != 0) {
+            values.push_back({optical_size_axis, static_cast<float>(k.second)});
+        }
+        return values;
+    }
+
+    hb_font_t* font_for(Instance instance) const {
+        const InstanceKey k = key(instance);
+        if (k == InstanceKey{0, 0} && pinned.empty()) {
             return base;
         }
-        auto it = by_weight.find(weight);
-        if (it != by_weight.end()) {
+        auto it = by_instance.find(k);
+        if (it != by_instance.end()) {
             return it->second;
         }
         hb_font_t* f = hb_font_create(face);
-        const hb_variation_t v{weight_axis, static_cast<float>(weight)};
-        hb_font_set_variations(f, &v, 1);
-        by_weight.emplace(weight, f);
+        const std::vector<hb_variation_t> values = settings(k);
+        hb_font_set_variations(f, values.data(), static_cast<unsigned>(values.size()));
+        by_instance.emplace(k, f);
         return f;
     }
 
@@ -153,7 +183,43 @@ std::shared_ptr<Font> Font::from_blob(hb_blob_t* blob, unsigned face_index, cons
     impl->base = hb_font_create(impl->face);
     hb_ot_var_axis_info_t info{};
     impl->variable_weight = hb_ot_var_find_axis_info(impl->face, weight_axis, &info);
+    impl->variable_optical_size = hb_ot_var_find_axis_info(impl->face, optical_size_axis, &info);
     return std::shared_ptr<Font>(new Font(std::move(impl)));
+}
+
+std::shared_ptr<Font> Font::with_variations(std::vector<Variation> pinned) const {
+    auto impl = std::make_unique<Impl>();
+    impl->face = hb_face_reference(impl_->face);
+    impl->base = hb_font_create(impl->face);
+    impl->variable_weight = impl_->variable_weight;
+    impl->variable_optical_size = impl_->variable_optical_size;
+    impl->pinned = impl_->pinned;
+    for (const Variation& v : pinned) {
+        auto same = std::find_if(impl->pinned.begin(), impl->pinned.end(), [&v](const Variation& p) { return p.tag == v.tag; });
+        if (same != impl->pinned.end()) {
+            same->value = v.value;
+        } else {
+            impl->pinned.push_back(v);
+        }
+    }
+    return std::shared_ptr<Font>(new Font(std::move(impl)));
+}
+
+const std::vector<Variation>& Font::pinned_variations() const {
+    return impl_->pinned;
+}
+
+bool Font::has_axis(std::uint32_t tag) const {
+    hb_ot_var_axis_info_t info{};
+    return hb_ot_var_find_axis_info(impl_->face, tag, &info);
+}
+
+std::vector<Variation> Font::variations(Instance instance) const {
+    std::vector<Variation> out;
+    for (const hb_variation_t& v : impl_->settings(impl_->key(instance))) {
+        out.push_back({v.tag, v.value});
+    }
+    return out;
 }
 
 unsigned Font::units_per_em() const {
@@ -181,15 +247,14 @@ UnderlineMetrics Font::underline_em() const {
     return {position / upem, thickness / upem};
 }
 
-const render::Path& Font::glyph_outline_em(std::uint32_t glyph, int weight) const {
-    const int key_weight = impl_->variable_weight ? weight : 0;
-    const auto key = std::make_pair(key_weight, glyph);
+const render::Path& Font::glyph_outline_em(std::uint32_t glyph, Instance instance) const {
+    const auto key = std::make_pair(impl_->key(instance), glyph);
     auto it = impl_->outlines.find(key);
     if (it != impl_->outlines.end()) {
         return it->second;
     }
     OutlineSink sink{{}, 1.0 / units_per_em()};
-    hb_font_draw_glyph(impl_->font_for_weight(weight), glyph, draw_funcs(), &sink);
+    hb_font_draw_glyph(impl_->font_for(instance), glyph, draw_funcs(), &sink);
     return impl_->outlines.emplace(key, std::move(sink.path)).first->second;
 }
 
@@ -215,12 +280,12 @@ const render::Path& Font::glyph_outline_em(std::uint32_t glyph, std::span<const 
     return impl_->varied_outlines.emplace(std::move(outline_key), std::move(sink.path)).first->second;
 }
 
-std::vector<ShapedGlyph> Font::shape(std::u32string_view text, std::size_t cluster_base, int weight) const {
+std::vector<ShapedGlyph> Font::shape(std::u32string_view text, std::size_t cluster_base, Instance instance) const {
     hb_buffer_t* buffer = hb_buffer_create();
     hb_buffer_add_utf32(buffer, reinterpret_cast<const std::uint32_t*>(text.data()), static_cast<int>(text.size()), 0,
                         static_cast<int>(text.size()));
     hb_buffer_guess_segment_properties(buffer);
-    hb_shape(impl_->font_for_weight(weight), buffer, nullptr, 0);
+    hb_shape(impl_->font_for(instance), buffer, nullptr, 0);
 
     unsigned count = 0;
     const hb_glyph_info_t* info = hb_buffer_get_glyph_infos(buffer, &count);
