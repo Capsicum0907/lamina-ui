@@ -416,7 +416,7 @@ C の `tokens/NavigationRailCollapsedTokens.kt`（96 dp・上の 44 dp・項目�
 - 色：印は secondary-container、選んだアイコンは on-secondary-container、選んだ名前は上にあるとき secondary・前にあるとき on-secondary-container（.kt はここで `ItemActiveIcon` を使い回し、足りないトークンについての `TODO` があります）、選んでいないものは on-surface-variant です。Compose は名前の色を標準の効果のばねで動かし、アイコンの色は一度に変えます。lamina-ui は両方をそのばねで動かします。
 - 状態の重ねは、全幅の印の形の全体で、ポインターが項目のどこにあっても出ます。色は on-surface です。波紋はレールの文字の色を取るので、`NavigationRailColorTokens` の状態の重ねの値（on-secondary-container）は使われません。
 - 見出しの部品は中身の領域の左上に置き、項目はその 40 dp 下から始めます（`HeaderSpaceMinimum`）。
-- まだないもの：手前に重なるレール（`ModalWideNavigationRail`）、中央と下の配置、名前のない項目、バッジ、幅 80 dp の狭い `NavigationRail`。
+- まだないもの：中央と下の配置、名前のない項目、幅 80 dp の狭い `NavigationRail`。手前に重なるレール（`ModalWideNavigationRail`）は下のモーダルな幅の広いナビゲーションレールの節にあります。
 
 ### メニュー
 
@@ -623,8 +623,77 @@ Material 3 にはスクロールバーの定めがなく、Compose Material 3 �
 
 C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 dp（`SupportingTopPadding`）、始まりから 16 dp。色は on-surface-variant、`isError` ならエラーの色です。`isError` では枠線・ラベル・カーソルもエラーの色、ポインターを乗せた枠線は on-error-container。lamina-ui は標準の効果のばねで移します。
 
+### ドラッグの操作
+
+2026-11-21 に `6068a9492ba8` の androidx の foundation の `gestures/AnchoredDraggable.kt` と ui の `input/pointer/util/VelocityTracker.kt`・`PlatformVelocityTracker.kt` を読み、`lamina/motion/velocity_tracker.hpp`・`lamina/motion/anchored_draggable.hpp`・`lamina/tokens/drag.hpp` に入れました。
+
+- 速さ：デスクトップの `PlatformVelocityTracker` が使う、`VelocityTracker1D` の `Lsq2` の方式です。使うのは直近の 20 個のサンプル（`HistorySize`）で、いちばん新しいものの 100 ms 前（`HorizonMilliseconds`）までさかのぼり、40 ms を超える間（`AssumePointerMoveStoppedMilliseconds`）があればそこで止めます。サンプルは 2 個以上要ります。時刻に対する位置を 2 次の最小二乗で当てはめ、いちばん新しいサンプルでの傾きを速さにします。最後の動きから 40 ms より後に離したときは、動きを忘れます（b/238654963 の修正）。時刻は `PointerEvent::time_seconds` が運び、SDL の窓は出来事の時刻からこれを埋めます。
+- 行き先：`computeTarget` そのままです。速さがなければいちばん近いアンカーです。速さのしきい値以上なら、はじいた向きの次のアンカーです。それ未満なら、後ろのアンカーから位置のしきい値だけ離れたときは次のアンカー、そうでなければ後ろのアンカーです。ドラッグの間、位置は外側のアンカーの間に収めます。
+- lamina-ui が決めたこと：ドラッグは軸に沿って 8 dp 動いてから始まります（Android のタッチの遊び。Compose のデスクトップの値は読んでいません）。遊びを越えた分は、Compose の `overSlop` と同じくすぐに位置を動かします。離したときの速さは、Android のはじく速さの上限の 8000 dp/s までに抑えます。Compose の減速の段階（`exponentialDecay`）は移していません。落ち着くまではいつもばね一つかトゥイーン一つです。
+- 子が先：シートやドロワーの中の部品が先に押下を受けます。入れ物が操作を引き取るのは、遊びを越えて子がその動きを使ったと知らせなかったときだけで、そのあと子の押下を取り消します。Compose はポインターの出来事の消費で同じ順を決めます。
+
+### ボトムシート
+
+`6068a9492ba8` の C の `SheetDefaults.kt`・`BottomSheet.kt`・`ModalBottomSheet.kt`・`BottomSheetScaffold.kt`・`Scrim.kt`・`ComposeMaterial3Flags.kt`・`tokens/SheetBottomTokens.kt`・`tokens/ScrimTokens.kt` と、`androidMain/res/values{,-ja,-en-rGB}/strings.xml` と ui の `close_sheet` の文字列を読み、`lamina/tokens/bottom_sheet.hpp`・`lamina/tokens/scrim.hpp`・`lamina/widgets/pattern_strings.cpp` に入れました。
+
+- 入れ物は surface-container-low で、上の角は extra-large（28 dp。`ExpandedShape`）です。幅は 640 dp まで（`SheetMaxWidth`）で、中央に置きます。モーダルなシートに影はありません（`BottomSheet` の `shadowElevation` は 0、`ModalBottomSheet` の `tonalElevation` は 0）。`BottomSheetScaffold` のモーダルでないシートは段階 1 の影を持ちます（`sheetShadowElevation = Elevation`）。幕：scrim の役割の色の 32 %。
+- ドラッグハンドル：32 × 4 dp・on-surface-variant・`shapes.extraLarge`（この大きさでは両端の丸い形）で、上下に 22 dp。Compose はこれを上に出る簡素なツールチップ（`DragHandleWithTooltip`）で包み、文字は "Drag handle" です。ハンドルをクリックしたとき、モーダルなシートは広げた状態なら隠して閉じます。半分開いた状態なら広げ、それ以外なら表示します。モーダルでないシートは広げた状態のとき、隠せるなら隠し、そうでなければ半分開いた状態にします。
+- アンカー（モーダル）：隠れた状態は全体の高さです。半分開いた状態は飛ばさない限りあり、全体の高さから min(全体の高さの半分, シートの半分) を引いた所です。これは `isBottomSheetPartiallyExpandedDeterministicEnabled` の決まりで、このコミットでは既定で true です（非推奨の `rememberModalBottomSheetState` はこれを切り、半分より高いシートにだけ全体の高さの半分を使います）。広げた状態は max(0, 全体の高さ − シートの高さ) です。シートの高さはハンドルと中身を合わせた高さで、全体の高さまでです。それを超える分は中身がスクロールします。モーダルでないもの（`BottomSheetScaffold`）：半分開いた状態は全体の高さからのぞかせる高さ（既定は 56 dp）を引いた所で、二つが等しいときはありません。隠れた状態は隠すのを許すとき（`skip_hidden` が false）だけあり、広げた状態は全体の高さからシートの高さを引いた所です。アンカーが変わったときは、Compose の `draggableAnchors` のラムダと同じように行き先を動かします。
+- 動き：表示と広げるのは標準の空間のばね（`showMotionSpec`）、隠すのと半分開いた状態にするのは速い効果のばね（`hideMotionSpec`）です。離したドラッグは、離したときの速さを持って標準の空間のばねで落ち着きます（`AnchoredDraggableDefaults.flingBehavior`）。しきい値：位置は 56 dp（`PositionalThreshold`。割合ではなく長さ）、速さは 125 dp/s です。モーダルなシートは、隠れた状態から 125 dp 以内で下へはじく速さを弱めます（`BoundaryDampeningZone`）。速さに「残りの距離 ÷ 125 dp」の 2 乗を掛け、しきい値以上ではじいたときはしきい値を下回らないようにします。幕の不透明度は、行き先が隠れた状態でない間は標準の効果のばねで 1 へ動きます。
+- 行き過ぎ：Expressive の標準の空間のばねは、広げた状態のアンカーを行き過ぎます。Compose は入れ物を上から伸ばし（`verticalScaleUp`）、中身を縮め戻す（`verticalScaleDown`）ので、下にすき間ができません。lamina-ui は入れ物をシートの上端から広げたシートの下端まで描き、中身は拡大縮小しません。見た目は同じです。
+- 閉じ方：戻る操作（`settleToDismiss`）は半分開いた状態を持つ広げたシートをまず半分開いた状態にし、そうでなければ隠します。幕のクリックはすぐに隠します（`animateToDismiss`）。隠れた状態に落ち着くはじきやドラッグでも閉じます。lamina-ui にはキーを離した出来事がないので、戻る操作は Escape を押したときに当てます。`BottomSheetResponse::dismissed` は閉じ始めたときに立ちます。Compose は隠す動きが終わってから `onDismissRequest` を呼びます。
+- 読み上げ：モーダルなシートは "Bottom Sheet" という名前のモーダルな `dialog`（`BottomSheetPaneTitle`。en-GB では "Bottom sheet"、日本語ではボトムシート）で、モーダルでないシートは `group` です。ドラッグハンドルは "Drag handle" のボタンで、説明はクリックでする操作（"Expand bottom sheet"・"Collapse bottom sheet"・"Dismiss bottom sheet"）です。これは Compose の独自の読み上げ用の操作の代わりで、lamina-ui の木にはそれを置く場所がありません。幕は "Close sheet" のボタンです。
+- フォーカス：モーダルなシートは、Compose のダイアログの窓と同じく Tab を自分の中にとどめます（ハンドル・中身の止まり位置の順で、端では先頭へ戻ります）。キーボードで開くとハンドルにフォーカスを置きます。モーダルでないシートのハンドルと中身は、プログラムの Tab の順に加わります。
+- 違い：ハンドルのマウスを乗せたとき・フォーカス・押下の重ねは 32 × 48 dp の当たりを囲む両端の丸い形で、フォーカスの輪もその周りに描きます。Compose の波紋は四角で、輪はありません。マウスのホイールは中身をスクロールし、シートは動かしません（Compose はホイールの量を入れ子のスクロールに送るので、シートが動くことがあります）。中身はドラッグでスクロールできないので、中身の上のドラッグはいつもシートを動かします。予測型の戻る操作は作っていません。
+
+### サイドシート
+
+`6068a9492ba8` の Compose にはサイドシートがなく（`SideSheet*.kt` も `SheetSideTokens.kt` もありません）、`9d2f79851cae` の material-web にもサイドシートの部品はなくトークンだけです。値は W の `tokens/versions/latest/sass/_md-comp-sheet-side.scss`（Material 3 の 34.0.21 版から作られたもの）と `6061a69915d0` の M の `lib/java/com/google/android/material/sidesheet/`（`SideSheetBehavior.java`・`RightSheetDelegate.java`・`res/values/{dimens,styles,tokens,strings}.xml`・`res/anim/m3_side_sheet_{enter_from_right,exit_to_right}.xml`・`res/values-ja/strings.xml`）から取り、`lamina/tokens/side_sheet.hpp` に入れました。M3 のデザインのサイトにあるサイドシートの仕様は読めませんでした（ページはスクリプトで描かれ、文字が返ってきませんでした）。
+
+- 幅は 256 dp（`docked-container-width`）。モーダルでない入れ物は surface で段階 0、モーダルな入れ物は surface-container-low で段階 1 です。窓の端に付けたモーダルな形は始めの側が corner-large（中身に向いた角が 16 dp）、端に付けたモーダルでない形は角なし、離した形は四隅が corner-large で四方に 16 dp の余白を取ります（M の `m3_side_sheet_margin_detached`）。見出しは on-surface-variant の Title L、操作の上の区切り線は outline です。
+- 動き：MDC のモーダルなサイドシートは emphasized の緩急で 275 ms かけて滑り込み、滑り出ます。lamina-ui は開くとき・閉じるとき・ドラッグのあと落ち着くときにこのトゥイーンを使い、幕を滑りに合わせて現し消しします（MDC は代わりにダイアログの窓を暗くします）。
+- 離したとき（`calculateTargetStateOnViewReleased`）：外向きにはじくと開いたままです。そうでなければ、500（MDC の `SIGNIFICANT_VEL_THRESHOLD`。単位は毎秒のピクセルです。lamina-ui は毎秒の dp にしています）より速くスワイプしたときか動ける幅の半分を越えて離したときに隠れ、それ以外は開いたままです。
+- lamina-ui が決めた配置（どの出典にも定めがないため）：見出しの行は高さ 72 dp です。付けてもよい戻るアイコンボタンは始めの側から 12 dp、見出しは始めの側から 24 dp（または戻るボタンの 4 dp 後）、閉じるアイコンボタンは終わりの側から 12 dp です。中身は左右から 24 dp です。操作は 1 dp の区切り線のあとの行で、内側に 16 dp・間に 8 dp を空けて、プログラムが渡したボタンを並べます。MDC のカタログは 16 dp の余白と、基線をそろえた閉じるボタンを使っています。
+- 振る舞い：モーダルなシートは、Escape・幕のクリック・閉じるボタン・ドラッグで閉じます。Tab を中にとどめ（見出しの行のボタン・中身・操作の順で、端では先頭へ戻ります）、見出しを名前にしたモーダルな `dialog`（見出しがなければ MDC の `side_sheet_accessibility_pane_title` の "Side Sheet"。日本語ではサイドシート）と "Close sheet" の幕のボタンを返します。モーダルでないシートは配置の一部です。MDC の同じ平面に並ぶシートと同じく開くにつれて幅が 0 から広がるので、横の中身は狭まります。そのボタンはプログラムの Tab の順に加わります。どちらの端にも置けます（`SideSheetEdge`）。
+
+### ナビゲーションドロワー
+
+`6068a9492ba8` の C の `NavigationDrawer.kt` と `tokens/NavigationDrawerTokens.kt`・見本の `DrawerSamples.kt` を読み、見出しと区切り線の引っ込みは `6061a69915d0` の M の `lib/java/com/google/android/material/navigation/res/values/dimens.xml` から取って`lamina/tokens/navigation_drawer.hpp` に入れました。
+
+- シート：幅は 240 dp 以上 360 dp 以下です。項目が幅いっぱいに広がるので、窓が狭くなければ 360 dp になります。モーダル：surface-container-low で、終わりの側が corner-large（`ContainerShape`）です。影も色の高さもありません（トークンのファイルには段階 1 の `ModalContainerElevation` がありますが、`ModalDrawerElevation` は段階 0 です）。閉じられるものと常に出ているもの：surface で角なし。
+- 項目（`NavigationDrawerItem`）：高さ 56 dp 以上で、左右を 12 dp 引っ込めた角を丸め切った形です（`ItemPadding`。見本の置き方どおり）。中身の前に 16 dp・後ろに 24 dp を空け、アイコンは 24 dp でラベルまで 12 dp、ラベルは Label L です。バッジはラベルの 12 dp 後に Label L で置きます。選んだ項目は secondary-container で、アイコン・ラベル・バッジは on-secondary-container です。選んでいない項目は透明で on-surface-variant です。状態の重ねは中身の色（on-surface、選んでいる間は on-secondary-container）です。見本は最初の項目の上に 12 dp を空けます。
+- 見出しと区切り線：Compose にはドロワーの見出しも区切り線もありません。見出しは Title S と on-surface-variant のトークン（`HeadlineFont`・`HeadlineColor`）を使い、始めの側の引っ込みは MDC の 28 dp です。高さ 56 dp は lamina-ui が決めました。区切り線は outline-variant の 1 dp で 28 dp 引っ込み、上の項目の 8 dp 下・下の項目の 3 dp 上に置きます（MDC の `m3_navigation_menu_divider_horizontal_padding`・`m3_navigation_divider_top_margin`・`m3_navigation_divider_bottom_margin`）。
+- 動き：`open()` は標準の空間のばね、`close()` は速い効果のばねです。離したドラッグは `FastOutSlowInEasing` の 256 ms のトゥイーンで落ち着きます。`DrawerState` は `anchoredDraggableMotionSpec` を設定する `SideEffect` が動く前に `AnchoredDraggableDefaultAnimationSpec` で `AnchoredDraggableState` を作るので、ばねは届きません。しきい値：位置は幅の半分、速さは 400 dp/s です。モーダルな幕の不透明度は、位置から求めた開いた割合です（幕だけの動きはありません）。
+- 行き過ぎ：開くばねは行き過ぎます。Compose は入れ物を終わりの側から伸ばし（`horizontalScaleUp`）、中身を縮め戻します（`horizontalScaleDown`）。lamina-ui は入れ物を窓の端からシートの終わりの側まで描き、中身は拡大縮小しません。
+- モーダル：範囲全体をドラッグできるので（Compose は中身を持つ箱に `anchoredDraggable` を付けます）、閉じた中身の上のドラッグで開きます。`DrawerResponse::took_over` は、プログラムが自分の部品に渡した押下を取り消すよう伝えます。幕のクリックと Escape（キーを押したとき）で閉じます。閉じられるもの：中身はシートの幅だけ押しやられ、自分の幅を保ちます。シートにフォーカスがある間は Escape で閉じます。常に出ているもの：`permanent_drawer(sheet, content)` はシートと中身を並べた行です。
+- 読み上げ：シートは "Navigation menu"（ナビゲーションメニュー）という名前の `navigation` です。項目は `navigation_item`（Compose の `Role.Tab`）で、選択とバッジを説明に入れます。見出しは `heading`、区切り線は `separator` です。モーダルなドロワーの幕は "Close navigation menu" のボタンです。
+- 違い：Compose の項目には無効の状態がありません。lamina-ui の項目は 38 % に薄め、飛ばします。Compose は色を一度に切り替えますが、lamina-ui は標準の効果のばねで移します。キー：シートは Tab の止まり位置一つです。↑ と ↓ で有効な項目の間をフォーカスが動き（見出しと区切り線は飛ばします）、`Home` と `End` も受け、Space か Enter で選びます。ナビゲーションレールと同じです。Compose はどの項目も Tab の止まり位置です。モーダルなドロワーは Tab を中にとどめ、キーボードで開いたときはフォーカスを取ります。Compose のモーダルなドロワーはフォーカスを求めますが、閉じ込めはしません。シートは並べたものが窓より高いときにスクロールします。Compose はそれを呼ぶ側に任せます。フォーカスの輪は両端の丸い形の周りに描きます。予測型の戻る操作は作っていません。
+
+### モーダルな幅の広いナビゲーションレール
+
+`6068a9492ba8` の C の `WideNavigationRail.kt` と `tokens/NavigationRailExpandedTokens.kt` を読み、`lamina/tokens/navigation_rail.hpp`（`modal_navigation_rail_tokens`）と `lamina/widgets/modal_navigation_rail.hpp` に入れました。
+
+- `ModalWideNavigationRail` はこのコミットにあります。畳んだときは配置の中の 96 dp のレールです。広げると中身の上に幕を敷き、surface-container で四隅が corner-large の 220〜360 dp のレールとして開きます（`ModalContainerShape`。`ModalContainerElevation` は段階 2 ですが、影は付けていません）。幕は広がりに合わせた標準の効果の動きに従います。lamina-ui は、行き先が広げた状態の間は標準の効果のばねで幕を現します。
+- `hideOnCollapse`：畳んだレールはありません。広げたレールは窓の外から標準の空間のばねで滑り込み、ドラッグでしまえます（位置のしきい値は幅の半分・速さは 125 dp/s）。
+- Escape（キーを押したとき）と幕のクリックで畳みます。components の例では、隠れる形で項目を選ぶと畳みます。読み上げ：レールはモーダルな `navigation` で、"Close rail" の幕のボタンを持ちます。プログラムが名前を付けなかったときは、区画の題名 "Navigation rail"（ナビゲーション レール）が名前になります。
+- 違い：Compose は効果の動きが 0 になるとすぐ、幅の動きが終わる前にモーダルなレールを外します。lamina-ui はレールが畳んだ幅に戻るまで残します。見出しの部品（たとえばメニューのボタン）はプログラムの部品で、components の例はそれを幕の上に描きます。
+
+### 検索バー
+
+`6068a9492ba8` の C の `SearchBar.kt`・`tokens/SearchBarTokens.kt`・`tokens/SearchViewTokens.kt`・`internal/TextFieldImpl.kt` と見本の `SearchBarSamples.kt` を読み、600 dp の境目は `material3-window-size-class/.../WindowSizeClass.kt` から取って`lamina/tokens/search.hpp` に入れました。
+
+- どの API か：結果に `ExpandedFullScreenSearchBar` か `ExpandedDockedSearchBar` を使う `SearchBar(state, inputField)` です。`SearchBar(inputField, expanded, onExpandedChange)` と `DockedSearchBar` の版は非推奨です。このコミットにある Expressive の版の `AppBarWithSearch`・`ExpandedFullScreenContainedSearchBar`・`ExpandedDockedSearchBarWithGap` は作っていません。
+- バー：高さ 56 dp・幅 360 dp 以上 720 dp 以下・角は丸め切り・surface-container-high で、高さはありません（色の高さも影も段階 0）。入力は入れ物も下線もない入力欄です。文字は Body L の on-surface、薄い案内の文字は on-surface-variant、カーソルは primary です。先頭と末尾のアイコンは内側へ 4 dp ずらした 48 dp の枠に入ります。そのためアイコンは両端から 16 dp の所にあり、文字は 52 dp の所から始まります（`textFieldHorizontalIconPadding` と `SearchBarIconOffsetX`）。見本と同じく先頭のアイコンは畳んでいる間は検索のアイコン、広げている間は戻るアイコンボタンです。
+- 広げる：遅い空間のばねで広げ、標準の空間のばねで畳みます（`rememberSearchBarState`）。進み具合が 0.02 を超えている間は表示を出します。バーのクリック・フォーカスがある間の ↓・検索語を長くする入力で広がります。中では ↓ で結果へ入り、Escape で畳み、欄で Enter を押すと検索語を知らせます（`onSearch`）。
+- 全画面の表示：面はバーから範囲全体へ広がり（位置と大きさは進み具合で線形補間します）、角は 28 dp から 0 になります。欄の幅と中心は、切り詰めない進み具合でバーから範囲へ動きます。欄の上下に 8 dp の余白が現れ、その下に outline の区切り線と結果が進み具合に合わせて現れます。
+- バーの下に開く表示：バーの位置と幅のままです。高さは進み具合につれて窓の高さの 2/3 まで育ち、240 dp を下回りません（上限のほうが小さいときは上限まで）。結果の量にも合わせます。角は extra-large（28 dp）で、区切り線と結果は欄の下です。幕はありません。
+- 狭い窓と広い窓：Compose は二つの表示を切り替えません。見本はスマートフォンで全画面の表示を、大きな画面でバーの下に開く表示を使います。lamina-ui の `SearchViewMode::automatic` は窓の幅の区分が中くらいになる 600 dp より狭いときは全画面の表示を、そこからはバーの下に開く表示を使います。
+- 読み上げ：欄の名前は "Search"（検索）で、広げている間は "Suggestions below"（検索候補は次のとおりです）と伝えます。広げた表示は "Search" という名前の `dialog` で、全画面のときはモーダルです。
+- 違い：最初の結果で ↑ を押すと欄に戻ります。Tab は広げた表示の中（戻るボタン・欄・末尾のボタン・結果）にとどまります。Compose のダイアログとフォーカスを受けるポップアップと同じです。バーの下に開く表示の外を押すと畳みます。予測型の戻る操作と、`AppBarWithSearch` のスクロールの振る舞いは作っていません。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
 - 第 2 段階の部品で作っていないもの：チップの `shapes:` の版（`ChipShapes`）、2 dp の間と位置ごとの角を持つ `SegmentedListItem`、チップ・カード・リストの項目を引きずる操作、トップアプリバー自身を引きずる操作。
 - 第 3 段階の部品で作っていないもの：つながったボタンの組（つながった `ToggleButton` を並べた `ButtonGroup` と、押したときの幅の広がり）、月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
+- 第 4 段階の画面のパターンで作っていないもの：予測型の戻る操作（シート・ドロワー・レール・検索）、アンカーへはじく動きの減速の段階、シートの中身とシートの間の入れ子のスクロール、`AppBarWithSearch`・`ExpandedFullScreenContainedSearchBar`・`ExpandedDockedSearchBarWithGap`、M3 のデザインのサイトにあるサイドシートの寸法（スクリプトなしでは読めません）。

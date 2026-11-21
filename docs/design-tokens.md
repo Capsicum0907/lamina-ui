@@ -416,7 +416,7 @@ C `tokens/NavigationRailCollapsedTokens.kt` (96 dp, 44 dp at the top, 4 dp betwe
 - Colors: indicator secondary-container, selected icon on-secondary-container, selected label secondary on top and on-secondary-container at the start (the .kt reuses `ItemActiveIcon` there, with a TODO for a missing token), unselected on-surface-variant. Compose animates the label color on the default effects spring and switches the icon color at once; lamina-ui moves both on that spring.
 - The state layer is the whole pill at its full width, shown while the pointer is anywhere on the item. Its color is on-surface: the ripple takes the rail's content color, not the `NavigationRailColorTokens` state-layer value (on-secondary-container).
 - The header is placed at the top start of the content area, and the items start 40 dp below it (`HeaderSpaceMinimum`).
-- Not done: the modal rail (`ModalWideNavigationRail`), the center and bottom arrangements, items without labels, badges, and the narrow 80 dp `NavigationRail`.
+- Not done: the center and bottom arrangements, items without labels, and the narrow 80 dp `NavigationRail`. The modal rail (`ModalWideNavigationRail`) is described under Modal wide navigation rail below.
 
 ### Menu
 
