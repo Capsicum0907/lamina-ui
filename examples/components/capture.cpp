@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -16,6 +17,8 @@
 #endif
 
 #include "components/gallery.hpp"
+#include "lamina/calendar/date.hpp"
+#include "lamina/calendar/locale.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/clipboard.hpp"
@@ -138,6 +141,29 @@ public:
         frame();
         wait(0.08);
         pointer_events_.push_back({PointerAction::up, pointer_.x, pointer_.y});
+        frame();
+    }
+
+    void press() {
+        pointer_events_.push_back({PointerAction::down, pointer_.x, pointer_.y, 1});
+        frame();
+    }
+
+    void release() {
+        pointer_events_.push_back({PointerAction::up, pointer_.x, pointer_.y});
+        frame();
+    }
+
+    void drag_to(render::Point to, double seconds) {
+        press();
+        move_to(to, seconds);
+        wait(0.1);
+        release();
+    }
+
+    void ctrl_key(Key k, std::string label) {
+        key_events_.push_back({k, false, true});
+        badge(std::move(label));
         frame();
     }
 
@@ -291,6 +317,62 @@ std::optional<std::string> month_name(examples::components::Gallery& g) {
         throw std::runtime_error("no year menu button");
     }
     return node->name;
+}
+
+calendar::Date capture_today() {
+    const auto now = std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::system_clock::now()}.get_local_time();
+    const std::chrono::year_month_day ymd{std::chrono::floor<std::chrono::days>(now)};
+    return {static_cast<int>(ymd.year()), static_cast<int>(static_cast<unsigned>(ymd.month())), static_cast<int>(static_cast<unsigned>(ymd.day()))};
+}
+
+std::string day_name(const calendar::Date& d) {
+    const calendar::CalendarLocale& l = calendar::english_us();
+    const std::string date = calendar::format_date(l.long_date_pattern, d, l.names);
+    return d == capture_today() ? l.strings.today_description + l.strings.list_separator + date : date;
+}
+
+std::string first_matching(examples::components::Gallery& g, const std::function<bool(const widgets::AccessibleNode&)>& match) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(nodes, match);
+    if (!node) {
+        throw std::runtime_error("no matching node");
+    }
+    return node->name;
+}
+
+render::Point centre_by(examples::components::Gallery& g, const std::function<bool(const widgets::AccessibleNode&)>& match) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(nodes, match);
+    if (!node) {
+        throw std::runtime_error("no matching node");
+    }
+    return {node->bounds.x + node->bounds.width / 2.0, node->bounds.y + node->bounds.height / 2.0};
+}
+
+render::Point dial_point(examples::components::Gallery& g, double degrees, double radius) {
+    const render::Point c = centre_by(g, [](const widgets::AccessibleNode& n) {
+        return n.role == widgets::AccessibleRole::group && (n.name == "Select hour" || n.name == "Select minutes");
+    });
+    const double r = degrees * 3.14159265358979323846 / 180.0;
+    return {c.x + radius * std::sin(r), c.y - radius * std::cos(r)};
+}
+
+render::Point centre_in(examples::components::Gallery& g, const std::string& scope, const std::string& name) {
+    const auto nodes = g.accessible_nodes();
+    const auto root = widgets::find_accessible(nodes, [&](const widgets::AccessibleNode& n) { return n.name == scope && !n.children.empty(); });
+    if (!root) {
+        throw std::runtime_error("no scope " + scope);
+    }
+    const auto node = widgets::find_accessible(root->children, name);
+    if (!node) {
+        throw std::runtime_error("no " + name + " in " + scope);
+    }
+    return {node->bounds.x + node->bounds.width / 2.0, node->bounds.y + node->bounds.height / 2.0};
+}
+
+void day_click(Driver& d, examples::components::Gallery& g, const std::string& scope, const calendar::Date& date, double seconds) {
+    d.move_to(centre_in(g, scope, day_name(date)), seconds);
+    d.click();
 }
 
 using Scene = std::function<void(Driver&, examples::components::Gallery&)>;
@@ -793,6 +875,218 @@ const std::map<std::string, Scene>& videos() {
              wheel_at(d, "Albums list", 1.0, 3, 0.35);
              d.wait(0.6);
              wheel_at(d, "Albums list", -1.0, 6, 0.3);
+             d.wait(1.0);
+         }},
+        {"segments",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Inputs");
+             d.wait(0.4);
+             for (const char* name : {"Month", "Year", "Day"}) {
+                 d.move_to(name, 0.6);
+                 d.click();
+                 d.wait(0.6);
+             }
+             for (const char* name : {"Transit", "Drive"}) {
+                 d.move_to(name, 0.6);
+                 d.click();
+                 d.wait(0.6);
+             }
+             for (const char* name : {"XS", "L", "S"}) {
+                 d.move_to(name, 0.5);
+                 d.click();
+                 d.wait(0.6);
+             }
+             for (const char* name : {"Italic", "Bold"}) {
+                 d.move_to(name, 0.5);
+                 d.click();
+                 d.wait(0.6);
+             }
+             d.move_to({700.0, 700.0}, 0.6);
+             d.set_cursor(false);
+             tab_to(d, g, "View");
+             d.wait(0.4);
+             for (Key k : {Key::right, Key::right, Key::left, Key::end, Key::home}) {
+                 d.key(k);
+                 d.wait(0.5);
+             }
+             d.key(Key::tab);
+             d.wait(0.4);
+             d.key(Key::right);
+             d.wait(0.6);
+             d.wait(0.6);
+         }},
+        {"range_slider",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Inputs");
+             d.wait(0.3);
+             d.move_to("Range start", 0.6);
+             d.drag_to({d.pointer().x + 70.0, d.pointer().y}, 0.9);
+             d.wait(0.3);
+             d.move_to("Range end", 0.6);
+             d.drag_to({d.pointer().x - 60.0, d.pointer().y}, 1.0);
+             d.wait(0.3);
+             d.drag_to({d.pointer().x + 160.0, d.pointer().y}, 1.0);
+             d.wait(0.4);
+             const render::Point steps = centre_by(g, [](const widgets::AccessibleNode& n) { return n.name == "Steps"; });
+             d.move_to({steps.x + 150.0, steps.y}, 0.6);
+             d.click();
+             d.wait(0.4);
+             d.move_to({steps.x - 150.0, steps.y}, 0.7);
+             d.click();
+             d.wait(0.5);
+             d.move_to("Balance", 0.6);
+             d.drag_to({d.pointer().x - 140.0, d.pointer().y}, 1.0);
+             d.wait(0.4);
+             d.move_to("Bottom to top", 0.6);
+             d.drag_to({d.pointer().x, d.pointer().y - 70.0}, 0.8);
+             d.wait(0.4);
+             d.move_to({1100.0, 760.0}, 0.5);
+             d.set_cursor(false);
+             tab_to(d, g, "Range start");
+             for (int i = 0; i < 4; ++i) {
+                 d.key(Key::right);
+                 d.wait(0.25);
+             }
+             d.key(Key::tab);
+             d.wait(0.3);
+             d.key(Key::page_down);
+             d.wait(0.4);
+             d.key(Key::page_down);
+             d.wait(0.8);
+         }},
+        {"date_picker",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Dates");
+             const calendar::Date today = capture_today();
+             d.wait(0.3);
+             d.move_to("Change to next month", 0.8);
+             d.click();
+             d.wait(0.6);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Change to previous month", 0.5);
+             d.click();
+             d.wait(0.6);
+             const calendar::YearMonth next = calendar::add_months(calendar::year_month(today), 1);
+             day_click(d, g, "Select date", {next.year, next.month, 10}, 0.7);
+             d.wait(0.6);
+             d.move_to(*month_name(g), 0.7);
+             d.click();
+             d.wait(0.8);
+             d.move_to(first_matching(g, [&](const widgets::AccessibleNode& n) { return n.name == "Navigate to year " + std::to_string(next.year + 1); }), 0.7);
+             d.click();
+             d.wait(0.8);
+             day_click(d, g, "Select date", {next.year + 1, next.month, 15}, 0.6);
+             d.wait(0.6);
+             d.move_to("Switch to text input mode", 0.8);
+             d.click();
+             d.wait(0.8);
+             d.ctrl_key(Key::a, "Ctrl+A");
+             d.type("02302027", 0.12);
+             d.wait(0.9);
+             d.ctrl_key(Key::a, "Ctrl+A");
+             d.type("02152027", 0.12);
+             d.wait(0.9);
+             d.move_to("Switch to calendar input mode", 0.6);
+             d.click();
+             d.wait(1.0);
+             d.move_to("Date picker dialog", 0.8);
+             d.click();
+             d.wait(0.8);
+             day_click(d, g, "Date picker dialog", {today.year, today.month, 26}, 0.7);
+             d.wait(0.5);
+             d.move_to("OK", 0.6);
+             d.click();
+             d.wait(0.8);
+             d.move_to("日本語", 0.8);
+             d.click();
+             d.wait(1.2);
+         }},
+        {"date_range",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Dates");
+             const calendar::Date today = capture_today();
+             d.wait(0.3);
+             d.move_to("Date range dialog", 0.8);
+             d.click();
+             d.wait(0.8);
+             day_click(d, g, "Date range dialog", {today.year, today.month, 9}, 0.7);
+             d.wait(0.5);
+             day_click(d, g, "Date range dialog", {today.year, today.month, 18}, 0.7);
+             d.wait(0.8);
+             day_click(d, g, "Date range dialog", {today.year, today.month, 4}, 0.6);
+             d.wait(0.5);
+             day_click(d, g, "Date range dialog", {today.year, today.month, 6}, 0.6);
+             d.wait(0.6);
+             d.move_to("OK", 0.6);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Open calendar", 0.8);
+             d.click();
+             d.wait(0.7);
+             day_click(d, g, "Date", {today.year, today.month, 12}, 0.7);
+             d.wait(1.0);
+             d.set_cursor(false);
+             tab_to(d, g, *month_name(g));
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.wait(0.5);
+             for (Key k : {Key::right, Key::right, Key::down, Key::down, Key::page_down, Key::home, Key::end, Key::left}) {
+                 d.key(k);
+                 d.wait(0.5);
+             }
+             d.key(Key::enter);
+             d.wait(1.0);
+         }},
+        {"time_picker",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Times");
+             d.wait(0.3);
+             d.move_to("3 o'clock", 0.8);
+             d.click();
+             d.wait(1.0);
+             d.move_to(dial_point(g, 20.0, 100.0), 0.6);
+             d.press();
+             for (int deg = 30; deg <= 200; deg += 10) {
+                 d.move_to(dial_point(g, static_cast<double>(deg), 100.0), 0.08);
+             }
+             d.wait(0.2);
+             d.release();
+             d.wait(0.8);
+             d.move_to("PM", 0.7);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Select hour", 0.7);
+             d.click();
+             d.wait(0.8);
+             d.move_to("11 o'clock", 0.7);
+             d.click();
+             d.wait(1.2);
+             d.move_to("24-hour", 0.8);
+             d.click();
+             d.wait(0.8);
+             d.move_to("Select hour", 0.7);
+             d.click();
+             d.wait(0.8);
+             d.move_to("18 hours", 0.8);
+             d.click();
+             d.wait(1.2);
+             d.move_to("12-hour", 0.8);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Time picker dialog", 0.8);
+             d.click();
+             d.wait(0.8);
+             d.move_to("Switch to text input mode", 0.7);
+             d.click();
+             d.wait(0.6);
+             d.move_to(centre_in(g, "Time picker dialog", "for hour"), 0.6);
+             d.click();
+             d.type("0730", 0.25);
+             d.wait(0.5);
+             d.move_to("OK", 0.6);
+             d.click();
              d.wait(1.0);
          }},
         {"enable",
