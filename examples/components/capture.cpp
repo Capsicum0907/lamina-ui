@@ -2586,8 +2586,7 @@ const std::map<std::string, Scene>& font_videos() {
              d.wait(0.4);
              d.type("山田太郎（例）", 0.18);
              d.wait(0.6);
-             d.move_to("Search", 0.6);
-             d.click();
+             d.key(Key::tab);
              d.wait(0.4);
              d.type("東京での予定 Tokyo 2026", 0.12);
              d.wait(0.8);
