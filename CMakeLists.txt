@@ -310,6 +310,7 @@ if(LAMINA_BUILD_TESTS)
         tests/list_test.cpp
         tests/loading_indicator_test.cpp
         tests/main.cpp
+        tests/menu_desktop_test.cpp
         tests/menu_test.cpp
         tests/motion_tokens_test.cpp
         tests/navigation_bar_test.cpp

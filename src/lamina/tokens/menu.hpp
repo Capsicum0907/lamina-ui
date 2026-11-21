@@ -2,7 +2,9 @@
 
 #include <cstddef>
 
+#include "lamina/builtin_resources.hpp"
 #include "lamina/color/scheme.hpp"
+#include "lamina/icons/symbol.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
@@ -30,6 +32,18 @@ struct MenuTokens {
     double focus_ring_corner;
     StateColor disabled_label;
     StateColor disabled_leading_icon;
+    double trailing_space;
+    double trailing_icon_size;
+    color::Role trailing;
+    StateColor disabled_trailing;
+    icons::Symbol submenu_symbol;
+    double divider_thickness;
+    color::Role divider_color;
+    double divider_horizontal_padding;
+    double divider_vertical_padding;
+    double submenu_open_seconds;
+    double submenu_close_seconds;
+    double context_window_margin;
 };
 
 inline constexpr MenuTokens menu_tokens{
@@ -53,6 +67,18 @@ inline constexpr MenuTokens menu_tokens{
     .focus_ring_corner = 0.0,
     .disabled_label = {color::Role::on_surface, 0.38},
     .disabled_leading_icon = {color::Role::on_surface, 0.38},
+    .trailing_space = 12.0,
+    .trailing_icon_size = 24.0,
+    .trailing = color::Role::on_surface_variant,
+    .disabled_trailing = {color::Role::on_surface, 0.38},
+    .submenu_symbol = builtin::icons::keyboard_arrow_right,
+    .divider_thickness = 1.0,
+    .divider_color = color::Role::outline_variant,
+    .divider_horizontal_padding = 12.0,
+    .divider_vertical_padding = 2.0,
+    .submenu_open_seconds = 0.4,
+    .submenu_close_seconds = 0.4,
+    .context_window_margin = 4.0,
 };
 
 }
