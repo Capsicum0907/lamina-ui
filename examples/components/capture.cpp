@@ -92,6 +92,7 @@ public:
                       std::move(wheel_events_),
                       std::move(key_events_),
                       std::move(text_events_)};
+        f.size_class = layout::compute_window_size_class(f.width_dp, f.height_dp);
         pointer_events_.clear();
         wheel_events_.clear();
         key_events_.clear();

@@ -158,6 +158,7 @@ public:
             ctx.fonts);
         focus_.add(*suite_);
         add_pane_focus();
+        gated_tip(*back_, [this] { return back_shown(); });
 
         auto controls_row = layout::row({widgets::node(width_label), width_limited(widgets::node(*slider_), l.slider_width),
                                          widgets::node(*presets_), widgets::node(*layouts_), widgets::node(*class_label_)});

@@ -471,6 +471,8 @@ private:
         }
         f.add(edit);
         f.add(add);
+        gated_tip(edit, [this] { return view_ == 0; });
+        gated_tip(add, [this] { return view_ == 0; });
         auto& field = w.emplace<widgets::TextField>(widgets::TextFieldOptions{.label = "Name", .clipboard = nullptr, .min_width = 120.0}, ctx.fonts);
         f.add(field);
         auto& chips = w.emplace<widgets::ChipGroup>(
