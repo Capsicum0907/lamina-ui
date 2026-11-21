@@ -373,6 +373,10 @@ BottomSheetResponse BottomSheet::handle(const input::PointerEvent& e) {
     const bool in_area = e.action != input::PointerAction::leave && contains(area_, e.x_dp, e.y_dp);
     const bool in_sheet = in_area && contains(bounds(), e.x_dp, e.y_dp);
     const bool blocks = modal() ? in_area : in_sheet;
+    input::PointerEvent clipped = e;
+    if (!in_area && e.action == input::PointerAction::move) {
+        clipped = left;
+    }
     switch (e.action) {
     case input::PointerAction::down: {
         scrim_pressed_ = false;
@@ -386,8 +390,8 @@ BottomSheetResponse BottomSheet::handle(const input::PointerEvent& e) {
             handle_.handle(e);
             content_claimed_ = content_.handle(e);
         } else {
-            handle_.handle(e);
-            content_.handle(e);
+            handle_.handle(left);
+            content_.press_elsewhere();
             scrim_pressed_ = modal() && in_area;
         }
         return {.consumed = blocks};
@@ -407,8 +411,8 @@ BottomSheetResponse BottomSheet::handle(const input::PointerEvent& e) {
                 return {.consumed = true};
             }
         }
-        handle_.handle(e);
-        const bool used = content_.handle(e);
+        handle_.handle(clipped);
+        const bool used = content_.handle(clipped);
         content_claimed_ = content_claimed_ || (tracking_ && used);
         return {.consumed = blocks};
     }

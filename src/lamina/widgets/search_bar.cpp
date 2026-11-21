@@ -7,6 +7,7 @@
 #include "lamina/motion/lerp.hpp"
 #include "lamina/render/path.hpp"
 #include "lamina/tokens/divider.hpp"
+#include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/item_focus.hpp"
 #include "lamina/widgets/surface.hpp"
@@ -463,7 +464,8 @@ void SearchBar::paint_field(render::Canvas& canvas, const color::ColorScheme& sc
     if (expanded_view) {
         back_->paint(canvas, scheme);
     } else {
-        icons::draw_centered(canvas, options_.search_icon, leading_centre(f), t.icon_size, scheme[t.leading_icon]);
+        const color::Argb icon = field_.enabled() ? scheme[t.leading_icon] : resolve(scheme, t.disabled_icon);
+        icons::draw_centered(canvas, options_.search_icon, leading_centre(f), t.icon_size, icon);
     }
     field_.paint(canvas, scheme);
     if (trailing_) {

@@ -204,6 +204,11 @@ void SideSheet::set_focused(bool focused) {
     }
 }
 
+void SideSheet::set_enabled(bool enabled) {
+    enabled_ = enabled;
+    each_button([enabled](auto& b) { b.set_enabled(enabled); });
+}
+
 void SideSheet::tab(bool backward) {
     std::vector<FocusManager*> parts{&header_focus_};
     if (content_.focus()) {

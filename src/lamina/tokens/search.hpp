@@ -3,6 +3,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/icon_button.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
@@ -17,6 +18,7 @@ struct SearchTokens {
     color::Role divider;
     color::Role leading_icon;
     color::Role trailing_icon;
+    StateColor disabled_icon;
     double icon_size;
     double icon_slot;
     double icon_offset;
@@ -42,6 +44,7 @@ inline constexpr SearchTokens search_tokens{
     .divider = color::Role::outline,
     .leading_icon = color::Role::on_surface,
     .trailing_icon = color::Role::on_surface_variant,
+    .disabled_icon = {color::Role::on_surface, disabled_alpha},
     .icon_size = 24.0,
     .icon_slot = 48.0,
     .icon_offset = 4.0,

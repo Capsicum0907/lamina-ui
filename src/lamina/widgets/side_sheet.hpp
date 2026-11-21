@@ -89,6 +89,8 @@ public:
     const ContentHost& content() const { return content_; }
     bool focused() const;
     void set_focused(bool focused);
+    bool enabled() const { return enabled_; }
+    void set_enabled(bool enabled);
     std::optional<render::Rect> caret_area() const { return content_.caret_area(); }
     std::optional<double> next_wake_seconds() const { return content_.next_wake_seconds(); }
 
@@ -129,6 +131,7 @@ private:
     bool scrim_pressed_ = false;
     bool tracking_ = false;
     bool content_claimed_ = false;
+    bool enabled_ = true;
 };
 
 }
