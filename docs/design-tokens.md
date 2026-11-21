@@ -15,6 +15,7 @@ The values lamina-ui takes from Material 3 Expressive, read from Google's open-s
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
 | A | androidx/androidx — `compose/material3/adaptive/` (adaptive, adaptive-layout, adaptive-navigation), `compose/material3/material3-adaptive-navigation-suite/` and `window/window-core/` | `6068a9492ba8` | Apache-2.0 |
 | D | [material-components/material-components-web](https://github.com/material-components/material-components-web) — `packages/mdc-density/` and the components' `$density-config` | `6ceadb81df50` | MIT |
+| J | [JetBrains/compose-multiplatform-core](https://github.com/JetBrains/compose-multiplatform-core) — `compose/foundation/foundation/src/desktopMain/` and `compose/ui/ui/src/desktopMain/` (Compose Multiplatform Desktop) | the `jb-main` branch as read on 2026-11-21 (no commit was recorded) | Apache-2.0 |
 
 Reusing these values requires keeping the Apache-2.0 notice and attribution (the MIT notice for D).
 
@@ -801,9 +802,11 @@ Read on 2026-11-21. The material-web commit named for density (`9d2f79851cae`) h
 | Wide navigation rail item, collapsed / expanded | 64 / 56 | 52 / 40 | −3 / −4 | lamina-ui |
 | Navigation drawer item | 56 | 40 | −4 | lamina-ui |
 | Menu item | 48 | 32 | −4 | lamina-ui |
+| Menu bar | 40 | 28 | −3 | lamina-ui |
+| Table row / header | 52 / 56 | 36 / 40 | −4 / −4 | MDC data table |
 
 - Large and extra-large buttons and icon buttons do not take density: removing 4 dp steps from 96 or 136 dp does not change how much fits.
-- Deviations: MDC stops compilation for a scale below a component's minimum; lamina-ui clamps to the minimum, because one scale is set across many components. Positive scales clamp to the default. Segmented buttons, navigation items and menus have no density in MDC; their minimums are lamina-ui's own. MDC's data table rows (52 → 36) have no counterpart, since lamina-ui has no table.
+- Deviations: MDC stops compilation for a scale below a component's minimum; lamina-ui clamps to the minimum, because one scale is set across many components. Positive scales clamp to the default. Segmented buttons, navigation items and menus have no density in MDC; their minimums are lamina-ui's own. The menu bar has no MDC counterpart either; the table follows MDC's data table rows (52 → 36), with the header 4 dp taller as in MDC.
 - Touch target: at density 0 the controls keep their 48 dp hit area (`tokens::minimum_target`); at any negative density the hit area is the control's own bounds, for touch and pen too, as MDC resets its touch target. A 48 dp area around controls packed closer than 48 dp would overlap its neighbors' areas.
 - Checkboxes, radio buttons and switches do not take density yet.
 
@@ -856,6 +859,63 @@ lamina-ui's own, beside the vertical scroll area above: `set_content_width` make
 
 `lamina/widgets/numeric_field.hpp` and `lamina/tokens/numeric_field.hpp`, for inspectors and property panels; Material 3 has no compact numeric field, so the values are lamina-ui's own. 40 dp tall with density 0, 28 dp at least (4 dp a step), 96 dp wide by default, extra-small corners. The label is at the start (outside, outlined field) or inside (on surface-container-highest, before the value); the unit sits at the end. Dragging across the field or its start label by more than 3 dp scrubs the value one step every 4 dp; a click edits the text, which a bare `TextField` handles (selection, IME, clipboard, undo). Up and Down step the value (Shift for the large step), Page Up and Page Down take the large step, Enter commits, Escape restores the value, and losing the focus commits. Values are clamped to the range and rounded to `decimals`; text that is not a number keeps the field in the error color and marks it invalid. Accessibility: a spin button (`AccessibleRole::spin_button`) with the value and the unit, and the range.
 
+### Menu: shortcuts, dividers and submenus
+
+C `Menu.kt`, `MenuDefaults.kt` and `tokens/ListTokens.kt` at `6068a9492ba8`, and W `menu/internal/submenu/sub-menu.ts` at `9d2f79851cae`, into `menu_tokens` and `lamina/widgets/menu.hpp`.
+
+- Trailing slot: in Compose's `DropdownMenuItem` with a `trailingIcon`, the text takes the rest of the row with 12 dp of padding at its end (`DropdownMenuItemHorizontalPadding`), the slot is at least 24 dp wide (`ListTokens.ItemTrailingIconSize`) and draws in on-surface-variant (`ItemTrailingIconColor`), on-surface at 38 % when disabled, and the row's text is Label L. lamina-ui puts a shortcut label (`MenuItem::shortcut`, written by `format_chord`) or the submenu arrow (`keyboard_arrow_right`, 24 dp) in that slot, at the item's end. Compose has no shortcut label; showing the chord in the trailing slot is lamina-ui's.
+- Dividers: `divider_before` draws a 1 dp outline-variant line before the item, 12 dp from the sides with 2 dp above and below (`MenuDefaults.HorizontalDividerPadding`).
+- Submenus follow material-web's `md-sub-menu`: hovering an item with a submenu opens it after 400 ms (`hoverOpenDelay`) and hovering another item closes it after 400 ms (`hoverCloseDelay`); Right, Enter or Space opens it with its first item focused, and Left or Escape closes it and returns to its item. The submenu's top start corner meets the item's top end corner (`anchorCorner` START_END, `menuCorner` START_START); it opens on the item's left when there is no room on the right, and moves up to stay 4 dp inside the window. The item whose submenu is open keeps the hover state layer. A submenu needs `MenuOptions::icon_font` for its arrow. Deviations: pressing an item opens its submenu at once, and Tab closes the whole menu. Compose has no submenus.
+- A choice reports `MenuResponse::path` (indices from the top menu down) and the item's `command`; `chosen` is set only for an item of the menu itself, as before.
+- `open_at(point)` is the position of Compose Desktop's `PopupPositionProviderAtPosition` (J `DesktopPopup.desktop.kt`, used by its context menus): the menu's top start corner at the point, moved left by its width when it would pass the window's right edge less 4 dp, up by its height when it would pass the bottom edge less 4 dp, and then kept at least 4 dp from the left and top (`windowMargin`, `context_window_margin`). It scales in around the point.
+
+### Context menu area
+
+J `ContextMenuProvider.desktop.kt` and `BasicContextMenuRepresentation.desktop.kt`: Compose Desktop's `ContextMenuArea` opens when the secondary button is pressed, at the pointer. `ContextMenuArea` (`lamina/widgets/context_menu.hpp`) takes an area and a `Menu`, and opens the menu with `open_at` on an `input::ContextClick` inside the area. The SDL3 window reports a right press as a `ContextClick` in `Frame::context`, not as a `PointerEvent`, so no widget takes it for a click. While the area's `focused` hook says so, Shift+F10 or the Menu key (`requests_context_menu`) opens the menu at `keyboard_point` (the area's top start corner by default) with its first item focused. `before_open` runs first with the point; the Files view uses it to select the row under the pointer (`Table::handle(ContextClick)` selects that row unless it is already selected, as file managers do). Deviation: the keyboard opening is lamina-ui's, after Windows; the Compose file has no key handling.
+
+### Keyboard shortcuts
+
+J `KeyShortcut.desktop.kt`: a `KeyShortcut` is a key with ctrl, meta, alt and shift, written as `Ctrl+`, `Meta+`, `Alt+`, `Shift+` and the key. In lamina-ui a `KeyChord` (`lamina/widgets/shortcuts.hpp`) is a key with Ctrl, Shift and Alt, and `format_chord` writes it with a `ShortcutFormat` from `lamina/tokens/shortcut.hpp`, the one place that holds the platform's spelling: `pc_shortcut_format` for Windows and Linux (Ctrl, Alt, Shift in that order joined by `+`, and Del, Ins, PgUp, PgDn, Esc, Enter, Space, Backspace, Left, Up, F1 to F12, Plus, Minus for named keys) and `mac_shortcut_format` (⌃ ⌥ ⇧ without a separator, and ⌫ ⌦ ↩ ⎋ ⇥ ← → ↑ ↓ ⇞ ⇟ ↖ ↘); `default_shortcut_format()` picks one by platform. lamina-ui's Ctrl is the Control key on every platform, so the mac format draws it as ⌃; the window does not map Command yet.
+
+- `ShortcutRegistry` holds commands by id, each with an optional chord, an action and an enabled flag. `handle(KeyEvent)` runs the enabled command whose chord matches exactly and reports it consumed; a disabled command neither runs nor consumes its key. A second command with the same id or chord throws.
+- The same definition drives the menus: `apply_shortcuts` copies the chords of the items' commands into the items, `sync_commands` copies the enabled flags, and `MenuBar` does both and runs the command of a chosen item.
+- Focus: a host gives a key to the focused widget first and to the registry only when `FocusManager::claims_key` is false. A focused `TextField` or `NumericField` claims Ctrl+A, Ctrl+C, Ctrl+X and Ctrl+V, and Ctrl+Z and Ctrl+Y while it has something to undo or redo (`handles_history_key`, unchanged); a focused `Table` claims Ctrl+A. The routing is lamina-ui's: Compose Desktop leaves menu shortcuts to Swing.
+
+### Menu bar
+
+Compose Desktop's `MenuBar` is a native Swing menu bar (J `Menu.desktop.kt` builds `JMenu`s and hands shortcuts to Swing as accelerators), and Material 3 has no menu bar, so the look is lamina-ui's own, from M3 roles, in `lamina/tokens/menu_bar.hpp`: a surface-container-low bar 40 dp tall (28 dp at least, 4 dp a step); items with 12 dp of padding on each side of Label L text, inset 4 dp from the bar's top, bottom and start, with small (8 dp) corners; the open item on secondary-container with on-secondary-container text, fading on the default effects spring; hover and press state layers on on-surface and the inward focus ring. Each menu is the classic `Menu`, opened below its item with 4 dp window margins instead of Compose's 48 dp, which would push a menu bar's menus away from the bar.
+
+- Keys, after Windows: Alt pressed and released alone (the window reports it as `Key::alt`) or F10 focuses the bar and shows the access-key underlines. Left and Right move along it (wrapping), Home and End go to the ends, Down, Up, Enter or Space open the menu, and a letter opens its menu; Alt with a letter opens a menu from anywhere. In an open menu, Left and Right open the previous or next menu unless a submenu takes the key; Escape closes the menu and leaves the bar focused, and a second Escape, Alt or F10 leaves the bar. While a menu is open the bar takes every key.
+- Pointer: pressing an item opens its menu; while a menu is open, moving onto another item switches to its menu; pressing the open item closes it; pressing an item, dragging onto a menu item and releasing chooses it.
+- Accessibility: a `menu_bar` whose children are `menu_item`s with the value Expanded or Collapsed, and the open menu inside its item.
+
+### Table
+
+Material 3 has no data table. The values below come from MDC Web's data table (D, `packages/mdc-data-table/_data-table-theme.scss` and the header cell styles at `6ceadb81df50`) where it has one, mapped onto M3 roles, and are lamina-ui's own otherwise; `lamina/tokens/table.hpp` and `lamina/widgets/table.hpp`.
+
+| Value | lamina-ui | Source |
+|---|---|---|
+| Row height | 52 dp, 36 dp at least (density −4) | D `$row-height`, `$minimum-row-height` |
+| Header height | the row height plus 4: 56 dp, 40 dp at least | D `get-header-row-height` |
+| Cell padding | 16 dp at the start and end | D `$cell-leading-padding`, `$cell-trailing-padding` |
+| Header text | Title S, on-surface | D `subtitle2`, mapped to M3 Title S |
+| Cell text | Body M, on-surface | D `body2`, mapped to M3 Body M |
+| Row divider | 1 dp outline-variant; none under the last row | D 1 px on-surface at 12 %, mapped to the M3 divider token |
+| Selected row | secondary-container, on-secondary-container text | the M3 list's selected container (D: primary at 4 %) |
+| Hover | on-surface state layer at 8 % | M3 state layer (D: 4 %) |
+| Sort arrow | `arrow_upward` / `arrow_downward`, 18 dp, 4 dp after the label (before it for end-aligned columns); on-surface on the sorted column, on-surface-variant fading in on hover | D 4 px gap and hover reveal; the size is lamina-ui's |
+| Header container | surface-container | lamina-ui |
+| Header column dividers | 1 dp outline-variant, 16 dp from the top and bottom | lamina-ui |
+| Resize zone | 8 dp centered on a column's end edge, with the resize cursor | lamina-ui (D has no column resizing) |
+| Column width | 160 dp by default, 56 dp at least | lamina-ui |
+
+- Sorting: clicking a sortable header sorts ascending, again descending; a click on another column sorts it ascending. The sort is stable and uses the column's `less` (on model rows), or the cells' text. The table keeps a permutation from view rows to model rows, so the selection and the focus stay on the same rows.
+- Resizing: dragging a header divider changes the column's width, not below `min_width`, and the content scrolls sideways when the columns are wider than the table.
+- Selection (`TableSelection::multiple`, after Windows list views): a click selects one row and sets the anchor, Ctrl+click toggles a row, Shift+click selects the range from the anchor, Ctrl+Shift+click adds the range; a click below the rows clears the selection; a double click or Enter activates. Arrows, Home, End, Page Up and Page Down move the focus and select it, with Shift they extend from the anchor and with Ctrl they move the focus only; Space selects the focused row, Ctrl+Space toggles it and Ctrl+A selects all. The table is one Tab stop and draws the inward focus ring on the focused row after a key.
+- Scrolling: a `ScrollArea` below the header scrolls both ways (the wheel, Shift and the wheel, the bars); the header stays on top and scrolls sideways with the rows, and the wheel over the header scrolls the rows.
+- Virtualization: only the rows in view and two more on each side are laid out and painted; their text is laid out once while they are in view and dropped when they leave. The accessibility tree has the header row with its column headers (the sorted one says Ascending or Descending) and the rows in view with their cells. The selected color and the hover move on springs.
+- Not done: ellipses (cells clip their text), reordering columns, a checkbox column and pagination (D has both), fitting a column to its content, and editing cells.
+
 ## Open questions
 
 - Components other than those above are not surveyed yet.
@@ -863,4 +923,5 @@ lamina-ui's own, beside the vertical scroll area above: `set_content_width` make
 - Not implemented from the components of the third stage: swiping between months, Compose's vibrant time picker (`TimeScroll` and the `shapes:` overloads), and the slider forms Compose does not have (an icon in the track, the XS–XL sizes).
 - Not implemented from the screen patterns of the fourth stage: predictive back (sheets, drawers, rail, search), the decay phase of anchored flings, nested scrolling between sheet content and the sheet, `AppBarWithSearch`, `ExpandedFullScreenContainedSearchBar` and `ExpandedDockedSearchBarWithGap`, and the M3 design site's side sheet measurements (unreadable without script).
 - Not implemented from the Expressive components of the fifth stage: the vertical button group and per-item alignment, a widening button on a key press, the exit-always floating toolbar and `minimumInteractiveBalancedPadding`, the linear wavy indicator's accelerated run-out before a handoff, a scrolling FAB menu, `Modifier.animateFloatingActionButton`, `AppBarWithSearch` and the other Expressive search bars, `AppBarRow` and `AppBarColumn` with their overflow, `CheckableDropdownMenuItem` and `SelectableDropdownMenuItem`, `ScrollField` and `Modifier.nonInteractiveScrollbar`.
-- Not implemented from the adaptive and desktop work of the sixth stage: density for checkboxes, radio buttons and switches, the medium short navigation bar's arrangement, the navigation suite's primary action, levitated panes, hinges, predictive back and saved pane state, the decay before a pane anchor is chosen, a data table, and widths for segmented button rows.
+- Not implemented from the adaptive and desktop work of the sixth stage: density for checkboxes, radio buttons and switches, the medium short navigation bar's arrangement, the navigation suite's primary action, levitated panes, hinges, predictive back and saved pane state, the decay before a pane anchor is chosen, and widths for segmented button rows.
+- Not implemented from the desktop work of the seventh stage: menu typeahead, the Command key on macOS, checkable and radio menu items, ellipses in table cells, reordering and fitting table columns, a checkbox column, pagination and cell editing.

@@ -24,9 +24,10 @@ This product includes software and data from the following projects:
   SIL Open Font License 1.1 (license files in that directory).
 
 Design token values are taken from Google's Apache-2.0 licensed sources
-(androidx, material-components-android, material-web, material-color-utilities);
+(androidx, material-components-android, material-web, material-color-utilities,
+and JetBrains' compose-multiplatform-core for desktop menus);
 docs/design-tokens.md lists the files and commits.
 
-The density scale's heights and minimums are taken from material-components-web
+The density scale's heights and minimums and the data table's values are taken from material-components-web
 (https://github.com/material-components/material-components-web),
 Copyright 2014-2020 Google, Inc. MIT License.
