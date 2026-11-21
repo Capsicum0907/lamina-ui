@@ -234,6 +234,11 @@ public:
         rail_->step(dt);
         hiding_rail_->step(dt);
         rail_menu_->step(dt);
+        if (rail_->expanded() != rail_menu_open_) {
+            rail_menu_open_ = rail_->expanded();
+            rail_menu_->set_icon(icon(rail_menu_open_ ? res::icons::menu_open : res::icons::menu));
+            rail_menu_->set_accessible_name(rail_menu_open_ ? "Collapse rail" : "Expand rail");
+        }
         if (modal_open_ && !modal_->visible()) {
             modal_open_ = false;
             focus_.resume();
@@ -477,6 +482,7 @@ private:
     bool pinned_ = false;
     bool modal_open_ = false;
     bool rail_open_ = false;
+    bool rail_menu_open_ = false;
     bool hiding_open_ = false;
     input::InputSource source_ = input::InputSource::pointer;
 };

@@ -1403,7 +1403,7 @@ const std::map<std::string, Scene>& pattern_videos() {
              d.move_to(top, 0.6);
              d.drag_to({top.x, top.y + 40.0}, 0.6);
              d.wait(1.0);
-             d.drag_to({top.x, top.y + 180.0}, 0.9);
+             d.drag_to({top.x, top.y + 260.0}, 0.9);
              d.wait(1.4);
              const render::Point half = centre_in(g, "Bottom Sheet", "Drag handle");
              d.move_to({half.x, half.y + 120.0}, 0.6);
