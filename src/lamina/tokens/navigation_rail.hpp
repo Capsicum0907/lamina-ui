@@ -1,7 +1,10 @@
 #pragma once
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/drag.hpp"
 #include "lamina/tokens/interaction.hpp"
+#include "lamina/tokens/motion.hpp"
+#include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/typography.hpp"
 
 namespace lamina::tokens {
@@ -72,6 +75,26 @@ inline constexpr NavigationRailTokens navigation_rail_tokens{
     .state_layer = color::Role::on_surface,
     .disabled_icon = {color::Role::on_surface_variant, disabled_alpha},
     .disabled_label = {color::Role::on_surface_variant, disabled_alpha},
+};
+
+struct ModalNavigationRailTokens {
+    color::Role container;
+    CornerSize expanded_shape;
+    double scrim_progress;
+    double positional_fraction;
+    double velocity_threshold;
+    motion::SpringSpec slide;
+    motion::SpringSpec scrim;
+};
+
+inline constexpr ModalNavigationRailTokens modal_navigation_rail_tokens{
+    .container = color::Role::surface_container,
+    .expanded_shape = CornerSize::large,
+    .scrim_progress = 0.3,
+    .positional_fraction = 0.5,
+    .velocity_threshold = anchored_min_fling_velocity,
+    .slide = motion_scheme.default_spatial(),
+    .scrim = motion_scheme.default_effects(),
 };
 
 }

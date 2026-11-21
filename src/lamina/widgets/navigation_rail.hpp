@@ -71,6 +71,7 @@ public:
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+    void paint_items(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
     struct Item {

@@ -313,8 +313,12 @@ bool NavigationRail::animating() const {
 }
 
 void NavigationRail::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
+    canvas.fill_rect(bounds(), scheme[t.container]);
+    paint_items(canvas, scheme);
+}
+
+void NavigationRail::paint_items(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect b = bounds();
-    canvas.fill_rect(b, scheme[t.container]);
     canvas.push_clip(b);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
