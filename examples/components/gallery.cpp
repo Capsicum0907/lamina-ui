@@ -728,6 +728,12 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.chrome.handle(e);
         g.header_widgets.handle(e);
     }
+    for (const auto& c : frame.context) {
+        g.source = input::InputSource::pointer;
+        if (Page* p = g.current_page()) {
+            p->handle(c);
+        }
+    }
     for (const auto& w : frame.wheel) {
         if (g.current_page()) {
             g.current_page()->handle(w);

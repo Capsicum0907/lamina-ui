@@ -34,6 +34,7 @@ public:
     virtual bool handle(const input::KeyEvent& event) = 0;
     virtual bool handle(const input::WheelEvent& event) = 0;
     virtual void handle(const input::TextEvent&) {}
+    virtual void handle(const input::ContextClick&) {}
     virtual std::optional<render::Rect> caret_area() const { return std::nullopt; }
     virtual void step(double dt_seconds) = 0;
     virtual bool animating() const = 0;

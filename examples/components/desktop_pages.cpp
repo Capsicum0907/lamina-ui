@@ -8,6 +8,7 @@
 
 #include "components/base_page.hpp"
 #include "components/demo_frame.hpp"
+#include "components/files_view.hpp"
 #include "components/pages.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/render/path.hpp"
@@ -219,16 +220,17 @@ layout::NodePtr stretched(W& w) {
 
 class DesktopPage final : public BasePage {
 public:
-    explicit DesktopPage(PageContext context) : BasePage(std::move(context)), editor_frame_(desktop_layout.editor), timeline_(ctx.fonts) {
+    explicit DesktopPage(PageContext context)
+        : BasePage(std::move(context)), editor_frame_(desktop_layout.editor), timeline_(ctx.fonts), files_(std::make_unique<FilesView>(ctx)) {
         const DesktopLayout& l = desktop_layout;
         views_ = &controls.emplace_with<widgets::SegmentedButtonRow>(
             [this](widgets::SegmentedButtonRow&, const widgets::SegmentedButtonResponse& r) {
                 if (r.clicked) {
                     view_ = *r.clicked;
-                    ctx.report(view_ == 0 ? "View: density" : "View: editor");
+                    ctx.report(view_ == 0 ? "View: density" : view_ == 1 ? "View: editor" : "View: files");
                 }
             },
-            widgets::SegmentedButtonRowOptions{{{"Density", std::nullopt, true}, {"Editor"}}, widgets::SegmentSelection::single, "View"}, ctx.fonts,
+            widgets::SegmentedButtonRowOptions{{{"Density", std::nullopt, true}, {"Editor"}, {"Files"}}, widgets::SegmentSelection::single, "View"}, ctx.fonts,
             ctx.icon_font);
         focus_.add(*views_);
 
@@ -239,7 +241,7 @@ public:
         auto density_row = layout::row(std::move(columns));
         density_row->spacing(l.column_gap).cross_align(layout::CrossAlign::start);
         auto editor = editor_frame_.node(build_editor());
-        auto body = std::make_shared<Choice>(std::vector<layout::NodePtr>{density_row, editor}, view_);
+        auto body = std::make_shared<Choice>(std::vector<layout::NodePtr>{density_row, editor, files_->node()}, view_);
         auto column = layout::column({widgets::node(*views_), body});
         column->spacing(base_page_layout.heading_gap * 2.0);
         root = column;
@@ -247,10 +249,18 @@ public:
             focus_.add_group(columns_[i]->focus, [this] { return view_ == 0; });
         }
         focus_.add_group(editor_focus_, [this] { return view_ == 1; });
+        focus_.add_group(files_->focus(), [this] { return view_ == 2; });
     }
 
     bool handle(const input::PointerEvent& e) override {
         handle_tips(e);
+        if (view_ == 2) {
+            if (files_->handle(e)) {
+                controls.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+                return true;
+            }
+            return handle_controls(e);
+        }
         if (view_ == 0) {
             for (auto& c : columns_) {
                 c->widgets.handle(e);
@@ -274,6 +284,9 @@ public:
 
     bool handle(const input::KeyEvent& e) override {
         handle_tips(e);
+        if (view_ == 2 && files_->handle(e)) {
+            return true;
+        }
         if (focus_.handle(e)) {
             return true;
         }
@@ -283,6 +296,9 @@ public:
                 consumed = c->widgets.handle(e) || consumed;
             }
             return consumed || controls.handle(e);
+        }
+        if (view_ == 2) {
+            return controls.handle(e);
         }
         for (widgets::SplitPane* s : splits_) {
             if (s->handle(e)) {
@@ -303,7 +319,18 @@ public:
         }
     }
 
-    bool handle(const input::WheelEvent& e) override { return view_ == 1 && timeline_.handle(e); }
+    bool handle(const input::WheelEvent& e) override {
+        if (view_ == 2) {
+            return files_->handle(e);
+        }
+        return view_ == 1 && timeline_.handle(e);
+    }
+
+    void handle(const input::ContextClick& e) override {
+        if (view_ == 2) {
+            files_->handle(e);
+        }
+    }
 
     std::optional<render::Rect> caret_area() const override { return view_ == 1 ? editor_focus_.caret_area() : std::nullopt; }
 
@@ -318,10 +345,11 @@ public:
             s->step(dt);
         }
         timeline_.step(dt);
+        files_->step(dt);
     }
 
     bool animating() const override {
-        bool any = BasePage::animating() || assets_.animating() || inspector_.animating() || timeline_.animating();
+        bool any = BasePage::animating() || assets_.animating() || inspector_.animating() || timeline_.animating() || (view_ == 2 && files_->animating());
         for (const auto& c : columns_) {
             any = any || c->widgets.animating();
         }
@@ -337,6 +365,10 @@ public:
             for (const auto& c : columns_) {
                 c->widgets.paint(canvas, scheme);
             }
+            return;
+        }
+        if (view_ == 2) {
+            files_->paint(canvas, scheme);
             return;
         }
         const DesktopLayout& l = desktop_layout;
@@ -365,8 +397,26 @@ public:
         editor_frame_.paint_border(canvas, scheme);
     }
 
+    void paint_overlays(render::Canvas& canvas, const color::ColorScheme& scheme) const override {
+        BasePage::paint_overlays(canvas, scheme);
+        if (view_ == 2) {
+            files_->paint_overlays(canvas, scheme);
+        }
+    }
+
+    void set_window(layout::Size window) override {
+        BasePage::set_window(window);
+        files_->set_window(window);
+    }
+
     std::vector<widgets::AccessibleNode> accessible_nodes() const override {
         std::vector<widgets::AccessibleNode> nodes = BasePage::accessible_nodes();
+        if (view_ == 2) {
+            for (widgets::AccessibleNode& n : files_->accessible_nodes()) {
+                nodes.push_back(std::move(n));
+            }
+            return nodes;
+        }
         if (view_ == 0) {
             for (std::size_t i = 0; i < columns_.size(); ++i) {
                 widgets::AccessibleNode g{widgets::AccessibleRole::group, "Density " + std::to_string(desktop_layout.densities[i]), column_rects_[i]};
@@ -397,6 +447,7 @@ public:
         for (widgets::SplitPane* s : splits_) {
             s->set_enabled(enabled);
         }
+        files_->set_enabled(enabled);
     }
 
     void cancel_interaction() override {
@@ -410,9 +461,13 @@ public:
             s->cancel_interaction();
         }
         timeline_.cancel_interaction();
+        files_->cancel_interaction();
     }
 
     std::optional<input::Cursor> cursor() const override {
+        if (view_ == 2) {
+            return files_->cursor();
+        }
         if (view_ != 1) {
             return std::nullopt;
         }
@@ -674,6 +729,7 @@ private:
     std::unique_ptr<widgets::SplitPane> stage_split_;
     std::unique_ptr<widgets::SplitPane> top_split_;
     std::vector<widgets::SplitPane*> splits_;
+    std::unique_ptr<FilesView> files_;
     render::Rect assets_rect_{0.0, 0.0, 0.0, 0.0};
     render::Rect preview_rect_{0.0, 0.0, 0.0, 0.0};
     render::Rect inspector_rect_{0.0, 0.0, 0.0, 0.0};

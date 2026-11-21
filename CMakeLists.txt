@@ -232,12 +232,12 @@ if(LAMINA_BUILD_EXAMPLES)
     examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
     examples/components/drawer_pages.cpp examples/components/search_pages.cpp examples/components/group_pages.cpp
     examples/components/progress_pages.cpp examples/components/toolbar_pages.cpp examples/components/adaptive_pages.cpp
-    examples/components/desktop_pages.cpp)
+    examples/components/desktop_pages.cpp examples/components/files_view.cpp)
     add_executable(components_capture examples/components/capture.cpp examples/components/gallery.cpp examples/components/pages.cpp examples/components/input_pages.cpp
     examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
     examples/components/drawer_pages.cpp examples/components/search_pages.cpp examples/components/group_pages.cpp
     examples/components/progress_pages.cpp examples/components/toolbar_pages.cpp examples/components/adaptive_pages.cpp
-    examples/components/desktop_pages.cpp)
+    examples/components/desktop_pages.cpp examples/components/files_view.cpp)
     target_link_libraries(components_capture PRIVATE lamina lamina_thorvg lamina_sdl3 lamina_examples_common components_resources)
     lamina_warnings(components_capture)
     lamina_add_example(navigation navigation ICONS

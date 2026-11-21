@@ -93,6 +93,8 @@ public:
                       std::move(key_events_),
                       std::move(text_events_)};
         f.size_class = layout::compute_window_size_class(f.width_dp, f.height_dp);
+        f.context = std::move(context_events_);
+        context_events_.clear();
         pointer_events_.clear();
         wheel_events_.clear();
         key_events_.clear();
@@ -144,6 +146,33 @@ public:
         frame();
         wait(0.08);
         pointer_events_.push_back(at(PointerAction::up));
+        frame();
+    }
+
+    void right_click() {
+        context_events_.push_back({pointer_.x, pointer_.y});
+        badge("Right click");
+        frame();
+    }
+
+    void modified_click(bool shift, bool ctrl) {
+        input::PointerEvent down = at(PointerAction::down, 1);
+        down.shift = shift;
+        down.ctrl = ctrl;
+        pointer_events_.push_back(down);
+        badge(ctrl && shift ? "Ctrl+Shift+click" : ctrl ? "Ctrl+click" : "Shift+click");
+        frame();
+        wait(0.08);
+        input::PointerEvent up = at(PointerAction::up);
+        up.shift = shift;
+        up.ctrl = ctrl;
+        pointer_events_.push_back(up);
+        frame();
+    }
+
+    void chord(Key k, bool shift, bool ctrl, bool alt, std::string label) {
+        key_events_.push_back({k, shift, ctrl, false, alt});
+        badge(std::move(label));
         frame();
     }
 
@@ -247,7 +276,9 @@ private:
                                                       {Key::up, "↑"},    {Key::down, "↓"},  {Key::backspace, "Backspace"},
                                                       {Key::page_down, "PgDn"},  {Key::page_up, "PgUp"},
                                                       {Key::home, "Home"},       {Key::end, "End"},
-                                                      {Key::delete_forward, "Delete"}};
+                                                      {Key::delete_forward, "Delete"}, {Key::alt, "Alt"},
+                                                      {Key::f2, "F2"},           {Key::f5, "F5"},
+                                                      {Key::f10, "F10"},         {Key::menu, "Menu"}};
         const auto it = names.find(k);
         const std::string base = it == names.end() ? "?" : it->second;
         return shift ? "Shift+" + base : base;
@@ -360,6 +391,7 @@ private:
     std::vector<input::WheelEvent> wheel_events_;
     std::vector<input::KeyEvent> key_events_;
     std::vector<input::TextEvent> text_events_;
+    std::vector<input::ContextClick> context_events_;
     std::string badge_text_;
     double badge_left_ = 0.0;
     double clock_ = 0.0;
@@ -2123,6 +2155,342 @@ const std::map<std::string, Scene>& adaptive_videos() {
     return scenes;
 }
 
+void files_view(Driver& d) {
+    show_page(d, "Desktop");
+    d.set_cursor(false);
+    d.move_to("Files", 0.05);
+    d.click();
+    d.move_to({720.0, 845.0}, 0.05);
+    d.set_cursor(true);
+    d.wait(0.6);
+}
+
+widgets::AccessibleNode table_of(examples::components::Gallery& g) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(nodes, [](const widgets::AccessibleNode& n) { return n.role == widgets::AccessibleRole::table; });
+    if (!node) {
+        throw std::runtime_error("no table");
+    }
+    return *node;
+}
+
+render::Point table_row(examples::components::Gallery& g, std::size_t nth, double x_offset = 160.0) {
+    const widgets::AccessibleNode t = table_of(g);
+    if (nth + 1 >= t.children.size()) {
+        throw std::runtime_error("the table shows fewer rows");
+    }
+    const render::Rect r = t.children[nth + 1].bounds;
+    return {std::max(r.x, t.bounds.x) + x_offset, r.y + r.height / 2.0};
+}
+
+render::Rect column_header(examples::components::Gallery& g, const std::string& name) {
+    const widgets::AccessibleNode t = table_of(g);
+    for (const widgets::AccessibleNode& h : t.children.front().children) {
+        if (h.name == name) {
+            return h.bounds;
+        }
+    }
+    throw std::runtime_error("no column " + name);
+}
+
+render::Point menu_entry(examples::components::Gallery& g, const std::string& name) {
+    const auto nodes = g.accessible_nodes();
+    std::optional<widgets::AccessibleNode> found;
+    widgets::visit_accessible(nodes, [&](const widgets::AccessibleNode& n) {
+        if (n.role == widgets::AccessibleRole::menu_item && n.name == name) {
+            found = n;
+        }
+    });
+    if (!found) {
+        throw std::runtime_error("no menu item " + name);
+    }
+    return {found->bounds.x + std::min(60.0, found->bounds.width / 2.0), found->bounds.y + found->bounds.height / 2.0};
+}
+
+void files_menus_by_pointer(Driver& d, examples::components::Gallery& g) {
+    d.move_to(menu_entry(g, "File"), 0.6);
+    d.click();
+    d.wait(0.6);
+    d.move_to(menu_entry(g, "Open recent"), 0.5);
+    d.wait(0.9);
+    d.move_to(menu_entry(g, "budget.xlsx"), 0.5);
+    d.wait(0.6);
+    d.move_to(menu_entry(g, "Edit"), 0.5);
+    d.wait(0.7);
+    d.move_to(menu_entry(g, "View"), 0.4);
+    d.wait(0.5);
+    d.move_to(menu_entry(g, "Help"), 0.4);
+    d.wait(0.5);
+    d.move_to(menu_entry(g, "View"), 0.4);
+    d.wait(0.4);
+    d.move_to(menu_entry(g, "Density"), 0.4);
+    d.wait(0.9);
+    d.move_to(menu_entry(g, "Dense"), 0.5);
+    d.wait(0.3);
+    d.click();
+    d.wait(1.0);
+}
+
+void files_menus_by_keyboard(Driver& d) {
+    d.key(Key::alt);
+    d.wait(0.6);
+    d.key(Key::right);
+    d.wait(0.4);
+    d.key(Key::down);
+    d.wait(0.6);
+    for (int i = 0; i < 3; ++i) {
+        d.key(Key::down);
+        d.wait(0.3);
+    }
+    d.key(Key::right);
+    d.wait(0.6);
+    d.key(Key::down);
+    d.wait(0.3);
+    d.key(Key::right);
+    d.wait(0.6);
+    d.key(Key::left);
+    d.wait(0.5);
+    d.key(Key::escape);
+    d.wait(0.5);
+    d.key(Key::escape);
+    d.wait(0.5);
+    d.chord(Key::f, false, false, true, "Alt+F");
+    d.wait(0.6);
+    d.key(Key::r);
+    d.wait(0.6);
+    d.key(Key::down);
+    d.wait(0.3);
+    d.key(Key::enter);
+    d.wait(0.8);
+    d.chord(Key::s, false, true, false, "Ctrl+S");
+    d.wait(0.8);
+    d.chord(Key::s, true, true, false, "Ctrl+Shift+S");
+    d.wait(1.0);
+}
+
+const std::map<std::string, Scene>& files_stills() {
+    static const std::map<std::string, Scene> scenes{
+        {"files", [](Driver& d, examples::components::Gallery&) { files_view(d); }},
+        {"files_file_menu",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             d.move_to(menu_entry(g, "File"), 0.3);
+             d.click();
+             d.wait(0.4);
+             d.move_to(menu_entry(g, "Open recent"), 0.3);
+             d.wait(0.8);
+             d.move_to(menu_entry(g, "budget.xlsx"), 0.3);
+         }},
+        {"files_edit_menu",
+         [](Driver& d, examples::components::Gallery&) {
+             files_view(d);
+             d.chord(Key::e, false, false, true, "Alt+E");
+             d.wait(0.3);
+             d.key(Key::down);
+             d.key(Key::down);
+             d.key(Key::down);
+         }},
+        {"files_context_edge",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             const widgets::AccessibleNode t = table_of(g);
+             d.move_to({t.bounds.x + t.bounds.width - 12.0, t.bounds.y + t.bounds.height - 12.0}, 0.4);
+             d.right_click();
+             d.wait(0.3);
+             d.move_to(menu_entry(g, "Copy"), 0.3);
+         }},
+        {"files_sorted",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             const render::Rect size = column_header(g, "Size");
+             d.move_to({size.x + size.width / 2.0, size.y + size.height / 2.0}, 0.3);
+             d.click();
+             d.wait(0.2);
+             d.click();
+             d.wait(0.3);
+             d.move_to(table_row(g, 1), 0.3);
+             d.click();
+             d.move_to(table_row(g, 3), 0.3);
+             d.modified_click(false, true);
+             d.move_to(table_row(g, 5), 0.3);
+             d.modified_click(false, true);
+             d.move_to(table_row(g, 8), 0.3);
+             d.modified_click(true, true);
+             d.move_to({720.0, 845.0}, 0.2);
+         }},
+        {"files_resized",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             const render::Rect name = column_header(g, "Name");
+             d.move_to({name.x + name.width - 1.0, name.y + name.height / 2.0}, 0.3);
+             d.drag_to({name.x + name.width + 140.0, name.y + name.height / 2.0}, 0.6);
+             const render::Rect kind = column_header(g, "Kind");
+             d.move_to({kind.x + kind.width - 1.0, kind.y + kind.height / 2.0}, 0.3);
+             d.drag_to({kind.x + kind.width - 50.0, kind.y + kind.height / 2.0}, 0.4);
+         }},
+        {"files_scrolled",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             d.move_to(table_row(g, 2), 0.3);
+             d.click();
+             d.key(Key::end);
+             d.wait(0.4);
+             d.key(Key::up, true);
+             d.key(Key::up, true);
+         }},
+        {"files_dense",
+         [](Driver& d, examples::components::Gallery&) {
+             files_view(d);
+             d.chord(Key::v, false, false, true, "Alt+V");
+             d.key(Key::right);
+             d.key(Key::down);
+             d.key(Key::down);
+             d.key(Key::enter);
+             d.wait(0.6);
+         }},
+        {"files_disabled",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             d.move_to(table_row(g, 1), 0.3);
+             d.click();
+             toggle_enabled(d);
+         }},
+    };
+    return scenes;
+}
+
+const std::map<std::string, Scene>& files_videos() {
+    static const std::map<std::string, Scene> scenes{
+        {"files_menubar",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             files_menus_by_pointer(d, g);
+             d.move_to({720.0, 845.0}, 0.4);
+             files_menus_by_keyboard(d);
+         }},
+        {"files_context",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             d.move_to(table_row(g, 3), 0.6);
+             d.right_click();
+             d.wait(1.0);
+             d.key(Key::escape);
+             d.wait(0.4);
+             const widgets::AccessibleNode t = table_of(g);
+             d.move_to({t.bounds.x + t.bounds.width - 14.0, t.bounds.y + t.bounds.height - 14.0}, 1.0);
+             d.right_click();
+             d.wait(1.0);
+             d.move_to(menu_entry(g, "Copy"), 0.6);
+             d.wait(0.3);
+             d.click();
+             d.wait(0.8);
+             d.move_to(table_row(g, 0, 420.0), 0.8);
+             d.right_click();
+             d.wait(0.6);
+             d.move_to(menu_entry(g, "Paste"), 0.5);
+             d.wait(0.3);
+             d.click();
+             d.wait(0.6);
+             d.move_to(table_row(g, 5), 0.6);
+             d.click();
+             d.key(Key::down);
+             d.wait(0.3);
+             d.chord(Key::f10, true, false, false, "Shift+F10");
+             d.wait(0.8);
+             d.key(Key::down);
+             d.wait(0.3);
+             d.key(Key::enter);
+             d.wait(0.8);
+             d.key(Key::menu);
+             d.wait(0.8);
+             d.key(Key::escape);
+             d.wait(0.6);
+         }},
+        {"files_table",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             const render::Rect size = column_header(g, "Size");
+             d.move_to({size.x + size.width / 2.0, size.y + size.height / 2.0}, 0.8);
+             d.wait(0.4);
+             d.click();
+             d.wait(0.8);
+             d.click();
+             d.wait(0.8);
+             const render::Rect modified = column_header(g, "Modified");
+             d.move_to({modified.x + 40.0, modified.y + modified.height / 2.0}, 0.6);
+             d.click();
+             d.wait(0.8);
+             const render::Rect name = column_header(g, "Name");
+             d.move_to({name.x + name.width - 1.0, name.y + name.height / 2.0}, 0.8);
+             d.wait(0.3);
+             d.drag_to({name.x + name.width + 120.0, name.y + name.height / 2.0}, 1.0);
+             d.wait(0.3);
+             const render::Rect kind = column_header(g, "Kind");
+             d.move_to({kind.x + kind.width - 1.0, kind.y + kind.height / 2.0}, 0.6);
+             d.drag_to({kind.x + kind.width - 60.0, kind.y + kind.height / 2.0}, 0.8);
+             d.wait(0.4);
+             d.move_to(table_row(g, 1), 0.6);
+             d.click();
+             d.wait(0.4);
+             d.move_to(table_row(g, 3), 0.4);
+             d.modified_click(false, true);
+             d.wait(0.4);
+             d.move_to(table_row(g, 4), 0.4);
+             d.modified_click(false, true);
+             d.wait(0.4);
+             d.move_to(table_row(g, 8), 0.4);
+             d.modified_click(true, true);
+             d.wait(0.6);
+             d.move_to(table_row(g, 3), 0.4);
+             d.modified_click(false, true);
+             d.wait(0.6);
+             d.move_to(table_row(g, 6), 0.4);
+             d.modified_click(true, false);
+             d.wait(0.8);
+             d.key(Key::down, true);
+             d.wait(0.3);
+             d.key(Key::down, true);
+             d.wait(0.6);
+             d.move_to(table_row(g, 4), 0.6);
+             for (double dy : {1.0, 1.0, 1.0, -1.0, -1.0, -1.0}) {
+                 d.shift_wheel(dy);
+                 d.wait(0.25);
+             }
+             d.wait(0.6);
+         }},
+        {"files_scroll",
+         [](Driver& d, examples::components::Gallery& g) {
+             files_view(d);
+             d.move_to(table_row(g, 2), 0.6);
+             for (int i = 0; i < 12; ++i) {
+                 d.wheel(1.0);
+                 d.wait(0.08);
+             }
+             d.wait(0.6);
+             const widgets::AccessibleNode t = table_of(g);
+             const render::Point thumb{t.bounds.x + t.bounds.width - 5.0, t.bounds.y + 70.0};
+             d.move_to(thumb, 0.8);
+             d.wait(0.4);
+             d.drag_to({thumb.x, t.bounds.y + t.bounds.height * 0.5}, 1.6);
+             d.wait(0.6);
+             d.move_to(table_row(g, 3), 0.6);
+             d.click();
+             d.wait(0.3);
+             d.key(Key::page_down);
+             d.wait(0.4);
+             d.key(Key::page_down);
+             d.wait(0.4);
+             d.key(Key::end);
+             d.wait(0.8);
+             d.key(Key::page_up, true);
+             d.wait(0.8);
+             d.key(Key::home);
+             d.wait(1.0);
+         }},
+    };
+    return scenes;
+}
+
 const Scene* find_scene(std::initializer_list<const std::map<std::string, Scene>*> maps, const std::string& name) {
     for (const auto* m : maps) {
         if (const auto it = m->find(name); it != m->end()) {
@@ -2167,7 +2535,7 @@ int main(int argc, char** argv) {
         gallery.set_dark(dark);
 
         if (mode == "still") {
-            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills()}, scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, scene);
             if (!found || argc < 6) {
                 return usage();
             }
@@ -2187,7 +2555,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "tree") {
-            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills()}, scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, scene);
             if (!found) {
                 return usage();
             }
@@ -2203,7 +2571,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "video") {
-            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos()}, scene);
+            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos(), &files_videos()}, scene);
             if (!found) {
                 return usage();
             }
