@@ -10,10 +10,12 @@
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/list.hpp"
 #include "lamina/tokens/menu.hpp"
+#include "lamina/tokens/menu_bar.hpp"
 #include "lamina/tokens/navigation_bar.hpp"
 #include "lamina/tokens/navigation_drawer.hpp"
 #include "lamina/tokens/navigation_rail.hpp"
 #include "lamina/tokens/segmented_button.hpp"
+#include "lamina/tokens/table.hpp"
 #include "lamina/tokens/tabs.hpp"
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
@@ -58,6 +60,9 @@ struct DensityTokens {
     DenseLength rail_expanded_item;
     DenseLength drawer_item;
     DenseLength menu_item;
+    DenseLength menu_bar;
+    DenseLength table_row;
+    DenseLength table_header;
     double dense_minimum_target;
 };
 
@@ -90,6 +95,9 @@ inline constexpr DensityTokens density_tokens{
     .rail_expanded_item = {navigation_rail_tokens.start_indicator_height, 40.0},
     .drawer_item = {navigation_drawer_tokens.item_height, 40.0},
     .menu_item = {menu_tokens.item_height, 32.0},
+    .menu_bar = {menu_bar_tokens.height, 28.0},
+    .table_row = {table_tokens.row_height, 36.0},
+    .table_header = {table_tokens.header_height, 40.0},
     .dense_minimum_target = 0.0,
 };
 

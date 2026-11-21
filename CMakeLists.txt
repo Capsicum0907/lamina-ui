@@ -92,6 +92,7 @@ add_library(lamina STATIC
     src/lamina/widgets/list_view.cpp
     src/lamina/widgets/loading_indicator.cpp
     src/lamina/widgets/menu.cpp
+    src/lamina/widgets/menu_bar.cpp
     src/lamina/widgets/modal_navigation_rail.cpp
     src/lamina/widgets/navigation_bar.cpp
     src/lamina/widgets/navigation_drawer.cpp
@@ -128,7 +129,7 @@ add_library(lamina STATIC
 )
 add_library(lamina::lamina ALIAS lamina)
 set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close check edit date_range arrow_drop_down arrow_drop_up keyboard_arrow_left
-    keyboard_arrow_right calendar_today keyboard schedule more_vert keyboard_arrow_down)
+    keyboard_arrow_right calendar_today keyboard schedule more_vert keyboard_arrow_down arrow_upward arrow_downward)
 get_property(lamina_builtin_icons GLOBAL PROPERTY LAMINA_BUILTIN_ICONS)
 lamina_icon_codepoints(lamina_builtin_codes lamina ${lamina_builtin_icons})
 lamina_write_resource_header("${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamina/include/lamina/builtin_resources.hpp" lamina::builtin
@@ -312,6 +313,7 @@ if(LAMINA_BUILD_TESTS)
         tests/list_test.cpp
         tests/loading_indicator_test.cpp
         tests/main.cpp
+        tests/menu_bar_test.cpp
         tests/menu_desktop_test.cpp
         tests/menu_test.cpp
         tests/motion_tokens_test.cpp

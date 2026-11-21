@@ -73,6 +73,7 @@ public:
     void set_density(tokens::Density density);
 
     void open(const render::Rect& anchor, layout::Size window, input::InputSource source = input::InputSource::pointer);
+    void open(const render::Rect& anchor, layout::Size window, input::InputSource source, double horizontal_margin, double vertical_margin);
     void open_at(render::Point at, layout::Size window, input::InputSource source = input::InputSource::pointer);
     void close();
     bool is_open() const { return popup_.is_open(); }

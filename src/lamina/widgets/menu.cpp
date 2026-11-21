@@ -215,6 +215,10 @@ void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSou
     place(menu_position(anchor, window, {width_, height()}), anchor, window, source);
 }
 
+void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSource source, double horizontal_margin, double vertical_margin) {
+    place(menu_position(anchor, window, {width_, height()}, horizontal_margin, vertical_margin), anchor, window, source);
+}
+
 void Menu::open_at(render::Point at, layout::Size window, input::InputSource source) {
     place(context_menu_position(at, window, {width_, height()}), {at.x, at.y, 0.0, 0.0}, window, source);
 }
