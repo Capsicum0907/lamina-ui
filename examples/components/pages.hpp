@@ -56,5 +56,8 @@ std::unique_ptr<Page> make_times_page(PageContext context);
 std::unique_ptr<Page> make_sheets_page(PageContext context);
 std::unique_ptr<Page> make_drawers_page(PageContext context);
 std::unique_ptr<Page> make_search_page(PageContext context);
+std::unique_ptr<Page> make_groups_page(PageContext context);
+std::unique_ptr<Page> make_progress_page(PageContext context);
+std::unique_ptr<Page> make_toolbars_page(PageContext context);
 
 }
