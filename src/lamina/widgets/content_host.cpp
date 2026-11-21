@@ -86,7 +86,7 @@ bool ContentHost::handle(const input::KeyEvent& e) {
     if (empty()) {
         return false;
     }
-    if (focused() && widgets()) {
+    if (widgets() && (!focus() || focused())) {
         const bool consumed = widgets()->handle(e);
         reveal_focus();
         return consumed;
@@ -95,7 +95,7 @@ bool ContentHost::handle(const input::KeyEvent& e) {
 }
 
 bool ContentHost::handle(const input::TextEvent& e) {
-    if (!focused() || !widgets()) {
+    if (!widgets() || (focus() && !focused())) {
         return false;
     }
     widgets()->handle(e);

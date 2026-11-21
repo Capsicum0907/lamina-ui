@@ -63,6 +63,7 @@ add_library(lamina STATIC
     src/lamina/widgets/access_key.cpp
     src/lamina/widgets/accessibility.cpp
     src/lamina/widgets/badge.cpp
+    src/lamina/widgets/bottom_sheet.cpp
     src/lamina/widgets/button.cpp
     src/lamina/widgets/calendar_grid.cpp
     src/lamina/widgets/card.cpp
@@ -240,6 +241,7 @@ if(LAMINA_BUILD_TESTS)
         tests/anchored_draggable_test.cpp
         tests/animated_test.cpp
         tests/badge_test.cpp
+        tests/bottom_sheet_test.cpp
         tests/button_test.cpp
         tests/calculator_engine_test.cpp
         tests/calculator_layout_test.cpp
