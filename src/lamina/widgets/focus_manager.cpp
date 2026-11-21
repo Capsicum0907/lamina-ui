@@ -23,6 +23,9 @@ bool FocusManager::move_focus(FocusDirection direction) {
     }
     const auto current = std::find_if(entries_.begin(), entries_.end(), [](const auto& m) { return m->focused(); });
     const bool forward = direction == FocusDirection::next;
+    if (current != entries_.end() && (*current)->advance_within(direction)) {
+        return true;
+    }
     std::size_t i = current == entries_.end() ? (forward ? n - 1 : 0) : static_cast<std::size_t>(current - entries_.begin());
     for (std::size_t tries = 0; tries < n; ++tries) {
         i = forward ? (i + 1) % n : (i + n - 1) % n;
@@ -32,7 +35,7 @@ bool FocusManager::move_focus(FocusDirection direction) {
         if (current != entries_.end() && current->get() != entries_[i].get()) {
             (*current)->set_focused(false);
         }
-        entries_[i]->set_focused(true);
+        entries_[i]->enter(direction);
         return true;
     }
     return false;
@@ -43,6 +46,9 @@ bool FocusManager::advance(FocusDirection direction) {
     const auto current = std::find_if(entries_.begin(), entries_.end(), [](const auto& m) { return m->focused(); });
     const bool forward = direction == FocusDirection::next;
     const auto at = static_cast<std::ptrdiff_t>(current - entries_.begin());
+    if (current != entries_.end() && (*current)->advance_within(direction)) {
+        return true;
+    }
     std::ptrdiff_t i = current == entries_.end() ? (forward ? -1 : static_cast<std::ptrdiff_t>(n)) : at;
     for (i += forward ? 1 : -1; i >= 0 && i < static_cast<std::ptrdiff_t>(n); i += forward ? 1 : -1) {
         Member& m = *entries_[static_cast<std::size_t>(i)];
@@ -52,7 +58,7 @@ bool FocusManager::advance(FocusDirection direction) {
         if (current != entries_.end()) {
             (*current)->set_focused(false);
         }
-        m.set_focused(true);
+        m.enter(direction);
         return true;
     }
     return false;

@@ -231,3 +231,49 @@ TEST_CASE("Ctrl+Tab stays the program's while the focused widget does not accept
     CHECK_FALSE(f.focus.handle(ctrl_tab));
     CHECK(f.focused() == -1);
 }
+
+TEST_CASE("a focus group is one stop that Tab goes through member by member") {
+    widgets::Button before({.label = "Before"}, fonts());
+    widgets::Button after({.label = "After"}, fonts());
+    Fields inner(2);
+    bool shown = true;
+    widgets::FocusManager outer;
+    outer.add(before);
+    outer.add_group(inner.focus, [&] { return shown; });
+    outer.add(after);
+    CHECK(outer.handle(tab));
+    CHECK(before.focused());
+    CHECK(outer.handle(tab));
+    CHECK(inner.focused() == 0);
+    CHECK_FALSE(before.focused());
+    CHECK(outer.handle(tab));
+    CHECK(inner.focused() == 1);
+    CHECK(outer.handle(tab));
+    CHECK(after.focused());
+    CHECK(inner.focused() == -1);
+    CHECK(outer.handle(shift_tab));
+    CHECK(inner.focused() == 1);
+    CHECK(outer.handle(shift_tab));
+    CHECK(inner.focused() == 0);
+    CHECK(outer.handle(shift_tab));
+    CHECK(before.focused());
+    shown = false;
+    CHECK(outer.handle(tab));
+    CHECK(after.focused());
+    CHECK(inner.focused() == -1);
+}
+
+TEST_CASE("a lone focus group wraps around inside itself") {
+    Fields inner(2);
+    widgets::FocusManager outer;
+    outer.add_group(inner.focus);
+    CHECK(outer.handle(tab));
+    CHECK(inner.focused() == 0);
+    CHECK(outer.handle(tab));
+    CHECK(inner.focused() == 1);
+    CHECK(outer.handle(tab));
+    CHECK(inner.focused() == 0);
+    CHECK(outer.has_focus());
+    outer.clear_focus();
+    CHECK(inner.focused() == -1);
+}

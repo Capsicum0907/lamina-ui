@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -35,6 +36,10 @@ public:
     template <Focusable W>
     void add(W& widget) {
         entries_.push_back(std::make_unique<Entry<W>>(widget));
+    }
+
+    void add_group(FocusManager& group, std::function<bool()> shown = {}) {
+        entries_.push_back(std::make_unique<Group>(group, std::move(shown)));
     }
 
     template <Focusable W>
@@ -72,6 +77,36 @@ private:
         virtual std::optional<render::Rect> caret_area() const = 0;
         virtual std::optional<double> next_wake_seconds() const = 0;
         virtual std::optional<render::Rect> bounds() const = 0;
+        virtual bool advance_within(FocusDirection) { return false; }
+        virtual void enter(FocusDirection) { set_focused(true); }
+    };
+
+    struct Group final : Member {
+        Group(FocusManager& g, std::function<bool()> s) : group(g), shown(std::move(s)) {}
+        const void* id() const override { return &group; }
+        bool focused() const override { return group.has_focus(); }
+        bool can_focus() const override { return (!shown || shown()) && group.any_can_focus(); }
+        bool accepts_tab() const override {
+            const Member* m = group.focused_member();
+            return m && m->accepts_tab();
+        }
+        void set_focused(bool focused) override {
+            if (focused) {
+                enter(FocusDirection::next);
+            } else {
+                group.clear_focus();
+            }
+        }
+        std::optional<render::Rect> caret_area() const override { return group.caret_area(); }
+        std::optional<double> next_wake_seconds() const override { return group.next_wake_seconds(); }
+        std::optional<render::Rect> bounds() const override { return group.focused_bounds(); }
+        bool advance_within(FocusDirection direction) override { return group.advance(direction); }
+        void enter(FocusDirection direction) override {
+            group.clear_focus();
+            group.advance(direction);
+        }
+        FocusManager& group;
+        std::function<bool()> shown;
     };
 
     template <typename W>
