@@ -97,6 +97,7 @@ add_library(lamina STATIC
     src/lamina/widgets/switch.cpp
     src/lamina/widgets/tabs.cpp
     src/lamina/widgets/text_field.cpp
+    src/lamina/widgets/time_picker.cpp
     src/lamina/widgets/title_bar.cpp
     src/lamina/widgets/tooltip.cpp
     src/lamina/widgets/top_app_bar.cpp
@@ -295,6 +296,7 @@ if(LAMINA_BUILD_TESTS)
         tests/text_field_test.cpp
         tests/title_bar_test.cpp
         tests/text_test.cpp
+        tests/time_picker_test.cpp
         tests/timer_engine_test.cpp
         tests/timer_layout_test.cpp
         tests/todo_engine_test.cpp
