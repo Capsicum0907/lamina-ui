@@ -523,6 +523,8 @@ const std::map<std::string, Scene>& stills() {
              d.move_to("Switch to text input mode", 0.3);
              d.click();
              d.wait(0.4);
+             d.move_to({d.pointer().x + 240.0, d.pointer().y + 80.0}, 0.3);
+             d.wait(0.4);
          }},
         {"times_focus",
          [](Driver& d, examples::components::Gallery& g) {
