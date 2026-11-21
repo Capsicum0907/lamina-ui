@@ -1,0 +1,9 @@
+取得日: 2026-11-15（Claude が取得）
+配布元: Google Fonts（GitHub google/fonts の ofl/ 以下） https://github.com/google/fonts/tree/main/ofl/notosansjp
+書体: Noto Sans JP　デザイナー: Google　ライセンス: OFL
+SIL Open Font License 1.1（同じフォルダの OFL.txt）。商用利用可・動画や画像への使用はクレジット不要。書体ファイル単体の販売は不可。改変版は別名で同ライセンス
+各ファイルは git の blob ハッシュ（SHA-1）を取得時のツリーと照合済み
+
+  METADATA.pb  983 bytes  MD5 b7e4857f3603c9a47857865a1aab0ccc  https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/METADATA.pb
+  NotoSansJP[wght].ttf  9589900 bytes  MD5 f11bfc28629ade532e6e551e69d444f9  https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf
+  OFL.txt  4388 bytes  MD5 9e6561baca2756628871baf0c1e23539  https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/OFL.txt
