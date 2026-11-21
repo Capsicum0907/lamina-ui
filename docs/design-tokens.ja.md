@@ -13,8 +13,10 @@ lamina-ui が Material 3 Expressive から借りる値です。Google が公開�
 | M | [material-components/material-components-android](https://github.com/material-components/material-components-android) の `lib/java/com/google/android/material/motion/res/values/tokens.xml` | `6061a69915d0` | Apache-2.0 |
 | W | [material-components/material-web](https://github.com/material-components/material-web) の `tokens/versions/latest/sass/` | `c6e9a66360b1` | Apache-2.0 |
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
+| A | androidx/androidx の `compose/material3/adaptive/`（adaptive・adaptive-layout・adaptive-navigation）、`compose/material3/material3-adaptive-navigation-suite/`、`window/window-core/` | `6068a9492ba8` | Apache-2.0 |
+| D | [material-components/material-components-web](https://github.com/material-components/material-components-web) の `packages/mdc-density/` と部品ごとの `$density-config` | `6ceadb81df50` | MIT |
 
-値を使うときは Apache-2.0 の表示と出典を残します。
+値を使うときは Apache-2.0 の表示と出典を残します（D は MIT の表示）。
 
 ## 動き
 
@@ -781,6 +783,79 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 - 常に退く：高さのずれはスクロールに従って −64 dp まで動くので、バーは下の端から外へ滑り出ます。スクロールが止まると、近い方の端へ速い空間のばねで落ち着きます（畳んだ割合 0.5 で分け、0.01 未満なら何もしません）。隠れている間、操作には Tab で止まりません。
 - 違い：落ち着く前のはじいた勢いの減速は作っていません。
 
+### 密度
+
+2026-11-21 に読みました。密度の参照先として挙げられた material-web のコミット（`9d2f79851cae`）には密度の段階がなく、密度にかかわる設定は `touch-target` の属性（`wrapper` か `none`）だけです。Compose にもなく、あるのは `minimumInteractiveComponentSize`（48 dp、`LocalMinimumInteractiveComponentSize`）だけです。段階は MDC Web（material-components-web、MIT ライセンス）の `6ceadb81df50` の `packages/mdc-density/_density.scss` から取りました。一段ごとに部品の既定の高さへ `段階 × 4 px` を足し、部品ごとに最小と最大（既定と同じ）を決め、段階が 0 でなければ 48 px のタッチの範囲を外します。値は `lamina/tokens/density.hpp`（`density_tokens`）にあり、部品ごとの `density` の設定と `set_density` が読みます。`WidgetSet::set_density` は、密度を持つ（`Densifiable`）すべての部品へ渡します。入れ子の部品の集まりにも届きます。
+
+| 部品 | 既定 | 最小 | 段階 | 最小の出どころ |
+|---|---|---|---|---|
+| ボタン（極小・小・中） | 32・40・56 | 24・28・44 | −2・−3・−3 | 小は MDC のボタン（36 → 24）、ほかは lamina-ui |
+| アイコンボタン（極小・小・中。幅も縮み、アイコンより狭くはならない） | 32・40・56 | 24・28・44 | −2・−3・−3 | MDC のアイコンボタン（48 → 28）、lamina-ui |
+| 枠線のテキスト欄（複数行の上下の余白は一段ごとに半段ずつ縮む） | 56 | 36 | −5 | MDC のテキスト欄 |
+| リストの項目（1 行・2 行・3 行。上下 10 dp の余白も縮む） | 56・72・88 | 40・56・56 | −4・−4・−8 | MDC のリスト（`tall` の設定） |
+| チップ | 32 | 24 | −2 | MDC のチップ |
+| タブ（文字か横のアイコン・上のアイコン） | 48・72 | 30・56 | −4・−4 | MDC のタブバー |
+| 区分ボタン | 40 | 28 | −3 | lamina-ui |
+| 小さい・中央ぞろえの上部アプリバー、ほかのバーの畳んだ行（広げた高さも同じだけ縮む） | 64 | 48 | −4 | MDC の詰めた上部アプリバー（48 px） |
+| ナビゲーションバー（項目の上下 6 dp の余白が縮む） | 64 | 52 | −3 | lamina-ui |
+| 幅のあるナビゲーションレールの項目（畳んだとき・広げたとき） | 64・56 | 52・40 | −3・−4 | lamina-ui |
+| ナビゲーションドロワーの項目 | 56 | 40 | −4 | lamina-ui |
+| メニューの項目 | 48 | 32 | −4 | lamina-ui |
+
+- 大・特大のボタンとアイコンボタンは密度を持ちません。96 dp や 136 dp から 4 dp ずつ削っても、載る量は変わらないためです。
+- 違い：MDC は最小を下回る段階をコンパイルの誤りにしますが、lamina-ui は最小で止めます。一つの段階を多くの部品にまとめて設定するためです。正の段階は既定で止めます。区分ボタン・ナビゲーションの項目・メニューは MDC に密度がないので、最小は lamina-ui が決めました。MDC のデータテーブルの行（52 → 36）に当たる部品は、lamina-ui に表がないのでありません。
+- タッチの範囲：密度 0 では、部品は 48 dp の当たり判定を保ちます（`tokens::minimum_target`）。負の密度では、タッチやペンでも当たり判定は部品そのものの範囲です。MDC がタッチの範囲を外すのと同じです。48 dp より詰めて並べた部品で 48 dp の範囲を取ると、隣の範囲と重なるためです。
+- チェックボックス・ラジオボタン・スイッチは、まだ密度を持ちません。
+
+### ウィンドウの大きさの区分
+
+2026-11-21 に androidx の `6068a9492ba8` の `window/window-core/src/commonMain/kotlin/androidx/window/core/layout/WindowSizeClass.kt` と `WindowSizeClassSelectors.kt`（`BREAKPOINTS_V2`・`computeWindowSizeClass`）を読み、`lamina/layout/window_size_class.hpp` に移しました。
+
+- 幅：600 dp 未満が compact、600 から medium、840 から expanded、1200 から large、1600 から extra-large です。高さ：480 dp 未満が compact、480 から medium、900 から expanded です。
+- 区分は window-core と同じく下限の組（`min_width_dp`・`min_height_dp`）です。ウィンドウの大きさは比べる前に dp の整数へ切り捨てるので、599.9 dp は compact です。
+- `compute_window_size_class(幅, 高さ)` は大きさだけで決まる関数です。`sdl3::Frame::size_class` は、ウィンドウの区分を毎フレーム持ちます（大きさを変えている途中も）。`WindowAdaptiveInfo`（`lamina/widgets/pane_navigator.hpp`）は区分と卓上の姿勢の印を組にします。Compose の `WindowAdaptiveInfo` が `Posture` と組にするのに当たります。デスクトップのウィンドウには姿勢がないので、プログラムが設定しない限り印は false です。
+
+### ナビゲーションスイートの足場
+
+`6068a9492ba8` の C の `compose/material3/material3-adaptive-navigation-suite/src/commonMain/kotlin/androidx/compose/material3/adaptive/navigationsuite/NavigationSuiteScaffold.kt` を読み、`lamina/widgets/navigation_suite.hpp` に移しました。
+
+- `navigation_suite_type(info)` は Compose の `NavigationSuiteScaffoldDefaults.navigationSuiteType` です。幅が compact なら短いナビゲーションバー、卓上の姿勢か高さが compact なら中くらいの短いバー、それ以外は畳んだ幅のあるレールを選びます。広げたレールやドロワーは選びません。
+- バーと横の部品は、Compose の `AnimationSpec`（ばね、減衰 0.9、剛性 700）で出入りします。中身は、その進み具合だけバーの高さか横の部品の幅を譲ります。
+- 違い：`navigation_suite_type(info, choice)` と `widening_navigation_suite`（compact はバー、medium は畳んだレール、expanded は広げたレール、large と extra-large はドロワー、高さが compact なら中くらいのバー）は lamina-ui の選び方です。広いウィンドウほどナビゲーションを多く見せるという M3 の方針に沿いました。Compose は種類が変わると部品を切り替えるだけで移り変わりがありませんが、lamina-ui は同じばねでバーを下へ出してから横の部品を入れ、レールからドロワーへは横の幅をレールの幅からドロワーの 360 dp へ動かしながら重ねて切り替え、レールの開閉はレール自身の動きで行います。中くらいの短いバー（`ShortNavigationBarMedium`、アイコンの横にラベル）は compact と同じ形で描きます。lamina-ui のナビゲーションバーには縦に積む並びしかないためです。主な操作の枠（`primaryActionContent`）は作っていません。
+
+### ペインの足場
+
+androidx の `6068a9492ba8` の `compose/material3/adaptive/adaptive-layout/.../layout/`（`PaneScaffoldDirective.kt`・`ThreePaneScaffoldValue.kt`・`ThreePaneScaffold.kt`・`PaneMotion.kt`・`PaneExpansionState.kt`・`PaneExpansionDraggableModifier.kt`・`ListDetailPaneScaffold.kt`・`SupportingPaneScaffold.kt`）と `adaptive-navigation/.../navigation/`（`ThreePaneScaffoldNavigator.kt`・`BackNavigationBehavior.kt`）を読み、`lamina/widgets/pane_navigator.hpp` と `pane_scaffold.hpp` に移しました。
+
+- 指示（`calculate_pane_scaffold_directive`）：横の区画は、幅が compact と medium なら 1 つ、expanded から 2 つ（間は 24 dp）、large から 3 つで、ペインの望む幅は 412 dp（それより狭いと 360 dp）です。横の区画が 1 つで高さが expanded のとき、または卓上の姿勢のとき、縦の区画は 2 つ（間は 24 dp）です。`..._with_two_panes_on_medium_width` は medium の幅でも区画を 2 つにします。
+- 値（`calculate_pane_scaffold_value`）：行き先を新しいほうから、続いて primary・secondary・tertiary の順に、区画が残っている間だけ区画を取ります。戦略が reflow のペインは、横の区画が 1 つで縦の区画が 2 つ以上のとき、基準のペインの下へ回ります。リストと詳細：list は secondary、detail は primary、並びは list・detail・extra、戦略はどれも hide です。補助：main は primary、supporting は secondary（main の下へ reflow）、並びは main・supporting・extra です。
+- 案内役：行き先（ペインと中身の鍵）の履歴を持ち、`navigate_to`、`can_navigate_back`、`navigate_back` を四つの `BackNavigationBehavior`（直前を外す、値が変わるまで（既定）、行き先が変わるまで、中身が変わるまで）で行います。値は履歴を踏まえて決めます。足場は、ペインの部品が使わなかった Escape で `navigate_back` を呼びます。
+- 配置：広げたペインは望む幅を取り、余りは優先度の一番高いペイン（primary 10、secondary 5、tertiary 1）が取ります。足りなければ全体を同じ割合で縮めます。下へ回ったペインは基準の区画の下の部分を取り、高さは望む高さ 420 dp と区画の半分の小さいほうまでです。
+- 動き：Compose の `calculatePaneMotion` に従います（見えたままのペインは範囲を動かし、入るペインは何もふさいでいない側から入るか中央から広がり、出るペインも同じように出るか縮む）。ばねは減衰 0.8、剛性 380 で、遅れて入る動きはばねが落ち着くまでの見積もりの 0.1 だけ待ちます。
+- フォーカス：隠れたペインはポインター・キー・文字を受けず、アクセシビリティの木からも外れ、フォーカスは外れます。ペインがキーボードのフォーカスを持つ間に行き先が変わって値が変わると、フォーカスは行き先のペインへ移ります（Compose の `shouldAutoFocusCurrentDestination`）。プログラムは各ペインの `FocusManager` を `FocusManager::add_group` で自分のものに入れ、`pane_shown` で見えるときだけにします。
+- 違い：Compose は指示が変わると（大きさを変えると）値を一気に切り替え、動きを付けるのは移動のときだけです。lamina-ui も既定では同じで、`animate_directive_changes` で指示の変化にも動きを付けられます。浮かせたペイン、ヒンジと除外の範囲、予測型の戻る操作、状態の保存は作っていません。下へ回ったペインの高さは、Compose の区画の測り方を lamina-ui が簡単にしたものです。
+
+### ペインの広さを変えるドラッグハンドル
+
+`6068a9492ba8` の C の `DragHandle.kt` と `tokens/DragHandleTokens.kt`（`VERSION: 7_0_1`）を読み、`lamina/tokens/drag_handle.hpp` に移しました。広げ方は `PaneExpansionState.kt` に沿って `PaneExpansionState` に移しました。
+
+- ハンドル：4 × 48 dp、丸め切り、outline の色です。押している間とドラッグの間は 12 × 52 dp、角は medium（12 dp）、on-surface です。タッチの範囲は 48 dp で、広げた二つのペインの間の真ん中に置き、足場の端から間の半分より内側に留めます。
+- 止まる位置：割合、始まりからの距離、終わりからの距離のどれかです（`PaneExpansionAnchor`）。ドラッグでは 0 から足場の幅まで自由に動き、端から間の半分以内に寄せると、もう一方のペインだけになります。離すと一番近い止まる位置へ、毎秒 200 dp 以上で離したときはその向きで一番近い位置へ（後ろの位置は足場の幅だけ遠いとみなす）、離したときの速さから減衰 0.8、剛性 380 のばねで落ち着きます。`set_first_pane_width` と `set_first_pane_proportion` は止まる位置なしで分け目を置きます。
+- 意味づけ：「Pane expansion drag handle」という名前の区切りで、値は「Current pane split, %s」、説明は「Change pane split to %s」です。止まる位置の説明（「%d percent」「%d DPs from start」「%d DPs from end」）を入れます。訳があり（`PatternStrings`。日本語は androidx の `values-ja`）、Enter か Space で次の止まる位置へ移ります。Compose のクリックの操作に当たります。
+- 違い：Compose の 200 は毎秒のピクセルですが、lamina-ui は毎秒の dp として読みます。拡大率 1 なら同じです。Compose は止まる位置を選ぶ前にフリングの減速を走らせますが、lamina-ui は離したときの速さからすぐに選びます。← と → で分け目を 16 dp 動かすのは lamina-ui の追加です。ハンドルの大きさと色は、Compose がすぐ切り替えるところを fast spatial と fast effects のばねで動かします。
+
+### 分割ペイン
+
+`lamina/widgets/split_pane.hpp` と `lamina/tokens/split_pane.hpp` です。Material 3 にはデスクトップのウィンドウ向けの大きさを変えられる分割がないので、値は lamina-ui が決めました。1 dp の outline-variant の仕切り（仕切りのトークン）、大きさを変えるカーソルを出す 8 dp の当たり判定、ポインターが乗ったとき・ドラッグの間・キーボードのフォーカスがあるときに出る M3 のドラッグハンドル、WAI-ARIA のウィンドウ分割の型に沿ったキーです。矢印のキーで仕切りを 16 dp、Page Up と Page Down で 96 dp 動かし、Home と End で最小と最大へ移し、Enter で最初のペインを最小へ畳んで元に戻します。アクセシビリティ：最初のペインの大きさを値と範囲に持つ区切りです。
+
+### スクロールの範囲：横
+
+上の縦のスクロールの範囲に並べた lamina-ui の追加です。`set_content_width` で中身を横にもスクロールさせます。ホイールの横の軸（タッチパッドや傾けるホイール）で横へ動き、Shift を押しながら縦のホイールを回すと、中身が表示より広ければ横へ、そうでなければ縦へ動きます（`WheelEvent::shift`。`SDL_GetModState` から取る）。横のバーは下の辺に沿い、大きさは縦のバーと同じで、それぞれのバーの溝は角をもう一方に譲ります。
+
+### 数値欄
+
+`lamina/widgets/numeric_field.hpp` と `lamina/tokens/numeric_field.hpp` です。インスペクターやプロパティの欄に向けたもので、Material 3 には詰めた数値欄がないので、値は lamina-ui が決めました。密度 0 で高さ 40 dp、最小 28 dp（一段 4 dp）、既定の幅は 96 dp、角は極小です。ラベルは始まり（欄の外、枠線の欄）か中（surface-container-highest の上、値の前）に置き、単位は終わりに置きます。欄か始まりのラベルの上を 3 dp より大きくドラッグすると、4 dp ごとに一段ずつ値が変わります。クリックすると文字を編集でき、編集は枠のない `TextField` が受け持ちます（選択・IME・クリップボード・元に戻す）。↑ と ↓ で一段ずつ（Shift で大きな段）、Page Up と Page Down で大きな段だけ変え、Enter で確定し、Escape で値に戻し、フォーカスが外れると確定します。値は範囲に収め、`decimals` の桁に丸めます。数でない文字のあいだ、欄は誤りの色のままで、無効の印が付きます。アクセシビリティ：値と単位、範囲を持つスピンボタン（`AccessibleRole::spin_button`）です。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
@@ -788,3 +863,4 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 - 第 3 段階の部品で作っていないもの：月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
 - 第 4 段階の画面のパターンで作っていないもの：予測型の戻る操作（シート・ドロワー・レール・検索）、アンカーへはじく動きの減速の段階、シートの中身とシートの間の入れ子のスクロール、`AppBarWithSearch`・`ExpandedFullScreenContainedSearchBar`・`ExpandedDockedSearchBarWithGap`、M3 のデザインのサイトにあるサイドシートの寸法（スクリプトなしでは読めません）。
 - 第 5 段階の Expressive の部品で作っていないもの：縦のボタンの組と項目ごとのそろえ方、キーで押したときのボタンの広がり、スクロールで常に退く浮かぶツールバーと `minimumInteractiveBalancedPadding`、受け渡しの前に直線の波の表示の線を速めて走り切らせる動き、スクロールする FAB メニュー、`Modifier.animateFloatingActionButton`、`AppBarWithSearch` などの Expressive の検索バー、はみ出しを持つ `AppBarRow` と `AppBarColumn`、`CheckableDropdownMenuItem` と `SelectableDropdownMenuItem`、`ScrollField` と `Modifier.nonInteractiveScrollbar`。
+- 第 6 段階の画面の広さとデスクトップ向けの作業で作っていないもの：チェックボックス・ラジオボタン・スイッチの密度、中くらいの短いナビゲーションバーの並び、ナビゲーションスイートの主な操作、浮かせたペイン、ヒンジ、予測型の戻る操作とペインの状態の保存、ペインの止まる位置を選ぶ前の減速、データテーブル、区分ボタンの行の幅の指定。
