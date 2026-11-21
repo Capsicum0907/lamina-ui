@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "lamina/text/font.hpp"
+#include "lamina/text/typeface.hpp"
 
 namespace lamina::sdl3 {
 
@@ -35,6 +36,8 @@ inline constexpr SystemFont japanese_ui_fonts[] = {
 
 std::vector<std::filesystem::path> system_font_directories();
 text::FontStack system_font_stack(std::span<const SystemFont> candidates = japanese_ui_fonts);
+text::FontStack system_fallback_stack(std::span<const SystemFont> candidates = japanese_ui_fonts);
+text::FontStack typeface_stack(text::Typeface typeface, std::span<const text::EmbeddedFont> embedded);
 text::FontStack font_stack_from_arguments(int argc, char** argv);
 
 }

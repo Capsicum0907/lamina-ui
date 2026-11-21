@@ -44,6 +44,10 @@ struct TextBlock {
     double height = 0.0;
 };
 
+inline Instance instance_of(const TextStyle& style) {
+    return {style.weight, style.size};
+}
+
 TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style);
 
 TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width);

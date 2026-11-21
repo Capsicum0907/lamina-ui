@@ -59,6 +59,7 @@ add_library(lamina STATIC
     src/lamina/text/edit_history.cpp
     src/lamina/text/layout.cpp
     src/lamina/text/line_map.cpp
+    src/lamina/text/typeface.cpp
     src/lamina/text/word_boundary.cpp
     src/lamina/layout/layout.cpp
     src/lamina/widgets/access_key.cpp
@@ -194,11 +195,11 @@ if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
 endif()
 
 function(lamina_add_example name dir)
-    cmake_parse_arguments(PARSE_ARGV 2 arg "" "" "ICONS")
+    cmake_parse_arguments(PARSE_ARGV 2 arg "" "" "ICONS;TEXT_FONTS")
     add_executable(${name} examples/${dir}/main.cpp)
     target_link_libraries(${name} PRIVATE lamina lamina_sdl3 lamina_examples_common)
-    if(arg_ICONS)
-        lamina_add_resources(${name}_resources NAMESPACE lamina::examples::res HEADER res.hpp ICONS ${arg_ICONS})
+    if(arg_ICONS OR arg_TEXT_FONTS)
+        lamina_add_resources(${name}_resources NAMESPACE lamina::examples::res HEADER res.hpp ICONS ${arg_ICONS} TEXT_FONTS ${arg_TEXT_FONTS})
         target_link_libraries(${name} PRIVATE ${name}_resources)
     endif()
     lamina_warnings(${name})
@@ -219,7 +220,7 @@ if(LAMINA_BUILD_EXAMPLES)
     lamina_add_example(text_field text_field)
     lamina_add_example(shapes_gallery shapes)
     lamina_add_example(layout_demo layout)
-    lamina_add_example(components components ICONS
+    lamina_add_example(components components TEXT_FONTS google_sans_flex roboto_flex noto_sans_jp ICONS
         add remove close check check_small search menu settings home favorite star bookmark delete edit share
         content_copy send mail person notifications info warning error visibility visibility_off refresh download
         upload play_arrow pause stop light_mode dark_mode palette arrow_back arrow_forward arrow_upward arrow_downward
@@ -353,6 +354,7 @@ if(LAMINA_BUILD_TESTS)
         tests/text_field_test.cpp
         tests/title_bar_test.cpp
         tests/text_test.cpp
+        tests/typeface_test.cpp
         tests/time_picker_test.cpp
         tests/timer_engine_test.cpp
         tests/timer_layout_test.cpp
@@ -371,11 +373,13 @@ if(LAMINA_BUILD_TESTS)
         ICONS add backspace bookmark check delete edit favorite grid_view home pause play_arrow remove search send settings
               share star view_list visibility_off class 10k close
         ICON_FONTS symbols filled:FILL=1
+        TEXT_FONTS roboto_flex
         FILES sans=tests/fixtures/fonts/lamina-test-sans.ttf empty=tests/resources/empty.bin)
     target_link_libraries(lamina_tests PRIVATE lamina lamina_thorvg lamina_test_resources calculator_engine timer_engine todo_engine mcu::mcu doctest::doctest)
     lamina_warnings(lamina_tests)
     target_compile_definitions(lamina_tests PRIVATE
         LAMINA_TEST_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/fonts"
+        LAMINA_THIRD_PARTY_DIR="${CMAKE_CURRENT_SOURCE_DIR}/third_party"
         LAMINA_SYMBOLS_CODEPOINTS="${LAMINA_SYMBOLS_CODEPOINTS}")
     add_test(NAME lamina_tests COMMAND lamina_tests)
 
@@ -388,4 +392,7 @@ if(LAMINA_BUILD_TESTS)
     add_test(NAME lamina_resources_unknown_icon
         COMMAND ${CMAKE_COMMAND} "-DLAMINA_SYMBOLS_CODEPOINTS=${LAMINA_SYMBOLS_CODEPOINTS}" -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/resources/unknown_icon.cmake")
     set_tests_properties(lamina_resources_unknown_icon PROPERTIES PASS_REGULAR_EXPRESSION "no icon named 'settinsg'")
+    add_test(NAME lamina_resources_unknown_text_font
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/resources/unknown_text_font.cmake")
+    set_tests_properties(lamina_resources_unknown_text_font PROPERTIES PASS_REGULAR_EXPRESSION "no text font named 'google_sans'")
 endif()

@@ -11,10 +11,6 @@ namespace {
 
 constexpr char32_t tab = U'	';
 
-Instance instance_of(const TextStyle& style) {
-    return {style.weight, style.size};
-}
-
 struct TabStops {
     std::size_t font = 0;
     std::uint32_t glyph = 0;

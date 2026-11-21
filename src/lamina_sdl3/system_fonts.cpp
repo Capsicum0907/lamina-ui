@@ -1,5 +1,6 @@
 #include "lamina_sdl3/system_fonts.hpp"
 
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -28,15 +29,17 @@ std::vector<std::filesystem::path> system_font_directories() {
     return dirs;
 }
 
-text::FontStack system_font_stack(std::span<const SystemFont> candidates) {
+namespace {
+
+std::optional<std::filesystem::path> find_system_font(std::span<const SystemFont> candidates, unsigned& face_index, std::string& tried) {
     const auto dirs = system_font_directories();
-    std::string tried;
     for (const auto& font : candidates) {
         for (const auto& dir : dirs) {
             const std::filesystem::path path = dir / font.file;
             std::error_code ec;
             if (std::filesystem::is_regular_file(path, ec)) {
-                return text::FontStack({text::Font::from_file(path.string(), font.face_index)});
+                face_index = font.face_index;
+                return path;
             }
             tried += "\n  " + path.string();
         }
@@ -44,7 +47,34 @@ text::FontStack system_font_stack(std::span<const SystemFont> candidates) {
     if (dirs.empty()) {
         tried += "\n  (no font directory: none of the environment variables is set)";
     }
+    return std::nullopt;
+}
+
+}
+
+text::FontStack system_font_stack(std::span<const SystemFont> candidates) {
+    unsigned face_index = 0;
+    std::string tried;
+    if (const auto path = find_system_font(candidates, face_index, tried)) {
+        return text::FontStack({text::Font::from_file(path->string(), face_index)});
+    }
     throw std::runtime_error("cannot find a system font for the UI text; pass font files on the command line. Looked for:" + tried);
+}
+
+text::FontStack system_fallback_stack(std::span<const SystemFont> candidates) {
+    unsigned face_index = 0;
+    std::string tried;
+    if (const auto path = find_system_font(candidates, face_index, tried)) {
+        return text::FontStack({text::Font::from_file(path->string(), face_index)});
+    }
+    return {};
+}
+
+text::FontStack typeface_stack(text::Typeface typeface, std::span<const text::EmbeddedFont> embedded) {
+    if (text::typeface_spec(typeface).chain.empty()) {
+        return text::typeface_stack(typeface, embedded, system_font_stack());
+    }
+    return text::typeface_stack(typeface, embedded, system_fallback_stack());
 }
 
 text::FontStack font_stack_from_arguments(int argc, char** argv) {
