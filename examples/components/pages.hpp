@@ -45,6 +45,7 @@ public:
     virtual void cancel_interaction() = 0;
     virtual std::optional<double> next_wake_seconds() const = 0;
     virtual void set_window(layout::Size window) = 0;
+    virtual std::optional<input::Cursor> cursor() const { return std::nullopt; }
 };
 
 std::unique_ptr<Page> make_chips_page(PageContext context);
@@ -59,5 +60,7 @@ std::unique_ptr<Page> make_search_page(PageContext context);
 std::unique_ptr<Page> make_groups_page(PageContext context);
 std::unique_ptr<Page> make_progress_page(PageContext context);
 std::unique_ptr<Page> make_toolbars_page(PageContext context);
+std::unique_ptr<Page> make_adaptive_page(PageContext context);
+std::unique_ptr<Page> make_desktop_page(PageContext context);
 
 }

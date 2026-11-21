@@ -400,10 +400,10 @@ using Scene = std::function<void(Driver&, examples::components::Gallery&)>;
 const std::map<std::string, Scene>& stills() {
     static const std::map<std::string, Scene> scenes{
         {"default", [](Driver&, examples::components::Gallery&) {}},
-        {"chips", [](Driver& d, examples::components::Gallery&) { show_page(d, "Chips & cards"); }},
+        {"chips", [](Driver& d, examples::components::Gallery&) { show_page(d, "Chips"); }},
         {"chips_focus",
          [](Driver& d, examples::components::Gallery& g) {
-             show_page(d, "Chips & cards");
+             show_page(d, "Chips");
              d.set_cursor(false);
              tab_to(d, g, "Filters");
              d.key(Key::right);
@@ -411,13 +411,13 @@ const std::map<std::string, Scene>& stills() {
          }},
         {"chips_hover",
          [](Driver& d, examples::components::Gallery&) {
-             show_page(d, "Chips & cards");
+             show_page(d, "Chips");
              d.move_to("Kyoto", 0.3);
              d.wait(0.4);
          }},
         {"chips_disabled",
          [](Driver& d, examples::components::Gallery&) {
-             show_page(d, "Chips & cards");
+             show_page(d, "Chips");
              d.move_to("Enabled", 0.1);
              d.click();
              d.move_to({720.0, 845.0}, 0.1);
@@ -760,7 +760,7 @@ const std::map<std::string, Scene>& videos() {
          }},
         {"filter_chips",
          [](Driver& d, examples::components::Gallery& g) {
-             show_page(d, "Chips & cards");
+             show_page(d, "Chips");
              for (const char* name : {"Unread", "Has files", "Elevated", "Starred"}) {
                  d.move_to(name, 0.6);
                  d.wait(0.3);
@@ -787,7 +787,7 @@ const std::map<std::string, Scene>& videos() {
          }},
         {"input_chip",
          [](Driver& d, examples::components::Gallery& g) {
-             show_page(d, "Chips & cards");
+             show_page(d, "Chips");
              d.move_to("Grace", 0.8);
              d.wait(0.4);
              d.move_to("Remove Grace", 0.4);
@@ -811,7 +811,7 @@ const std::map<std::string, Scene>& videos() {
          }},
         {"card",
          [](Driver& d, examples::components::Gallery& g) {
-             show_page(d, "Chips & cards");
+             show_page(d, "Chips");
              d.move_to("Kyoto", 0.8);
              d.wait(0.8);
              d.click();

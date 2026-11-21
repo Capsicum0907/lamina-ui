@@ -70,8 +70,8 @@ struct Layout {
     double page_tabs_width = 1000.0;
     double status_width = 150.0;
     double status_gap = 24.0;
-    std::array<const char*, 13> page_names{"Basics", "Chips & cards", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
-                                           "Groups", "Progress", "Toolbars"};
+    std::array<const char*, 15> page_names{"Basics", "Chips", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
+                                           "Groups", "Progress", "Toolbars", "Adaptive", "Desktop"};
 };
 
 class PageSwitch final : public layout::Node {
@@ -233,6 +233,8 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
     pages.push_back(make_groups_page(context));
     pages.push_back(make_progress_page(context));
     pages.push_back(make_toolbars_page(context));
+    pages.push_back(make_adaptive_page(context));
+    pages.push_back(make_desktop_page(context));
 
     auto toggle_row = layout::row({widgets::node(switch_label), widgets::node(*enabled_switch)});
     toggle_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
@@ -858,6 +860,13 @@ std::optional<double> Gallery::next_wake_seconds() const {
         merge(t->next_wake_seconds());
     }
     return wake;
+}
+
+std::optional<input::Cursor> Gallery::cursor() const {
+    if (Page* p = impl_->current_page()) {
+        return p->cursor();
+    }
+    return std::nullopt;
 }
 
 std::vector<widgets::AccessibleNode> Gallery::accessible_nodes() const {

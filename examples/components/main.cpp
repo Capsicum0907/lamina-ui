@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
         auto update = [&](const sdl3::Frame& frame) {
             const color::Argb background = gallery.update(frame);
             window.set_text_input(gallery.caret_area());
+            window.set_cursor(gallery.cursor().value_or(input::Cursor::arrow));
             return background;
         };
         auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {

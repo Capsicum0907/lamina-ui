@@ -42,6 +42,7 @@ public:
 
     std::optional<render::Rect> caret_area() const;
     std::optional<double> next_wake_seconds() const;
+    std::optional<input::Cursor> cursor() const;
     std::vector<widgets::AccessibleNode> accessible_nodes() const;
     std::optional<render::Rect> find(std::string_view name) const;
     void set_dark(bool dark);

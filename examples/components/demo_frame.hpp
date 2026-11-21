@@ -56,6 +56,7 @@ public:
     }
 
     void on_arrange(std::function<void(const render::Rect&)> f) { listeners_.push_back(std::move(f)); }
+    void set_size(layout::Size size) { size_ = size; }
 
     const render::Rect& rect() const { return rect_; }
     double radius() const { return tokens::corner_radius(demo_frame_style.corner, rect_.width, rect_.height); }
