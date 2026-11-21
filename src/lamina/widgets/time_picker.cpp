@@ -870,7 +870,7 @@ void TimePicker::paint_dial(render::Canvas& canvas, const color::ColorScheme& sc
     const render::Point handle = on_circle(c, length, angle_.value());
     const double n = std::clamp(numbers_.value(), 0.0, 1.0);
     const color::Argb label = dim(scheme[k.dial_content], e);
-    const color::Argb selected = dim(scheme[k.dial_selected_content], e);
+    const color::Argb selected = color::mix(label, scheme[k.dial_selected_content], e);
     const color::Argb selector = dim(scheme[k.selector], e);
     paint_labels(canvas, previous_selection_, previous_selection_ == selection_ ? 0.0 : 1.0 - n, label);
     paint_labels(canvas, selection_, previous_selection_ == selection_ ? 1.0 : n, label);
