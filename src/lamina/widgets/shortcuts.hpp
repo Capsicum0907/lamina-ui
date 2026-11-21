@@ -9,6 +9,7 @@
 
 #include "lamina/input/events.hpp"
 #include "lamina/tokens/shortcut.hpp"
+#include "lamina/widgets/focus_manager.hpp"
 
 namespace lamina::widgets {
 
@@ -35,6 +36,7 @@ public:
     bool run(std::string_view id);
     std::optional<std::string> match(const input::KeyEvent& event) const;
     bool handle(const input::KeyEvent& event);
+    bool handle(const input::KeyEvent& event, const FocusManager& focus);
     std::size_t size() const { return commands_.size(); }
 
 private:

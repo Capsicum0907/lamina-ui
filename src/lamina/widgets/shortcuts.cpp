@@ -114,4 +114,8 @@ bool ShortcutRegistry::handle(const input::KeyEvent& e) {
     return id && run(*id);
 }
 
+bool ShortcutRegistry::handle(const input::KeyEvent& e, const FocusManager& focus) {
+    return !focus.claims_key(e) && handle(e);
+}
+
 }

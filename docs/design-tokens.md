@@ -879,7 +879,7 @@ J `KeyShortcut.desktop.kt`: a `KeyShortcut` is a key with ctrl, meta, alt and sh
 
 - `ShortcutRegistry` holds commands by id, each with an optional chord, an action and an enabled flag. `handle(KeyEvent)` runs the enabled command whose chord matches exactly and reports it consumed; a disabled command neither runs nor consumes its key. A second command with the same id or chord throws.
 - The same definition drives the menus: `apply_shortcuts` copies the chords of the items' commands into the items, `sync_commands` copies the enabled flags, and `MenuBar` does both and runs the command of a chosen item.
-- Focus: a host gives a key to the focused widget first and to the registry only when `FocusManager::claims_key` is false. A focused `TextField` or `NumericField` claims Ctrl+A, Ctrl+C, Ctrl+X and Ctrl+V, and Ctrl+Z and Ctrl+Y while it has something to undo or redo (`handles_history_key`, unchanged); a focused `Table` claims Ctrl+A. The routing is lamina-ui's: Compose Desktop leaves menu shortcuts to Swing.
+- Focus: `handle(event, focus)` runs a command only when `FocusManager::claims_key` is false, so the focused widget keeps the keys it claims. A focused `TextField` or `NumericField` claims Ctrl+A, Ctrl+C, Ctrl+X and Ctrl+V, and Ctrl+Z and Ctrl+Y while it has something to undo or redo (`handles_history_key`, unchanged); a focused `Table` claims Ctrl+A. The routing is lamina-ui's: Compose Desktop leaves menu shortcuts to Swing.
 
 ### Menu bar
 

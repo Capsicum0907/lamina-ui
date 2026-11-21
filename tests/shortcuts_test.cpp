@@ -98,11 +98,12 @@ TEST_CASE("a focused text field keeps its own Ctrl+Z and clipboard keys and lets
     r.add("save", KeyChord{Key::s, true}, [&] { ++saved; });
     r.add("copy", KeyChord{Key::c, true}, [&] { ++copied; });
     const auto route = [&](const input::KeyEvent& e) {
-        if (focus.claims_key(e)) {
-            f.handle(e);
+        const bool claimed = focus.claims_key(e);
+        if (r.handle(e, focus)) {
             return true;
         }
-        return r.handle(e);
+        f.handle(e);
+        return claimed;
     };
     CHECK(focus.claims_key({Key::z, false, true}));
     CHECK(route({Key::z, false, true}));

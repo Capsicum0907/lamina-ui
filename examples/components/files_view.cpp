@@ -363,7 +363,7 @@ bool FilesView::handle(const input::KeyEvent& e) {
     if (v.area->handle(e)) {
         return true;
     }
-    if (!v.focus.claims_key(e) && v.commands.handle(e)) {
+    if (v.commands.handle(e, v.focus)) {
         return true;
     }
     const widgets::TableResponse r = v.table->handle(e);

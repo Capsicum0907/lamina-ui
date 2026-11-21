@@ -2468,7 +2468,7 @@ const std::map<std::string, Scene>& files_videos() {
              }
              d.wait(0.6);
              const widgets::AccessibleNode t = table_of(g);
-             const render::Point thumb{t.bounds.x + t.bounds.width - 5.0, t.bounds.y + 70.0};
+             const render::Point thumb{t.bounds.x + t.bounds.width - 5.0, t.bounds.y + t.children.front().bounds.height + 8.0};
              d.move_to(thumb, 0.8);
              d.wait(0.4);
              d.drag_to({thumb.x, t.bounds.y + t.bounds.height * 0.5}, 1.6);

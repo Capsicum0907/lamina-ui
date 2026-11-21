@@ -879,7 +879,7 @@ J `KeyShortcut.desktop.kt`：`KeyShortcut` はキーと ctrl・meta・alt・shif
 
 - `ShortcutRegistry` は、キーの組み合わせ（なくてもよい）・動作・有効かどうかを持つコマンドを ID で保ちます。`handle(KeyEvent)` は組み合わせがちょうど一致する有効なコマンドを走らせ、キーを使ったと返します。無効なコマンドは走らず、キーも使いません。同じ ID か同じ組み合わせのコマンドを二つ目に足すと例外を投げます。
 - メニューも同じ定義で動きます。`apply_shortcuts` は項目のコマンドの組み合わせを項目に写し、`sync_commands` は有効かどうかを写します。`MenuBar` はその両方をして、選ばれた項目のコマンドを走らせます。
-- フォーカス：受け手はキーをまずフォーカスのある部品に渡し、`FocusManager::claims_key` が偽のときだけ登録簿に渡します。フォーカスのある `TextField` と `NumericField` は Ctrl+A・Ctrl+C・Ctrl+X・Ctrl+V と、元に戻すか やり直すものがあるあいだの Ctrl+Z・Ctrl+Y（これまでどおり `handles_history_key`）を自分のものにします。フォーカスのある `Table` は Ctrl+A を自分のものにします。この振り分けは lamina-ui の決めたことで、Compose Desktop はメニューのショートカットを Swing に任せています。
+- フォーカス：`handle(event, focus)` は `FocusManager::claims_key` が偽のときだけコマンドを走らせるので、フォーカスのある部品は自分のものにしたキーを保ちます。フォーカスのある `TextField` と `NumericField` は Ctrl+A・Ctrl+C・Ctrl+X・Ctrl+V と、元に戻すか やり直すものがあるあいだの Ctrl+Z・Ctrl+Y（これまでどおり `handles_history_key`）を自分のものにします。フォーカスのある `Table` は Ctrl+A を自分のものにします。この振り分けは lamina-ui の決めたことで、Compose Desktop はメニューのショートカットを Swing に任せています。
 
 ### メニューバー
 
