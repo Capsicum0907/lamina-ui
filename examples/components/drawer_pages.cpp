@@ -63,7 +63,7 @@ public:
 
         auto& open_modal = bar_button(res::icons::menu, "Open navigation menu", [this] { open_modal_drawer(); });
         auto modal_screen = layout::column({app_bar(open_modal, "Inbox"),
-                                            screen_body("", "Open the menu or drag from the left edge of this frame to the right.")});
+                                            screen_body("", "Open the menu, or drag across this frame to the right.")});
         modal_screen->fill_cross(true);
         modal_frame_.on_arrange([this](const render::Rect& r) { modal_->set_area(r); });
 
