@@ -42,6 +42,7 @@ add_library(lamina STATIC
     src/lamina/render/canvas.cpp
     src/lamina/render/geometry.cpp
     src/lamina/render/path.cpp
+    src/lamina/render/polyline.cpp
     src/lamina/shapes/cubic.cpp
     src/lamina/shapes/feature.cpp
     src/lamina/shapes/feature_mapping.cpp
@@ -112,6 +113,7 @@ add_library(lamina STATIC
     src/lamina/widgets/title_bar.cpp
     src/lamina/widgets/tooltip.cpp
     src/lamina/widgets/top_app_bar.cpp
+    src/lamina/widgets/wavy_progress.cpp
 )
 add_library(lamina::lamina ALIAS lamina)
 set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close check edit date_range arrow_drop_down arrow_drop_up keyboard_arrow_left
@@ -329,6 +331,7 @@ if(LAMINA_BUILD_TESTS)
         tests/todo_layout_test.cpp
         tests/toggle_button_test.cpp
         tests/tokens_test.cpp
+        tests/wavy_progress_test.cpp
         tests/widget_set_test.cpp
         tests/word_boundary_test.cpp
     )
