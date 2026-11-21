@@ -194,3 +194,13 @@ TEST_CASE("the menu's accessible node lists the shown items and the toggle butto
     CHECK(node.children[0].name == "Share");
     CHECK(node.children.back().role == widgets::AccessibleRole::toggle_button);
 }
+
+TEST_CASE("pointer moves over shown items or the button are consumed") {
+    auto m = menu();
+    CHECK(m.handle({PointerAction::move, m.button().container().x + 4.0, m.button().container().y + 4.0}).consumed);
+    CHECK_FALSE(m.handle({PointerAction::move, m.bounds().x + m.bounds().width - 30.0, m.bounds().y + 20.0}).consumed);
+    m.set_expanded(true);
+    settle(m);
+    const render::Rect open = m.item_rect(0);
+    CHECK(m.handle({PointerAction::move, open.x + open.width - 10.0, open.y + 10.0}).consumed);
+}

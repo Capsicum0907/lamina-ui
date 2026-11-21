@@ -190,3 +190,12 @@ TEST_CASE("the bottom bar spreads its actions between 16 dp paddings or packs th
     fixed.set_origin({0.0, 0.0});
     CHECK(fixed.action(1).bounds().x - fixed.action(0).bounds().x == doctest::Approx(48.0 + 32.0));
 }
+
+TEST_CASE("pointer moves over a toolbar or its FAB are consumed so the content under it does not hover") {
+    auto t = with_fab();
+    const render::Rect bar = t.toolbar_rect();
+    CHECK(t.handle({PointerAction::move, bar.x + 4.0, bar.y + bar.height / 2.0}).consumed);
+    const render::Rect f = *t.fab_rect();
+    CHECK(t.handle({PointerAction::move, f.x + 4.0, f.y + 4.0}).consumed);
+    CHECK_FALSE(t.handle({PointerAction::move, 900.0, 900.0}).consumed);
+}

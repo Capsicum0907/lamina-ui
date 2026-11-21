@@ -316,7 +316,8 @@ FloatingToolbarResponse FloatingToolbar::handle(const input::PointerEvent& e) {
             fab_elevation_.animate_to(tokens::elevation_dp[level]);
         }
     }
-    if (!response.consumed && e.action == input::PointerAction::down && contains(toolbar_rect(), e.x_dp, e.y_dp)) {
+    const bool over = contains(toolbar_rect(), e.x_dp, e.y_dp) || (has_fab() && contains(*fab_rect(), e.x_dp, e.y_dp));
+    if (e.action != input::PointerAction::leave && over) {
         response.consumed = true;
     }
     return response;

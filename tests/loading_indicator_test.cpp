@@ -144,3 +144,11 @@ TEST_CASE("a contained indicator paints its primary-container circle under the s
     CHECK(canvas.pixel(24, 24) == scheme[color::Role::on_primary_container]);
     CHECK(canvas.pixel(1, 1) == 0xffffffff);
 }
+
+TEST_CASE("a loading indicator can be drawn larger and scales its shape with it") {
+    LoadingIndicator li({.size = 144.0});
+    CHECK(li.width() == 144.0);
+    const Extent e = extent(li.indicator_path());
+    CHECK(e.right - e.left > 90.0);
+    CHECK(e.right - e.left <= 144.0);
+}

@@ -261,6 +261,13 @@ FabMenuResponse FabMenu::handle(const input::PointerEvent& e) {
         response.consumed = true;
         set_expanded(button_.checked());
     }
+    if (e.action != input::PointerAction::leave) {
+        bool over = contains(button_.container(), e.x_dp, e.y_dp);
+        for (std::size_t i = 0; i < items_.size(); ++i) {
+            over = over || (items_[i].target && contains(item_rect(i), e.x_dp, e.y_dp));
+        }
+        response.consumed = response.consumed || over;
+    }
     return response;
 }
 

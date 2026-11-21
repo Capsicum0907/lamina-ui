@@ -95,6 +95,7 @@ public:
     void set_expanded(bool expanded);
     double expanded_progress() const { return progress_.value(); }
     bool has_fab() const { return options_.fab.has_value(); }
+    ToolbarOrientation orientation() const { return options_.orientation; }
 
     std::size_t action_count(ToolbarSlot slot) const;
     IconButton& action(ToolbarSlot slot, std::size_t index);

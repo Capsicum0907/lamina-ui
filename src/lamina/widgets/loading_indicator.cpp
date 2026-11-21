@@ -154,7 +154,7 @@ render::Path LoadingIndicator::indicator_path() const {
     if (determinate()) {
         index = std::min(static_cast<std::size_t>(static_cast<double>(morphs.size()) * *options_.progress), morphs.size() - 1);
     }
-    const double size = t.container_size;
+    const double size = options_.size;
     const double scale = size * loading_indicator_scale(determinate());
     const std::vector<shapes::Cubic> cubics = morphs[index].as_cubics(static_cast<float>(morph_progress()));
     double left = std::numeric_limits<double>::max();

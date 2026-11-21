@@ -19,14 +19,16 @@ struct LoadingIndicatorOptions {
     std::optional<double> progress = std::nullopt;
     bool contained = false;
     std::string accessible_name = {};
+    double size = tokens::loading_indicator_tokens.container_size;
 };
 
 class LoadingIndicator {
 public:
     explicit LoadingIndicator(LoadingIndicatorOptions options = {});
 
-    double width() const { return tokens::loading_indicator_tokens.container_size; }
-    double height() const { return tokens::loading_indicator_tokens.container_size; }
+    double width() const { return options_.size; }
+    double height() const { return options_.size; }
+    void set_size(double size) { options_.size = size; }
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const { return {origin_.x, origin_.y, width(), height()}; }
 
