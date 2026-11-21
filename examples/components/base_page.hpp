@@ -214,6 +214,19 @@ protected:
         return *list.back();
     }
 
+    void handle_tips(const input::PointerEvent& e) {
+        for (auto& t : tooltips) {
+            t->handle(e);
+        }
+    }
+    void handle_tips(const input::KeyEvent& e) {
+        for (auto& t : tooltips) {
+            t->handle(e);
+        }
+    }
+    bool handle_controls(const input::PointerEvent& e) { return controls.handle(e); }
+    bool handle_controls(const input::KeyEvent& e) { return focus_.handle(e) || controls.handle(e); }
+
     bool handle_dialog_tips(const input::PointerEvent& e) {
         bool consumed = false;
         for (auto& t : dialog_tips) {

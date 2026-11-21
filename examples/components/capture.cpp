@@ -103,6 +103,7 @@ public:
         paint_overlay();
         canvas_.restore();
         badge_left_ -= f.dt_seconds;
+        clock_ += f.dt_seconds;
         if (recording_) {
             write();
         }
@@ -130,28 +131,41 @@ public:
             const double t = static_cast<double>(i) / n;
             const double k = t * t * (3.0 - 2.0 * t);
             pointer_ = {from.x + (to.x - from.x) * k, from.y + (to.y - from.y) * k};
-            pointer_events_.push_back({PointerAction::move, pointer_.x, pointer_.y});
+            pointer_events_.push_back(at(PointerAction::move));
             frame();
         }
     }
     void move_to(std::string_view name, double seconds) { move_to(centre_of(name), seconds); }
 
     void click() {
-        pointer_events_.push_back({PointerAction::down, pointer_.x, pointer_.y, 1});
+        pointer_events_.push_back(at(PointerAction::down, 1));
         frame();
         wait(0.08);
-        pointer_events_.push_back({PointerAction::up, pointer_.x, pointer_.y});
+        pointer_events_.push_back(at(PointerAction::up));
         frame();
     }
 
     void press() {
-        pointer_events_.push_back({PointerAction::down, pointer_.x, pointer_.y, 1});
+        pointer_events_.push_back(at(PointerAction::down, 1));
         frame();
     }
 
     void release() {
-        pointer_events_.push_back({PointerAction::up, pointer_.x, pointer_.y});
+        pointer_events_.push_back(at(PointerAction::up));
         frame();
+    }
+
+    void fling_to(render::Point to, double seconds) {
+        press();
+        const render::Point from = pointer_;
+        const int n = std::max(1, static_cast<int>(std::lround(seconds * style_.fps)));
+        for (int i = 1; i <= n; ++i) {
+            const double t = static_cast<double>(i) / n;
+            pointer_ = {from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t};
+            pointer_events_.push_back(at(PointerAction::move));
+            frame();
+        }
+        release();
     }
 
     void drag_to(render::Point to, double seconds) {
@@ -210,6 +224,10 @@ public:
     int height() const { return canvas_.height(); }
 
 private:
+    input::PointerEvent at(PointerAction action, int clicks = 0) const {
+        return {action, pointer_.x, pointer_.y, clicks, input::PointerKind::mouse, clock_};
+    }
+
     static std::string key_name(Key k, bool shift) {
         static const std::map<Key, std::string> names{{Key::tab, "Tab"},      {Key::space, "Space"}, {Key::enter, "Enter"},
                                                       {Key::escape, "Esc"},   {Key::left, "←"},  {Key::right, "→"},
@@ -278,6 +296,7 @@ private:
     std::vector<input::TextEvent> text_events_;
     std::string badge_text_;
     double badge_left_ = 0.0;
+    double clock_ = 0.0;
 };
 
 void tab_to(Driver& d, examples::components::Gallery& g, std::string_view name, int limit = 60) {
@@ -420,10 +439,10 @@ const std::map<std::string, Scene>& stills() {
              d.click();
              d.move_to({720.0, 845.0}, 0.1);
          }},
-        {"bars", [](Driver& d, examples::components::Gallery&) { show_page(d, "App bars & badges"); }},
+        {"bars", [](Driver& d, examples::components::Gallery&) { show_page(d, "App bars"); }},
         {"bars_scrolled",
          [](Driver& d, examples::components::Gallery&) {
-             show_page(d, "App bars & badges");
+             show_page(d, "App bars");
              for (const char* list : {"Inbox list", "Photos list", "Mail list", "Albums list"}) {
                  wheel_at(d, list, 1.0, 3, 0.1);
              }
@@ -500,6 +519,9 @@ const std::map<std::string, Scene>& stills() {
              d.wait(0.4);
          }},
         {"times", [](Driver& d, examples::components::Gallery&) { show_page(d, "Times"); }},
+        {"sheets", [](Driver& d, examples::components::Gallery&) { show_page(d, "Sheets"); }},
+        {"drawers", [](Driver& d, examples::components::Gallery&) { show_page(d, "Drawers"); }},
+        {"search", [](Driver& d, examples::components::Gallery&) { show_page(d, "Search"); }},
         {"times_24h",
          [](Driver& d, examples::components::Gallery&) {
              show_page(d, "Times");
@@ -857,7 +879,7 @@ const std::map<std::string, Scene>& videos() {
          }},
         {"badge",
          [](Driver& d, examples::components::Gallery&) {
-             show_page(d, "App bars & badges");
+             show_page(d, "App bars");
              d.move_to("Add 1", 0.8);
              for (int i = 0; i < 4; ++i) {
                  d.click();
@@ -878,7 +900,7 @@ const std::map<std::string, Scene>& videos() {
          }},
         {"app_bar",
          [](Driver& d, examples::components::Gallery&) {
-             show_page(d, "App bars & badges");
+             show_page(d, "App bars");
              wheel_at(d, "Inbox list", 1.0, 3, 0.35);
              d.wait(0.4);
              wheel_at(d, "Inbox list", -1.0, 3, 0.3);
@@ -1136,6 +1158,369 @@ const std::map<std::string, Scene>& videos() {
     return scenes;
 }
 
+render::Point centre_nth(examples::components::Gallery& g, const std::string& name, int nth) {
+    int seen = 0;
+    std::optional<render::Point> found;
+    widgets::visit_accessible(g.accessible_nodes(), [&](const widgets::AccessibleNode& n) {
+        if (!found && n.name == name && seen++ == nth) {
+            found = render::Point{n.bounds.x + n.bounds.width / 2.0, n.bounds.y + n.bounds.height / 2.0};
+        }
+    });
+    if (!found) {
+        throw std::runtime_error("no widget named " + name);
+    }
+    return *found;
+}
+
+render::Point centre_field(examples::components::Gallery& g, int nth) {
+    int seen = 0;
+    std::optional<render::Point> found;
+    widgets::visit_accessible(g.accessible_nodes(), [&](const widgets::AccessibleNode& n) {
+        if (!found && n.role == widgets::AccessibleRole::text_field && n.name == "Search" && seen++ == nth) {
+            found = render::Point{n.bounds.x + n.bounds.width / 2.0, n.bounds.y + n.bounds.height / 2.0};
+        }
+    });
+    if (!found) {
+        throw std::runtime_error("no search field");
+    }
+    return *found;
+}
+
+void tab_to_field(Driver& d, examples::components::Gallery& g, int limit = 60) {
+    for (int i = 0; i < limit; ++i) {
+        const auto focused = widgets::focused_accessible(g.accessible_nodes());
+        if (focused && focused->role == widgets::AccessibleRole::text_field) {
+            return;
+        }
+        d.key(Key::tab);
+    }
+    throw std::runtime_error("Tab never reached a text field");
+}
+
+render::Rect bounds_of(examples::components::Gallery& g, const std::string& name) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(nodes, [&](const widgets::AccessibleNode& n) { return n.name == name && !n.children.empty(); });
+    if (!node) {
+        throw std::runtime_error("no container named " + name);
+    }
+    return node->bounds;
+}
+
+void click_at(Driver& d, render::Point p, double seconds) {
+    d.move_to(p, seconds);
+    d.click();
+}
+
+void click_named(Driver& d, std::string_view name, double seconds) {
+    d.move_to(name, seconds);
+    d.click();
+}
+
+void open_modal_sheet(Driver& d) {
+    show_page(d, "Sheets");
+    click_named(d, "Show bottom sheet", 0.5);
+    d.wait(1.0);
+}
+
+void toggle_enabled(Driver& d) {
+    d.move_to("Enabled", 0.3);
+    d.click();
+    d.move_to({720.0, 845.0}, 0.2);
+    d.wait(0.6);
+}
+
+const std::map<std::string, Scene>& pattern_stills() {
+    static const std::map<std::string, Scene> scenes{
+        {"sheets_modal", [](Driver& d, examples::components::Gallery&) { open_modal_sheet(d); }},
+        {"sheets_expanded",
+         [](Driver& d, examples::components::Gallery& g) {
+             open_modal_sheet(d);
+             click_at(d, centre_in(g, "Bottom Sheet", "Drag handle"), 0.4);
+             d.wait(1.2);
+             click_at(d, centre_in(g, "Nearby places", "Drag handle"), 0.4);
+             d.wait(1.2);
+             d.move_to({720.0, 845.0}, 0.2);
+         }},
+        {"sheets_side_modal",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Sheets");
+             click_named(d, "Modal side sheet", 0.4);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(0.8);
+         }},
+        {"sheets_side_detached",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Sheets");
+             click_named(d, "Detached side sheet", 0.4);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(0.8);
+         }},
+        {"sheets_side_standard",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Sheets");
+             click_named(d, "Standard side sheet", 0.4);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(0.8);
+         }},
+        {"sheets_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Sheets");
+             d.set_cursor(false);
+             tab_to(d, g, "Show bottom sheet");
+             d.key(Key::enter);
+             d.wait(1.0);
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.wait(0.6);
+         }},
+        {"sheets_tooltip",
+         [](Driver& d, examples::components::Gallery& g) {
+             open_modal_sheet(d);
+             d.move_to(centre_in(g, "Bottom Sheet", "Drag handle"), 0.4);
+             d.wait(1.2);
+         }},
+        {"sheets_disabled",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Sheets");
+             click_named(d, "Standard side sheet", 0.4);
+             d.wait(0.8);
+             click_at(d, centre_in(g, "Nearby places", "Drag handle"), 0.4);
+             d.wait(1.0);
+             toggle_enabled(d);
+         }},
+        {"drawers_modal",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Drawers");
+             click_named(d, "Open navigation menu", 0.4);
+             d.wait(0.8);
+             d.move_to("Outbox", 0.4);
+             d.wait(0.6);
+         }},
+        {"drawers_dismissible",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Drawers");
+             click_named(d, "Toggle navigation menu", 0.4);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(0.8);
+         }},
+        {"drawers_permanent",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Drawers");
+             click_named(d, "Permanent", 0.4);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(0.6);
+         }},
+        {"drawers_rail",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Drawers");
+             click_named(d, "Expand rail", 0.4);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(1.0);
+         }},
+        {"drawers_hiding",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Drawers");
+             click_named(d, "Hiding rail", 0.4);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(1.0);
+         }},
+        {"drawers_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Drawers");
+             d.set_cursor(false);
+             tab_to(d, g, "Open navigation menu");
+             d.key(Key::enter);
+             d.wait(0.8);
+             d.key(Key::down);
+             d.key(Key::down);
+             d.wait(0.6);
+         }},
+        {"drawers_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Drawers");
+             click_named(d, "Toggle navigation menu", 0.4);
+             d.wait(0.8);
+             toggle_enabled(d);
+         }},
+        {"search_full",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Search");
+             click_at(d, centre_field(g, 0), 0.4);
+             d.wait(0.6);
+             d.type("ka", 0.1);
+             d.move_to({720.0, 845.0}, 0.2);
+             d.wait(0.8);
+         }},
+        {"search_docked",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Search");
+             click_at(d, centre_field(g, 1), 0.4);
+             d.wait(0.6);
+             d.type("o", 0.1);
+             d.move_to(centre_in(g, "Search", "Kochi"), 0.4);
+             d.wait(0.8);
+         }},
+        {"search_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Search");
+             d.set_cursor(false);
+             tab_to_field(d, g);
+             d.key(Key::down);
+             d.wait(0.8);
+             d.key(Key::down);
+             d.key(Key::down);
+             d.wait(0.6);
+         }},
+        {"search_tooltip",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Search");
+             d.move_to(centre_nth(g, "Mic", 1), 0.4);
+             d.wait(1.2);
+         }},
+        {"search_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Search");
+             toggle_enabled(d);
+         }},
+    };
+    return scenes;
+}
+
+const std::map<std::string, Scene>& pattern_videos() {
+    static const std::map<std::string, Scene> scenes{
+        {"bottom_sheet",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Sheets");
+             d.wait(0.4);
+             click_named(d, "Show bottom sheet", 0.8);
+             d.wait(1.2);
+             const render::Point handle = centre_in(g, "Bottom Sheet", "Drag handle");
+             d.move_to(handle, 0.6);
+             d.wait(0.3);
+             d.fling_to({handle.x, handle.y - 260.0}, 0.15);
+             d.wait(1.4);
+             const render::Point top = centre_in(g, "Bottom Sheet", "Drag handle");
+             d.move_to(top, 0.6);
+             d.drag_to({top.x, top.y + 40.0}, 0.6);
+             d.wait(1.0);
+             d.drag_to({top.x, top.y + 180.0}, 0.9);
+             d.wait(1.4);
+             const render::Point half = centre_in(g, "Bottom Sheet", "Drag handle");
+             d.move_to({half.x, half.y + 120.0}, 0.6);
+             d.wait(0.3);
+             d.fling_to({half.x, half.y + 260.0}, 0.12);
+             d.wait(1.4);
+             const render::Point peek = centre_in(g, "Nearby places", "Drag handle");
+             d.move_to(peek, 0.8);
+             d.wait(0.3);
+             d.fling_to({peek.x, peek.y - 200.0}, 0.15);
+             d.wait(1.4);
+             click_at(d, centre_in(g, "Nearby places", "Drag handle"), 0.8);
+             d.wait(1.4);
+             click_named(d, "Show bottom sheet", 0.8);
+             d.wait(1.2);
+             d.key(Key::escape);
+             d.wait(1.4);
+         }},
+        {"side_sheet",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Sheets");
+             d.wait(0.4);
+             click_named(d, "Modal side sheet", 0.8);
+             d.wait(1.0);
+             click_at(d, centre_in(g, "Filters", "On sale"), 0.6);
+             d.wait(0.5);
+             d.move_to(centre_in(g, "Filters", "Close"), 0.6);
+             d.wait(1.2);
+             d.click();
+             d.wait(1.0);
+             click_named(d, "Detached side sheet", 0.8);
+             d.wait(1.0);
+             const render::Rect sheet = bounds_of(g, "Detached filters");
+             d.move_to({sheet.x + 60.0, sheet.y + 420.0}, 0.6);
+             d.wait(0.3);
+             d.fling_to({sheet.x + 220.0, sheet.y + 420.0}, 0.15);
+             d.wait(1.0);
+             click_named(d, "Standard side sheet", 0.8);
+             d.wait(1.2);
+             click_at(d, centre_in(g, "Standard filters", "Top rated"), 0.6);
+             d.wait(0.6);
+             click_named(d, "Standard side sheet", 0.8);
+             d.wait(1.2);
+         }},
+        {"drawer",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Drawers");
+             d.wait(0.4);
+             click_named(d, "Open navigation menu", 0.8);
+             d.wait(1.0);
+             d.move_to("Favorites", 0.6);
+             d.wait(0.4);
+             d.click();
+             d.wait(1.0);
+             const render::Point menu = centre_nth(g, "Open navigation menu", 0);
+             d.move_to({menu.x, menu.y + 200.0}, 0.6);
+             d.drag_to({menu.x + 230.0, menu.y + 200.0}, 0.8);
+             d.wait(1.0);
+             click_at(d, {menu.x + 380.0, menu.y + 400.0}, 0.6);
+             d.wait(1.0);
+             click_named(d, "Toggle navigation menu", 0.8);
+             d.wait(1.0);
+             click_at(d, centre_nth(g, "Outbox", 0), 0.6);
+             d.wait(0.6);
+             click_named(d, "Toggle navigation menu", 0.6);
+             d.wait(1.0);
+             click_named(d, "Expand rail", 0.8);
+             d.wait(1.0);
+             click_named(d, "Messages", 0.6);
+             d.wait(0.6);
+             d.key(Key::escape);
+             d.wait(1.2);
+             click_named(d, "Hiding rail", 0.8);
+             d.wait(1.0);
+             const render::Rect rail = bounds_of(g, "Main");
+             d.move_to({rail.x + 150.0, rail.y + 560.0}, 0.6);
+             d.wait(0.3);
+             d.fling_to({rail.x + 20.0, rail.y + 560.0}, 0.12);
+             d.wait(1.2);
+         }},
+        {"search",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Search");
+             d.wait(0.4);
+             click_at(d, centre_field(g, 0), 0.8);
+             d.wait(1.0);
+             d.type("ka", 0.25);
+             d.wait(0.8);
+             d.key(Key::down);
+             d.wait(0.4);
+             d.key(Key::down);
+             d.wait(0.4);
+             d.key(Key::down);
+             d.wait(0.4);
+             d.key(Key::enter);
+             d.wait(1.2);
+             click_at(d, centre_field(g, 1), 0.8);
+             d.wait(1.0);
+             d.type("os", 0.25);
+             d.wait(0.6);
+             d.move_to(centre_in(g, "Search", "Osaka"), 0.6);
+             d.wait(0.6);
+             d.click();
+             d.wait(1.2);
+         }},
+    };
+    return scenes;
+}
+
+const Scene* find_scene(const std::map<std::string, Scene>& a, const std::map<std::string, Scene>& b, const std::string& name) {
+    if (const auto it = a.find(name); it != a.end()) {
+        return &it->second;
+    }
+    const auto it = b.find(name);
+    return it == b.end() ? nullptr : &it->second;
+}
+
 int usage() {
     std::fprintf(stderr,
                  "usage:\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
@@ -1171,13 +1556,13 @@ int main(int argc, char** argv) {
         gallery.set_dark(dark);
 
         if (mode == "still") {
-            const auto it = stills().find(scene);
-            if (it == stills().end() || argc < 6) {
+            const Scene* found = find_scene(stills(), pattern_stills(), scene);
+            if (!found || argc < 6) {
                 return usage();
             }
             Driver driver(gallery, fonts, scale, nullptr);
             driver.settle();
-            it->second(driver, gallery);
+            (*found)(driver, gallery);
             driver.wait(driver.still_seconds());
             driver.write_raw(argv[5]);
             if (argc > 6) {
@@ -1191,14 +1576,14 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "tree") {
-            const auto it = stills().find(scene);
-            if (it == stills().end()) {
+            const Scene* found = find_scene(stills(), pattern_stills(), scene);
+            if (!found) {
                 return usage();
             }
             Driver driver(gallery, fonts, scale, nullptr);
             driver.settle();
             try {
-                it->second(driver, gallery);
+                (*found)(driver, gallery);
             } catch (const std::exception& ex) {
                 std::fprintf(stderr, "%s\n", ex.what());
             }
@@ -1207,8 +1592,8 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "video") {
-            const auto it = videos().find(scene);
-            if (it == videos().end()) {
+            const Scene* found = find_scene(videos(), pattern_videos(), scene);
+            if (!found) {
                 return usage();
             }
 #ifdef _WIN32
@@ -1217,7 +1602,7 @@ int main(int argc, char** argv) {
             Driver driver(gallery, fonts, scale, stdout);
             driver.settle();
             driver.set_recording(true);
-            it->second(driver, gallery);
+            (*found)(driver, gallery);
             std::fflush(stdout);
             return 0;
         }

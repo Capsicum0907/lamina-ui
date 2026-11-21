@@ -207,11 +207,13 @@ if(LAMINA_BUILD_EXAMPLES)
         upload play_arrow pause stop light_mode dark_mode palette arrow_back arrow_forward arrow_upward arrow_downward
         chevron_left chevron_right expand_more expand_less more_vert more_horiz menu_open view_list grid_view backspace
         task_alt event location_on flight attach_file wifi bluetooth open_in_new inbox folder calendar_today chat groups videocam
-        directions_walk directions_transit directions_car format_bold format_italic format_underlined)
+        directions_walk directions_transit directions_car format_bold format_italic format_underlined mic)
     target_sources(components PRIVATE examples/components/gallery.cpp examples/components/pages.cpp examples/components/input_pages.cpp
-    examples/components/date_pages.cpp examples/components/time_pages.cpp)
+    examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
+    examples/components/drawer_pages.cpp examples/components/search_pages.cpp)
     add_executable(components_capture examples/components/capture.cpp examples/components/gallery.cpp examples/components/pages.cpp examples/components/input_pages.cpp
-    examples/components/date_pages.cpp examples/components/time_pages.cpp)
+    examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
+    examples/components/drawer_pages.cpp examples/components/search_pages.cpp)
     target_link_libraries(components_capture PRIVATE lamina lamina_thorvg lamina_sdl3 lamina_examples_common components_resources)
     lamina_warnings(components_capture)
     lamina_add_example(navigation navigation ICONS

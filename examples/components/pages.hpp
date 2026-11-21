@@ -53,5 +53,8 @@ std::unique_ptr<Page> make_bars_page(PageContext context);
 std::unique_ptr<Page> make_inputs_page(PageContext context);
 std::unique_ptr<Page> make_dates_page(PageContext context);
 std::unique_ptr<Page> make_times_page(PageContext context);
+std::unique_ptr<Page> make_sheets_page(PageContext context);
+std::unique_ptr<Page> make_drawers_page(PageContext context);
+std::unique_ptr<Page> make_search_page(PageContext context);
 
 }
