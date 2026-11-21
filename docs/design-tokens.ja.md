@@ -557,7 +557,74 @@ Material 3 にはスクロールバーの定めがなく、Compose Material 3 �
 - 取り入れていないもの：バー自身を引きずってはじく動き（lamina-ui のバーは引きずれません）。`onPreScroll` が、バーが少しでも動けば限界を超えた分も含めて差分をすべてバーに渡してしまう点。lamina-ui は残りを中身に渡します。
 - 意味づけ：Compose のバーは役割なしのたどる順のまとまりで、題名に `heading` はありません。lamina-ui は `toolbar` と、題名の `label` を返します。2 段のバーは、`hideTopRowSemantics` と同じく、半分縮んだ所から上の段の題名を見せます。
 
+### セグメントボタン
+
+`6068a9492ba8` の C の `SegmentedButton.kt` と `tokens/OutlinedSegmentedButtonTokens.kt` を読み、`lamina/tokens/segmented_button.hpp` に入れました。
+
+- どの部品か：`SegmentedButton` には `@Deprecated` がなく（`contentPadding` を取らない二つの古い形が、バイナリ互換のために隠されているだけです）、KDoc も置き換え先を挙げていません。つながったボタンの組（`ButtonGroupDefaults.connected*` の形を使う `ButtonGroup` と `ToggleButton`）はこのコミットにあり、KDoc に `@material3expressive` の印がありますが、実験的という注釈はなく、セグメントボタンに代わるとも書かれていません。そのため lamina-ui は `SegmentedButton` を作りました。つながったボタンの組はこの段階では作っていません。
+- 大きさ：行の高さは 40 dp 以上（`ContainerHeight`）。項目はそれぞれ `weight(1f)` で `ButtonDefaults.MinWidth`（58 dp）を持ち、行が `IntrinsicSize.Min` なので、どの区画もいちばん広い区画と同じ幅になります。左右に 12 dp、上下に 8 dp（`ButtonDefaults.ContentPadding` の縦）、アイコンは 18 dp で、文字の前に 8 dp（非公開の `IconSpacing`）、文字は Label L です。
+- 形：`CornerFull`。最初の項目は始まり側、最後の項目は終わり側の角だけを残し、間の項目は四角です。行は `spacedBy(-1 dp)` なので、1 dp の枠線が重なります。
+- 色：選ばれた区画は secondary-container の地に on-secondary-container、選ばれていない区画は透明な地に on-surface、枠線は outline。無効のときは、中身が on-surface の 38 %、枠線が outline の 12 %（`DisabledOutlineColor` ではありません）、選ばれた地はそのままです。
+- 重なり：選ばれた区画は 5 を足し、押されているときとフォーカスがあるときにそれぞれ 1 を足します。
+- 中身：アイコンの場所は常に測られ（18 dp とアイコンの大きいほう）、アイコンがないと文字を −(18 + 8)/2 = −13 dp ずらし、最初の配置のあとは速い空間のばねで動かします。既定のアイコンは `Icons.Filled.Check` で、選ばれていないときのアイコンがなければ `AnimatedVisibility` で `fadeIn(DefaultEffects) + scaleIn(0、左下、FastSpatial)`、消えるときの動きはありません。あれば `Crossfade(DefaultEffects)` です。
+- 読み上げ：一つだけ選ぶ行は `selectableGroup` の中の `Role.RadioButton` の `selectable`、いくつでも選べる行は役割のない `toggleable` です。
+- 違い：Compose がすぐに切り替える色を、標準の効果のばねで移しています。行全体を Tab の止まり位置一つとし、矢印キーを受けます（一つだけ選ぶ行では選び、いくつでも選べる行ではフォーカスを動かします）。Compose はどの区画も Tab の止まり位置で、矢印キーはありません。いくつでも選べる区画は `toggle_button` を返します。区画の内側にフォーカスの輪を描くのは lamina-ui の足したものです。
+
+### スライダー：縦・中央から・トラックの角・値の表示
+
+`6068a9492ba8` の C の `Slider.kt` と `tokens/SliderTokens.kt` を読みました。
+
+- `VerticalSlider`：つまみは `VerticalThumbSize` の 44 × 4 dp で、押す・ドラッグする・フォーカスがあるときは高さが半分になります。トラックは幅 16 dp。`topToBottom` の既定は true（最小値が上）。キーは `↑` と `↓`（`value − sign·delta` と `+`）、同じ符号の `Page Up` と `Page Down`、`Home` と `End` で、`←` と `→` は受けません。
+- `SliderDefaults.CenteredTrack`：塗った部分は中央からつまみまでです。隙間は、つまみと反対側が 6 dp、つまみ側が `つまみ/2 + 6 dp`。塗った部分の角は両方とも 2 dp の内側の角で、止まりの点は両端だけ、目盛りは二つの隙間と両端では描きません。
+- `Track(sliderState, trackCornerSize)` と `CenteredTrack` は角を縮めます。段がなければ、塗った部分と塗っていない部分を、角の大きさではなく幅 0 になるまで描きます。lamina-ui は各半径を部分の短い辺の半分までに抑えていて、それで角が縮みます。縦のスライダーの既定のトラックも縮みます。
+- 値の表示：Compose にはトークン（`ValueIndicatorContainerColor` が inverse-surface、`ValueIndicatorLabelTextColor` が inverse-on-surface、`ValueIndicatorLabelTextFont` が Label L、`ValueIndicatorActiveBottomSpace` が 12 dp）しかなく、どこからも使われていません。形と動きは `9d2f79851cae` の material-web のスライダー（`labeled`、`slider/internal/_slider.scss`）から取りました。角が丸く高さ 28 dp 以上（`label-container-height`）、内側に 4 dp、フォーカスがあるときと押しているときに出て、下端の中央から `duration-short2`（100 ms）の `easing-emphasized` で大きくなります。lamina-ui はつまみを押している間とフォーカスがある間に出し（material-web はポインターを乗せたときも出します）、下の三角は描きません。
+- このコミットの Compose にないので作っていないもの：トラックの中のアイコンと、XS〜XL のスライダーの大きさ（`SliderTokens.kt` だけがあり、トラックは 16 dp の一つです）。
+
+### 範囲スライダー
+
+`6068a9492ba8` の C の `Slider.kt`（`RangeSlider`、`RangeSliderState`）を読みました。つまみの名前は androidx の `compose/ui/ui/src/androidMain/res/values{,-ja}/strings.xml`（`range_start` が "Range start" / 範囲の先頭、`range_end` が "Range end" / 範囲の末尾）から取りました。
+
+- トラック：始まり側の塗っていない部分は `始まり − 隙間` まで、塗った部分は `始まり + 隙間` から `終わり − 隙間` までで両端が 2 dp の角（幅が 2 dp を超えるときだけ描きます）、終わり側の塗っていない部分は `終わり + 隙間` からです。止まりの点は、その部分を描いているときだけ両端に付けます。目盛りは両端と二つの隙間では描きません。
+- 押したとき：近いほうのつまみです。同じ距離なら、押した位置が始まりのつまみより前なら始まりのつまみ（`rawOffsetStart > posX`）。二つのつまみがどちらも押した位置からタッチの遊びの内にあるときは、ドラッグの向きで決めます。始まりの値は `[最小, 終わり]`、終わりの値は `[始まり, 最大]` に収めます。
+- キー：つまみはそれぞれフォーカスを受けます。`←` と `→`、`Page Up` と `Page Down`、`Home`（始まりは最小値、終わりは始まりの値）、`End`（始まりは終わりの値、終わりは最大値）。lamina-ui はスライダーと同じく `↑` と `↓` も受けます。
+- 違い：lamina-ui はスライダーと同じく押した時点で選んだつまみを動かします。Compose はタッチの遊びを越えるか離すまで待ちます。Compose は状態に書き戻すときに値を目盛りに合わせ、lamina-ui はすぐに合わせます。
+
+### 日付の選択
+
+`6068a9492ba8` の C の `DatePicker.kt`・`DateRangePicker.kt`・`DateInput.kt`・`DateRangeInput.kt`・`DatePickerDialog.kt`・`tokens/DatePickerModalTokens.kt` と、`androidMain/res/values{,-ja}/strings.xml` の文字列を読み、`lamina/tokens/date_picker.hpp` と `lamina/calendar/locale.cpp` に入れました。
+
+- 入れ物は幅 360 dp（`ContainerWidth`）、ダイアログは高さ 568 dp まで（`ContainerHeight`）、surface-container-high で、ダイアログの形は extra-large（28 dp）です。ピッカーだけのときはただの四角を塗り、角を丸くするのはダイアログだけです。`TonalElevation` は level 0 なので、ダイアログに影はありません。
+- 見出し：高さ 120 dp 以上（`HeaderContainerHeight`）。題は Label L で始まりから 24 dp・上から 16 dp、選んだ日付は Headline L で始まりから 24 dp・下から 12 dp、モードの切り替えは終わりと下から 12 dp。その下に outline-variant の 1 dp の区切り線。題は "Select date"、選んだ日付は `yMMMd` の書式か、なければ "Selected date"（文字入力では "Entered date"）です。
+- 月の行は高さ 56 dp で左右に 12 dp。丸い形の文字ボタンに `yMMMM` の月と `ArrowDropDown`（開くと動きなしで 180° 回ります。lamina-ui は `arrow_drop_up` を描きます）、それに前後の月のアイコンボタンがあり、年の一覧を開いている間は消えます。
+- 曜日：短い単独の名前を Body L（on-surface）で、48 dp のます目に出します。日：48 dp のます目に 40 dp の丸で Body L。選んだ日は primary に on-primary の文字、今日は選ばれていなければ primary の文字と 1 dp の primary の輪、無効な日は 38 %。いつも 6 週（288 dp）です。
+- 年の一覧：行の間を 16 dp 空けた `GridCells.Fixed(3)` で、72 × 36 dp の項目をます目の中央に置き、形は `CornerFull`。表示中の年は primary に on-primary の文字、今年は 1 dp の輪と primary の文字、ほかは on-surface-variant です。曜日と日のます目を覆い（48 × 7 − 1 dp の下に区切り線）、`expandVertically(DefaultEffects) + fadeIn(DefaultEffects, 0.6)` で開き、`shrinkVertically(DefaultEffects) + fadeOut(FastEffects)` で閉じます。最初に見える項目は表示中の年の 3 つ前です。年を選んでも月はそのままです。
+- モードの切り替え：`AnimatedContent` です。文字入力へは、新しい中身が自分の高さの分だけ下から滑り上がり（`DefaultSpatial`）現れ（`DefaultEffects`）、古い中身は 48 dp 上へ滑りながら消えます（`FastEffects`）。戻るときはその逆で、`SizeTransform(DefaultSpatial)` です。入力欄は `DurationMedium2`（300 ms）後にフォーカスを求めます。
+- 文字入力：左右 24 dp・上 10 dp の枠線つき入力欄で、ラベルは "Date"、薄い案内の文字は書式を大文字にしたものです。数字だけ、8 桁まで受け、各部分が埋まった時点で区切りを出します（`DateVisualTransformation`）。書式は、ロケールの短い日付の書式を `dd`・`MM`・`yyyy` と区切りに縮めたもので、CLDR から `MM/dd/yyyy`（en-US）・`dd/MM/yyyy`（en-GB）・`yyyy/MM/dd`（ja-JP）です。8 桁打つと調べ、"Date does not match expected pattern: %1$s"・"Date out of expected year range %1$s - %2$s"・"Date not allowed: %1$s"（と日本語の文）を出します。
+- 期間の選択：見出しは高さ 68 dp 以上（128 − 60）で、題と Title L の見出しは始まりから 64 dp、"Start date - End date"（ASCII のハイフンで、間は 4 dp）。縦の月の一覧で、月ごとに Title S の月の名前（始まり 24 dp・上 20 dp・下 8 dp）の下にます目を置きます。クリック：開始日がないか期間がそろっていれば新しい開始日、開始日以降なら終了日、開始日より前なら新しい開始日です。帯は secondary-container で高さ 40 dp、開始日の丸の中心から終了日の丸の中心まで。期間内の文字は on-secondary-container です。モードは `FastEffects` で入れ替わります。期間の文字入力は 8 dp 離した二つの欄で、"Invalid date range input" を出します。
+- 読み上げ：日の名前は `yMMMMEEEEd` で、期間では "Start date"・"End date"・"In range" が、今日には "Today" が前に付きます。年は "Navigate to year %1$s"、見出しの説明は "Current selection: %1$s" か "Entered date: %1$s"（なければ "None"）です。
+- 違い：選んだ日の丸は標準の効果のばねで現れます（Compose では実際にはすぐに切り替わります）。矢印とキーでは月を標準の効果のばねで滑らせます（Compose の `animateScrollToItem` の既定の動きは material3 のソースにありません）。月の間をスワイプでは移れません。キー：Compose は月の最初と最後の有効な日での `←` と `→` だけを扱い、ほかは既定のフォーカス探しに任せています。lamina-ui は WAI-ARIA の日付の表に従い（矢印、`Page Up` と `Page Down`、Shift で 1 年、週の `Home` と `End`、`Space` か `Enter`）、年の一覧にも矢印と `Home`・`End` を付けました。月と年のボタンと矢印のボタンも lamina-ui の Tab の止まり位置です。期間の文字入力で開始日が途中までだと、Compose は `setSelection(null, end)` を呼んで両方の日付を消しますが、lamina-ui は開始日だけを消します。
+- 入力欄の下に開く形：Compose にはありません。lamina-ui のこの形は、枠線つきの日付の入力欄の 4 dp 下に、角 16 dp（corner-large）・影 6 dp（level 3）の surface-container-high の面でカレンダーを出します。M3 が docked の日付の選択に示す値で、メニューと同じく 0.8 から大きくなります。
+
+### 時刻の選択
+
+`6068a9492ba8` の C の `TimePicker.kt`・`TimePickerDialog.kt`・`tokens/TimePickerTokens.kt`・`tokens/TimeInputTokens.kt` を読み、`lamina/tokens/time_picker.hpp` に入れました。
+
+- 文字盤は 256 dp（`ClockDialContainerSize`）で surface-container-highest。数字は Body L の on-surface で、文字盤の 101/256 の円（`OuterCircleToSizeRatio`）に、24 時間制の 12〜23 時は 69/256 の円（`InnerCircleToSizeRatio`）に並び、数字のます目は 48 dp です。つまみは 48 dp の primary、2 dp の線がつまみの手前の縁まで伸び、中心は 8 dp。つまみの下の数字は on-primary です。24 時間制では、中心から 74 dp（`MaxDistance`）未満なら内側の円です。
+- 時と分の箱は 96 × 80 dp、角 8 dp、Display L。選ばれた側は primary-container と on-primary-container、ほかは surface-container-highest と on-surface。区切りは 24 dp で、":" は on-surface で 4 dp 上げます。
+- 午前・午後の切り替え（新しい形。`isUpdatedTimepickerToggleEnabled` が true）：4 dp 離した二つの切り替えボタンで、52 × 80 dp（縦。分の 4 dp 後）か 216 × 38 dp（横。16 dp 下）。選ばれていない側は surface-container-lowest と on-surface-variant で角が丸く、選ばれた側は primary-container と on-primary-container で角 12 dp、文字は太字です。形は `FastSpatial` で変わります。
+- 配置：縦は表示・36 dp・文字盤・24 dp、横は表示の列・36 dp・文字盤。Compose は画面が縦より横に長いと横を選びます。lamina-ui は `TimePickerLayout` で決めます。
+- 動き：つまみは近い向きを回って `DefaultSpatial` で動きます。押したときは分を 5 分に、時をいちばん近い時に合わせ、時を押したときは動きが終わってから 100 ms 待って分を出します。ドラッグではつまみが指に付き、離したときに切り替えます。数字の組は `DefaultEffects` で入れ替わります。
+- 入力：欄は 96 × 72 dp で Display M、フォーカスがあると primary-container の地に 2 dp の枠線（outline）。下 7 dp に Body S で 2 行の補助の文字："Hour" と "Minute"、範囲外なら "Hour must be 1–12"・"Hour must be 0–23"・"Minute must be 0–59" をエラーの色で出します。埋まった欄に打つと新しい数字だけが残り、時を 2 桁（12 時間制なら 2〜9 の 1 桁）打つと分へ進みます。
+- ダイアログ：内側に 24 dp、中身の 20 dp 上に Label M の題（"Select Time" / "Enter Time"）、ボタンの行は先頭にモードの切り替え（`Keyboard` / `Schedule`）、末尾に Cancel と OK を 8 dp 空けて置きます。
+- 読み上げ：時と分の箱は "Select hour" と "Select minutes" のラジオボタン、文字盤の数字は "%1$d o'clock"・"%1$d hours"（24 時間制）・"%1$d minutes"、午前・午後の切り替えは "Select AM or PM"、入力欄は "for hour" と "for minutes" です。AM と PM は文字列の資源で、日本語でも "AM" と "PM" です。
+- 違い：24 時間制の Compose のドラッグは、動くたびにつまみを時の位置に戻すので、つまみが 1 時間ずつ跳びます。lamina-ui はそこでも指に付いて動かします。Compose は 12 時間制で 0 と 00 を時として受けますが、文は 1〜12 と言っています。lamina-ui はこれを無効にしました。キーでは、時と分の箱、午前・午後の切り替え（止まり位置一つ）、文字盤（フォーカスのある数字を持つ止まり位置一つ）を Tab で巡ります。Compose の文字盤の数字は、箱を押したあとでないとフォーカスを受けません。入力欄は文字入力の部品ではなく、lamina-ui の 2 桁の欄です。ダイアログはモードの間を速い効果のばねで入れ替えます。Compose の時刻の選択には無効の状態がなく、lamina-ui は 38 % に薄めます。Compose がすぐに切り替える色は、ばねで移しています。
+
+### 入力欄：補助の文字とエラー
+
+C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 dp（`SupportingTopPadding`）、始まりから 16 dp。色は on-surface-variant、`isError` ならエラーの色です。`isError` では枠線・ラベル・カーソルもエラーの色、ポインターを乗せた枠線は on-error-container。lamina-ui は標準の効果のばねで移します。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
 - 第 2 段階の部品で作っていないもの：チップの `shapes:` の版（`ChipShapes`）、2 dp の間と位置ごとの角を持つ `SegmentedListItem`、チップ・カード・リストの項目を引きずる操作、トップアプリバー自身を引きずる操作。
+- 第 3 段階の部品で作っていないもの：つながったボタンの組（つながった `ToggleButton` を並べた `ButtonGroup` と、押したときの幅の広がり）、月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
