@@ -168,6 +168,7 @@ void SearchBar::place() {
 }
 
 void SearchBar::expand() {
+    claim_focus_ = true;
     if (progress_.target() != 1.0) {
         progress_.set_spec(tokens::search_motion.expand);
         progress_.animate_to(1.0);
@@ -183,6 +184,7 @@ void SearchBar::expand() {
 }
 
 void SearchBar::collapse() {
+    claim_focus_ = false;
     if (progress_.target() == 0.0) {
         return;
     }
@@ -446,6 +448,12 @@ void SearchBar::cancel_interaction() {
 }
 
 void SearchBar::step(double dt) {
+    if (claim_focus_) {
+        claim_focus_ = false;
+        if (expanded() && !focused()) {
+            field_.set_focused(true);
+        }
+    }
     progress_.step(dt);
     place();
     field_.step(dt);

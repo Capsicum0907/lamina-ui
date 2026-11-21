@@ -291,6 +291,7 @@ if(LAMINA_BUILD_TESTS)
         tests/modal_navigation_rail_test.cpp
         tests/navigation_rail_test.cpp
         tests/overlay_stack_test.cpp
+        tests/overlay_patterns_test.cpp
         tests/placeholder_test.cpp
         tests/popup_transition_test.cpp
         tests/progress_indicator_test.cpp

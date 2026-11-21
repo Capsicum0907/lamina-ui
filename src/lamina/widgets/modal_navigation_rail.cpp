@@ -74,11 +74,13 @@ void ModalNavigationRail::expand(input::InputSource source) {
     }
     if (source == input::InputSource::keyboard) {
         rail_.set_focused(true);
+        claim_focus_ = true;
     }
 }
 
 void ModalNavigationRail::collapse() {
     target_expanded_ = false;
+    claim_focus_ = false;
     if (options_.hide_on_collapse) {
         slide_.animate_to(RailValue::collapsed, t.slide);
         rail_.set_focused(false);
@@ -184,6 +186,12 @@ void ModalNavigationRail::cancel_interaction() {
 }
 
 void ModalNavigationRail::step(double dt) {
+    if (claim_focus_) {
+        claim_focus_ = false;
+        if (target_expanded_ && !rail_.focused()) {
+            rail_.set_focused(true);
+        }
+    }
     slide_.step(dt);
     scrim_.animate_to(target_expanded_ ? 1.0 : 0.0);
     scrim_.step(dt);

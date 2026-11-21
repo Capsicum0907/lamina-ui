@@ -128,6 +128,7 @@ private:
     render::Rect collapsed_{0.0, 0.0, 0.0, 0.0};
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     bool field_pressed_ = false;
+    bool claim_focus_ = false;
 };
 
 }

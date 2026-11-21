@@ -79,6 +79,7 @@ private:
     bool target_expanded_ = false;
     bool tracking_ = false;
     bool scrim_pressed_ = false;
+    bool claim_focus_ = false;
 };
 
 }
