@@ -285,3 +285,18 @@ TEST_CASE("a supporting pane scaffold puts the main pane first and reflows the s
     CHECK(s.pane_rect(sp::main).width == doctest::Approx(1000.0 - 360.0 - 24.0));
     CHECK(s.pane_rect(sp::supporting).x == doctest::Approx(1000.0 - 360.0));
 }
+
+TEST_CASE("a handle that collapses one pane stays inside the scaffold where it can be grabbed") {
+    widgets::ThreePaneScaffoldOptions o;
+    o.expansion_handle = true;
+    o.anchors = {widgets::PaneExpansionAnchor::proportion(0.0), widgets::PaneExpansionAnchor::proportion(1.0)};
+    o.initial_anchor = 1;
+    Fixture f(1000.0, o);
+    settle(*f.scaffold);
+    CHECK(f.scaffold->pane_rect(ld::list).width == doctest::Approx(1000.0));
+    CHECK_FALSE(f.scaffold->pane_shown(ld::detail));
+    const render::Rect h = *f.scaffold->handle_rect();
+    CHECK(h.x + h.width / 2.0 == doctest::Approx(1000.0 - 12.0));
+    CHECK(f.scaffold->handle(input::PointerEvent{PointerAction::down, 990.0, h.y + h.height / 2.0}).consumed);
+    CHECK(f.scaffold->expansion().dragging());
+}
