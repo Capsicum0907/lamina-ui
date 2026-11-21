@@ -32,6 +32,7 @@ struct WavyProgressTokens {
     shapes::CornerRounding star_inner_rounding;
     double min_offset_seconds;
     int flatten_segments;
+    double start_angle_degrees;
 };
 
 inline constexpr WavyProgressTokens wavy_progress_tokens{
@@ -58,6 +59,7 @@ inline constexpr WavyProgressTokens wavy_progress_tokens{
     .star_inner_rounding = {0.5f, 0.0f},
     .min_offset_seconds = 0.05,
     .flatten_segments = 12,
+    .start_angle_degrees = 270.0,
 };
 
 struct WavyProgressMotion {
@@ -106,6 +108,7 @@ struct CircularIndeterminateTokens {
     CubicBezier progress_easing;
     double turn_ms;
     double turn_every_ms;
+    double turn_degrees;
     double global_degrees;
     double base_degrees;
     CubicBezier turn_easing;
@@ -118,6 +121,7 @@ inline constexpr CircularIndeterminateTokens circular_indeterminate{
     .progress_easing = easing::standard,
     .turn_ms = 300.0,
     .turn_every_ms = 1500.0,
+    .turn_degrees = 90.0,
     .global_degrees = 1080.0,
     .base_degrees = 90.0,
     .turn_easing = easing::emphasized_decelerate,

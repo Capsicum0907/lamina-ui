@@ -35,6 +35,7 @@ struct ProgressLayout {
     double run_interval = 0.4;
     double percent = 100.0;
     double large = 144.0;
+    double handoff_inset = 64.0;
 };
 
 const ProgressLayout progress_layout;
@@ -164,7 +165,7 @@ private:
         auto& hand_circular = controls.emplace<CircularWavyProgressIndicator>(widgets::WavyProgressOptions{.accessible_name = "Handoff circular"});
         handoff_linear_.push_back(&hand_linear);
         handoff_circular_.push_back(&hand_circular);
-        rows.push_back(captioned("Handoff", items({width_limited(widgets::node(hand_linear), l.linear_width - 64.0), widgets::centered_node(hand_circular)})));
+        rows.push_back(captioned("Handoff", items({width_limited(widgets::node(hand_linear), l.linear_width - l.handoff_inset), widgets::centered_node(hand_circular)})));
         auto column = layout::column(std::move(rows));
         column->spacing(progress_layout.row_gap);
         return heading("Wavy progress indicators", column);

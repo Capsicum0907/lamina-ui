@@ -23,6 +23,8 @@ struct LoadingIndicatorTokens {
     double morph_turn_degrees;
     double determinate_turn_degrees;
     double determinate_circle_rotation_degrees;
+    double estimate_step_seconds;
+    double estimate_limit_seconds;
 };
 
 inline constexpr LoadingIndicatorTokens loading_indicator_tokens{
@@ -39,6 +41,8 @@ inline constexpr LoadingIndicatorTokens loading_indicator_tokens{
     .morph_turn_degrees = 90.0,
     .determinate_turn_degrees = -180.0,
     .determinate_circle_rotation_degrees = 360.0 / 20.0,
+    .estimate_step_seconds = 0.001,
+    .estimate_limit_seconds = 10.0,
 };
 
 inline constexpr std::array<shapes::MaterialShape, 7> loading_indicator_indeterminate_shapes{

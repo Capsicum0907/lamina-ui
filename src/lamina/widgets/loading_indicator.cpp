@@ -79,9 +79,9 @@ double spring_finish_seconds(const motion::SpringSpec& spec, double threshold) {
     const double zeta = spec.damping_ratio;
     if (zeta >= 1.0) {
         double time = 0.0;
-        const double dt = 1.0 / 1000.0;
+        const double dt = t.estimate_step_seconds;
         motion::SpringState s{0.0, 0.0};
-        while (std::abs(1.0 - s.value) >= threshold && time < 10.0) {
+        while (std::abs(1.0 - s.value) >= threshold && time < t.estimate_limit_seconds) {
             s = motion::advance(spec, s, 1.0, dt);
             time += dt;
         }

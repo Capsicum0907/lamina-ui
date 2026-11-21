@@ -97,7 +97,7 @@ double circular_indeterminate_rotation(double play_ms) {
     const double step = std::floor(ms / c.turn_every_ms);
     const double into = ms - step * c.turn_every_ms;
     const double turn = std::clamp(into / c.turn_ms, 0.0, 1.0);
-    const double extra = 90.0 * step + 90.0 * turn;
+    const double extra = c.turn_degrees * (step + turn);
     return c.global_degrees * ms / c.cycle_ms + extra + c.base_degrees;
 }
 
@@ -407,7 +407,7 @@ std::vector<render::Point> CircularWavyProgressIndicator::outline(bool active, b
         }
     }
     const double first = std::atan2(cubics.front().anchor0_y() - pivot.y, cubics.front().anchor0_x() - pivot.x);
-    const double turn = radians(270.0) - first;
+    const double turn = radians(t.start_angle_degrees) - first;
     std::vector<render::Point> pts;
     auto add = [&](bool lead) {
         std::vector<render::Point> run;
