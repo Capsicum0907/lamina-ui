@@ -77,6 +77,7 @@ public:
     render::Rect day_bounds(const calendar::Date& date) const;
     double crossfade() const { return mode_alpha_.value(); }
 
+    const IconButton& mode_toggle() const { return toggle_; }
     void add_focus_stops(FocusManager& focus);
     bool focused() const;
     void clear_focus();

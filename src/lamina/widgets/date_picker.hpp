@@ -92,6 +92,11 @@ public:
     render::Rect year_bounds(int year) const;
     render::Rect content_top_left() const;
 
+    const IconButton& mode_toggle() const { return toggle_; }
+    const IconButton& previous_button() const { return previous_button_; }
+    const IconButton& next_button() const { return next_button_; }
+    bool header_shown() const { return options_.show_header && options_.show_mode_toggle; }
+    bool navigation_shown() const { return days_shown(); }
     void add_focus_stops(FocusManager& focus);
     bool focused() const;
     void clear_focus();
