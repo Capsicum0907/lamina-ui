@@ -691,9 +691,99 @@ C `SearchBar.kt`, `tokens/SearchBarTokens.kt`, `tokens/SearchViewTokens.kt`, `in
 - Semantics: the field is named "Search" (検索) and says "Suggestions below" (検索候補は次のとおりです) while expanded; the expanded view is a `dialog` named "Search", modal when full-screen.
 - Deviations: Up on the first result goes back to the field; Tab stays inside the expanded view (back button, field, trailing button, results), as Compose's dialog and focusable popup do. A press outside the docked view collapses it. Predictive back and the scroll behavior of `AppBarWithSearch` are not implemented.
 
+### Toggle buttons and per-corner shapes
+
+C `ToggleButton.kt`, `internal/AnimatedShape.kt`, `HorizontalCenterOptically.kt` and `tokens/{Filled,Tonal,Outlined,Elevated}ButtonTokens.kt` at `6068a9492ba8`, into `lamina/tokens/button.hpp` (`toggle_button_styles`, `toggle_button_motion`) and `ButtonOptions::toggle` and `ButtonOptions::shapes` of `lamina/widgets/button.hpp`.
+
+- Colors (`ToggleButtonDefaults.colors()` and the filled tonal, outlined and elevated defaults): filled surface-container / on-surface-variant, checked primary / on-primary; tonal secondary-container / on-secondary-container, checked secondary / on-secondary; outlined transparent with the outline-variant border, checked inverse-surface / inverse-on-surface without a border; elevated surface-container-low / primary, checked primary / on-primary. Disabled: container on-surface at 10 % (outlined: outline-variant at 10 %), content on-surface-variant at 38 %. A text button cannot toggle.
+- Shapes (`ToggleButtonDefaults.shapesFor`): full at rest, the size's pressed corner while pressed, the size's square corner when checked; pressed wins over checked. The morph follows `AnimatedShapeState`: every corner goes from the start shape to the target shape with one progress on the fast spatial spring, and going back to the start shape runs the same progress backwards with its velocity negated. lamina-ui keeps each corner as dp plus a share of the shorter side, so a full corner follows the size during the morph.
+- The outlined border's width goes to 0 on the fast spatial spring when checked (`animateBorderStrokeAsState`).
+- `center_optically` shifts the content by 0.11 × (mean start corner − mean end corner), each corner clamped to half the height, and the shift to the paddings (`ShapeWithHorizontalCenterOptically`); the split button's trailing half uses it.
+- Semantics: Compose gives a toggle button `Role.Checkbox`; lamina-ui reports `toggle_button` with on or off. A `radio` toggle reports `radio_button` with `selected` and is never unchecked by a click, as the single-select samples (`Role.RadioButton`).
+- Deviations: the checked colors fade on the default effects spring where Compose switches them. A checked icon is drawn with FILL 1, standing in for the samples' switch from an outlined to a filled icon.
+
+### Button groups
+
+C `ButtonGroup.kt`, `tokens/ButtonGroupSmallTokens.kt` (`VERSION: v0_11_0`), `tokens/ConnectedButtonGroupSmallTokens.kt` (`VERSION: 14_1_0`) and the samples `ButtonGroupSamples.kt` at `6068a9492ba8`, into `lamina/tokens/button_group.hpp` and `lamina/widgets/button_group.hpp`.
+
+- Layout: 12 dp between the buttons, 2 dp when connected. Each button takes its intrinsic width, or a share of the room left by its weight.
+- Width on press (`ButtonGroupMeasurePolicy`, `EnlargeOnPressNode`): a pressed button grows into each neighbour by press × min(0.15 × its width / 2, the neighbours' compression limits); the first and the last grow by press × min(0.15 × width, the limit) into their only neighbour, and the neighbours shrink by as much, so the row keeps its width. The compression limit is the neighbour's end content padding (16 dp at the small size). The press runs on the fast spatial spring; on release it keeps going until it passes 0.75 and only then returns, so a short click still squeezes the neighbours fully. lamina-ui keeps the widths in fractional dp where Compose rounds them to pixels.
+- Overflow: when the buttons do not fit, the ones that fit before the overflow indicator stay and the rest move into a menu. The indicator is a filled icon button with `more_vert` named "More options" (その他のオプション, `m3c_button_group_more_options`) at the end of the shown buttons; a menu item clicks or toggles its button and closes the menu.
+- Connected shapes (`ButtonGroupDefaults.connected*ButtonShapes`): the leading button has full outer and small (8 dp) inner corners, the middle ones small corners, the trailing one mirrors the leading; pressed inner corners are extra-small (4 dp); a checked button is a pill. Compose's connected samples put the toggle buttons in a `FlowRow` without the width animation, and its custom-item sample puts connected shapes in a `ButtonGroup` with `animateWidth`; lamina-ui's connected group does both.
+- Selection: none (`clickableItem`, buttons), multiple (`toggleableItem`, toggle buttons), single (toggle buttons with the radio role, as the samples).
+- Deviations: a key press does not widen a button (Compose's keyboard presses do). Every button and the indicator are Tab stops, as in Compose; there are no arrow keys. The group reports a `group` node. Per-item vertical alignment and the vertical button group are not implemented. In a connected group the connected shapes also apply to clickable buttons.
+
+### Split buttons
+
+C `SplitButton.kt`, `tokens/SplitButton{XSmall,Small,Medium,Large,XLarge}Tokens.kt` (`VERSION: 18_0_18`) and the samples `SplitButtonSamples.kt` at `6068a9492ba8`, into `lamina/tokens/split_button.hpp` and `lamina/widgets/split_button.hpp`.
+
+- Sizes 32 / 40 / 56 / 96 / 136 dp, 2 dp between the halves. Inner corners extra-small / extra-small / extra-small / small / medium, widening while pressed to small / medium / medium / large-increased / large-increased (the hovered tokens are not used by `SplitButton.kt`). Leading padding 12+10 / 16+12 / 24+24 / 48+48 / 64+64 dp, trailing padding 13 / 13 / 15 / 29 / 43 dp on both sides, trailing icon 22 / 22 / 26 / 38 / 50 dp; both halves are at least 48 dp wide. The label and leading icon follow the button sizes (`ButtonDefaults.textStyleFor`, `iconSizeFor`, `iconSpacingFor`), as the samples do.
+- The shapes morph on the default effects spring. The checked trailing half becomes a circle, gets a content-colored overlay at 10 % (`TrailingButtonStateLayerAlpha`) and is centered optically.
+- The chevron (`keyboard_arrow_down`) turns half a turn when checked, on `animateFloatAsState`'s default spring (damping 1, stiffness 1500), taken from the samples.
+- Menu: as in `SplitButtonWithDropdownMenuSample`, checking the trailing half opens a menu under the whole split button, and choosing an item or dismissing the menu unchecks it. The trailing half says "Expanded" or "Collapsed" in its value, as the samples' `stateDescription`.
+- Deviations: the filled, tonal, outlined and elevated colors are the buttons' (`ButtonDefaults.*Colors`); lamina-ui's colors fade on the default effects spring.
+
+### Extended FABs
+
+C `FloatingActionButton.kt` and `tokens/ExtendedFab{Small,Medium,Large}Tokens.kt` at `6068a9492ba8`, into `lamina/tokens/fab.hpp` (`extended_fab_sizes`) and `lamina/widgets/extended_fab.hpp`.
+
+- Small 56 dp (corner large, icon 24 dp, padding 16 dp, gap 8 dp, Title M), medium 80 dp (large-increased, 28 dp, 26 dp, 12 dp, Title L), large 96 dp (extra-large, 32 dp, 28 dp, 16 dp, Headline S). The medium and large gaps are the code's 12 and 16 dp; the token files say 16 and 20 ("IconLabelSpace is incorrect").
+- Collapsing: the width goes from the expanded width to the height on the fast spatial spring and the label fades on the fast effects spring; the icon stays at the start padding.
+- Elevation and colors are the FAB's. Compose's FABs have no disabled state, and neither do lamina-ui's.
+
+### FAB menu
+
+C `FloatingActionButtonMenu.kt` and `tokens/FabMenuBaselineTokens.kt` at `6068a9492ba8` and the samples `FloatingActionButtonMenuSamples.kt`, into `lamina/tokens/fab_menu.hpp` and `lamina/widgets/fab_menu.hpp`.
+
+- Toggle FAB: the progress runs on the fast spatial spring; the size goes from 56 / 80 / 96 dp to 56 dp anchored at the top end, the corner from 16 / 20 / 28 dp to 28 dp, the container from primary-container to primary, the icon from on-primary-container to on-primary and from 24 / 28 / 36 dp to 20 dp. The icon switches at 0.5, as the sample switches Add for Close. Shadow level 3.
+- Items: 56 dp pills on primary-container, 24 dp padding, 24 dp icons, 8 dp before the Title M label, 4 dp between items and 8 dp above the button, 16 dp padding at the sides and under the button, aligned to the end.
+- Stagger: the number of shown items is an integer that follows the slow effects spring (threshold 1) and counts from the bottom, so the item nearest the button appears first and the top one leaves first. Each item's width grows from its end on the fast spatial spring and its alpha on the fast effects spring. The items have no shadow (the token says level 3, but the `Surface` sets none).
+- Keyboard: Tab or Down on the open button moves into the items, Enter chooses, Escape closes and gives the focus back to the button (the sample's `BackHandler`). Choosing an item closes the menu, as the sample does.
+- Deviations: the menu does not scroll when it is taller than its area.
+
+### Loading indicator
+
+C `LoadingIndicator.kt`, `MaterialShapes.kt` and `tokens/LoadingIndicatorTokens.kt` at `6068a9492ba8`, into `lamina/tokens/loading_indicator.hpp` and `lamina/widgets/loading_indicator.hpp`, with lamina-ui's port of graphics-shapes.
+
+- 48 dp container (full corners), 38 dp indicator: the shapes are scaled to the size × the polygons' smallest bounds-to-max-bounds ratio × 38 / 48 and centered on their control-point bounds every frame. Primary indicator; contained: on-primary-container on primary-container. The shape is clipped to the container.
+- Indeterminate: SoftBurst, Cookie9Sided, Pentagon, Pill, Sunny, Cookie4Sided, Oval and back, every polygon normalized. Each morph runs on a spring with damping 0.6 and stiffness 200 that ends when Compose's duration estimate for a 0.1 threshold has passed (about 0.30 s); a new morph starts every 650 ms. The rotation is progress × 90° plus 90° per finished morph plus a linear turn every 4666 ms.
+- Determinate: a circle turned by 18° morphs into SoftBurst as the progress goes from 0 to 1, and the shape turns back by progress × 180°.
+- `LoadingIndicatorOptions::size` scales the whole indicator, like a larger size modifier in Compose.
+
+### Wavy progress indicators
+
+C `WavyProgressIndicator.kt`, `internal/LinearWavyProgressModifiers.kt`, `internal/CircularWavyProgressModifiers.kt`, `ProgressIndicator.kt` (keyframes) and `tokens/{Linear,Circular}ProgressIndicatorTokens.kt` at `6068a9492ba8`, into `lamina/tokens/wavy_progress.hpp` and `lamina/widgets/wavy_progress.hpp`.
+
+- Linear: 240 × 10 dp by default, 4 dp indicator and track, 4 dp gap, a 4 dp stop dot at the end of the track while determinate. The wave is Compose's path of quadratic curves with the control point `height − stroke` (6 dp) off the centre line, so the crest is 3 dp; the progress takes the arc length that matches its x (the path length over its width), and the amplitude scales the path around the centre line. Wavelength 40 dp determinate, 20 dp indeterminate; the wave moves one wavelength a second.
+- Circular: 48 dp, 4 dp strokes, 4 dp gap. The track is a circle polygon and the indicator a morph from it to a star (inner radius 0.75, rounding 0.35 with smoothing 0.4, inner rounding 0.5) with max(5, round(2πr / 15 dp)) vertices, rotated so the path starts at 12 o'clock and runs clockwise, scaled to the size minus the stroke. The moving wave shifts the start along a doubled path and turns it back, so the ends stay put.
+- Amplitude: `wavy_indicator_amplitude` (none up to 10 % and from 95 %) on 500 ms tweens, standard easing up and emphasized-accelerate easing down. `ease_progress` moves the progress on Compose's 500 ms linear `ProgressAnimationSpec`.
+- Indeterminate linear: two lines on the 1750 ms keyframes (head and tail delays 0, 250, 650 and 900 ms, durations 1000, 1000, 850 and 850 ms, emphasized-accelerate easing). Indeterminate circular: the sweep and the rotation keyframes over 6000 ms plus 1080° linear and a 90° base. Compose's keyframe easings apply to the segment after each keyframe, so the sweep rises linearly to 0.87 and falls with standard easing, and the quarter turns are linear (the emphasized-decelerate easing falls on the holds); lamina-ui computes them the same way.
+- Handoff: a linear indicator that turns determinate grows its bar and stop dot in over 500 ms; a circular one goes from the indeterminate sweep and rotation to the progress and 360° over 300 to 600 ms (emphasized decelerate), longer the further it has to turn.
+- Deviations: the linear indicator does not first run its lines out at the accelerated playback speed when it turns determinate. Paths are drawn as flattened polylines (12 segments per curve) stroked with round caps. The older `CircularProgressIndicator` stays unchanged for programs that use it.
+
+### Floating toolbars
+
+C `FloatingToolbar.kt` and `tokens/FloatingToolbarTokens.kt` at `6068a9492ba8`, into `lamina/tokens/floating_toolbar.hpp` and `lamina/widgets/floating_toolbar.hpp`.
+
+- 64 dp tall (or wide), full corners, 8 dp padding, actions in 48 dp slots (`IconButton` with its minimum touch size). Standard colors surface-container / on-surface with a primary-container FAB, vibrant primary-container / on-primary-container with a tertiary-container FAB. The FAB's corner stays 16 dp, its shadow level 2 (level 3 hovered).
+- Without a FAB: the leading content expands from the start and shrinks toward the end, the trailing content the other way, on the fast spatial spring (`expandHorizontally`, `shrinkHorizontally`); no shadow.
+- With a FAB: the bar's width (height when vertical) goes from its full size to 0 on the fast spatial spring, toward the FAB, while the FAB grows from 56 to 80 dp; the shadow goes from level 1 to level 0. The FAB is at the end (horizontal) or the bottom (vertical).
+- Collapse on scroll (`floatingToolbarVerticalNestedScroll`): scrolling 40 dp toward the end collapses, 40 dp back expands; `ToolbarScrollExpansion` follows a scroll offset.
+- Semantics: a `toolbar` node whose description names the custom action ("Collapse toolbar" or "Expand toolbar", ツールバーを閉じます / ツールバーを開きます). Collapsed actions are not Tab stops.
+- Deviations: the exit-always scroll behavior and `minimumInteractiveBalancedPadding` are not implemented; the vibrant toggle-button colors are not used because the toolbar's actions do not toggle.
+
+### Flexible bottom app bar
+
+C `AppBar.kt` (`FlexibleBottomAppBar`, `BottomAppBarDefaults`, `settleAppBarBottom`) and `tokens/DockedToolbarTokens.kt` at `6068a9492ba8`, into `lamina/tokens/floating_toolbar.hpp` (`flexible_bottom_app_bar_tokens`) and `lamina/widgets/flexible_bottom_app_bar.hpp`.
+
+- 64 dp, surface-container, no shadow, 16 dp padding, actions spaced between (or packed 32 dp apart and centered, `FlexibleFixedHorizontalArrangement`).
+- Exit always: the height offset follows the scroll down to −64 dp, so the bar slides out of its bottom edge; when the scroll stops it settles on the fast spatial spring to whichever end is nearer (collapsed fraction 0.5, nothing to do below 0.01). Actions are not Tab stops while it is hidden.
+- Deviation: the fling decay before the settle is not implemented.
+
 ## Open questions
 
 - Components other than those above are not surveyed yet.
 - Not implemented from the components of the second stage: the `shapes:` chip overloads (`ChipShapes`), `SegmentedListItem` with its 2 dp gaps and per-position corners, dragged chips, cards and list items, and dragging a top app bar itself.
-- Not implemented from the components of the third stage: the connected button group (`ButtonGroup` with connected `ToggleButton`s and its press width expansion), swiping between months, Compose's vibrant time picker (`TimeScroll` and the `shapes:` overloads), and the slider forms Compose does not have (an icon in the track, the XS–XL sizes).
+- Not implemented from the components of the third stage: swiping between months, Compose's vibrant time picker (`TimeScroll` and the `shapes:` overloads), and the slider forms Compose does not have (an icon in the track, the XS–XL sizes).
 - Not implemented from the screen patterns of the fourth stage: predictive back (sheets, drawers, rail, search), the decay phase of anchored flings, nested scrolling between sheet content and the sheet, `AppBarWithSearch`, `ExpandedFullScreenContainedSearchBar` and `ExpandedDockedSearchBarWithGap`, and the M3 design site's side sheet measurements (unreadable without script).
+- Not implemented from the Expressive components of the fifth stage: the vertical button group and per-item alignment, a widening button on a key press, the exit-always floating toolbar and `minimumInteractiveBalancedPadding`, the linear wavy indicator's accelerated run-out before a handoff, a scrolling FAB menu, `Modifier.animateFloatingActionButton`, `AppBarWithSearch` and the other Expressive search bars, `AppBarRow` and `AppBarColumn` with their overflow, `CheckableDropdownMenuItem` and `SelectableDropdownMenuItem`, `ScrollField` and `Modifier.nonInteractiveScrollbar`.
