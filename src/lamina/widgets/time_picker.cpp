@@ -909,9 +909,11 @@ void TimePicker::paint_inputs(render::Canvas& canvas, const color::ColorScheme& 
         }
         const render::Path shape = render::rounded_rect_path(r, render::uniform_radii(corner));
         canvas.fill_path(shape, dim(container, e));
-        if (active) {
+        const bool selected = (i == 0) == (selection_ == TimeSelection::hour);
+        if (active || selected) {
             const color::Argb outline = valid[i] ? scheme[k.input_outline] : scheme[k.error];
-            canvas.fill_path(render::ring_path(r, corner, t.input_focus_outline), dim(outline, e), render::FillRule::even_odd);
+            canvas.fill_path(render::ring_path(r, corner, active ? t.input_focus_outline : t.input_outline), dim(outline, e),
+                             render::FillRule::even_odd);
         }
         const text::TextLine line = text::layout_line(fonts_, fields_[i].text, style);
         const double x = r.x + (r.width - line.width) / 2.0;
