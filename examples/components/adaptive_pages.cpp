@@ -158,7 +158,7 @@ public:
             ctx.fonts);
         focus_.add(*suite_);
         add_pane_focus();
-        gated_tip(*back_, [this] { return back_shown(); });
+        back_tip_ = &gated_tip(*back_, [this] { return back_shown(); });
 
         auto controls_row = layout::row({widgets::node(width_label), width_limited(widgets::node(*slider_), l.slider_width),
                                          widgets::node(*presets_), widgets::node(*layouts_), widgets::node(*class_label_)});
@@ -468,6 +468,7 @@ private:
     }
 
     void go_back() {
+        back_tip_->dismiss();
         if (list_detail_->back()) {
             ctx.report("Panes: back");
         }
@@ -526,6 +527,7 @@ private:
     widgets::Label* sender_ = nullptr;
     widgets::Label* body_ = nullptr;
     std::unique_ptr<widgets::IconButton> back_;
+    widgets::Tooltip* back_tip_ = nullptr;
     std::unique_ptr<widgets::Button> show_comments_;
     std::unique_ptr<widgets::ThreePaneScaffoldNavigator> list_navigator_;
     std::unique_ptr<widgets::ThreePaneScaffoldNavigator> supporting_navigator_;
