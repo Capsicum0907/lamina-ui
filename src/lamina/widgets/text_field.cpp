@@ -273,12 +273,26 @@ render::Rect TextField::bounds() const {
     return {origin_.x, origin_.y, width(), container_height()};
 }
 
+double TextField::padding_start() const {
+    return options_.padding_start.value_or(t.padding);
+}
+
+double TextField::padding_end() const {
+    return options_.padding_end.value_or(t.padding);
+}
+
+void TextField::set_padding(std::optional<double> start, std::optional<double> end) {
+    options_.padding_start = start;
+    options_.padding_end = end;
+    relayout();
+}
+
 double TextField::text_left() const {
-    return origin_.x + t.padding;
+    return origin_.x + padding_start();
 }
 
 double TextField::inner_width() const {
-    return width_ - 2 * t.padding;
+    return std::max(0.0, width_ - padding_start() - padding_end());
 }
 
 double TextField::content_height() const {
@@ -609,11 +623,11 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const double p = std::clamp(label_progress_.value(), 0.0, 1.0);
     const double small_scale = label_small_.style.size / label_large_.style.size;
     const double scale = 1.0 + (small_scale - 1.0) * p;
-    if (p > 0.0 && !options_.label.empty()) {
+    if (options_.outlined && p > 0.0 && !options_.label.empty()) {
         const double gap_left = text_left() - t.label_gap_padding;
         const double gap_right = gap_left + label_large_.width * scale + 2 * t.label_gap_padding;
         canvas.fill_path(notched_ring_path(r, radius, outline_width, gap_left, gap_right), outline, render::FillRule::even_odd);
-    } else {
+    } else if (options_.outlined) {
         canvas.fill_path(render::ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
     }
 

@@ -38,6 +38,9 @@ struct TextFieldOptions {
     std::size_t max_length = 0;
     std::string mask = {};
     double min_width = tokens::outlined_text_field.min_width;
+    bool outlined = true;
+    std::optional<double> padding_start = std::nullopt;
+    std::optional<double> padding_end = std::nullopt;
 };
 
 class TextField {
@@ -75,6 +78,7 @@ public:
     bool multiline() const { return options_.multiline; }
     bool accepts_tab() const { return options_.accepts_tab; }
     void set_clipboard(input::Clipboard* clipboard) { options_.clipboard = clipboard; }
+    void set_padding(std::optional<double> start, std::optional<double> end);
 
     std::string text() const;
     void set_text(std::string_view utf8);
@@ -123,6 +127,8 @@ private:
     void update_scroll();
     double text_left() const;
     double inner_width() const;
+    double padding_start() const;
+    double padding_end() const;
     double input_top() const;
     double content_height() const;
 

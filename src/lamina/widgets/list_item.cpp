@@ -408,10 +408,15 @@ void ListItem::paint(render::Canvas& canvas, const color::ColorScheme& scheme) c
     const color::Argb disabled = resolve(scheme, t.disabled_content);
     const color::Argb headline = enabled_.mix(disabled, color::mix(scheme[t.headline_color], scheme[t.selected_content], k));
     const color::Argb content = enabled_.mix(disabled, color::mix(scheme[t.content_color], scheme[t.selected_content], k));
-    const color::Argb container = color::mix(scheme[t.container], scheme[t.selected_container], k * enabled_.amount());
-    const color::Argb fill = color::state_layer(container, headline, state_layer_.value());
     const render::CornerRadii radii = render::uniform_radii(std::clamp(corner_.value(), 0.0, std::min(rect_.width, rect_.height) / 2.0));
-    canvas.fill_path(render::rounded_rect_path(rect_, radii), fill);
+    if (spec_.transparent) {
+        const render::Path shape = render::rounded_rect_path(rect_, radii);
+        canvas.fill_path(shape, color::scale_alpha(scheme[t.selected_container], k * enabled_.amount()));
+        canvas.fill_path(shape, color::with_alpha(headline, std::clamp(state_layer_.value(), 0.0, 1.0)));
+    } else {
+        const color::Argb container = color::mix(scheme[t.container], scheme[t.selected_container], k * enabled_.amount());
+        canvas.fill_path(render::rounded_rect_path(rect_, radii), color::state_layer(container, headline, state_layer_.value()));
+    }
 
     paint_slot(canvas, scheme, leading_, content);
     paint_slot(canvas, scheme, trailing_, content);

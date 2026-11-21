@@ -54,6 +54,7 @@ struct ListItemSpec {
     bool selected = false;
     bool enabled = true;
     std::string accessible_name = {};
+    bool transparent = false;
 };
 
 struct ListItemResponse {
