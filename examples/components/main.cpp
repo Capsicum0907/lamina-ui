@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <exception>
+#include <optional>
 
 #include "common/canvas.hpp"
 #include "common/options.hpp"
@@ -32,13 +33,20 @@ private:
 int main(int argc, char** argv) {
     try {
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
-        const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
+        const text::Typeface typeface = examples::take_typeface(argc, argv);
         const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
         sdl3::Window window({"lamina-ui components", examples::components::window_width_dp,
                              examples::window_height_dp(examples::components::window_height_dp, want_title_bar), want_title_bar},
                             examples::window_canvas());
         WindowHost host(window);
-        examples::components::Gallery gallery(fonts, icon_font, host);
+        auto load = [](text::Typeface t) { return sdl3::typeface_stack(t, examples::res::embedded_fonts); };
+        std::optional<examples::components::Gallery> built;
+        if (argc > 1) {
+            built.emplace(sdl3::font_stack_from_arguments(argc, argv), icon_font, host);
+        } else {
+            built.emplace(examples::components::GalleryFonts{load, typeface}, icon_font, host);
+        }
+        examples::components::Gallery& gallery = *built;
         auto update = [&](const sdl3::Frame& frame) {
             const color::Argb background = gallery.update(frame);
             window.set_text_input(gallery.caret_area());

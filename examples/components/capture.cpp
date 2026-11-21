@@ -17,6 +17,7 @@
 #include <io.h>
 #endif
 
+#include "common/options.hpp"
 #include "components/gallery.hpp"
 #include "lamina/calendar/date.hpp"
 #include "lamina/calendar/locale.hpp"
@@ -2501,10 +2502,15 @@ const Scene* find_scene(std::initializer_list<const std::map<std::string, Scene>
 }
 
 int usage() {
+    std::string keys;
+    for (const text::TypefaceSpec& t : text::typefaces) {
+        keys += (keys.empty() ? "" : "|") + std::string(t.key);
+    }
     std::fprintf(stderr,
-                 "usage:\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
+                 "usage: components_capture [%s %s] <mode> ...\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
                  "  components_capture tree <scene> <light|dark> <scale>\n"
-                 "  components_capture video <scene> <light|dark> <scale>\n");
+                 "  components_capture video <scene> <light|dark> <scale>\n",
+                 examples::typeface_option.data(), keys.c_str());
     return 2;
 }
 
@@ -2512,6 +2518,7 @@ int usage() {
 
 int main(int argc, char** argv) {
     try {
+        const text::Typeface typeface = examples::take_typeface(argc, argv);
         if (argc < 3) {
             return usage();
         }
@@ -2528,10 +2535,11 @@ int main(int argc, char** argv) {
         const std::string scene = argv[2];
         const bool dark = std::string_view(argv[3]) == "dark";
         const double scale = std::stod(argv[4]);
-        const text::FontStack fonts = sdl3::font_stack_from_arguments(1, argv);
+        auto load = [](text::Typeface t) { return sdl3::typeface_stack(t, examples::res::embedded_fonts); };
+        const text::FontStack fonts = load(typeface);
         const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
         HeadlessHost host;
-        examples::components::Gallery gallery(fonts, icon_font, host);
+        examples::components::Gallery gallery(examples::components::GalleryFonts{load, typeface}, icon_font, host);
         gallery.set_dark(dark);
 
         if (mode == "still") {

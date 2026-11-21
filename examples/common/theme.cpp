@@ -40,6 +40,14 @@ std::vector<layout::NodePtr> SeedChips::nodes() {
     return out;
 }
 
+void SeedChips::select(color::Argb seed) {
+    for (std::size_t i = 0; i < theme_seeds.size(); ++i) {
+        if (theme_seeds[i] == seed) {
+            selected_ = i;
+        }
+    }
+}
+
 std::optional<color::Argb> SeedChips::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     if (e.action != input::PointerAction::up) {

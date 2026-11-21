@@ -49,6 +49,7 @@ public:
     std::vector<layout::NodePtr> nodes();
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused) { focus_.set_focused(focused); }
+    void select(color::Argb seed);
     std::optional<color::Argb> handle(const input::PointerEvent& e);
     std::optional<color::Argb> handle(const input::KeyEvent& e);
     void step(double dt_seconds) { focus_.step(dt_seconds); }

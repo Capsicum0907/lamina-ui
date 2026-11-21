@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 #include "lamina/tokens/title_bar.hpp"
 #include "lamina_sdl3/window.hpp"
@@ -26,6 +27,21 @@ std::optional<std::string> take_option(int& argc, char** argv, std::string_view 
         }
     }
     return std::nullopt;
+}
+
+text::Typeface take_typeface(int& argc, char** argv) {
+    const std::optional<std::string> key = take_option(argc, argv, typeface_option);
+    if (!key) {
+        return text::default_typeface;
+    }
+    if (const auto typeface = text::typeface_from_key(*key)) {
+        return *typeface;
+    }
+    std::string known;
+    for (const text::TypefaceSpec& t : text::typefaces) {
+        known += (known.empty() ? "" : ", ") + std::string(t.key);
+    }
+    throw std::invalid_argument(std::string(typeface_option) + " " + *key + ": not a typeface; the typefaces are " + known);
 }
 
 int window_height_dp(int content_height_dp, bool title_bar) {

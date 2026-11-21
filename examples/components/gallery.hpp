@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -11,6 +12,7 @@
 #include "lamina/input/clipboard.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/font.hpp"
+#include "lamina/text/typeface.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina_sdl3/window.hpp"
 
@@ -30,9 +32,15 @@ public:
     virtual void close() {}
 };
 
+struct GalleryFonts {
+    std::function<text::FontStack(text::Typeface)> load;
+    text::Typeface typeface = text::default_typeface;
+};
+
 class Gallery {
 public:
     Gallery(const text::FontStack& fonts, const icons::IconFont& icon_font, GalleryHost& host);
+    Gallery(GalleryFonts fonts, const icons::IconFont& icon_font, GalleryHost& host);
     ~Gallery();
     Gallery(const Gallery&) = delete;
     Gallery& operator=(const Gallery&) = delete;
@@ -46,6 +54,7 @@ public:
     std::vector<widgets::AccessibleNode> accessible_nodes() const;
     std::optional<render::Rect> find(std::string_view name) const;
     void set_dark(bool dark);
+    void set_typeface(text::Typeface typeface);
     bool set_enabled(std::string_view name, bool enabled);
 
 private:

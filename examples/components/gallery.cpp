@@ -70,6 +70,8 @@ struct Layout {
     double page_tabs_width = 1000.0;
     double status_width = 150.0;
     double status_gap = 24.0;
+    std::string font_name_prefix = "Font, ";
+    std::string font_report_prefix = "Font: ";
     std::array<const char*, 15> page_names{"Basics", "Chips", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
                                            "Groups", "Progress", "Toolbars", "Adaptive", "Desktop"};
 };
@@ -106,6 +108,13 @@ struct Row {
     layout::NodePtr content;
 };
 
+struct GalleryState {
+    std::size_t page = 0;
+    color::SchemeOptions options = color::default_scheme_options;
+    bool enabled = true;
+    bool font_focused = false;
+};
+
 const char* checkbox_name(tokens::CheckboxState s) {
     switch (s) {
     case tokens::CheckboxState::on:
@@ -121,7 +130,7 @@ const char* checkbox_name(tokens::CheckboxState s) {
 }
 
 struct Gallery::Impl {
-    Impl(const text::FontStack& f, const icons::IconFont& i, GalleryHost& h);
+    Impl(const text::FontStack& f, const GalleryFonts* typefaces, const icons::IconFont& i, GalleryHost& h, const GalleryState& state);
 
     icons::Icon icon(Symbol s) const { return {icon_font, s}; }
     void report(std::string s) { status.set_text(std::move(s)); }
@@ -137,7 +146,9 @@ struct Gallery::Impl {
     void add_tooltip(widgets::Tooltip tooltip);
     void retheme();
     void open_menu();
+    void open_font_menu();
     void open_dialog();
+    GalleryState state() const;
     void switch_page(std::size_t next);
     void handle_title_bar(const input::PointerEvent& e);
     widgets::FocusManager& current_focus() { return page == 0 ? focus : pages[page - 1]->focus(); }
@@ -147,7 +158,9 @@ struct Gallery::Impl {
     text::FontStack fonts;
     icons::IconFont icon_font;
     GalleryHost& host;
-    color::SchemeOptions options = color::default_scheme_options;
+    std::optional<GalleryFonts> typefaces;
+    std::optional<text::Typeface> pending_typeface;
+    color::SchemeOptions options;
     ThemeFade theme;
     color::ColorScheme scheme;
     SeedChips chips;
@@ -169,6 +182,8 @@ struct Gallery::Impl {
     widgets::Button* menu_button = nullptr;
     widgets::Button* dialog_button = nullptr;
     std::unique_ptr<widgets::Menu> menu;
+    widgets::Button* font_button = nullptr;
+    std::unique_ptr<widgets::Menu> font_menu;
     widgets::WidgetSet dialog_widgets;
     widgets::FocusManager dialog_focus;
     std::unique_ptr<widgets::Dialog> dialog;
@@ -182,10 +197,13 @@ struct Gallery::Impl {
     layout::Size window{static_cast<double>(window_width_dp), static_cast<double>(window_height_dp)};
 };
 
-Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryHost& h)
+Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, const icons::IconFont& i, GalleryHost& h,
+                    const GalleryState& state)
     : fonts(f),
       icon_font(i),
       host(h),
+      typefaces(typefaces_ ? std::optional<GalleryFonts>(*typefaces_) : std::nullopt),
+      options(state.options),
       theme(color::spec_2021().build(options)),
       scheme(theme.current()),
       header({"部品", layout.header_type, layout.text, false}, f),
@@ -201,7 +219,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
                 report(s.checked() ? "Enabled: on" : "Enabled: off");
             }
         },
-        widgets::SwitchOptions{.checked = true, .checked_icon = icon(res::icons::check), .accessible_name = "Enabled"});
+        widgets::SwitchOptions{.checked = state.enabled, .checked_icon = icon(res::icons::check), .accessible_name = "Enabled"});
     focus.add(*enabled_switch);
     std::vector<widgets::TabItem> page_items;
     for (const char* name : layout.page_names) {
@@ -213,7 +231,8 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
                 switch_page(w.selected());
             }
         },
-        widgets::TabRowOptions{page_items, tokens::TabStyle::secondary, 0, widgets::TabIconPosition::top, "Pages"}, f);
+        widgets::TabRowOptions{page_items, tokens::TabStyle::secondary, state.page, widgets::TabIconPosition::top, "Pages"}, f);
+    page = state.page;
     page_tabs->set_width(layout.page_tabs_width);
     focus.add(*page_tabs);
     PageContext context{f, i, [this](std::string s) { report(std::move(s)); },
@@ -289,6 +308,24 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
     }
     overlay.add_base(controls, chrome, header_widgets);
     overlay.set_focus(focus);
+    chips.select(options.seed);
+    if (options.dark) {
+        dark_toggle->set_checked(true);
+        dark_toggle->set_icon(icon(res::icons::light_mode));
+    }
+    if (!state.enabled) {
+        controls.set_enabled(false);
+        for (auto& p : pages) {
+            p->set_enabled(false);
+        }
+    }
+    if (state.font_focused && font_button) {
+        font_button->set_focused(true);
+    }
+}
+
+GalleryState Gallery::Impl::state() const {
+    return {page, options, enabled_switch->checked(), font_button && font_button->focused()};
 }
 
 template <typename W, typename... Args>
@@ -569,6 +606,27 @@ void Gallery::Impl::build_right(std::vector<layout::NodePtr>& column) {
     focus.add(chips);
     focus.add(*dark_toggle);
     theme_controls.push_back(widgets::node(*dark_toggle));
+    if (typefaces) {
+        const text::TypefaceSpec& current = text::typeface_spec(typefaces->typeface);
+        std::vector<widgets::MenuItem> items;
+        for (const text::TypefaceSpec& t : text::typefaces) {
+            items.push_back({std::string(t.name), t.typeface == current.typeface ? std::optional<icons::Icon>(icon(res::icons::check)) : std::nullopt});
+        }
+        font_menu = std::make_unique<widgets::Menu>(widgets::MenuOptions{std::move(items), "Fonts"}, fonts);
+        font_button = &chrome.emplace_with<widgets::Button>(
+            [this](bool c) {
+                if (c) {
+                    open_font_menu();
+                }
+            },
+            widgets::ButtonOptions{.label = std::string(current.name),
+                                   .style = ButtonStyle::outlined,
+                                   .leading_icon = icon(res::icons::text_fields),
+                                   .accessible_name = layout.font_name_prefix + std::string(current.name)},
+            fonts);
+        focus.add(*font_button);
+        theme_controls.push_back(widgets::node(*font_button));
+    }
     auto chips_row = layout::row(std::move(theme_controls));
     chips_row->spacing(chips.style().gap).cross_align(layout::CrossAlign::center);
     column.push_back(captioned("Theme", chips_row));
@@ -658,6 +716,15 @@ void Gallery::Impl::open_menu() {
     });
 }
 
+void Gallery::Impl::open_font_menu() {
+    font_menu->open(font_button->bounds(), window, source);
+    overlay.push(*font_menu, [this](const widgets::MenuResponse& r) {
+        if (r.chosen && typefaces && text::typefaces[*r.chosen].typeface != typefaces->typeface) {
+            pending_typeface = text::typefaces[*r.chosen].typeface;
+        }
+    });
+}
+
 void Gallery::Impl::open_dialog() {
     dialog->open(window, source);
     overlay.push(*dialog, [this](widgets::DialogResult r) {
@@ -670,11 +737,23 @@ void Gallery::Impl::open_dialog() {
 }
 
 Gallery::Gallery(const text::FontStack& fonts, const icons::IconFont& icon_font, GalleryHost& host)
-    : impl_(std::make_unique<Impl>(fonts, icon_font, host)) {}
+    : impl_(std::make_unique<Impl>(fonts, nullptr, icon_font, host, GalleryState{})) {}
+
+Gallery::Gallery(GalleryFonts fonts, const icons::IconFont& icon_font, GalleryHost& host)
+    : impl_(std::make_unique<Impl>(fonts.load(fonts.typeface), &fonts, icon_font, host, GalleryState{})) {}
 
 Gallery::~Gallery() = default;
 
 color::Argb Gallery::update(const sdl3::Frame& frame) {
+    if (impl_->pending_typeface && impl_->typefaces) {
+        GalleryFonts next = *impl_->typefaces;
+        next.typeface = *impl_->pending_typeface;
+        const GalleryState state = impl_->state();
+        const icons::IconFont icon_font = impl_->icon_font;
+        GalleryHost& host = impl_->host;
+        impl_ = std::make_unique<Impl>(next.load(next.typeface), &next, icon_font, host, state);
+        impl_->report(impl_->layout.font_report_prefix + std::string(text::typeface_spec(next.typeface).name));
+    }
     Impl& g = *impl_;
     g.window = {frame.width_dp, frame.height_dp};
     if (g.title_bar) {
@@ -793,6 +872,9 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     g.chrome.step(dt);
     g.header_widgets.step(dt);
     g.menu->step(dt);
+    if (g.font_menu) {
+        g.font_menu->step(dt);
+    }
     g.dialog->step(dt);
     for (auto& t : g.tooltips) {
         t->step(dt);
@@ -829,6 +911,9 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     g.header_widgets.paint(canvas, s);
     g.controls.paint(canvas, s);
     g.menu->paint(canvas, s);
+    if (g.font_menu) {
+        g.font_menu->paint(canvas, s);
+    }
     g.dialog->paint(canvas, s);
     for (const auto& t : g.tooltips) {
         t->paint(canvas, s);
@@ -838,7 +923,7 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
         tooltips_moving = tooltips_moving || t->animating();
     }
     return !g.theme.settled() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
-           g.dialog->animating() || tooltips_moving || (g.title_bar && g.title_bar->animating());
+           (g.font_menu && g.font_menu->animating()) || g.dialog->animating() || tooltips_moving || (g.title_bar && g.title_bar->animating());
 }
 
 std::optional<render::Rect> Gallery::caret_area() const {
@@ -892,6 +977,11 @@ std::vector<widgets::AccessibleNode> Gallery::accessible_nodes() const {
     if (auto m = impl_->menu->accessible()) {
         nodes.push_back(std::move(*m));
     }
+    if (impl_->font_menu) {
+        if (auto m = impl_->font_menu->accessible()) {
+            nodes.push_back(std::move(*m));
+        }
+    }
     if (auto d = impl_->dialog->accessible()) {
         nodes.push_back(std::move(*d));
     }
@@ -925,6 +1015,12 @@ bool Gallery::set_enabled(std::string_view name, bool enabled) {
     }
     it->second(enabled);
     return true;
+}
+
+void Gallery::set_typeface(text::Typeface typeface) {
+    if (impl_->typefaces && impl_->typefaces->typeface != typeface) {
+        impl_->pending_typeface = typeface;
+    }
 }
 
 void Gallery::set_dark(bool dark) {
