@@ -50,7 +50,6 @@ public:
                 rows.push_back(std::move(s));
             }
             f.list = std::make_unique<widgets::ListView>(widgets::ListViewOptions{std::move(rows), false, std::string(names[i]) + " list"}, ctx.fonts);
-            focus_.add(*f.list);
         }
 
         FloatingToolbarOptions with_fab{{action(res::icons::person, "Account"), action(res::icons::edit, "Edit"), action(res::icons::favorite, "Favorite"),
@@ -86,9 +85,15 @@ public:
             ctx.fonts);
 
         for (auto& f : frames_) {
+            focus_.add(*f->list);
             for (auto& t : f->toolbars) {
                 for (widgets::FocusStop* s : t->focus_stops()) {
                     focus_.add(*s);
+                }
+                if (t->has_fab()) {
+                    FloatingToolbar* tp = t.get();
+                    tip_anchors.push_back(std::make_unique<TipAnchor>(TipAnchor{[tp] { return *tp->fab_rect(); }, [tp] { return tp->fab_focused(); }}));
+                    live_tip([tp] { return tp->accessible().children.back().name; }, *tip_anchors.back(), false);
                 }
                 for (ToolbarSlot slot : {ToolbarSlot::leading, ToolbarSlot::content, ToolbarSlot::trailing}) {
                     for (std::size_t i = 0; i < t->action_count(slot); ++i) {
@@ -111,6 +116,7 @@ public:
                 for (widgets::FocusStop* s : f->menu->focus_stops()) {
                     focus_.add(*s);
                 }
+                name_tip(f->menu->button());
             }
         }
 
