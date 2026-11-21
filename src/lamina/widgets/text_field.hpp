@@ -94,6 +94,7 @@ public:
     bool can_undo() const { return buffer_.can_undo(); }
     bool can_redo() const { return buffer_.can_redo(); }
     bool handles_history_key(const input::KeyEvent& event) const;
+    bool claims_key(const input::KeyEvent& event) const;
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);

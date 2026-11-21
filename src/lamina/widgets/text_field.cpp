@@ -429,6 +429,18 @@ bool TextField::handles_history_key(const input::KeyEvent& e) const {
     }
 }
 
+bool TextField::claims_key(const input::KeyEvent& e) const {
+    if (!focused_) {
+        return false;
+    }
+    switch (shortcut(e)) {
+    case Shortcut::none: return false;
+    case Shortcut::undo:
+    case Shortcut::redo: return handles_history_key(e);
+    default: return true;
+    }
+}
+
 void TextField::copy_selection() const {
     if (options_.clipboard && buffer_.has_selection()) {
         options_.clipboard->set_text(selected_text());

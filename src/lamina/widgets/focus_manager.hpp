@@ -21,6 +21,11 @@ concept TextInput = Focusable<W> && requires(const W& w) {
 };
 
 template <typename W>
+concept KeyClaiming = Focusable<W> && requires(const W& w, const input::KeyEvent& e) {
+    { w.claims_key(e) } -> std::convertible_to<bool>;
+};
+
+template <typename W>
 concept TabAccepting = Focusable<W> && requires(const W& w) {
     { w.accepts_tab() } -> std::convertible_to<bool>;
 };
@@ -65,6 +70,7 @@ public:
 
     std::optional<render::Rect> caret_area() const;
     std::optional<double> next_wake_seconds() const;
+    bool claims_key(const input::KeyEvent& e) const;
 
 private:
     struct Member {
@@ -77,6 +83,7 @@ private:
         virtual std::optional<render::Rect> caret_area() const = 0;
         virtual std::optional<double> next_wake_seconds() const = 0;
         virtual std::optional<render::Rect> bounds() const = 0;
+        virtual bool claims_key(const input::KeyEvent&) const { return false; }
         virtual bool advance_within(FocusDirection) { return false; }
         virtual void enter(FocusDirection) { set_focused(true); }
     };
@@ -100,6 +107,7 @@ private:
         std::optional<render::Rect> caret_area() const override { return group.caret_area(); }
         std::optional<double> next_wake_seconds() const override { return group.next_wake_seconds(); }
         std::optional<render::Rect> bounds() const override { return group.focused_bounds(); }
+        bool claims_key(const input::KeyEvent& e) const override { return group.claims_key(e); }
         bool advance_within(FocusDirection direction) override { return group.advance(direction); }
         void enter(FocusDirection direction) override {
             group.clear_focus();
@@ -149,6 +157,13 @@ private:
                 return widget.bounds();
             } else {
                 return std::nullopt;
+            }
+        }
+        bool claims_key(const input::KeyEvent& e) const override {
+            if constexpr (KeyClaiming<W>) {
+                return widget.claims_key(e);
+            } else {
+                return false;
             }
         }
         W& widget;

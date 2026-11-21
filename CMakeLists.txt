@@ -109,6 +109,7 @@ add_library(lamina STATIC
     src/lamina/widgets/search_bar.cpp
     src/lamina/widgets/segmented_button.cpp
     src/lamina/widgets/range_slider.cpp
+    src/lamina/widgets/shortcuts.cpp
     src/lamina/widgets/side_sheet.cpp
     src/lamina/widgets/slider.cpp
     src/lamina/widgets/slider_track.cpp
@@ -331,6 +332,7 @@ if(LAMINA_BUILD_TESTS)
         tests/search_bar_test.cpp
         tests/segmented_button_test.cpp
         tests/shapes_test.cpp
+        tests/shortcuts_test.cpp
         tests/side_sheet_test.cpp
         tests/slider_test.cpp
         tests/snackbar_test.cpp

@@ -70,6 +70,7 @@ public:
     void set_density(tokens::Density density);
 
     bool focused() const { return editor_.focused(); }
+    bool claims_key(const input::KeyEvent& event) const { return editor_.claims_key(event); }
     void set_focused(bool focused);
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);

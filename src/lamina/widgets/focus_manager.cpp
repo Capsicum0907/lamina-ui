@@ -111,6 +111,11 @@ std::optional<double> FocusManager::next_wake_seconds() const {
     return m ? m->next_wake_seconds() : std::nullopt;
 }
 
+bool FocusManager::claims_key(const input::KeyEvent& e) const {
+    const Member* m = focused_member();
+    return m && m->claims_key(e);
+}
+
 void FocusManager::remove_id(const void* id) {
     std::erase_if(entries_, [id](const auto& m) { return m->id() == id; });
 }
