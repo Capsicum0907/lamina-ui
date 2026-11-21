@@ -17,6 +17,9 @@ const PatternStrings& english_us_patterns() {
         .navigation_rail_pane_title = "Navigation rail",
         .search = "Search",
         .suggestions_below = "Suggestions below",
+        .more_options = "More options",
+        .expand_toolbar = "Expand toolbar",
+        .collapse_toolbar = "Collapse toolbar",
     };
     return strings;
 }
@@ -46,6 +49,9 @@ const PatternStrings& japanese_patterns() {
         .navigation_rail_pane_title = "ナビゲーション レール",
         .search = "検索",
         .suggestions_below = "検索候補は次のとおりです",
+        .more_options = "その他のオプション",
+        .expand_toolbar = "ツールバーを開きます",
+        .collapse_toolbar = "ツールバーを閉じます",
     };
     return strings;
 }

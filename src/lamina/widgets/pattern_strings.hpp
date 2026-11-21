@@ -18,6 +18,9 @@ struct PatternStrings {
     std::string navigation_rail_pane_title;
     std::string search;
     std::string suggestions_below;
+    std::string more_options;
+    std::string expand_toolbar;
+    std::string collapse_toolbar;
 };
 
 const PatternStrings& english_us_patterns();

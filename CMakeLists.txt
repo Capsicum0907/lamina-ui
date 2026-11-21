@@ -65,6 +65,7 @@ add_library(lamina STATIC
     src/lamina/widgets/badge.cpp
     src/lamina/widgets/bottom_sheet.cpp
     src/lamina/widgets/button.cpp
+    src/lamina/widgets/button_group.cpp
     src/lamina/widgets/calendar_grid.cpp
     src/lamina/widgets/card.cpp
     src/lamina/widgets/checkbox.cpp
@@ -112,7 +113,7 @@ add_library(lamina STATIC
 )
 add_library(lamina::lamina ALIAS lamina)
 set_property(GLOBAL PROPERTY LAMINA_BUILTIN_ICONS close check edit date_range arrow_drop_down arrow_drop_up keyboard_arrow_left
-    keyboard_arrow_right calendar_today keyboard schedule)
+    keyboard_arrow_right calendar_today keyboard schedule more_vert keyboard_arrow_down)
 get_property(lamina_builtin_icons GLOBAL PROPERTY LAMINA_BUILTIN_ICONS)
 lamina_icon_codepoints(lamina_builtin_codes lamina ${lamina_builtin_icons})
 lamina_write_resource_header("${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamina/include/lamina/builtin_resources.hpp" lamina::builtin
@@ -249,6 +250,7 @@ if(LAMINA_BUILD_TESTS)
         tests/badge_test.cpp
         tests/bottom_sheet_test.cpp
         tests/button_test.cpp
+        tests/button_group_test.cpp
         tests/calculator_engine_test.cpp
         tests/calculator_layout_test.cpp
         tests/cancel_interaction_test.cpp
