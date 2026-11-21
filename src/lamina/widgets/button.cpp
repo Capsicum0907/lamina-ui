@@ -65,12 +65,12 @@ double Button::content_width() const {
     }
     const auto& size = tokens::button_size(options_.size);
     const double gap = options_.label.empty() ? 0.0 : size.icon_label_space * label_scale_;
-    return size.icon_size * icon_scale_ + gap + label_.width * label_scale_;
+    return icon_size() * icon_scale_ + gap + label_.width * label_scale_;
 }
 
 double Button::intrinsic_width() const {
-    const auto& size = tokens::button_size(options_.size);
-    return std::max(tokens::button_min_width, size.leading_space + content_width() + size.trailing_space);
+    const ButtonPadding pad = padding();
+    return std::max(options_.min_width.value_or(tokens::button_min_width), pad.leading + content_width() + pad.trailing);
 }
 
 void Button::set_label(std::string label) {
@@ -135,6 +135,15 @@ void Button::set_shapes(ButtonShapes shapes) {
     corners_->animate_to(target_corners());
 }
 
+ButtonPadding Button::padding() const {
+    const auto& size = tokens::button_size(options_.size);
+    return options_.padding.value_or(ButtonPadding{size.leading_space, size.trailing_space});
+}
+
+double Button::icon_size() const {
+    return options_.icon_size.value_or(tokens::button_size(options_.size).icon_size);
+}
+
 render::CornerRadii Button::corner_radii() const {
     if (corners_) {
         return corners_->radii(width_, height());
@@ -146,8 +155,8 @@ double Button::content_offset() const {
     if (!options_.center_optically || !corners_) {
         return 0.0;
     }
-    const auto& size = tokens::button_size(options_.size);
-    return std::clamp(corners_->optical_offset(width_, height()), -size.leading_space, size.trailing_space);
+    const ButtonPadding pad = padding();
+    return std::clamp(corners_->optical_offset(width_, height()), -pad.leading, pad.trailing);
 }
 
 AccessibleNode Button::accessible() const {
@@ -330,7 +339,7 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     }
     double x = r.x + (r.width - content_width()) / 2.0 + content_offset();
     if (options_.leading_icon) {
-        const double icon_size = size.icon_size * icon_scale_;
+        const double icon_size = this->icon_size() * icon_scale_;
         const double y = r.y + (r.height - icon_size) / 2.0;
         const double fade = std::clamp(icon_fade_.value(), 0.0, 1.0);
         const bool rotated = icon_rotation_ != 0.0;

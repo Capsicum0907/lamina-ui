@@ -39,6 +39,11 @@ struct ButtonToggle {
     bool fill_checked_icon = true;
 };
 
+struct ButtonPadding {
+    double leading;
+    double trailing;
+};
+
 ButtonShapes toggle_button_shapes(tokens::ButtonSize size);
 
 struct ButtonOptions {
@@ -54,6 +59,9 @@ struct ButtonOptions {
     std::optional<ButtonToggle> toggle = std::nullopt;
     std::optional<ButtonShapes> shapes = std::nullopt;
     bool center_optically = false;
+    std::optional<ButtonPadding> padding = std::nullopt;
+    std::optional<double> min_width = std::nullopt;
+    std::optional<double> icon_size = std::nullopt;
 };
 
 class Button {
@@ -72,6 +80,8 @@ public:
     double intrinsic_width() const;
     render::CornerRadii corner_radii() const;
     double content_offset() const;
+    ButtonPadding padding() const;
+    double icon_size() const;
     void set_icon_rotation(double radians) { icon_rotation_ = radians; }
     void set_shapes(ButtonShapes shapes);
 
