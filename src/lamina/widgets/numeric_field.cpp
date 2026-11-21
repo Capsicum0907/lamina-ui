@@ -15,7 +15,6 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::NumericFieldTokens& t = tokens::numeric_field_tokens;
-constexpr tokens::Density editor_density{-5};
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
@@ -57,7 +56,7 @@ NumericField::NumericField(NumericFieldOptions options, const text::FontStack& f
                                .outlined = false,
                                .padding_start = 0.0,
                                .padding_end = 0.0,
-                               .density = editor_density},
+                               .density = t.editor_density},
               fonts_),
       value_(0.0),
       enabled_(options_.enabled),

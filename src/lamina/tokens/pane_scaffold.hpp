@@ -19,7 +19,7 @@ struct PaneScaffoldTokens {
     double anchoring_velocity_threshold;
     double handle_touch_target;
     double keyboard_step;
-    color::Role container;
+    double settle_distance;
 };
 
 inline constexpr PaneScaffoldTokens pane_scaffold_tokens{
@@ -34,7 +34,7 @@ inline constexpr PaneScaffoldTokens pane_scaffold_tokens{
     .anchoring_velocity_threshold = 200.0,
     .handle_touch_target = 48.0,
     .keyboard_step = 16.0,
-    .container = color::Role::surface,
+    .settle_distance = 0.5,
 };
 
 }

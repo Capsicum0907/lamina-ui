@@ -31,6 +31,7 @@ const PatternStrings& english_us_patterns() {
         .proportion_anchor = "%d percent",
         .start_offset_anchor = "%d DPs from start",
         .end_offset_anchor = "%d DPs from end",
+        .pane_divider = "Pane divider",
     };
     return strings;
 }
@@ -72,6 +73,7 @@ const PatternStrings& japanese_patterns() {
         .proportion_anchor = "%d パーセント",
         .start_offset_anchor = "開始地点から %d DP",
         .end_offset_anchor = "終了地点から %d DP",
+        .pane_divider = "ペインの仕切り",
     };
     return strings;
 }

@@ -31,6 +31,7 @@ struct NumericFieldTokens {
     StateColor disabled_outline;
     double scrub_distance;
     double scrub_slop;
+    Density editor_density;
     double state_layer;
     motion::SpringSpec color_spring;
 };
@@ -57,6 +58,7 @@ inline constexpr NumericFieldTokens numeric_field_tokens{
     .disabled_outline = {color::Role::on_surface, 0.12},
     .scrub_distance = 4.0,
     .scrub_slop = 3.0,
+    .editor_density = {-5},
     .state_layer = 0.08,
     .color_spring = motion_scheme.default_effects(),
 };

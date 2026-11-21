@@ -31,6 +31,7 @@ struct PatternStrings {
     std::string proportion_anchor;
     std::string start_offset_anchor;
     std::string end_offset_anchor;
+    std::string pane_divider;
 };
 
 std::string format_pattern(std::string_view pattern, std::string_view value);

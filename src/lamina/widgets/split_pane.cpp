@@ -21,6 +21,9 @@ SplitPane::SplitPane(SplitPaneOptions options)
         first_ = *options_.first_size;
         sized_ = true;
     }
+    if (options_.accessible_name.empty()) {
+        options_.accessible_name = options_.strings->pane_divider;
+    }
 }
 
 layout::Size SplitPane::measure(const layout::Constraints& c) {

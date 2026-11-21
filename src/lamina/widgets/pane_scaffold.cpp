@@ -17,14 +17,13 @@ constexpr const tokens::PaneScaffoldTokens& t = tokens::pane_scaffold_tokens;
 constexpr input::PointerEvent left_event{input::PointerAction::leave, 0.0, 0.0};
 constexpr input::PointerEvent pressed_elsewhere{input::PointerAction::down, -std::numeric_limits<double>::infinity(),
                                                 -std::numeric_limits<double>::infinity()};
-constexpr double settle_distance = 0.5;
 
 double spring_seconds(const motion::SpringSpec& spec, double distance) {
     const double rate = spec.damping_ratio * std::sqrt(spec.stiffness);
-    if (rate <= 0.0 || distance <= settle_distance) {
+    if (rate <= 0.0 || distance <= t.settle_distance) {
         return 0.0;
     }
-    return std::log(distance / settle_distance) / rate;
+    return std::log(distance / t.settle_distance) / rate;
 }
 
 enum class Motion { none, bounds, enter_left, enter_right, enter_left_delayed, enter_right_delayed, enter_expand, exit_left, exit_right, exit_shrink };

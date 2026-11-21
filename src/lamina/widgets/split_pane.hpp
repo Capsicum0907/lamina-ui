@@ -14,6 +14,7 @@
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
+#include "lamina/widgets/pattern_strings.hpp"
 
 namespace lamina::widgets {
 
@@ -25,8 +26,9 @@ struct SplitPaneOptions {
     double second_min = 0.0;
     std::optional<double> first_size = std::nullopt;
     double first_fraction = 0.5;
-    std::string accessible_name = "Pane divider";
+    std::string accessible_name = {};
     bool enabled = true;
+    const PatternStrings* strings = &english_us_patterns();
 };
 
 class SplitPane {

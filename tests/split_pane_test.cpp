@@ -136,6 +136,11 @@ TEST_CASE("nested split panes each keep their own divider") {
     CHECK(*inner.cursor() == input::Cursor::resize_vertical);
 }
 
+TEST_CASE("a split pane without a name takes the translated pane divider name") {
+    CHECK(SplitPane({}).accessible().name == widgets::english_us_patterns().pane_divider);
+    CHECK(SplitPane({.strings = &widgets::japanese_patterns()}).accessible().name == "ペインの仕切り");
+}
+
 TEST_CASE("a disabled split pane ignores the pointer and the keys") {
     SplitPane s({.first_size = 300.0, .enabled = false});
     place(s, {0.0, 0.0, 801.0, 400.0});
