@@ -30,6 +30,20 @@ struct BasePageLayout {
 
 inline const BasePageLayout base_page_layout;
 
+struct TipAnchor {
+    std::function<render::Rect()> rect;
+    std::function<bool()> has_focus;
+    render::Rect bounds() const { return rect(); }
+    bool focused() const { return has_focus(); }
+    void set_focused(bool) {}
+};
+
+struct LiveTip {
+    widgets::Tooltip* tip;
+    std::function<std::string()> text;
+    std::string shown;
+};
+
 inline layout::NodePtr width_limited(layout::NodePtr node, double width) {
     return std::make_shared<layout::Leaf>(
         [node, width](const layout::Constraints& c) {
@@ -81,9 +95,20 @@ public:
         for (auto& t : tooltips) {
             t->step(dt);
         }
+        for (auto& t : dialog_tips) {
+            t->step(dt);
+        }
+        for (LiveTip& l : live_tips) {
+            std::string text = l.text();
+            if (text != l.shown) {
+                l.tip->set_text(text);
+                l.shown = std::move(text);
+            }
+        }
     }
     bool animating() const override {
-        return controls.animating() || std::any_of(tooltips.begin(), tooltips.end(), [](const auto& t) { return t->animating(); });
+        return controls.animating() || std::any_of(tooltips.begin(), tooltips.end(), [](const auto& t) { return t->animating(); }) ||
+               std::any_of(dialog_tips.begin(), dialog_tips.end(), [](const auto& t) { return t->animating(); });
     }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override {
         for (const auto& c : captions) {
@@ -119,9 +144,17 @@ public:
         for (auto& t : tooltips) {
             t->dismiss();
         }
+        for (auto& t : dialog_tips) {
+            t->dismiss();
+        }
     }
     std::optional<double> next_wake_seconds() const override {
         std::optional<double> wake = focus_.next_wake_seconds();
+        for (const auto& t : dialog_tips) {
+            if (const auto w = t->next_wake_seconds()) {
+                wake = wake ? std::min(*wake, *w) : *w;
+            }
+        }
         for (const auto& t : tooltips) {
             if (const auto w = t->next_wake_seconds()) {
                 wake = wake ? std::min(*wake, *w) : *w;
@@ -131,6 +164,9 @@ public:
     }
     void set_window(layout::Size window) override {
         for (auto& t : tooltips) {
+            t->set_window(window);
+        }
+        for (auto& t : dialog_tips) {
             t->set_window(window);
         }
     }
@@ -162,6 +198,43 @@ protected:
     }
 
     template <typename W>
+    widgets::Tooltip& gated_tip(const W& w, std::function<bool()> shown, bool in_dialog = false) {
+        tip_anchors.push_back(std::make_unique<TipAnchor>(
+            TipAnchor{[&w, shown] { return shown() ? w.bounds() : render::Rect{0.0, 0.0, 0.0, 0.0}; },
+                      [&w, shown] { return shown() && w.focused(); }}));
+        return live_tip([&w] { return w.accessible().name; }, *tip_anchors.back(), in_dialog);
+    }
+
+    widgets::Tooltip& live_tip(std::function<std::string()> text, const TipAnchor& anchor, bool in_dialog) {
+        auto& list = in_dialog ? dialog_tips : tooltips;
+        std::string initial = text();
+        list.push_back(std::make_unique<widgets::Tooltip>(widgets::TooltipOptions{initial}, ctx.fonts));
+        list.back()->anchor_to(anchor);
+        live_tips.push_back({list.back().get(), std::move(text), std::move(initial)});
+        return *list.back();
+    }
+
+    bool handle_dialog_tips(const input::PointerEvent& e) {
+        bool consumed = false;
+        for (auto& t : dialog_tips) {
+            consumed = t->handle(e).consumed || consumed;
+        }
+        return consumed;
+    }
+    bool handle_dialog_tips(const input::KeyEvent& e) {
+        bool consumed = false;
+        for (auto& t : dialog_tips) {
+            consumed = t->handle(e).consumed || consumed;
+        }
+        return consumed;
+    }
+    void paint_dialog_tips(render::Canvas& canvas, const color::ColorScheme& scheme) const {
+        for (const auto& t : dialog_tips) {
+            t->paint(canvas, scheme);
+        }
+    }
+
+    template <typename W>
     void name_tip(const W& w) {
         tooltips.push_back(std::make_unique<widgets::Tooltip>(widgets::name_tooltip(w, ctx.fonts)));
     }
@@ -176,6 +249,9 @@ protected:
     widgets::FocusManager focus_;
     std::vector<std::unique_ptr<widgets::Label>> captions;
     std::vector<std::unique_ptr<widgets::Tooltip>> tooltips;
+    std::vector<std::unique_ptr<widgets::Tooltip>> dialog_tips;
+    std::vector<std::unique_ptr<TipAnchor>> tip_anchors;
+    std::vector<LiveTip> live_tips;
     std::vector<std::unique_ptr<widgets::WidgetSet>> contents;
     std::map<std::string, std::function<void(bool)>, std::less<>> enablers;
     layout::NodePtr root;

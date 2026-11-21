@@ -550,6 +550,27 @@ const std::map<std::string, Scene>& stills() {
              d.click();
              d.move_to({720.0, 845.0}, 0.1);
          }},
+        {"inputs_tooltip",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Inputs");
+             d.move_to("Italic", 0.3);
+             d.wait(0.6);
+         }},
+        {"dates_tooltip",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Dates");
+             d.move_to("Switch to text input mode", 0.3);
+             d.wait(0.6);
+         }},
+        {"times_tooltip",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Times");
+             d.move_to("Time picker dialog", 0.3);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Switch to text input mode", 0.3);
+             d.wait(0.6);
+         }},
         {"inputs_disabled",
          [](Driver& d, examples::components::Gallery&) {
              show_page(d, "Inputs");

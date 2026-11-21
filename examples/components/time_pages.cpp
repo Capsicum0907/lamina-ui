@@ -100,6 +100,7 @@ public:
             ctx.fonts);
         focus_.add(*open_);
 
+        gated_tip(*dialog_->leading(), [this] { return dialog_->is_open(); }, true);
         auto right = layout::column({heading("Horizontal", widgets::node(wide)), heading("Input", widgets::node(typed)),
                                      heading("Dialog", widgets::node(*open_))});
         right->spacing(l.row_gap * 2.0);
@@ -115,6 +116,7 @@ public:
     bool handle(const input::PointerEvent& e) override {
         source_ = input::InputSource::pointer;
         if (dialog_->is_open()) {
+            handle_dialog_tips(e);
             finish(dialog_->handle(e));
             return true;
         }
@@ -123,6 +125,7 @@ public:
     bool handle(const input::KeyEvent& e) override {
         source_ = input::InputSource::keyboard;
         if (dialog_->is_open()) {
+            handle_dialog_tips(e);
             finish(dialog_->handle(e));
             return true;
         }
@@ -143,6 +146,7 @@ public:
     void paint_overlays(render::Canvas& canvas, const color::ColorScheme& scheme) const override {
         BasePage::paint_overlays(canvas, scheme);
         dialog_->paint(canvas, scheme);
+        paint_dialog_tips(canvas, scheme);
     }
     std::vector<widgets::AccessibleNode> accessible_nodes() const override {
         std::vector<widgets::AccessibleNode> nodes = BasePage::accessible_nodes();

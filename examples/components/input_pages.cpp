@@ -73,6 +73,7 @@ private:
         focus_.add(r);
         enabler(caption, r);
         rows.push_back(captioned(caption, widgets::node(r)));
+        last_segmented_ = &r;
         return r;
     }
 
@@ -92,6 +93,12 @@ private:
                     {"", icon(res::icons::format_underlined), false, true, "Underline"}},
                    SegmentSelection::multiple,
                    "Text style"});
+        auto& styles = *last_segmented_;
+        for (std::size_t i = 0; i < styles.size(); ++i) {
+            tip_anchors.push_back(std::make_unique<TipAnchor>(TipAnchor{[&styles, i] { return styles.segment_bounds(i); },
+                                                                        [&styles, i] { return styles.focused_segment() == i; }}));
+            live_tip([&styles, i] { return styles.segment_name(i); }, *tip_anchors.back(), false);
+        }
         segmented(rows, "Disabled item",
                   {{{"Songs", std::nullopt, true}, {"Albums"}, {"Podcasts", std::nullopt, false, false}}, SegmentSelection::single, "Library"});
         auto& off = segmented(rows, "Disabled", {{{"Low"}, {"Medium", std::nullopt, true}, {"High"}}, SegmentSelection::single, "Quality"});
@@ -168,6 +175,8 @@ private:
         column->spacing(base_page_layout.heading_gap);
         return heading("Sliders", column);
     }
+
+    widgets::SegmentedButtonRow* last_segmented_ = nullptr;
 };
 
 }

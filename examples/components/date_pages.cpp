@@ -122,6 +122,18 @@ public:
             ctx.fonts);
         focus_.add(*open_range_);
 
+        gated_tip(inline_->mode_toggle(), [this] { return inline_->header_shown(); });
+        gated_tip(inline_->previous_button(), [this] { return inline_->navigation_shown(); });
+        gated_tip(inline_->next_button(), [this] { return inline_->navigation_shown(); });
+        gated_tip(range_->mode_toggle(), [] { return true; });
+        gated_tip(docked_->open_button(), [] { return true; });
+        gated_tip(docked_->picker().previous_button(), [this] { return docked_->is_open() && docked_->picker().navigation_shown(); });
+        gated_tip(docked_->picker().next_button(), [this] { return docked_->is_open() && docked_->picker().navigation_shown(); });
+        gated_tip(dialog_picker_->mode_toggle(), [this] { return dialog_->is_open(); }, true);
+        gated_tip(dialog_picker_->previous_button(), [this] { return dialog_->is_open() && dialog_picker_->navigation_shown(); }, true);
+        gated_tip(dialog_picker_->next_button(), [this] { return dialog_->is_open() && dialog_picker_->navigation_shown(); }, true);
+        gated_tip(dialog_range_->mode_toggle(), [this] { return range_dialog_->is_open(); }, true);
+
         auto left = layout::column({widgets::node(*inline_)});
         auto middle = layout::column({widgets::node(*range_)});
         auto buttons = layout::column({widgets::node(*open_date_), widgets::node(*open_range_)});
@@ -138,6 +150,7 @@ public:
     bool handle(const input::PointerEvent& e) override {
         source_ = input::InputSource::pointer;
         if (auto* d = open_dialog()) {
+            handle_dialog_tips(e);
             finish(*d, d->handle(e));
             return true;
         }
@@ -146,6 +159,7 @@ public:
     bool handle(const input::KeyEvent& e) override {
         source_ = input::InputSource::keyboard;
         if (auto* d = open_dialog()) {
+            handle_dialog_tips(e);
             finish(*d, d->handle(e));
             return true;
         }
@@ -175,6 +189,7 @@ public:
         BasePage::paint_overlays(canvas, scheme);
         dialog_->paint(canvas, scheme);
         range_dialog_->paint(canvas, scheme);
+        paint_dialog_tips(canvas, scheme);
     }
     std::vector<widgets::AccessibleNode> accessible_nodes() const override {
         std::vector<widgets::AccessibleNode> nodes = BasePage::accessible_nodes();
