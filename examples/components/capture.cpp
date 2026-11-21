@@ -418,6 +418,57 @@ const std::map<std::string, Scene>& stills() {
              d.key(Key::down);
              d.wait(0.4);
          }},
+        {"times", [](Driver& d, examples::components::Gallery&) { show_page(d, "Times"); }},
+        {"times_24h",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Times");
+             d.move_to("24-hour", 0.3);
+             d.click();
+             d.move_to({1100.0, 820.0}, 0.2);
+         }},
+        {"times_dialog",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Times");
+             d.move_to("Time picker dialog", 0.3);
+             d.click();
+             d.wait(0.6);
+         }},
+        {"times_input_dialog",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Times");
+             d.move_to("Time picker dialog", 0.3);
+             d.click();
+             d.wait(0.6);
+             d.move_to("Switch to text input mode", 0.3);
+             d.click();
+             d.wait(0.4);
+         }},
+        {"times_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Times");
+             d.set_cursor(false);
+             tab_to(d, g, "Clock");
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.key(Key::right);
+             d.wait(0.4);
+         }},
+        {"times_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Times");
+             d.move_to("Enabled", 0.1);
+             d.click();
+             d.move_to({720.0, 845.0}, 0.1);
+         }},
+        {"dates_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Dates");
+             d.move_to("Enabled", 0.1);
+             d.click();
+             d.move_to({720.0, 845.0}, 0.1);
+         }},
         {"inputs_disabled",
          [](Driver& d, examples::components::Gallery&) {
              show_page(d, "Inputs");
