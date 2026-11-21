@@ -13,8 +13,10 @@ The values lamina-ui takes from Material 3 Expressive, read from Google's open-s
 | M | [material-components/material-components-android](https://github.com/material-components/material-components-android) — `lib/java/com/google/android/material/motion/res/values/tokens.xml` | `6061a69915d0` | Apache-2.0 |
 | W | [material-components/material-web](https://github.com/material-components/material-web) — `tokens/versions/latest/sass/` | `c6e9a66360b1` | Apache-2.0 |
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
+| A | androidx/androidx — `compose/material3/adaptive/` (adaptive, adaptive-layout, adaptive-navigation), `compose/material3/material3-adaptive-navigation-suite/` and `window/window-core/` | `6068a9492ba8` | Apache-2.0 |
+| D | [material-components/material-components-web](https://github.com/material-components/material-components-web) — `packages/mdc-density/` and the components' `$density-config` | `6ceadb81df50` | MIT |
 
-Reusing these values requires keeping the Apache-2.0 notice and attribution.
+Reusing these values requires keeping the Apache-2.0 notice and attribution (the MIT notice for D).
 
 ## Motion
 
@@ -781,6 +783,79 @@ C `AppBar.kt` (`FlexibleBottomAppBar`, `BottomAppBarDefaults`, `settleAppBarBott
 - Exit always: the height offset follows the scroll down to −64 dp, so the bar slides out of its bottom edge; when the scroll stops it settles on the fast spatial spring to whichever end is nearer (collapsed fraction 0.5, nothing to do below 0.01). Actions are not Tab stops while it is hidden.
 - Deviation: the fling decay before the settle is not implemented.
 
+### Density
+
+Read on 2026-11-21. The material-web commit named for density (`9d2f79851cae`) has no density scale: its only density setting is the `touch-target` attribute (`wrapper` or `none`). Compose has none either, only `minimumInteractiveComponentSize` (48 dp, `LocalMinimumInteractiveComponentSize`). The scale comes from MDC Web (material-components-web, MIT) at `6ceadb81df50`, `packages/mdc-density/_density.scss`: each step adds `scale × 4 px` to a component's default height, a component lists its minimum and maximum (the default), and a non-zero scale resets the 48 px touch target. Values in `lamina/tokens/density.hpp` (`density_tokens`), read by each widget's `density` option and `set_density`; `WidgetSet::set_density` passes one to every member that has it (`Densifiable`), nested sets included.
+
+| Component | Default | Minimum | Steps | Source of the minimum |
+|---|---|---|---|---|
+| Button, extra small / small / medium | 32 / 40 / 56 | 24 / 28 / 44 | −2 / −3 / −3 | MDC button (36 → 24) for small, lamina-ui for the others |
+| Icon button, extra small / small / medium (width shrinks too, not below the icon) | 32 / 40 / 56 | 24 / 28 / 44 | −2 / −3 / −3 | MDC icon button (48 → 28), lamina-ui |
+| Outlined text field (the multi-line padding shrinks by half a step on each side) | 56 | 36 | −5 | MDC text field |
+| List item, one / two / three lines (the 10 dp top and bottom padding shrinks too) | 56 / 72 / 88 | 40 / 56 / 56 | −4 / −4 / −8 | MDC list (`tall` configurations) |
+| Chip | 32 | 24 | −2 | MDC chips |
+| Tab, text or icon beside / icon above | 48 / 72 | 30 / 56 | −4 / −4 | MDC tab bar |
+| Segmented button | 40 | 28 | −3 | lamina-ui |
+| Small and center-aligned top app bar, and the collapsed row of the others (their expanded height drops by the same amount) | 64 | 48 | −4 | MDC dense top app bar (48 px) |
+| Navigation bar (the 6 dp item padding shrinks) | 64 | 52 | −3 | lamina-ui |
+| Wide navigation rail item, collapsed / expanded | 64 / 56 | 52 / 40 | −3 / −4 | lamina-ui |
+| Navigation drawer item | 56 | 40 | −4 | lamina-ui |
+| Menu item | 48 | 32 | −4 | lamina-ui |
+
+- Large and extra-large buttons and icon buttons do not take density: removing 4 dp steps from 96 or 136 dp does not change how much fits.
+- Deviations: MDC stops compilation for a scale below a component's minimum; lamina-ui clamps to the minimum, because one scale is set across many components. Positive scales clamp to the default. Segmented buttons, navigation items and menus have no density in MDC; their minimums are lamina-ui's own. MDC's data table rows (52 → 36) have no counterpart, since lamina-ui has no table.
+- Touch target: at density 0 the controls keep their 48 dp hit area (`tokens::minimum_target`); at any negative density the hit area is the control's own bounds, for touch and pen too, as MDC resets its touch target. A 48 dp area around controls packed closer than 48 dp would overlap its neighbors' areas.
+- Checkboxes, radio buttons and switches do not take density yet.
+
+### Window size classes
+
+Read on 2026-11-21 from androidx at `6068a9492ba8`: `window/window-core/src/commonMain/kotlin/androidx/window/core/layout/WindowSizeClass.kt` and `WindowSizeClassSelectors.kt` (`BREAKPOINTS_V2`, `computeWindowSizeClass`), into `lamina/layout/window_size_class.hpp`.
+
+- Width: compact below 600 dp, medium from 600, expanded from 840, large from 1200, extra-large from 1600. Height: compact below 480 dp, medium from 480, expanded from 900.
+- A size class is the pair of lower bounds (`min_width_dp`, `min_height_dp`), as in window-core. The window size is truncated to whole dp before it is compared, so 599.9 dp is compact.
+- `compute_window_size_class(width, height)` is a pure function; `sdl3::Frame::size_class` holds the window's class for every frame, live resizing included. `WindowAdaptiveInfo` (in `lamina/widgets/pane_navigator.hpp`) pairs a class with a tabletop flag, as Compose's `WindowAdaptiveInfo` pairs it with a `Posture`; desktop windows have no posture, so the flag is false unless a program sets it.
+
+### Navigation suite scaffold
+
+C `compose/material3/material3-adaptive-navigation-suite/src/commonMain/kotlin/androidx/compose/material3/adaptive/navigationsuite/NavigationSuiteScaffold.kt` at `6068a9492ba8`, into `lamina/widgets/navigation_suite.hpp`.
+
+- `navigation_suite_type(info)` is Compose's `NavigationSuiteScaffoldDefaults.navigationSuiteType`: a short navigation bar on compact widths, the medium short bar when the window is tabletop or its height is compact, and a collapsed wide rail otherwise. It never picks an expanded rail or a drawer.
+- The bar and the side component show and hide on Compose's `AnimationSpec` (spring, damping 0.9, stiffness 700). The content gives up the bar's height or the side component's width times that progress.
+- Deviations: `navigation_suite_type(info, choice)` with `widening_navigation_suite` (compact: bar, medium: collapsed rail, expanded: expanded rail, large and extra-large: drawer, compact height: medium bar) is lamina-ui's own chooser, after the M3 guidance that wider windows show more of the navigation. Compose swaps components without a transition when the type changes; lamina-ui slides the bar out and the side component in on the same spring, crossfades the rail into the drawer while the side width moves from the rail's width to the drawer's 360 dp, and expands or collapses the rail with the rail's own motion. The medium short bar (`ShortNavigationBarMedium`, icon beside the label) is drawn like the compact one, since lamina-ui's navigation bar has only the stacked arrangement. The primary action slot (`primaryActionContent`) is not implemented.
+
+### Pane scaffolds
+
+From androidx at `6068a9492ba8`: `compose/material3/adaptive/adaptive-layout/.../layout/` (`PaneScaffoldDirective.kt`, `ThreePaneScaffoldValue.kt`, `ThreePaneScaffold.kt`, `PaneMotion.kt`, `PaneExpansionState.kt`, `PaneExpansionDraggableModifier.kt`, `ListDetailPaneScaffold.kt`, `SupportingPaneScaffold.kt`) and `adaptive-navigation/.../navigation/` (`ThreePaneScaffoldNavigator.kt`, `BackNavigationBehavior.kt`), into `lamina/widgets/pane_navigator.hpp` and `pane_scaffold.hpp`.
+
+- Directive (`calculate_pane_scaffold_directive`): one horizontal partition on compact and medium widths, two from expanded (24 dp spacer), three from large with a 412 dp preferred pane width (360 dp below); two vertical partitions (24 dp spacer) when there is one horizontal partition and the height is expanded, or the window is tabletop. `..._with_two_panes_on_medium_width` gives medium widths two partitions.
+- Value (`calculate_pane_scaffold_value`): the destinations from the latest back, then primary, secondary, tertiary, each take a partition while there is one; a pane whose strategy is reflow goes under its anchor pane when there is one horizontal partition and more than one vertical. List-detail: list = secondary, detail = primary, order list, detail, extra, every strategy hide. Supporting: main = primary, supporting = secondary (reflow under main), order main, supporting, extra.
+- Navigator: history of destinations (pane and content key), `navigate_to`, `can_navigate_back` and `navigate_back` with the four `BackNavigationBehavior`s (pop latest, until the value changes (the default), until the destination changes, until the content changes), history-aware values. The scaffold calls `navigate_back` on Escape when no pane widget used the key.
+- Layout: expanded panes take their preferred widths and the pane with the highest priority (primary 10, secondary 5, tertiary 1) takes what is left, or all shrink in proportion when there is not enough room. A reflowed pane gets the bottom of its anchor's partition, at most the 420 dp preferred height and at most half.
+- Motion: Compose's `calculatePaneMotion` (shown panes animate their bounds, entering panes come from the side that nothing blocks, or expand from the middle, exiting panes leave the same way or shrink) on the spring with damping 0.8 and stiffness 380; the delayed entries wait 0.1 of the spring's estimated settle time.
+- Focus: hidden panes take no pointer, keys or text and leave the accessibility tree; their focus is cleared. When a navigation changes the value while a pane holds the keyboard focus, the focus moves to the destination pane (Compose's `shouldAutoFocusCurrentDestination`). Programs put each pane's `FocusManager` in their own with `FocusManager::add_group`, gated by `pane_shown`.
+- Deviations: Compose snaps the value when the directive changes (on resize) and animates only navigation; lamina-ui does the same by default and animates directive changes too with `animate_directive_changes`. Levitated panes, hinges and excluded bounds, predictive back and the saved state are not implemented; a reflowed pane's height is lamina-ui's simplification of Compose's partition measuring.
+
+### Pane expansion drag handle
+
+C `DragHandle.kt` and `tokens/DragHandleTokens.kt` (`VERSION: 7_0_1`) at `6068a9492ba8`, into `lamina/tokens/drag_handle.hpp`, with the expansion behavior of `PaneExpansionState.kt` in `PaneExpansionState`.
+
+- Handle: 4 × 48 dp, full corners, outline color; pressed or dragged 12 × 52 dp, medium corners (12 dp), on-surface. Its touch target is 48 dp, centered in the spacer between two expanded panes, and it stays half a spacer inside the scaffold.
+- Anchors: a proportion, an offset from the start or one from the end (`PaneExpansionAnchor`). Dragging moves the split freely between 0 and the scaffold's width; a split within half a spacer of an edge shows only the other pane. Releasing settles on the closest anchor, or, at 200 dp/s or faster, the closest one in the direction of the release (anchors behind count the whole width further), on the spring with damping 0.8 and stiffness 380 from the release velocity. `set_first_pane_width` and `set_first_pane_proportion` place the split without anchors.
+- Semantics: a separator named "Pane expansion drag handle" whose value is "Current pane split, %s" and description "Change pane split to %s" with the anchor descriptions ("%d percent", "%d DPs from start", "%d DPs from end"), translated (`PatternStrings`, Japanese from androidx `values-ja`). Enter or Space moves to the next anchor, Compose's click action.
+- Deviations: Compose's 200 is in px/s; lamina-ui reads it as dp/s, which is the same at a scale of 1. Compose runs the fling's decay before choosing the anchor; lamina-ui chooses from the release velocity directly. Left and Right move the split by 16 dp, a lamina-ui addition. The handle's size and color move on the fast spatial and fast effects springs where Compose switches at once.
+
+### Split panes
+
+`lamina/widgets/split_pane.hpp` and `lamina/tokens/split_pane.hpp`. Material 3 has no resizable split for desktop windows, so these values are lamina-ui's own: a 1 dp outline-variant divider (the divider tokens), an 8 dp hit zone with the resize cursor, the M3 drag handle shown on hover, drag and keyboard focus, and the keys of WAI-ARIA's window splitter pattern: arrows move the divider by 16 dp, Page Up and Page Down by 96 dp, Home and End go to the minimum and maximum, and Enter collapses the first pane to its minimum and restores it. Accessibility: a separator with the first pane's size as its value and range.
+
+### Scroll area: horizontal
+
+lamina-ui's own, beside the vertical scroll area above: `set_content_width` makes the content scroll sideways too. The wheel's horizontal axis (a touchpad, a tilting wheel) scrolls sideways; Shift with the vertical wheel scrolls sideways when the content is wider than the viewport and vertically otherwise (`WheelEvent::shift`, from `SDL_GetModState`). The horizontal bar runs along the bottom with the vertical bar's sizes, and each bar's track leaves the corner to the other.
+
+### Numeric field
+
+`lamina/widgets/numeric_field.hpp` and `lamina/tokens/numeric_field.hpp`, for inspectors and property panels; Material 3 has no compact numeric field, so the values are lamina-ui's own. 40 dp tall with density 0, 28 dp at least (4 dp a step), 96 dp wide by default, extra-small corners. The label is at the start (outside, outlined field) or inside (on surface-container-highest, before the value); the unit sits at the end. Dragging across the field or its start label by more than 3 dp scrubs the value one step every 4 dp; a click edits the text, which a bare `TextField` handles (selection, IME, clipboard, undo). Up and Down step the value (Shift for the large step), Page Up and Page Down take the large step, Enter commits, Escape restores the value, and losing the focus commits. Values are clamped to the range and rounded to `decimals`; text that is not a number keeps the field in the error color and marks it invalid. Accessibility: a spin button (`AccessibleRole::spin_button`) with the value and the unit, and the range.
+
 ## Open questions
 
 - Components other than those above are not surveyed yet.
@@ -788,3 +863,4 @@ C `AppBar.kt` (`FlexibleBottomAppBar`, `BottomAppBarDefaults`, `settleAppBarBott
 - Not implemented from the components of the third stage: swiping between months, Compose's vibrant time picker (`TimeScroll` and the `shapes:` overloads), and the slider forms Compose does not have (an icon in the track, the XS–XL sizes).
 - Not implemented from the screen patterns of the fourth stage: predictive back (sheets, drawers, rail, search), the decay phase of anchored flings, nested scrolling between sheet content and the sheet, `AppBarWithSearch`, `ExpandedFullScreenContainedSearchBar` and `ExpandedDockedSearchBarWithGap`, and the M3 design site's side sheet measurements (unreadable without script).
 - Not implemented from the Expressive components of the fifth stage: the vertical button group and per-item alignment, a widening button on a key press, the exit-always floating toolbar and `minimumInteractiveBalancedPadding`, the linear wavy indicator's accelerated run-out before a handoff, a scrolling FAB menu, `Modifier.animateFloatingActionButton`, `AppBarWithSearch` and the other Expressive search bars, `AppBarRow` and `AppBarColumn` with their overflow, `CheckableDropdownMenuItem` and `SelectableDropdownMenuItem`, `ScrollField` and `Modifier.nonInteractiveScrollbar`.
+- Not implemented from the adaptive and desktop work of the sixth stage: density for checkboxes, radio buttons and switches, the medium short navigation bar's arrangement, the navigation suite's primary action, levitated panes, hinges, predictive back and saved pane state, the decay before a pane anchor is chosen, a data table, and widths for segmented button rows.
