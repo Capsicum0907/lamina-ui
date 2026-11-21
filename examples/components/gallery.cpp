@@ -67,8 +67,9 @@ struct Layout {
     double symbol_size = 24.0;
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
-    double page_tabs_width = 1010.0;
-    double status_width = 160.0;
+    double page_tabs_width = 1000.0;
+    double status_width = 150.0;
+    double status_gap = 24.0;
     std::array<const char*, 13> page_names{"Basics", "Chips & cards", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
                                            "Groups", "Progress", "Toolbars"};
 };
@@ -242,7 +243,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
             status.arrange(r);
         });
     auto end_row = layout::row({status_cell, toggle_row});
-    end_row->spacing(layout.column_space).cross_align(layout::CrossAlign::center);
+    end_row->spacing(layout.status_gap).cross_align(layout::CrossAlign::center);
     auto header_row = layout::row({widgets::node(header), widgets::centered_node(*page_tabs), end_row});
     header_row->fill_main(true).main_align(layout::MainAlign::space_between).cross_align(layout::CrossAlign::center);
     header_row->self_align = layout::CrossAlign::stretch;

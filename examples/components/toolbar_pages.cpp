@@ -74,7 +74,7 @@ public:
 
         frames_[2]->bar = std::make_unique<widgets::FlexibleBottomAppBar>(widgets::FlexibleBottomAppBarOptions{
             {action(res::icons::archive, "Archive"), action(res::icons::label, "Label"), action(res::icons::delete_, "Delete"),
-             action(res::icons::mail, "Mark unread"), action(res::icons::more_vert, "More")},
+             action(res::icons::mail, "Unread"), action(res::icons::more_vert, "More")},
             widgets::BottomBarArrangement::space_between, true, "Inbox actions"});
         frames_[2]->menu = std::make_unique<widgets::FabMenu>(
             widgets::FabMenuOptions{{{"Compose", icon(res::icons::edit)}, {"Chat", icon(res::icons::chat)}, {"Meeting", icon(res::icons::videocam)},
