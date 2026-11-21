@@ -1692,8 +1692,11 @@ const std::map<std::string, Scene>& expressive_videos() {
              d.wait(1.0);
              click_at(d, centre_in(g, "New item", "Chat"), 0.6);
              d.wait(1.2);
-             d.move_to(centre_in(g, "New item", "New"), 0.5);
-             d.wait(0.2);
+             d.move_to({720.0, 845.0}, 0.5);
+             d.set_recording(false);
+             tab_to(d, g, "New");
+             d.set_recording(true);
+             d.wait(0.4);
              d.key(Key::enter);
              d.wait(1.0);
              d.key(Key::down);
