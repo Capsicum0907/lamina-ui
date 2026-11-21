@@ -282,6 +282,17 @@ void wheel_at(Driver& d, std::string_view name, double dy, int notches, double p
     }
 }
 
+std::optional<std::string> month_name(examples::components::Gallery& g) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(nodes, [](const widgets::AccessibleNode& n) {
+        return n.role == widgets::AccessibleRole::button && n.description == "Activate to change the year";
+    });
+    if (!node) {
+        throw std::runtime_error("no year menu button");
+    }
+    return node->name;
+}
+
 using Scene = std::function<void(Driver&, examples::components::Gallery&)>;
 
 const std::map<std::string, Scene>& stills() {
@@ -346,6 +357,65 @@ const std::map<std::string, Scene>& stills() {
              d.key(Key::right);
              tab_to(d, g, "Range end");
              d.key(Key::left);
+             d.wait(0.4);
+         }},
+        {"dates", [](Driver& d, examples::components::Gallery&) { show_page(d, "Dates"); }},
+        {"dates_years",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Dates");
+             d.move_to(*month_name(g), 0.3);
+             d.click();
+             d.wait(0.6);
+         }},
+        {"dates_input",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Dates");
+             d.move_to("Switch to text input mode", 0.3);
+             d.click();
+             d.wait(0.6);
+             d.type("13", 0.05);
+             d.type("2", 0.05);
+             d.type("12026", 0.05);
+             d.move_to({1100.0, 600.0}, 0.2);
+         }},
+        {"dates_dialog",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Dates");
+             d.move_to("Date picker dialog", 0.3);
+             d.click();
+             d.wait(0.6);
+         }},
+        {"dates_range_dialog",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Dates");
+             d.move_to("Date range dialog", 0.3);
+             d.click();
+             d.wait(0.6);
+         }},
+        {"dates_docked",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Dates");
+             d.move_to("Open calendar", 0.3);
+             d.click();
+             d.wait(0.6);
+         }},
+        {"dates_japanese",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Dates");
+             d.move_to("日本語", 0.3);
+             d.click();
+             d.move_to({1100.0, 600.0}, 0.2);
+         }},
+        {"dates_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Dates");
+             d.set_cursor(false);
+             tab_to(d, g, *month_name(g));
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.key(Key::tab);
+             d.key(Key::right);
+             d.key(Key::down);
              d.wait(0.4);
          }},
         {"inputs_disabled",

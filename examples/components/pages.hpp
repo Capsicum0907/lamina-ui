@@ -51,5 +51,6 @@ std::unique_ptr<Page> make_chips_page(PageContext context);
 std::unique_ptr<Page> make_lists_page(PageContext context);
 std::unique_ptr<Page> make_bars_page(PageContext context);
 std::unique_ptr<Page> make_inputs_page(PageContext context);
+std::unique_ptr<Page> make_dates_page(PageContext context);
 
 }

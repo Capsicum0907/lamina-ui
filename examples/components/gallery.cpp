@@ -67,8 +67,8 @@ struct Layout {
     double symbol_size = 24.0;
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
-    double page_tabs_width = 700.0;
-    std::array<const char*, 5> page_names{"Basics", "Chips & cards", "Lists", "App bars & badges", "Inputs"};
+    double page_tabs_width = 760.0;
+    std::array<const char*, 6> page_names{"Basics", "Chips & cards", "Lists", "App bars & badges", "Inputs", "Dates"};
 };
 
 class PageSwitch final : public layout::Node {
@@ -221,6 +221,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
     pages.push_back(make_lists_page(context));
     pages.push_back(make_bars_page(context));
     pages.push_back(make_inputs_page(context));
+    pages.push_back(make_dates_page(context));
 
     auto toggle_row = layout::row({widgets::node(switch_label), widgets::node(*enabled_switch)});
     toggle_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
