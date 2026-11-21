@@ -739,7 +739,7 @@ C `FloatingActionButtonMenu.kt` and `tokens/FabMenuBaselineTokens.kt` at `6068a9
 - Items: 56 dp pills on primary-container, 24 dp padding, 24 dp icons, 8 dp before the Title M label, 4 dp between items and 8 dp above the button, 16 dp padding at the sides and under the button, aligned to the end.
 - Stagger: the number of shown items is an integer that follows the slow effects spring (threshold 1) and counts from the bottom, so the item nearest the button appears first and the top one leaves first. Each item's width grows from its end on the fast spatial spring and its alpha on the fast effects spring. The items have no shadow (the token says level 3, but the `Surface` sets none).
 - Keyboard: Tab or Down on the open button moves into the items, Enter chooses, Escape closes and gives the focus back to the button (the sample's `BackHandler`). Choosing an item closes the menu, as the sample does.
-- Deviations: the menu does not scroll when it is taller than its area.
+- Deviations: the menu does not scroll when it is taller than its area. Like Compose's, the menu and its toggle FAB have no disabled state, so the gallery's Enabled switch leaves them as they are.
 
 ### Loading indicator
 
@@ -749,6 +749,7 @@ C `LoadingIndicator.kt`, `MaterialShapes.kt` and `tokens/LoadingIndicatorTokens.
 - Indeterminate: SoftBurst, Cookie9Sided, Pentagon, Pill, Sunny, Cookie4Sided, Oval and back, every polygon normalized. Each morph runs on a spring with damping 0.6 and stiffness 200 that ends when Compose's duration estimate for a 0.1 threshold has passed (about 0.30 s); a new morph starts every 650 ms. The rotation is progress × 90° plus 90° per finished morph plus a linear turn every 4666 ms.
 - Determinate: a circle turned by 18° morphs into SoftBurst as the progress goes from 0 to 1, and the shape turns back by progress × 180°.
 - `LoadingIndicatorOptions::size` scales the whole indicator, like a larger size modifier in Compose.
+- Compose's loading indicators have no disabled state; neither do lamina-ui's, nor its wavy progress indicators.
 
 ### Wavy progress indicators
 
@@ -770,7 +771,7 @@ C `FloatingToolbar.kt` and `tokens/FloatingToolbarTokens.kt` at `6068a9492ba8`, 
 - With a FAB: the bar's width (height when vertical) goes from its full size to 0 on the fast spatial spring, toward the FAB, while the FAB grows from 56 to 80 dp; the shadow goes from level 1 to level 0. The FAB is at the end (horizontal) or the bottom (vertical).
 - Collapse on scroll (`floatingToolbarVerticalNestedScroll`): scrolling 40 dp toward the end collapses, 40 dp back expands; `ToolbarScrollExpansion` follows a scroll offset.
 - Semantics: a `toolbar` node whose description names the custom action ("Collapse toolbar" or "Expand toolbar", ツールバーを閉じます / ツールバーを開きます). Collapsed actions are not Tab stops.
-- Deviations: the exit-always scroll behavior and `minimumInteractiveBalancedPadding` are not implemented; the vibrant toggle-button colors are not used because the toolbar's actions do not toggle.
+- Deviations: when the toolbar is disabled, its FAB stops reacting and its icon dims to 38 %, a lamina-ui addition (Compose's FABs have no disabled state). The exit-always scroll behavior and `minimumInteractiveBalancedPadding` are not implemented; the vibrant toggle-button colors are not used because the toolbar's actions do not toggle.
 
 ### Flexible bottom app bar
 
