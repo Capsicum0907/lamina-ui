@@ -691,9 +691,99 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 - 読み上げ：欄の名前は "Search"（検索）で、広げている間は "Suggestions below"（検索候補は次のとおりです）と伝えます。広げた表示は "Search" という名前の `dialog` で、全画面のときはモーダルです。
 - 違い：最初の結果で ↑ を押すと欄に戻ります。Tab は広げた表示の中（戻るボタン・欄・末尾のボタン・結果）にとどまります。Compose のダイアログとフォーカスを受けるポップアップと同じです。バーの下に開く表示の外を押すと畳みます。予測型の戻る操作と、`AppBarWithSearch` のスクロールの振る舞いは作っていません。
 
+### 切り替えボタンと角ごとの形
+
+`6068a9492ba8` の C の `ToggleButton.kt`・`internal/AnimatedShape.kt`・`HorizontalCenterOptically.kt`・`tokens/{Filled,Tonal,Outlined,Elevated}ButtonTokens.kt` を読み、`lamina/tokens/button.hpp`（`toggle_button_styles`・`toggle_button_motion`）と `lamina/widgets/button.hpp` の `ButtonOptions::toggle`・`ButtonOptions::shapes` に入れました。
+
+- 色（`ToggleButtonDefaults.colors()` と tonal・outlined・elevated の既定）：filled は surface-container と on-surface-variant で、オンのときは primary と on-primary です。tonal は secondary-container と on-secondary-container で、オンのときは secondary と on-secondary です。outlined は透明で outline-variant の枠があり、オンのときは枠のない inverse-surface と inverse-on-surface です。elevated は surface-container-low と primary で、オンのときは primary と on-primary です。無効のときの入れ物は on-surface の 10 %（outlined は outline-variant の 10 %）、中身は on-surface-variant の 38 % です。text のボタンは切り替えボタンにできません。
+- 形（`ToggleButtonDefaults.shapesFor`）：ふだんは丸め切り、押している間は大きさごとの押したときの角、オンのときは大きさごとの四角い形の角です。押した形がオンの形より優先されます。形の移り変わりは `AnimatedShapeState` と同じで、すべての角が一つの進み具合で元の形から目標の形へ速い空間のばねで移ります。元の形へ戻るときは、同じ進み具合を速度の向きを逆にして逆向きに進めます。lamina-ui は角ごとに dp と短い辺に対する割合で持つので、移る途中でも丸め切りの角は大きさについていきます。
+- outlined の枠の太さは、オンになると速い空間のばねで 0 になります（`animateBorderStrokeAsState`）。
+- `center_optically` は中身を 0.11 ×（始め側の角の平均 − 終わり側の角の平均）だけずらします。それぞれの角は高さの半分までに、ずらす量は左右の余白までに抑えます（`ShapeWithHorizontalCenterOptically`）。分割ボタンの後ろ半分が使います。
+- 読み上げ：Compose は切り替えボタンを `Role.Checkbox` にします。lamina-ui はオンかオフを持つ `toggle_button` を返します。`radio` の切り替えボタンは `selected` を持つ `radio_button` を返し、クリックではオフになりません。一つだけ選ぶ見本（`Role.RadioButton`）と同じです。
+- 違い：オンの色は Compose では一度に変わりますが、lamina-ui は標準の効果のばねで移します。オンのアイコンは FILL 1 で描きます。見本が線のアイコンを塗ったアイコンに替えるのの代わりです。
+
+### ボタンの組
+
+`6068a9492ba8` の C の `ButtonGroup.kt`・`tokens/ButtonGroupSmallTokens.kt`（`VERSION: v0_11_0`）・`tokens/ConnectedButtonGroupSmallTokens.kt`（`VERSION: 14_1_0`）と見本の `ButtonGroupSamples.kt` を読み、`lamina/tokens/button_group.hpp` と `lamina/widgets/button_group.hpp` に入れました。
+
+- 並べ方：ボタンの間は 12 dp、つながった組は 2 dp です。ボタンはそれぞれ中身に合った幅を取ります。重みを渡したボタンは、残りの幅を重みで分けます。
+- 押したときの幅（`ButtonGroupMeasurePolicy`・`EnlargeOnPressNode`）：押したボタンは左右の隣へ、押し具合 × min(0.15 × 自分の幅 / 2、隣の縮められる量) ずつ広がります。最初と最後のボタンは、ただ一つの隣へ押し具合 × min(0.15 × 幅、縮められる量) だけ広がります。隣は同じだけ縮むので、組の幅は変わりません。縮められる量は隣の終わり側の余白（small の大きさで 16 dp）です。押し具合は速い空間のばねで進み、離したあとも 0.75 を超えるまで進んでから戻ります。そのため短いクリックでも隣は最後まで縮みます。Compose は幅をピクセルに丸めますが、lamina-ui は端数のある dp のまま持ちます。
+- はみ出し：ボタンが収まらないときは、はみ出しのボタンの前に収まる分だけを残し、残りをメニューに移します。はみ出しのボタンは `more_vert` の filled のアイコンボタンで、名前は "More options"（その他のオプション、`m3c_button_group_more_options`）です。残したボタンの終わりに置きます。メニューの項目はそのボタンをクリックするか切り替えて、メニューを閉じます。
+- つながった形（`ButtonGroupDefaults.connected*ButtonShapes`）：先頭のボタンは外側が丸め切りで内側が small（8 dp）、中ほどは四隅が small、最後は先頭の左右逆です。押している間の内側の角は extra-small（4 dp）、オンのボタンは両端の丸い形です。Compose のつながった見本は幅の動きのない `FlowRow` に切り替えボタンを並べ、好きな項目を入れる見本は `animateWidth` を付けたつながった形を `ButtonGroup` に入れています。lamina-ui のつながった組はその両方をします。
+- 選び方：なし（`clickableItem`、ふつうのボタン）、いくつでも（`toggleableItem`、切り替えボタン）、一つだけ（見本と同じくラジオの役割を持つ切り替えボタン）。
+- 違い：キーで押してもボタンは広がりません（Compose はキーで押しても広がります）。ボタンとはみ出しのボタンはどれも Tab で止まり、Compose と同じく矢印キーでは動きません。組は `group` の項目を返します。項目ごとの縦のそろえ方と縦のボタンの組は作っていません。つながった組では、ふつうのボタンにもつながった形を使います。
+
+### 分割ボタン
+
+`6068a9492ba8` の C の `SplitButton.kt`・`tokens/SplitButton{XSmall,Small,Medium,Large,XLarge}Tokens.kt`（`VERSION: 18_0_18`）と見本の `SplitButtonSamples.kt` を読み、`lamina/tokens/split_button.hpp` と `lamina/widgets/split_button.hpp` に入れました。
+
+- 大きさは 32・40・56・96・136 dp で、二つの半分の間は 2 dp です。内側の角は extra-small・extra-small・extra-small・small・medium で、押している間は small・medium・medium・large-increased・large-increased に広がります（ホバーのトークンは `SplitButton.kt` では使われていません）。前半分の余白は 12+10・16+12・24+24・48+48・64+64 dp、後ろ半分の余白は左右とも 13・13・15・29・43 dp、後ろ半分のアイコンは 22・22・26・38・50 dp で、どちらの半分も幅 48 dp 以上です。文字と前半分のアイコンは見本と同じくボタンの大きさに合わせます（`ButtonDefaults.textStyleFor`・`iconSizeFor`・`iconSpacingFor`）。
+- 形は標準の効果のばねで移ります。オンの後ろ半分は円になり、中身の色を 10 % 重ね（`TrailingButtonStateLayerAlpha`）、中身を見た目の中心に置きます。
+- 下向きの山形（`keyboard_arrow_down`）は、オンになると半回転します。ばねは見本の `animateFloatAsState` の既定（減衰 1、硬さ 1500）です。
+- メニュー：`SplitButtonWithDropdownMenuSample` と同じく、後ろ半分をオンにすると分割ボタン全体の下にメニューが開き、項目を選ぶかメニューを閉じるとオフに戻ります。後ろ半分は見本の `stateDescription` と同じく、値で "Expanded" か "Collapsed" を伝えます。
+- 違い：filled・tonal・outlined・elevated の色はボタンの色（`ButtonDefaults.*Colors`）です。lamina-ui は色を標準の効果のばねで移します。
+
+### 拡張 FAB
+
+`6068a9492ba8` の C の `FloatingActionButton.kt` と `tokens/ExtendedFab{Small,Medium,Large}Tokens.kt` を読み、`lamina/tokens/fab.hpp`（`extended_fab_sizes`）と `lamina/widgets/extended_fab.hpp` に入れました。
+
+- small は 56 dp（角 large・アイコン 24 dp・余白 16 dp・間 8 dp・Title M）、medium は 80 dp（large-increased・28 dp・26 dp・12 dp・Title L）、large は 96 dp（extra-large・32 dp・28 dp・16 dp・Headline S）です。medium と large の間はコードの 12 dp と 16 dp です。トークンのファイルは 16 dp と 20 dp としています（"IconLabelSpace is incorrect"）。
+- 畳む：幅は広げたときの幅から高さまで速い空間のばねで縮み、文字は速い効果のばねで消えます。アイコンは始め側の余白の所から動きません。
+- 高さと色は FAB と同じです。Compose の FAB に無効の状態はなく、lamina-ui にもありません。
+
+### FAB メニュー
+
+`6068a9492ba8` の C の `FloatingActionButtonMenu.kt`・`tokens/FabMenuBaselineTokens.kt` と見本の `FloatingActionButtonMenuSamples.kt` を読み、`lamina/tokens/fab_menu.hpp` と `lamina/widgets/fab_menu.hpp` に入れました。
+
+- 切り替えの FAB：進み具合は速い空間のばねで進みます。大きさは 56・80・96 dp から 56 dp へ、上の終わり側を基準に縮みます。角は 16・20・28 dp から 28 dp へ、入れ物は primary-container から primary へ、アイコンは on-primary-container から on-primary へ、24・28・36 dp から 20 dp へ移ります。見本が追加のアイコンを閉じるアイコンに替えるのと同じく、アイコンは 0.5 で替わります。影は段階 3 です。
+- 項目：primary-container の 56 dp の両端の丸い形で、余白 24 dp・アイコン 24 dp・Title M の文字の前に 8 dp です。項目の間は 4 dp、ボタンの上は 8 dp、左右とボタンの下は 16 dp あけ、終わり側にそろえます。
+- 順に出す動き：出す項目の数は遅い効果のばね（しきい値 1）に従う整数で、下から数えます。そのためボタンに近い項目から現れ、一番上の項目から消えます。項目ごとに、幅は終わり側から速い空間のばねで広がり、不透明度は速い効果のばねで変わります。項目に影はありません（トークンは段階 3 ですが、`Surface` は影を付けません）。
+- キー：開いているボタンで Tab か ↓ を押すと項目に入り、Enter で選び、Escape で閉じてフォーカスをボタンに戻します（見本の `BackHandler`）。見本と同じく、項目を選ぶとメニューを閉じます。
+- 違い：メニューが範囲より高くてもスクロールしません。
+
+### 読み込み中の表示
+
+`6068a9492ba8` の C の `LoadingIndicator.kt`・`MaterialShapes.kt`・`tokens/LoadingIndicatorTokens.kt` を読み、lamina-ui に移した graphics-shapes とともに `lamina/tokens/loading_indicator.hpp` と `lamina/widgets/loading_indicator.hpp` に入れました。
+
+- 入れ物は 48 dp（丸め切り）、表示は 38 dp です。形は、大きさ × 多角形の外枠と最大の外枠の比の一番小さいもの × 38 / 48 に縮め、毎回制御点の外枠の中心を真ん中に合わせます。表示は primary、入れ物のある形は primary-container の上の on-primary-container です。形は入れ物の中に切り抜きます。
+- 終わりの見えない形：SoftBurst・Cookie9Sided・Pentagon・Pill・Sunny・Cookie4Sided・Oval と回って最初に戻ります。多角形はどれも正規化します。形の移り変わりは減衰 0.6・硬さ 200 のばねで進み、しきい値 0.1 に対する Compose の長さの見積もり（約 0.30 秒）が過ぎると終わります。650 ms ごとに次の移り変わりが始まります。回転は 進み具合 × 90° に、終わった移り変わりごとに 90° と、4666 ms で一回りする等速の回転を足したものです。
+- 進み具合のある形：進み具合が 0 から 1 へ進むにつれて、18° 回した円が SoftBurst に変わり、形は 進み具合 × 180° だけ逆に回ります。
+- `LoadingIndicatorOptions::size` は表示全体を大きくします。Compose で大きさの修飾子を大きくするのと同じです。
+
+### 波のある進み具合の表示
+
+`6068a9492ba8` の C の `WavyProgressIndicator.kt`・`internal/LinearWavyProgressModifiers.kt`・`internal/CircularWavyProgressModifiers.kt`・`ProgressIndicator.kt`（キーフレーム）・`tokens/{Linear,Circular}ProgressIndicatorTokens.kt` を読み、`lamina/tokens/wavy_progress.hpp` と `lamina/widgets/wavy_progress.hpp` に入れました。
+
+- 直線：既定は 240 × 10 dp で、表示と下地は 4 dp、間は 4 dp です。進み具合があるときは下地の終わりに 4 dp の点を置きます。波は Compose と同じ二次曲線の線で、制御点を中心線から `高さ − 太さ`（6 dp）離すので、山の高さは 3 dp です。進み具合は x に合う長さ（線の長さ ÷ 幅）だけ線に沿って取り、振幅は線を中心線を軸に縮めます。波長は進み具合があるとき 40 dp、ないとき 20 dp で、波は 1 秒に 1 波長進みます。
+- 円：48 dp で、太さは 4 dp、間は 4 dp です。下地は円の多角形、表示はそこから星形（内側の半径 0.75、角の丸め 0.35 となめらかさ 0.4、内側の丸め 0.5）へ移る形で、頂点の数は max(5, round(2πr / 15 dp)) です。12 時の所から時計回りに始まるように回し、大きさから太さを引いた大きさに合わせます。動く波は、二周分の線の上で始まりをずらしてから戻す向きに回すので、両端は動きません。
+- 振幅：`wavy_indicator_amplitude`（10 % まで、と 95 % からはなし）を 500 ms のトゥイーンで移します。上げるときは standard、下げるときは emphasized-accelerate のイージングです。`ease_progress` は進み具合を Compose の 500 ms の等速の `ProgressAnimationSpec` で移します。
+- 終わりの見えない直線：1750 ms のキーフレームに沿う 2 本の線です（先と後ろの遅れは 0・250・650・900 ms、長さは 1000・1000・850・850 ms、イージングは emphasized-accelerate）。終わりの見えない円：6000 ms の伸び縮みと回転のキーフレームに、1080° の等速の回転と 90° の基準を足します。Compose のキーフレームのイージングはそのキーフレームの後ろの区間にかかるので、伸びは 0.87 まで等速で伸びて standard で縮み、四分の一の回転は等速です（emphasized-decelerate は止まっている区間にかかります）。lamina-ui も同じように計算します。
+- 受け渡し：直線の表示は、進み具合を持つと線と点を 500 ms で伸ばします。円の表示は、終わりの見えない伸びと回転から、進み具合と 360° へ 300〜600 ms（emphasized decelerate）で移ります。回す量が多いほど長くかかります。
+- 違い：直線の表示は進み具合を持つとき、先に線を速めて走り切らせることはしません。線は曲線ごとに 12 の折れ線にして、丸い端で描きます。前からある `CircularProgressIndicator` は、使っているプログラムのためにそのまま残します。
+
+### 浮かぶツールバー
+
+`6068a9492ba8` の C の `FloatingToolbar.kt` と `tokens/FloatingToolbarTokens.kt` を読み、`lamina/tokens/floating_toolbar.hpp` と `lamina/widgets/floating_toolbar.hpp` に入れました。
+
+- 高さ（縦のときは幅）64 dp・角は丸め切り・余白 8 dp で、操作は 48 dp の枠に入ります（最小の触れる大きさを持つ `IconButton`）。standard の色は surface-container と on-surface で FAB は primary-container、vibrant の色は primary-container と on-primary-container で FAB は tertiary-container です。FAB の角は 16 dp のまま、影は段階 2（ホバーで段階 3）です。
+- FAB なし：先頭の中身は始め側から広がって終わり側へ縮み、末尾の中身はその逆で、どちらも速い空間のばねです（`expandHorizontally`・`shrinkHorizontally`）。影はありません。
+- FAB あり：バーの幅（縦のときは高さ）は速い空間のばねで全体から 0 まで FAB の方へ縮み、FAB は 56 dp から 80 dp に育ちます。影は段階 1 から 0 になります。FAB は横のときは終わり側、縦のときは下です。
+- スクロールで畳む（`floatingToolbarVerticalNestedScroll`）：終わりの方へ 40 dp スクロールすると畳み、40 dp 戻すと広げます。`ToolbarScrollExpansion` がスクロールの位置を追います。
+- 読み上げ：`toolbar` の項目で、説明に自前の操作の名前（"Collapse toolbar" か "Expand toolbar"、ツールバーを閉じます・ツールバーを開きます）を入れます。畳んだ操作には Tab で止まりません。
+- 違い：スクロールで常に退く振る舞いと `minimumInteractiveBalancedPadding` は作っていません。ツールバーの操作は切り替えないので、vibrant の切り替えボタンの色は使っていません。
+
+### 柔軟な下のアプリバー
+
+`6068a9492ba8` の C の `AppBar.kt`（`FlexibleBottomAppBar`・`BottomAppBarDefaults`・`settleAppBarBottom`）と `tokens/DockedToolbarTokens.kt` を読み、`lamina/tokens/floating_toolbar.hpp`（`flexible_bottom_app_bar_tokens`）と `lamina/widgets/flexible_bottom_app_bar.hpp` に入れました。
+
+- 64 dp・surface-container・影なし・余白 16 dp で、操作は両端に合わせて均等にあけます（または 32 dp ずつあけて中央に寄せます、`FlexibleFixedHorizontalArrangement`）。
+- 常に退く：高さのずれはスクロールに従って −64 dp まで動くので、バーは下の端から外へ滑り出ます。スクロールが止まると、近い方の端へ速い空間のばねで落ち着きます（畳んだ割合 0.5 で分け、0.01 未満なら何もしません）。隠れている間、操作には Tab で止まりません。
+- 違い：落ち着く前のはじいた勢いの減速は作っていません。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
 - 第 2 段階の部品で作っていないもの：チップの `shapes:` の版（`ChipShapes`）、2 dp の間と位置ごとの角を持つ `SegmentedListItem`、チップ・カード・リストの項目を引きずる操作、トップアプリバー自身を引きずる操作。
-- 第 3 段階の部品で作っていないもの：つながったボタンの組（つながった `ToggleButton` を並べた `ButtonGroup` と、押したときの幅の広がり）、月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
+- 第 3 段階の部品で作っていないもの：月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
 - 第 4 段階の画面のパターンで作っていないもの：予測型の戻る操作（シート・ドロワー・レール・検索）、アンカーへはじく動きの減速の段階、シートの中身とシートの間の入れ子のスクロール、`AppBarWithSearch`・`ExpandedFullScreenContainedSearchBar`・`ExpandedDockedSearchBarWithGap`、M3 のデザインのサイトにあるサイドシートの寸法（スクリプトなしでは読めません）。
+- 第 5 段階の Expressive の部品で作っていないもの：縦のボタンの組と項目ごとのそろえ方、キーで押したときのボタンの広がり、スクロールで常に退く浮かぶツールバーと `minimumInteractiveBalancedPadding`、受け渡しの前に直線の波の表示の線を速めて走り切らせる動き、スクロールする FAB メニュー、`Modifier.animateFloatingActionButton`、`AppBarWithSearch` などの Expressive の検索バー、はみ出しを持つ `AppBarRow` と `AppBarColumn`、`CheckableDropdownMenuItem` と `SelectableDropdownMenuItem`、`ScrollField` と `Modifier.nonInteractiveScrollbar`。
