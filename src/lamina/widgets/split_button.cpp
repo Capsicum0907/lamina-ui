@@ -17,7 +17,7 @@ SplitButton::SplitButton(SplitButtonOptions options, const text::FontStack& font
     const tokens::SplitButtonSizeTokens& s = tokens::split_button_size(options_.size);
     ButtonOptions lead{options_.label, options_.style, options_.size, tokens::ButtonShape::round, options_.icon};
     lead.enabled = options_.enabled;
-    lead.accessible_name = options_.accessible_name;
+    lead.accessible_name = options_.label.empty() ? options_.accessible_name : std::string();
     lead.shapes = ButtonShapes{tokens::split_leading_corners(s.inner_corner), tokens::split_leading_corners(s.inner_pressed_corner),
                                std::nullopt, t.shape_spring};
     lead.padding = ButtonPadding{s.leading_leading_space, s.leading_trailing_space};

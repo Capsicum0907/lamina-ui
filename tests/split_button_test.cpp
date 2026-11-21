@@ -179,3 +179,13 @@ TEST_CASE("the trailing half needs a name") {
     SplitButtonOptions o{"Send"};
     CHECK_THROWS_AS(SplitButton(std::move(o), fonts(), icon_font()), std::invalid_argument);
 }
+
+TEST_CASE("the leading half is named by its label and the group by the split button's name") {
+    SplitButtonOptions o{"Send"};
+    o.trailing_name = "More";
+    o.accessible_name = "Send options";
+    SplitButton s(std::move(o), fonts(), icon_font());
+    const auto node = s.accessible();
+    CHECK(node.name == "Send options");
+    CHECK(node.children[0].name == "Send");
+}
