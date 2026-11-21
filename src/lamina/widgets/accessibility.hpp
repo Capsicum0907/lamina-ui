@@ -40,6 +40,7 @@ enum class AccessibleRole {
     list_item,
     toolbar,
     heading,
+    spin_button,
 };
 
 enum class AccessibleToggle { off, on, mixed };
