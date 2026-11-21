@@ -15,6 +15,7 @@ lamina-ui が Material 3 Expressive から借りる値です。Google が公開�
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
 | A | androidx/androidx の `compose/material3/adaptive/`（adaptive・adaptive-layout・adaptive-navigation）、`compose/material3/material3-adaptive-navigation-suite/`、`window/window-core/` | `6068a9492ba8` | Apache-2.0 |
 | D | [material-components/material-components-web](https://github.com/material-components/material-components-web) の `packages/mdc-density/` と部品ごとの `$density-config` | `6ceadb81df50` | MIT |
+| J | [JetBrains/compose-multiplatform-core](https://github.com/JetBrains/compose-multiplatform-core) の `compose/foundation/foundation/src/desktopMain/` と `compose/ui/ui/src/desktopMain/`（Compose Multiplatform Desktop） | 2026-11-21 に読んだ `jb-main` ブランチ（コミットは記録していません） | Apache-2.0 |
 
 値を使うときは Apache-2.0 の表示と出典を残します（D は MIT の表示）。
 
@@ -801,9 +802,11 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 | 幅のあるナビゲーションレールの項目（畳んだとき・広げたとき） | 64・56 | 52・40 | −3・−4 | lamina-ui |
 | ナビゲーションドロワーの項目 | 56 | 40 | −4 | lamina-ui |
 | メニューの項目 | 48 | 32 | −4 | lamina-ui |
+| メニューバー | 40 | 28 | −3 | lamina-ui |
+| 表の行・見出し | 52 / 56 | 36 / 40 | −4 / −4 | MDC のデータテーブル |
 
 - 大・特大のボタンとアイコンボタンは密度を持ちません。96 dp や 136 dp から 4 dp ずつ削っても、載る量は変わらないためです。
-- 違い：MDC は最小を下回る段階をコンパイルの誤りにしますが、lamina-ui は最小で止めます。一つの段階を多くの部品にまとめて設定するためです。正の段階は既定で止めます。区分ボタン・ナビゲーションの項目・メニューは MDC に密度がないので、最小は lamina-ui が決めました。MDC のデータテーブルの行（52 → 36）に当たる部品は、lamina-ui に表がないのでありません。
+- 違い：MDC は最小を下回る段階をコンパイルの誤りにしますが、lamina-ui は最小で止めます。一つの段階を多くの部品にまとめて設定するためです。正の段階は既定で止めます。区分ボタン・ナビゲーションの項目・メニューは MDC に密度がないので、最小は lamina-ui が決めました。メニューバーも MDC にはありません。表は MDC のデータテーブルの行（52 → 36）に合わせ、見出しは MDC と同じく 4 dp 高くしました。
 - タッチの範囲：密度 0 では、部品は 48 dp の当たり判定を保ちます（`tokens::minimum_target`）。負の密度では、タッチやペンでも当たり判定は部品そのものの範囲です。MDC がタッチの範囲を外すのと同じです。48 dp より詰めて並べた部品で 48 dp の範囲を取ると、隣の範囲と重なるためです。
 - チェックボックス・ラジオボタン・スイッチは、まだ密度を持ちません。
 
@@ -856,6 +859,63 @@ androidx の `6068a9492ba8` の `compose/material3/adaptive/adaptive-layout/.../
 
 `lamina/widgets/numeric_field.hpp` と `lamina/tokens/numeric_field.hpp` です。インスペクターやプロパティの欄に向けたもので、Material 3 には詰めた数値欄がないので、値は lamina-ui が決めました。密度 0 で高さ 40 dp、最小 28 dp（一段 4 dp）、既定の幅は 96 dp、角は極小です。ラベルは始まり（欄の外、枠線の欄）か中（surface-container-highest の上、値の前）に置き、単位は終わりに置きます。欄か始まりのラベルの上を 3 dp より大きくドラッグすると、4 dp ごとに一段ずつ値が変わります。クリックすると文字を編集でき、編集は枠のない `TextField` が受け持ちます（選択・IME・クリップボード・元に戻す）。↑ と ↓ で一段ずつ（Shift で大きな段）、Page Up と Page Down で大きな段だけ変え、Enter で確定し、Escape で値に戻し、フォーカスが外れると確定します。値は範囲に収め、`decimals` の桁に丸めます。数でない文字のあいだ、欄は誤りの色のままで、無効の印が付きます。アクセシビリティ：値と単位、範囲を持つスピンボタン（`AccessibleRole::spin_button`）です。
 
+### メニュー：ショートカットの表示・区切り線・サブメニュー
+
+`6068a9492ba8` の C `Menu.kt`・`MenuDefaults.kt`・`tokens/ListTokens.kt` と、`9d2f79851cae` の W `menu/internal/submenu/sub-menu.ts` から、`menu_tokens` と `lamina/widgets/menu.hpp` に入れました。
+
+- 終わりの枠：Compose の `DropdownMenuItem` に `trailingIcon` を渡すと、文字は行の残りを取って終わりに 12 dp の余白を持ち（`DropdownMenuItemHorizontalPadding`）、枠は幅が 24 dp 以上で（`ListTokens.ItemTrailingIconSize`）、on-surface-variant（`ItemTrailingIconColor`）、無効のときは on-surface の 38 % で描きます。行の文字は Label L です。lamina-ui はこの枠に、ショートカットの表示（`MenuItem::shortcut` を `format_chord` で書いたもの）かサブメニューの矢印（`keyboard_arrow_right`、24 dp）を項目の終わりに置きます。Compose にはショートカットの表示がなく、終わりの枠にキーの組み合わせを出すのは lamina-ui の決めたことです。
+- 区切り線：`divider_before` は項目の前に outline-variant の 1 dp の線を、左右 12 dp、上下 2 dp をあけて引きます（`MenuDefaults.HorizontalDividerPadding`）。
+- サブメニューは material-web の `md-sub-menu` に合わせました。サブメニューのある項目にポインターを乗せると 400 ms 後に開き（`hoverOpenDelay`）、ほかの項目に乗せると 400 ms 後に閉じます（`hoverCloseDelay`）。→・Enter・Space で最初の項目にフォーカスを置いて開き、←・Escape で閉じて元の項目に戻ります。サブメニューの上の始まりの角を、項目の上の終わりの角に合わせます（`anchorCorner` は START_END、`menuCorner` は START_START）。右に入らないときは項目の左に開き、ウィンドウの内側 4 dp に収まるよう上へずらします。サブメニューを開いている項目は、ポインターを乗せたときの状態の層を保ちます。サブメニューには矢印のため `MenuOptions::icon_font` が要ります。違い：項目を押すとすぐにサブメニューを開き、Tab ではメニュー全体を閉じます。Compose にはサブメニューがありません。
+- 選ぶと `MenuResponse::path`（いちばん上のメニューからの番号の列）と項目の `command` を返します。`chosen` はこれまでどおり、そのメニュー自身の項目を選んだときだけ入ります。
+- `open_at(point)` の位置は、Compose Desktop の `PopupPositionProviderAtPosition`（J `DesktopPopup.desktop.kt`、そのコンテキストメニューが使うもの）と同じです。メニューの上の始まりの角を点に置き、ウィンドウの右端から 4 dp 手前を越えるなら幅だけ左へ、下端から 4 dp 手前を越えるなら高さだけ上へずらし、最後に左と上から 4 dp 以上離します（`windowMargin`、`context_window_margin`）。拡大はその点を中心にします。
+
+### コンテキストメニューの範囲
+
+J `ContextMenuProvider.desktop.kt` と `BasicContextMenuRepresentation.desktop.kt`：Compose Desktop の `ContextMenuArea` は、二つ目のボタンを押したときにポインターの位置で開きます。`ContextMenuArea`（`lamina/widgets/context_menu.hpp`）は範囲と `Menu` を受け取り、範囲の中の `input::ContextClick` でメニューを `open_at` で開きます。SDL3 の窓は右ボタンを押したことを `PointerEvent` ではなく `Frame::context` の `ContextClick` として知らせるので、ほかの部品がクリックと取り違えることはありません。範囲の `focused` が真のあいだは、Shift+F10 かメニューキー（`requests_context_menu`）で、`keyboard_point`（既定は範囲の上の始まりの角）に最初の項目へフォーカスを置いて開きます。開く前に `before_open` がその点を受け取ります。Files の見本ではこれでポインターの下の行を選びます（`Table::handle(ContextClick)` は、その行がまだ選ばれていなければその行だけを選びます。ファイルの管理のアプリと同じです）。違い：キーボードで開くのは Windows にならった lamina-ui の追加で、Compose のこのファイルにはキーの扱いがありません。
+
+### キーボードショートカット
+
+J `KeyShortcut.desktop.kt`：`KeyShortcut` はキーと ctrl・meta・alt・shift で、`Ctrl+`・`Meta+`・`Alt+`・`Shift+` のあとにキーを書きます。lamina-ui の `KeyChord`（`lamina/widgets/shortcuts.hpp`）はキーと Ctrl・Shift・Alt で、`format_chord` が `lamina/tokens/shortcut.hpp` の `ShortcutFormat` で書きます。プラットフォームごとの書き方を持つのはこの一か所だけです。`pc_shortcut_format` は Windows と Linux 向けで、Ctrl・Alt・Shift の順に `+` でつなぎ、名前のあるキーは Del・Ins・PgUp・PgDn・Esc・Enter・Space・Backspace・Left・Up・F1〜F12・Plus・Minus と書きます。`mac_shortcut_format` は ⌃ ⌥ ⇧ を区切りなしで並べ、⌫ ⌦ ↩ ⎋ ⇥ ← → ↑ ↓ ⇞ ⇟ ↖ ↘ を使います。`default_shortcut_format()` がプラットフォームで選びます。lamina-ui の Ctrl はどのプラットフォームでも Control キーなので、mac の書き方では ⌃ と描きます。窓はまだ Command キーを対応させていません。
+
+- `ShortcutRegistry` は、キーの組み合わせ（なくてもよい）・動作・有効かどうかを持つコマンドを ID で保ちます。`handle(KeyEvent)` は組み合わせがちょうど一致する有効なコマンドを走らせ、キーを使ったと返します。無効なコマンドは走らず、キーも使いません。同じ ID か同じ組み合わせのコマンドを二つ目に足すと例外を投げます。
+- メニューも同じ定義で動きます。`apply_shortcuts` は項目のコマンドの組み合わせを項目に写し、`sync_commands` は有効かどうかを写します。`MenuBar` はその両方をして、選ばれた項目のコマンドを走らせます。
+- フォーカス：受け手はキーをまずフォーカスのある部品に渡し、`FocusManager::claims_key` が偽のときだけ登録簿に渡します。フォーカスのある `TextField` と `NumericField` は Ctrl+A・Ctrl+C・Ctrl+X・Ctrl+V と、元に戻すか やり直すものがあるあいだの Ctrl+Z・Ctrl+Y（これまでどおり `handles_history_key`）を自分のものにします。フォーカスのある `Table` は Ctrl+A を自分のものにします。この振り分けは lamina-ui の決めたことで、Compose Desktop はメニューのショートカットを Swing に任せています。
+
+### メニューバー
+
+Compose Desktop の `MenuBar` は Swing の本物のメニューバーです（J `Menu.desktop.kt` は `JMenu` を組み、ショートカットを Swing のアクセラレーターとして渡します）。Material 3 にもメニューバーはないので、見た目は M3 の色の役割から lamina-ui が決め、`lamina/tokens/menu_bar.hpp` に置きました。surface-container-low のバーで高さ 40 dp（最小 28 dp、一段 4 dp）。項目は Label L の文字の左右に 12 dp の余白を持ち、バーの上下と始まりから 4 dp 内側にあり、角は小（8 dp）です。開いている項目は secondary-container の上に on-secondary-container の文字で、既定の effects のばねで色が移ります。ポインターを乗せたときと押したときの on-surface の状態の層と、内側のフォーカスの輪を描きます。それぞれのメニューはふつうの `Menu` で、項目の下に開きます。ウィンドウとの間は Compose の 48 dp ではなく 4 dp にしました。48 dp ではメニューバーのメニューがバーから離れてしまうためです。
+
+- キー（Windows にならいました）：Alt だけを押して離す（窓はこれを `Key::alt` として知らせます）か F10 でバーにフォーカスが移り、アクセスキーの下線が出ます。← と → でバーの上を動き（端で折り返し）、Home と End で両端へ、↓・↑・Enter・Space でメニューを開き、文字でその文字のメニューを開きます。Alt と文字なら、どこからでもメニューを開けます。開いたメニューの中では、サブメニューがキーを使わない限り、← と → で前後のメニューを開きます。Escape でメニューを閉じてバーのフォーカスを残し、もう一度 Escape か Alt か F10 でバーを離れます。メニューが開いているあいだ、バーはすべてのキーを受け取ります。
+- ポインター：項目を押すとメニューが開きます。メニューが開いているあいだにほかの項目へ動くと、そのメニューに替わります。開いている項目を押すと閉じます。項目を押したままメニューの項目までドラッグして離すと、その項目を選びます。
+- アクセシビリティ：`menu_bar` の子が `menu_item` で、値は Expanded か Collapsed、開いているメニューはその項目の中に入ります。
+
+### 表
+
+Material 3 にはデータテーブルがありません。下の値は、MDC Web のデータテーブル（D、`6ceadb81df50` の `packages/mdc-data-table/_data-table-theme.scss` と見出しのセルの様式）にあるものはそれを M3 の役割に置き換え、ないものは lamina-ui が決めました。`lamina/tokens/table.hpp` と `lamina/widgets/table.hpp` です。
+
+| 値 | lamina-ui | 出典 |
+|---|---|---|
+| 行の高さ | 52 dp、最小 36 dp（密度 −4） | D `$row-height`・`$minimum-row-height` |
+| 見出しの高さ | 行の高さ + 4：56 dp、最小 40 dp | D `get-header-row-height` |
+| セルの余白 | 始まりと終わりに 16 dp | D `$cell-leading-padding`・`$cell-trailing-padding` |
+| 見出しの文字 | Title S、on-surface | D `subtitle2` を M3 の Title S に |
+| セルの文字 | Body M、on-surface | D `body2` を M3 の Body M に |
+| 行の区切り線 | outline-variant の 1 dp、最後の行の下にはなし | D の on-surface 12 % の 1 px を M3 の区切り線のトークンに |
+| 選んだ行 | secondary-container、文字は on-secondary-container | M3 のリストの選んだ入れ物（D は primary の 4 %） |
+| ポインターを乗せた行 | on-surface の状態の層 8 % | M3 の状態の層（D は 4 %） |
+| 並べ替えの矢印 | `arrow_upward`・`arrow_downward`、18 dp、ラベルの 4 dp 後ろ（終わりにそろえる列ではラベルの前）。並べ替えた列は on-surface、ほかはポインターを乗せると on-surface-variant で現れる | D の 4 px の間とポインターで現れる動き。大きさは lamina-ui |
+| 見出しの入れ物 | surface-container | lamina-ui |
+| 見出しの列の区切り | outline-variant の 1 dp、上下から 16 dp | lamina-ui |
+| 幅を変える範囲 | 列の終わりの端を中心に 8 dp、大きさを変えるカーソル | lamina-ui（D には列の幅の変更がない） |
+| 列の幅 | 既定 160 dp、最小 56 dp | lamina-ui |
+
+- 並べ替え：並べ替えられる見出しをクリックすると昇順、もう一度で降順になります。ほかの列をクリックするとその列の昇順です。並べ替えは安定で、列の `less`（元の行の番号で比べる）か、なければセルの文字で比べます。表は見た目の行から元の行への並びを持つので、選択とフォーカスは同じ行についていきます。
+- 幅の変更：見出しの区切りをドラッグすると列の幅が変わり、`min_width` より狭くはなりません。列の合計が表より広いと、横にスクロールします。
+- 選択（`TableSelection::multiple`、Windows のリストにならいました）：クリックで一行を選んで起点にし、Ctrl+クリックで一行を切り替え、Shift+クリックで起点からの範囲を選び、Ctrl+Shift+クリックで範囲を足します。行のない所をクリックすると選択を外します。ダブルクリックか Enter で開く操作になります。矢印・Home・End・Page Up・Page Down でフォーカスを動かしてその行を選び、Shift では起点から広げ、Ctrl ではフォーカスだけを動かします。Space でフォーカスの行を選び、Ctrl+Space で切り替え、Ctrl+A ですべて選びます。表は Tab の止まる所が一つで、キーを使ったあとはフォーカスの行に内側の輪を描きます。
+- スクロール：見出しの下の `ScrollArea` が縦横にスクロールします（ホイール、Shift とホイール、バー）。見出しは上に残って行と一緒に横へ動き、見出しの上のホイールは行をスクロールします。
+- 仮想化：見えている行と前後二行ずつだけを並べて描きます。文字は見えているあいだに一度だけ並べ、見えなくなると捨てます。読み上げ用の木には、列の見出し（並べ替えた列は Ascending か Descending を持つ）を持つ見出しの行と、見えている行とそのセルが入ります。選んだ色とポインターの層はばねで動きます。
+- 作っていないもの：省略記号（セルは文字を切り取ります）、列の並べ替え、チェックボックスの列とページ分け（D にはどちらもあります）、列を中身に合わせる操作、セルの編集。
+
 ## 未決の件
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
@@ -863,4 +923,5 @@ androidx の `6068a9492ba8` の `compose/material3/adaptive/adaptive-layout/.../
 - 第 3 段階の部品で作っていないもの：月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
 - 第 4 段階の画面のパターンで作っていないもの：予測型の戻る操作（シート・ドロワー・レール・検索）、アンカーへはじく動きの減速の段階、シートの中身とシートの間の入れ子のスクロール、`AppBarWithSearch`・`ExpandedFullScreenContainedSearchBar`・`ExpandedDockedSearchBarWithGap`、M3 のデザインのサイトにあるサイドシートの寸法（スクリプトなしでは読めません）。
 - 第 5 段階の Expressive の部品で作っていないもの：縦のボタンの組と項目ごとのそろえ方、キーで押したときのボタンの広がり、スクロールで常に退く浮かぶツールバーと `minimumInteractiveBalancedPadding`、受け渡しの前に直線の波の表示の線を速めて走り切らせる動き、スクロールする FAB メニュー、`Modifier.animateFloatingActionButton`、`AppBarWithSearch` などの Expressive の検索バー、はみ出しを持つ `AppBarRow` と `AppBarColumn`、`CheckableDropdownMenuItem` と `SelectableDropdownMenuItem`、`ScrollField` と `Modifier.nonInteractiveScrollbar`。
-- 第 6 段階の画面の広さとデスクトップ向けの作業で作っていないもの：チェックボックス・ラジオボタン・スイッチの密度、中くらいの短いナビゲーションバーの並び、ナビゲーションスイートの主な操作、浮かせたペイン、ヒンジ、予測型の戻る操作とペインの状態の保存、ペインの止まる位置を選ぶ前の減速、データテーブル、区分ボタンの行の幅の指定。
+- 第 6 段階の画面の広さとデスクトップ向けの作業で作っていないもの：チェックボックス・ラジオボタン・スイッチの密度、中くらいの短いナビゲーションバーの並び、ナビゲーションスイートの主な操作、浮かせたペイン、ヒンジ、予測型の戻る操作とペインの状態の保存、ペインの止まる位置を選ぶ前の減速、区分ボタンの行の幅の指定。
+- 第 7 段階のデスクトップ向けの作業で作っていないもの：メニューの先頭文字での移動、macOS の Command キー、チェックやラジオのメニュー項目、表のセルの省略記号、表の列の並べ替えと中身に合わせる操作、チェックボックスの列、ページ分け、セルの編集。
