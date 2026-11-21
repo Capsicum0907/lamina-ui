@@ -104,6 +104,7 @@ add_library(lamina STATIC
     src/lamina/widgets/split_pane.cpp
     src/lamina/widgets/pane_navigator.cpp
     src/lamina/widgets/pane_scaffold.cpp
+    src/lamina/widgets/navigation_suite.cpp
     src/lamina/widgets/search_bar.cpp
     src/lamina/widgets/segmented_button.cpp
     src/lamina/widgets/range_slider.cpp
@@ -311,6 +312,7 @@ if(LAMINA_BUILD_TESTS)
         tests/navigation_drawer_test.cpp
         tests/modal_navigation_rail_test.cpp
         tests/navigation_rail_test.cpp
+        tests/navigation_suite_test.cpp
         tests/overlay_stack_test.cpp
         tests/overlay_patterns_test.cpp
         tests/pane_scaffold_test.cpp
