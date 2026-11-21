@@ -119,6 +119,7 @@ add_library(lamina STATIC
     src/lamina/widgets/split_button.cpp
     src/lamina/widgets/surface.cpp
     src/lamina/widgets/switch.cpp
+    src/lamina/widgets/table.cpp
     src/lamina/widgets/tabs.cpp
     src/lamina/widgets/text_field.cpp
     src/lamina/widgets/time_picker.cpp
@@ -347,6 +348,7 @@ if(LAMINA_BUILD_TESTS)
         tests/support.cpp
         tests/surface_test.cpp
         tests/switch_test.cpp
+        tests/table_test.cpp
         tests/tabs_test.cpp
         tests/text_field_test.cpp
         tests/title_bar_test.cpp
