@@ -20,6 +20,21 @@ This product includes software and data from the following projects:
   Vendored unchanged in third_party/material-symbols/; the icon fonts that
   lamina_add_resources embeds in programs are modified subsets of it.
 
+- Google Sans Flex (https://github.com/googlefonts/googlesans-flex)
+  Copyright 2025 The Google Sans Flex Project Authors. SIL Open Font License 1.1
+  (third_party/google-sans-flex/OFL.txt). "Google", "Google Sans" and "Google Sans Flex"
+  are trademarks of Google LLC (third_party/google-sans-flex/TRADEMARKS.md); lamina-ui
+  is not affiliated with or endorsed by Google. Vendored unchanged; programs that
+  list it in lamina_add_resources embed it unchanged.
+
+- Roboto Flex (https://github.com/googlefonts/roboto-flex)
+  Copyright 2017 The Roboto Flex Project Authors. SIL Open Font License 1.1
+  (third_party/roboto-flex/OFL.txt). Vendored and embedded unchanged.
+
+- Noto Sans JP (https://github.com/notofonts/noto-cjk)
+  Copyright 2014-2021 Adobe, with Reserved Font Name 'Source'. SIL Open Font License 1.1
+  (third_party/noto-sans-jp/OFL.txt). Vendored and embedded unchanged.
+
 - Noto Sans JP and Oswald, as renamed subsets in tests/fixtures/fonts/.
   SIL Open Font License 1.1 (license files in that directory).
 
