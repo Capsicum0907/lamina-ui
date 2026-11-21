@@ -39,9 +39,8 @@ struct AdaptiveLayout {
     color::Role list_container = color::Role::surface_container_low;
     color::Role detail_container = color::Role::surface_container;
     tokens::CornerSize pane_corner = tokens::CornerSize::large;
-    std::array<widgets::PaneExpansionAnchor, 3> anchors{widgets::PaneExpansionAnchor::from_start(360.0),
-                                                        widgets::PaneExpansionAnchor::proportion(0.5),
-                                                        widgets::PaneExpansionAnchor::from_end(360.0)};
+    std::array<widgets::PaneExpansionAnchor, 4> anchors{widgets::PaneExpansionAnchor::proportion(0.0), widgets::PaneExpansionAnchor::from_start(300.0),
+                                                        widgets::PaneExpansionAnchor::proportion(0.6), widgets::PaneExpansionAnchor::proportion(1.0)};
 };
 
 const AdaptiveLayout adaptive_layout;

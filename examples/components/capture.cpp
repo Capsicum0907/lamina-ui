@@ -2100,7 +2100,7 @@ const std::map<std::string, Scene>& adaptive_videos() {
              d.wait(0.6);
              d.move_to(handle_point(g, "Stage and timeline"), 0.7);
              d.wait(0.3);
-             d.drag_to({d.pointer().x, d.pointer().y - 120.0}, 1.0);
+             d.drag_to({d.pointer().x, d.pointer().y + 90.0}, 1.0);
              d.wait(0.4);
              d.move_to(handle_point(g, "Assets and stage"), 0.7);
              d.wait(0.3);

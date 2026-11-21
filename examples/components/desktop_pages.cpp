@@ -3,6 +3,7 @@
 #include <cmath>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "components/base_page.hpp"
@@ -258,14 +259,16 @@ public:
         }
         for (widgets::SplitPane* s : splits_) {
             if (s->handle(e)) {
-                editor_.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+                assets_.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+                inspector_.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
                 return true;
             }
         }
         if (timeline_.handle(e)) {
             return true;
         }
-        editor_.handle(e);
+        deliver(assets_, assets_rect_, e);
+        deliver(inspector_, inspector_rect_, e);
         return handle_controls(e);
     }
 
@@ -286,12 +289,13 @@ public:
                 return true;
             }
         }
-        return editor_.handle(e) || controls.handle(e);
+        const bool used = assets_.handle(e);
+        return inspector_.handle(e) || used || controls.handle(e);
     }
 
     void handle(const input::TextEvent& e) override {
         if (view_ == 1) {
-            editor_.handle(e);
+            inspector_.handle(e);
         } else {
             for (auto& c : columns_) {
                 c->widgets.handle(e);
@@ -308,7 +312,8 @@ public:
         for (auto& c : columns_) {
             c->widgets.step(dt);
         }
-        editor_.step(dt);
+        assets_.step(dt);
+        inspector_.step(dt);
         for (widgets::SplitPane* s : splits_) {
             s->step(dt);
         }
@@ -316,7 +321,7 @@ public:
     }
 
     bool animating() const override {
-        bool any = BasePage::animating() || editor_.animating() || timeline_.animating();
+        bool any = BasePage::animating() || assets_.animating() || inspector_.animating() || timeline_.animating();
         for (const auto& c : columns_) {
             any = any || c->widgets.animating();
         }
@@ -345,7 +350,13 @@ public:
         const render::Rect art{preview_rect_.x + (preview_rect_.width - s * 16.0 / 9.0) / 2.0, preview_rect_.y + (preview_rect_.height - s) / 2.0,
                                s * 16.0 / 9.0, s};
         canvas.fill_path(render::rounded_rect_path(art, render::uniform_radii(12.0)), scheme[l.preview_art]);
-        editor_.paint(canvas, scheme);
+        for (const auto& [set, rect] : {std::pair{&assets_, &assets_rect_}, std::pair{&inspector_, &inspector_rect_}}) {
+            canvas.save();
+            canvas.push_clip(*rect);
+            set->paint(canvas, scheme);
+            canvas.pop_clip();
+            canvas.restore();
+        }
         timeline_.paint(canvas, scheme);
         for (const widgets::SplitPane* sp : splits_) {
             sp->paint(canvas, scheme);
@@ -364,8 +375,10 @@ public:
             }
             return nodes;
         }
-        for (widgets::AccessibleNode& n : editor_.accessible_nodes()) {
-            nodes.push_back(std::move(n));
+        for (const widgets::WidgetSet* set : {&assets_, &inspector_}) {
+            for (widgets::AccessibleNode& n : set->accessible_nodes()) {
+                nodes.push_back(std::move(n));
+            }
         }
         nodes.push_back(timeline_.accessible());
         for (const widgets::SplitPane* s : splits_) {
@@ -379,7 +392,8 @@ public:
         for (auto& c : columns_) {
             c->widgets.set_enabled(enabled);
         }
-        editor_.set_enabled(enabled);
+        assets_.set_enabled(enabled);
+        inspector_.set_enabled(enabled);
         for (widgets::SplitPane* s : splits_) {
             s->set_enabled(enabled);
         }
@@ -390,7 +404,8 @@ public:
         for (auto& c : columns_) {
             c->widgets.cancel_interaction();
         }
-        editor_.cancel_interaction();
+        assets_.cancel_interaction();
+        inspector_.cancel_interaction();
         for (widgets::SplitPane* s : splits_) {
             s->cancel_interaction();
         }
@@ -407,7 +422,7 @@ public:
             }
         }
         std::optional<input::Cursor> found;
-        editor_.for_each<widgets::NumericField>([&found](const widgets::NumericField& f) {
+        inspector_.for_each<widgets::NumericField>([&found](const widgets::NumericField& f) {
             if (!found) {
                 found = f.cursor();
             }
@@ -416,6 +431,16 @@ public:
     }
 
 private:
+    static void deliver(widgets::WidgetSet& set, const render::Rect& area, const input::PointerEvent& e) {
+        if (e.action != input::PointerAction::leave && widgets::contains(area, e.x_dp, e.y_dp)) {
+            set.handle(e);
+        } else if (e.action == input::PointerAction::down) {
+            set.handle(input::PointerEvent{input::PointerAction::down, -1.0e9, -1.0e9});
+        } else {
+            set.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+        }
+    }
+
     layout::NodePtr build_column(int d) {
         const DesktopLayout& l = desktop_layout;
         auto col = std::make_unique<DensityColumn>();
@@ -507,7 +532,7 @@ private:
         const std::array<icons::Symbol, 6> symbols{res::icons::image, res::icons::image, res::icons::mic, res::icons::videocam, res::icons::videocam,
                                                    res::icons::text_fields};
         for (std::size_t i = 0; i < files.size(); ++i) {
-            auto& item = editor_.emplace<widgets::ListItem>(
+            auto& item = assets_.emplace<widgets::ListItem>(
                 widgets::ListItemSpec{.headline = files[i][0],
                                       .supporting = files[i][1],
                                       .leading = widgets::ListSlot::of_icon(icon(symbols[i])),
@@ -551,11 +576,11 @@ private:
                                          {"Opacity", 100.0, 0.0, 100.0, 1.0, 0, "%"},
                                          {"Duration", 6.5, 0.1, 600.0, 0.1, 1, "s"}}};
         std::vector<layout::NodePtr> fields;
-        auto& heading = editor_.emplace<widgets::Label>(
+        auto& heading = inspector_.emplace<widgets::Label>(
             widgets::LabelOptions{"Layer: cam-01 wide", tokens::TypeRole::title_small, color::Role::on_surface, false}, ctx.fonts);
         fields.push_back(widgets::node(heading));
         for (const Spec& s : specs) {
-            auto& field = editor_.emplace_with<widgets::NumericField>(
+            auto& field = inspector_.emplace_with<widgets::NumericField>(
                 [this](widgets::NumericField& w, const widgets::NumericFieldResponse& r) {
                     if (r.committed && !w.error()) {
                         ctx.report(w.accessible().name + ": " + w.formatted());
@@ -577,7 +602,7 @@ private:
             editor_focus_.add(field);
             fields.push_back(widgets::node(field));
         }
-        auto& blend = editor_.emplace_with<widgets::NumericField>(
+        auto& blend = inspector_.emplace_with<widgets::NumericField>(
             [this](widgets::NumericField& w, const widgets::NumericFieldResponse& r) {
                 if (r.committed) {
                     ctx.report(w.accessible().name + ": " + w.formatted());
@@ -639,7 +664,8 @@ private:
     std::vector<std::unique_ptr<DensityColumn>> columns_;
     std::array<render::Rect, 4> column_rects_{};
     DemoFrame editor_frame_;
-    widgets::WidgetSet editor_;
+    widgets::WidgetSet assets_;
+    widgets::WidgetSet inspector_;
     widgets::FocusManager editor_focus_;
     Timeline timeline_;
     std::unique_ptr<widgets::SplitPane> outer_split_;
