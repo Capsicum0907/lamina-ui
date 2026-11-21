@@ -11,6 +11,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/tabs.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
@@ -34,6 +35,7 @@ struct TabRowOptions {
     std::size_t selected = 0;
     TabIconPosition icon_position = TabIconPosition::top;
     std::string accessible_name = {};
+    tokens::Density density = {};
 };
 
 class TabRow {
@@ -42,6 +44,8 @@ public:
 
     double width() const { return width_; }
     double height() const { return height_; }
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
     void set_width(double width);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
@@ -92,6 +96,8 @@ private:
     std::vector<Tab> tabs_;
     double width_ = 0.0;
     double height_ = 0.0;
+    bool stacked_ = false;
+    void update_height();
     render::Point origin_{0.0, 0.0};
     bool placed_ = false;
     motion::Animated indicator_offset_;

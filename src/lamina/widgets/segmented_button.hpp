@@ -11,6 +11,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/segmented_button.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
@@ -34,6 +35,7 @@ struct SegmentedButtonRowOptions {
     SegmentSelection selection = SegmentSelection::single;
     std::string accessible_name = {};
     bool enabled = true;
+    tokens::Density density = {};
 };
 
 struct SegmentedButtonResponse {
@@ -48,6 +50,8 @@ public:
     double width() const;
     double height() const;
     double segment_width() const { return segment_width_; }
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const { return {origin_.x, origin_.y, width(), height()}; }
     render::Rect segment_bounds(std::size_t index) const;
@@ -106,6 +110,8 @@ private:
     std::vector<Item> segments_;
     double segment_width_ = 0.0;
     double height_ = 0.0;
+    double tallest_ = 0.0;
+    void update_height();
     render::Point origin_{0.0, 0.0};
     FocusIndicator focus_;
     std::size_t focus_index_ = 0;

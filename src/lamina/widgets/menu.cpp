@@ -77,6 +77,7 @@ render::Point menu_transform_origin(const render::Rect& anchor, const render::Re
 
 Menu::Menu(MenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(options.accessible_name), popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+    density_ = options.density;
     const auto style = tokens::text_style(tokens::type_style(t.label));
     double content = 0.0;
     for (auto& item : options.items) {
@@ -104,8 +105,12 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
     width_ = std::clamp(content, t.item_min_width, t.item_max_width);
 }
 
+double Menu::item_height() const {
+    return tokens::density_tokens.menu_item.at(density_);
+}
+
 double Menu::height() const {
-    return 2.0 * t.vertical_padding + t.item_height * static_cast<double>(items_.size());
+    return 2.0 * t.vertical_padding + item_height() * static_cast<double>(items_.size());
 }
 
 render::Rect Menu::bounds() const {
@@ -113,7 +118,7 @@ render::Rect Menu::bounds() const {
 }
 
 render::Rect Menu::item_rect(std::size_t index) const {
-    return {origin_.x, origin_.y + t.vertical_padding + t.item_height * static_cast<double>(index), width_, t.item_height};
+    return {origin_.x, origin_.y + t.vertical_padding + item_height() * static_cast<double>(index), width_, item_height()};
 }
 
 void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSource source) {

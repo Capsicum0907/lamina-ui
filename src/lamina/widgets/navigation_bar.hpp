@@ -22,6 +22,7 @@ struct NavigationBarOptions {
     std::vector<NavigationItem> items;
     std::size_t selected = 0;
     std::string accessible_name = {};
+    tokens::Density density = {};
 };
 
 class NavigationBar {
@@ -31,6 +32,8 @@ public:
     double width() const { return width_; }
     double height() const;
     void set_width(double width) { width_ = width; }
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density) { options_.density = density; }
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
 
@@ -75,6 +78,7 @@ private:
     };
 
     double content_top(std::size_t index) const;
+    double item_padding() const;
     render::Rect full_indicator_rect(std::size_t index) const;
 
     NavigationBarOptions options_;

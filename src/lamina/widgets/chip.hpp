@@ -11,6 +11,7 @@
 #include "lamina/render/image.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/chip.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
@@ -32,6 +33,7 @@ struct ChipOptions {
     bool enabled = true;
     std::string accessible_name = {};
     std::string remove_name = "Remove";
+    tokens::Density density = {};
 };
 
 struct ChipResponse {
@@ -47,6 +49,8 @@ public:
     double width() const;
     double height() const;
     double target_width() const;
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density) { options_.density = density; }
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
     std::optional<render::Rect> leading_rect() const;

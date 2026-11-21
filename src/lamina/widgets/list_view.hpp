@@ -25,6 +25,7 @@ struct ListViewOptions {
     bool single_selection = false;
     std::string accessible_name = {};
     double top_inset = 0.0;
+    tokens::Density density = {};
 };
 
 struct ListViewResponse {
@@ -70,6 +71,8 @@ public:
     std::optional<std::size_t> focused_row() const;
     bool enabled() const { return enabled_; }
     void set_enabled(bool enabled);
+    tokens::Density density() const { return density_; }
+    void set_density(tokens::Density density);
     bool can_focus() const;
     AccessibleNode accessible() const;
 
@@ -105,6 +108,7 @@ private:
     FocusIndicator focus_;
     std::size_t focus_index_ = 0;
     bool enabled_ = true;
+    tokens::Density density_{};
     std::optional<std::size_t> pressed_;
     std::pair<std::size_t, std::size_t> visible_{0, 0};
     mutable ListViewStats stats_;

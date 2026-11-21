@@ -16,12 +16,34 @@ ListView::ListView(ListViewOptions options, const text::FontStack& fonts)
     : fonts_(fonts),
       single_selection_(options.single_selection),
       accessible_name_(std::move(options.accessible_name)),
-      top_inset_(options.top_inset) {
+      top_inset_(options.top_inset),
+      density_(options.density) {
     set_items(std::move(options.items));
+}
+
+void ListView::set_density(tokens::Density density) {
+    if (density == density_) {
+        return;
+    }
+    density_ = density;
+    for (std::size_t i = 0; i < specs_.size(); ++i) {
+        specs_[i].density = density;
+        heights_[i] = list_item_estimate(specs_[i]);
+        measured_width_[i] = -1.0;
+    }
+    for (auto& [index, row] : live_) {
+        row->set_density(density);
+    }
+    tops_dirty_ = true;
+    scroll_.set_content_height(content_height());
+    update_rows();
 }
 
 void ListView::set_items(std::vector<ListItemSpec> items) {
     specs_ = std::move(items);
+    for (ListItemSpec& spec : specs_) {
+        spec.density = density_;
+    }
     live_.clear();
     pressed_.reset();
     heights_.assign(specs_.size(), 0.0);

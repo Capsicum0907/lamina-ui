@@ -31,10 +31,10 @@ motion::DragThresholds drawer_thresholds() {
     return {[](double distance) { return distance * t.positional_fraction; }, t.velocity_threshold};
 }
 
-double entry_height(DrawerEntryKind kind) {
+double entry_height(DrawerEntryKind kind, tokens::Density density) {
     switch (kind) {
     case DrawerEntryKind::item:
-        return t.item_height;
+        return tokens::density_tokens.drawer_item.at(density);
     case DrawerEntryKind::headline:
         return t.headline_height;
     case DrawerEntryKind::divider:
@@ -57,7 +57,7 @@ DrawerSheet::DrawerSheet(DrawerSheetOptions options, const text::FontStack& font
                 e.badge && !e.badge->text.empty() ? std::optional<text::TextLine>(text::layout_line(fonts_, e.badge->text, style_of(t.badge_type)))
                                                   : std::nullopt,
                 0.0,
-                entry_height(e.kind),
+                entry_height(e.kind, options_.density),
                 {},
                 motion::Animated(0.0, tokens::motion_scheme.fast_effects()),
                 motion::Animated(selected ? 1.0 : 0.0, motion_spec.colors),
@@ -67,6 +67,14 @@ DrawerSheet::DrawerSheet(DrawerSheetOptions options, const text::FontStack& font
     }
     layout_rows();
     focus_index_ = focus_start();
+}
+
+void DrawerSheet::set_density(tokens::Density density) {
+    options_.density = density;
+    for (std::size_t i = 0; i < rows_.size(); ++i) {
+        rows_[i].height = entry_height(options_.entries[i].kind, density);
+    }
+    layout_rows();
 }
 
 void DrawerSheet::layout_rows() {

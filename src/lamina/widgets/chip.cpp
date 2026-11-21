@@ -105,7 +105,7 @@ double Chip::target_width() const {
 }
 
 double Chip::height() const {
-    return t.height;
+    return tokens::density_tokens.chip.at(options_.density);
 }
 
 render::Rect Chip::bounds() const {
@@ -117,7 +117,7 @@ std::optional<render::Rect> Chip::leading_rect() const {
         return std::nullopt;
     }
     const double w = leading_width();
-    return render::Rect{origin_.x + start_padding(), origin_.y + (t.height - w) / 2.0, w * std::min(1.0, leading_size_.value()), w};
+    return render::Rect{origin_.x + start_padding(), origin_.y + (height() - w) / 2.0, w * std::min(1.0, leading_size_.value()), w};
 }
 
 std::optional<render::Rect> Chip::trailing_rect() const {
@@ -125,7 +125,7 @@ std::optional<render::Rect> Chip::trailing_rect() const {
         return std::nullopt;
     }
     const render::Rect r = bounds();
-    return render::Rect{r.x + r.width - end_padding() - t.icon_size, r.y + (t.height - t.icon_size) / 2.0, t.icon_size, t.icon_size};
+    return render::Rect{r.x + r.width - end_padding() - t.icon_size, r.y + (height() - t.icon_size) / 2.0, t.icon_size, t.icon_size};
 }
 
 std::optional<render::Rect> Chip::remove_target() const {
@@ -133,7 +133,7 @@ std::optional<render::Rect> Chip::remove_target() const {
         return std::nullopt;
     }
     const render::Rect icon = *trailing_rect();
-    const render::Rect target = touch_target(bounds());
+    const render::Rect target = touch_target(bounds(), tokens::minimum_target(options_.density));
     const double x = icon.x - t.element_spacing / 2.0;
     return render::Rect{x, target.y, target.x + target.width - x, target.height};
 }
@@ -231,7 +231,7 @@ ChipResponse Chip::handle(const input::PointerEvent& e) {
     if (over_remove || remove_press_.pressed) {
         body.action = input::PointerAction::leave;
     }
-    if (press_.update(body, touch_target(bounds()))) {
+    if (press_.update(body, touch_target(bounds(), tokens::minimum_target(options_.density)))) {
         activate(response);
     }
     retarget();

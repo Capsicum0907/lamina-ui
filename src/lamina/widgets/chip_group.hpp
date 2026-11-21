@@ -54,6 +54,8 @@ public:
     std::optional<std::size_t> focused_chip() const;
     bool enabled() const { return enabled_; }
     void set_enabled(bool enabled);
+    tokens::Density density() const { return density_; }
+    void set_density(tokens::Density density);
     void set_chip_enabled(std::size_t index, bool enabled);
     bool can_focus() const;
     AccessibleNode accessible() const;
@@ -87,6 +89,7 @@ private:
     void start_leaving(std::size_t entry, ChipGroupResponse& response);
 
     ChipGroupOptions options_;
+    tokens::Density density_{};
     text::FontStack fonts_;
     std::vector<Entry> entries_;
     render::Point origin_{0.0, 0.0};

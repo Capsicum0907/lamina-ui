@@ -16,16 +16,25 @@ text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
 }
 
-double min_height(ListLines lines) {
+const tokens::DenseLength& line_density(ListLines lines) {
     switch (lines) {
     case ListLines::three:
-        return t.three_line_height;
+        return tokens::density_tokens.list_three_line;
     case ListLines::two:
-        return t.two_line_height;
+        return tokens::density_tokens.list_two_line;
     case ListLines::one:
         break;
     }
-    return t.one_line_height;
+    return tokens::density_tokens.list_one_line;
+}
+
+double min_height(ListLines lines, tokens::Density density) {
+    return line_density(lines).at(density);
+}
+
+double vertical_space(double space, ListLines lines, tokens::Density density) {
+    const tokens::DenseLength& l = line_density(lines);
+    return std::max(0.0, space - (l.base - l.at(density)) / 2.0);
 }
 
 bool takes_toggle(ListItemAction action) {
@@ -36,12 +45,17 @@ bool takes_toggle(ListItemAction action) {
 
 double list_item_estimate(const ListItemSpec& spec) {
     if (!spec.overline.empty() && !spec.supporting.empty()) {
-        return t.three_line_height;
+        return min_height(ListLines::three, spec.density);
     }
     if (!spec.overline.empty() || !spec.supporting.empty()) {
-        return t.two_line_height;
+        return min_height(ListLines::two, spec.density);
     }
-    return t.one_line_height;
+    return min_height(ListLines::one, spec.density);
+}
+
+void ListItem::set_density(tokens::Density density) {
+    spec_.density = density;
+    text_width_ = -1.0;
 }
 
 ListItem::ListItem(ListItemSpec spec, const text::FontStack& fonts)
@@ -135,7 +149,8 @@ void ListItem::layout_text(double width) {
     }
     const double text_h = (overline_ ? overline_->box_height() : 0.0) + headline_.height + supporting_.height;
     const double content = std::max({slot_size(leading_).height, text_h, slot_size(trailing_).height});
-    height_ = std::max(min_height(lines_), t.top_space + t.bottom_space + content);
+    height_ = std::max(min_height(lines_, spec_.density),
+                       vertical_space(t.top_space, lines_, spec_.density) + vertical_space(t.bottom_space, lines_, spec_.density) + content);
 }
 
 double ListItem::height_for(double width) {
@@ -176,8 +191,9 @@ void ListItem::place_slot(Slot& slot, double x, double top, double inner, bool t
 void ListItem::arrange(const render::Rect& r) {
     height_for(r.width);
     rect_ = r;
-    const double top = r.y + t.top_space;
-    const double inner = r.height - t.top_space - t.bottom_space;
+    const double top_space = vertical_space(t.top_space, lines_, spec_.density);
+    const double top = r.y + top_space;
+    const double inner = r.height - top_space - vertical_space(t.bottom_space, lines_, spec_.density);
     const bool top_aligned = inner >= t.top_align_breakpoint;
     double x = r.x + t.leading_space;
     if (leading_.spec.kind != ListSlotKind::none) {

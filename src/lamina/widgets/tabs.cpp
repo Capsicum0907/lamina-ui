@@ -41,7 +41,17 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
         tabs_.push_back({std::move(label), item.icon, {}, motion::Animated(0.0, motion_scheme.fast_effects()),
                          motion::Animated(on, fade_in_spring), Enablement(item.enabled), item.enabled});
     }
-    height_ = stacked ? t.icon_and_label_height : t.height;
+    stacked_ = stacked;
+    update_height();
+}
+
+void TabRow::update_height() {
+    height_ = (stacked_ ? tokens::density_tokens.tab_with_icon : tokens::density_tokens.tab).at(options_.density);
+}
+
+void TabRow::set_density(tokens::Density density) {
+    options_.density = density;
+    update_height();
 }
 
 void TabRow::set_width(double width) {
@@ -226,7 +236,8 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
     const double cy = r.y + r.height / 2.0;
 
     if (tab.label && tab.icon && options_.icon_position == TabIconPosition::top) {
-        const double baseline = r.y + r.height - t.text_baseline_with_icon - style.indicator_height;
+        const double removed = t.icon_and_label_height - r.height;
+        const double baseline = r.y + r.height - (t.text_baseline_with_icon - removed / 2.0) - style.indicator_height;
         const double icon_top = baseline - t.icon_distance_from_baseline - t.icon_size;
         tab.icon->font.draw(canvas, tab.icon->symbol, {cx - t.icon_size / 2.0, icon_top}, t.icon_size, content);
         text::draw_line(canvas, fonts_, *tab.label, {cx - tab.label->width / 2.0, baseline - tab.label->baseline}, content);

@@ -13,6 +13,7 @@
 #include "lamina/tokens/motion.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/menu.hpp"
 #include "lamina/widgets/access_key.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -33,6 +34,7 @@ struct MenuItem {
 struct MenuOptions {
     std::vector<MenuItem> items;
     std::string accessible_name = {};
+    tokens::Density density = {};
 };
 
 struct MenuResponse {
@@ -51,8 +53,11 @@ public:
 
     double width() const { return width_; }
     double height() const;
+    double item_height() const;
     render::Rect bounds() const;
     render::Rect item_rect(std::size_t index) const;
+    tokens::Density density() const { return density_; }
+    void set_density(tokens::Density density) { density_ = density; }
 
     void open(const render::Rect& anchor, layout::Size window, input::InputSource source = input::InputSource::pointer);
     void close();
@@ -102,6 +107,7 @@ private:
     FocusIndicator focus_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};
+    tokens::Density density_{};
     render::Point pivot_{0.0, 0.0};
     PopupTransition popup_;
 };

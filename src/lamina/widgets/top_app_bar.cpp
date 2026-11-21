@@ -73,11 +73,18 @@ TitleAlignment TopAppBar::alignment() const {
 }
 
 double TopAppBar::expanded_height() const {
-    return has_subtitle() ? kind().expanded_height_with_subtitle : kind().expanded_height;
+    const double removed = t.collapsed_height - collapsed_height();
+    return (has_subtitle() ? kind().expanded_height_with_subtitle : kind().expanded_height) - removed;
 }
 
 double TopAppBar::collapsed_height() const {
-    return t.collapsed_height;
+    return tokens::density_tokens.top_app_bar.at(options_.density);
+}
+
+void TopAppBar::set_density(tokens::Density density) {
+    options_.density = density;
+    state_.set_height_offset_limit(two_rows() ? collapsed_height() - expanded_height() : -collapsed_height());
+    place_buttons();
 }
 
 double TopAppBar::height() const {

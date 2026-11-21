@@ -14,6 +14,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/navigation_drawer.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/badge.hpp"
@@ -51,6 +52,7 @@ struct DrawerSheetOptions {
     DrawerSheetStyle style = DrawerSheetStyle::modal;
     const PatternStrings* strings = &english_us_patterns();
     std::string accessible_name = {};
+    tokens::Density density = {};
 };
 
 struct DrawerResponse {
@@ -69,6 +71,8 @@ public:
     render::Rect bounds() const { return rect_; }
     double content_height() const;
     double width_for(double available) const;
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
 
     std::size_t count() const { return options_.entries.size(); }
     const DrawerEntry& entry(std::size_t index) const { return options_.entries[index]; }

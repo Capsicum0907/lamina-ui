@@ -36,12 +36,16 @@ NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack
     }
 }
 
+double NavigationBar::item_padding() const {
+    const tokens::DenseLength& l = tokens::density_tokens.navigation_bar;
+    return std::max(0.0, t.item_vertical_padding - (l.base - l.at(options_.density)) / 2.0);
+}
+
 double NavigationBar::height() const {
-    double content = t.height;
+    double content = tokens::density_tokens.navigation_bar.at(options_.density);
     for (const Item& item : items_) {
         if (item.label) {
-            content = std::max(content, 2.0 * t.item_vertical_padding + t.indicator_height + t.indicator_to_label_space +
-                                            label_height(*item.label));
+            content = std::max(content, 2.0 * item_padding() + t.indicator_height + t.indicator_to_label_space + label_height(*item.label));
         }
     }
     return content;
@@ -62,8 +66,8 @@ double NavigationBar::content_top(std::size_t index) const {
     if (!item.label) {
         return r.y + (r.height - t.indicator_height) / 2.0;
     }
-    const double content = 2.0 * t.item_vertical_padding + t.indicator_height + t.indicator_to_label_space + label_height(*item.label);
-    return r.y + (r.height - content) / 2.0 + t.item_vertical_padding;
+    const double content = 2.0 * item_padding() + t.indicator_height + t.indicator_to_label_space + label_height(*item.label);
+    return r.y + (r.height - content) / 2.0 + item_padding();
 }
 
 render::Rect NavigationBar::full_indicator_rect(std::size_t index) const {

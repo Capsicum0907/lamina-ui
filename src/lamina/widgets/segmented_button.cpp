@@ -64,7 +64,19 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
     for (const Item& item : segments_) {
         tallest = std::max(tallest, item.spec.label.empty() ? t.icon_size : item.label.box_height());
     }
-    height_ = std::max(t.height, tallest + 2.0 * t.vertical_padding);
+    tallest_ = tallest;
+    update_height();
+}
+
+void SegmentedButtonRow::update_height() {
+    const tokens::DenseLength& l = tokens::density_tokens.segmented_button;
+    const double removed = l.base - l.at(options_.density);
+    height_ = std::max(l.at(options_.density), tallest_ + 2.0 * std::max(0.0, t.vertical_padding - removed / 2.0));
+}
+
+void SegmentedButtonRow::set_density(tokens::Density density) {
+    options_.density = density;
+    update_height();
 }
 
 double SegmentedButtonRow::width() const {
@@ -230,7 +242,7 @@ SegmentedButtonResponse SegmentedButtonRow::handle(const input::PointerEvent& e)
         if (i + 1 < segments_.size()) {
             hit.width -= t.outline_width;
         }
-        const render::Rect target = touch_target(hit);
+        const render::Rect target = touch_target(hit, tokens::minimum_target(options_.density));
         if (item.press.update(e, {hit.x, target.y, hit.width, target.height})) {
             activate(i, response);
         }

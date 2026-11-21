@@ -267,6 +267,13 @@ void ChipGroup::set_enabled(bool enabled) {
     }
 }
 
+void ChipGroup::set_density(tokens::Density density) {
+    density_ = density;
+    for (Entry& e : entries_) {
+        e.chip->set_density(density);
+    }
+}
+
 void ChipGroup::set_chip_enabled(std::size_t index, bool enabled) {
     Entry& e = entries_[entry_index(index)];
     e.allowed = enabled;

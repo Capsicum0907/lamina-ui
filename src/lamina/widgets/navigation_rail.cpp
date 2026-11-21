@@ -25,7 +25,7 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
       min_width_(options_.expanded ? t.expanded_min_width : t.collapsed_width, motion_scheme.default_spatial()),
       full_width_(options_.expanded ? t.expanded_max_width : t.collapsed_width, motion_scheme.default_spatial()),
       item_space_(options_.expanded ? t.expanded_item_space : t.collapsed_item_space, motion_scheme.default_spatial()),
-      item_min_height_(options_.expanded ? t.expanded_item_min_height : t.collapsed_item_min_height, motion_scheme.default_spatial()),
+      item_min_height_(item_min_height(options_.expanded), motion_scheme.default_spatial()),
       max_width_(t.expanded_max_width) {
     const auto top_style = tokens::text_style(tokens::type_style(t.top_label));
     const auto start_style = tokens::text_style(tokens::type_style(t.start_label));
@@ -42,6 +42,19 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
     update_width();
 }
 
+double NavigationRail::item_min_height(bool expanded) const {
+    if (expanded) {
+        return std::min(t.expanded_item_min_height, tokens::density_tokens.rail_expanded_item.at(options_.density));
+    }
+    return tokens::density_tokens.rail_collapsed_item.at(options_.density);
+}
+
+void NavigationRail::set_density(tokens::Density density) {
+    options_.density = density;
+    item_min_height_.snap_to(item_min_height(options_.expanded));
+    update_layout();
+}
+
 NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item_max_width) const {
     const Item& item = items_[index];
     const bool top = !options_.expanded;
@@ -54,7 +67,8 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
     const double icon = t.icon_size;
 
     const double pad_h = motion::lerp((t.top_indicator_width - icon) / 2.0, t.start_indicator_leading_space, pd);
-    const double pad_v = motion::lerp((t.top_indicator_height - icon) / 2.0, (t.start_indicator_height - icon) / 2.0, pd);
+    const double start_indicator = tokens::density_tokens.rail_expanded_item.at(options_.density);
+    const double pad_v = motion::lerp((t.top_indicator_height - icon) / 2.0, (start_indicator - icon) / 2.0, pd);
     const double ripple_w = motion::lerp(icon, icon + lw + t.start_icon_label_space, p) + 2.0 * pad_h;
     const double ripple_h = motion::lerp(icon, std::max(icon, lh), p) + 2.0 * pad_v;
 
@@ -169,7 +183,7 @@ void NavigationRail::set_expanded(bool expanded) {
     min_width_.animate_to(expanded ? t.expanded_min_width : t.collapsed_width);
     full_width_.animate_to(expanded ? t.expanded_max_width : t.collapsed_width);
     item_space_.animate_to(expanded ? t.expanded_item_space : t.collapsed_item_space);
-    item_min_height_.animate_to(expanded ? t.expanded_item_min_height : t.collapsed_item_min_height);
+    item_min_height_.animate_to(item_min_height(expanded));
     for (Item& item : items_) {
         item.position.animate_to(expanded ? 1.0 : 0.0);
         item.label_mode.animate_to(expanded ? 1.0 : 0.0);

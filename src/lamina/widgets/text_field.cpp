@@ -166,8 +166,17 @@ void TextField::set_enabled(bool enabled) {
     }
 }
 
+double TextField::rest_height() const {
+    return tokens::density_tokens.text_field.at(options_.density);
+}
+
 double TextField::container_height() const {
-    return options_.multiline ? std::max(t.height, content_height() + 2 * t.vertical_padding) : t.height;
+    const double padding = t.vertical_padding - (t.height - rest_height()) / 2.0;
+    return options_.multiline ? std::max(rest_height(), content_height() + 2 * padding) : rest_height();
+}
+
+void TextField::set_density(tokens::Density density) {
+    options_.density = density;
 }
 
 double TextField::height() const {
@@ -631,7 +640,7 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         canvas.fill_path(render::ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
     }
 
-    const double rest_top = r.y + (t.height - label_large_.box_height()) / 2.0;
+    const double rest_top = r.y + (rest_height() - label_large_.box_height()) / 2.0;
     const double float_top = r.y - label_large_.box_height() * scale / 2.0;
     const double label_top = rest_top + (float_top - rest_top) * p;
     const color::Argb idle_label = color::mix(scheme[t.label], scheme[t.hover_label], hover_.value());

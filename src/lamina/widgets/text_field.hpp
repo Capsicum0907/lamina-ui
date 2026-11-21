@@ -14,6 +14,7 @@
 #include "lamina/text/edit_buffer.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/text/line_map.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
@@ -41,6 +42,7 @@ struct TextFieldOptions {
     bool outlined = true;
     std::optional<double> padding_start = std::nullopt;
     std::optional<double> padding_end = std::nullopt;
+    tokens::Density density = {};
 };
 
 class TextField {
@@ -50,6 +52,8 @@ public:
     double width() const { return width_; }
     double height() const;
     double container_height() const;
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
     void set_width(double width);
     void set_origin(render::Point origin) { origin_ = origin; }
     layout::Size measure(const layout::Constraints&) const { return {width_, height()}; }
@@ -131,6 +135,7 @@ private:
     double padding_end() const;
     double input_top() const;
     double content_height() const;
+    double rest_height() const;
 
     void copy_selection() const;
     std::u32string accepted(std::u32string_view text) const;

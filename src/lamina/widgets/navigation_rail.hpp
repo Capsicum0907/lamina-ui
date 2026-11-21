@@ -24,6 +24,7 @@ struct NavigationRailOptions {
     bool expanded = false;
     layout::NodePtr header = nullptr;
     std::string accessible_name = {};
+    tokens::Density density = {};
 };
 
 class NavigationRail {
@@ -37,6 +38,8 @@ public:
     render::Rect bounds() const;
 
     bool expanded() const { return options_.expanded; }
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
     void set_expanded(bool expanded);
     std::size_t count() const { return items_.size(); }
     std::size_t selected() const { return options_.selected; }
@@ -104,6 +107,7 @@ private:
     };
 
     Geometry geometry(std::size_t index, double item_max_width) const;
+    double item_min_height(bool expanded) const;
     const text::TextLine& label_line(std::size_t index) const;
     double header_offset() const;
     void update_width();

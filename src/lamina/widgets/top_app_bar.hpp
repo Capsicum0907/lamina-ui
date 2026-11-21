@@ -11,6 +11,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/icon_button.hpp"
@@ -30,6 +31,7 @@ struct TopAppBarOptions {
     TopAppBarScroll scroll = TopAppBarScroll::pinned;
     std::optional<TitleAlignment> alignment = std::nullopt;
     std::string accessible_name = {};
+    tokens::Density density = {};
 };
 
 struct TopAppBarResponse {
@@ -48,6 +50,8 @@ public:
     double height() const;
     double expanded_height() const;
     double collapsed_height() const;
+    tokens::Density density() const { return options_.density; }
+    void set_density(tokens::Density density);
     render::Rect bounds() const { return {origin_.x, origin_.y, width_, height()}; }
     render::Rect title_rect() const;
     double title_opacity() const;

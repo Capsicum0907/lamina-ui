@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "lamina/icons/icon.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/widgets/badge.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"

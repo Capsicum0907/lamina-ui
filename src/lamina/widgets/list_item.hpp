@@ -11,6 +11,8 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/render/image.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/density.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/list.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/checkbox.hpp"
@@ -55,6 +57,7 @@ struct ListItemSpec {
     bool enabled = true;
     std::string accessible_name = {};
     bool transparent = false;
+    tokens::Density density = {};
 };
 
 struct ListItemResponse {
@@ -73,6 +76,8 @@ public:
     void arrange(const render::Rect& r);
     render::Rect bounds() const { return rect_; }
     ListLines lines() const { return lines_; }
+    tokens::Density density() const { return spec_.density; }
+    void set_density(tokens::Density density);
     render::Rect leading_rect() const;
     render::Rect trailing_rect() const;
 
