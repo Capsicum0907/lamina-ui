@@ -68,6 +68,7 @@ struct Layout {
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
     double page_tabs_width = 1010.0;
+    double status_width = 160.0;
     std::array<const char*, 13> page_names{"Basics", "Chips & cards", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
                                            "Groups", "Progress", "Toolbars"};
 };
@@ -151,6 +152,7 @@ struct Gallery::Impl {
     SeedChips chips;
     widgets::Label header;
     widgets::Label status;
+    render::Rect status_box{0.0, 0.0, 0.0, 0.0};
     widgets::WidgetSet controls;
     widgets::WidgetSet chrome;
     widgets::WidgetSet header_widgets;
@@ -233,7 +235,13 @@ Gallery::Impl::Impl(const text::FontStack& f, const icons::IconFont& i, GalleryH
 
     auto toggle_row = layout::row({widgets::node(switch_label), widgets::node(*enabled_switch)});
     toggle_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
-    auto end_row = layout::row({widgets::node(status), toggle_row});
+    auto status_cell = std::make_shared<layout::Leaf>(
+        [this](const layout::Constraints& c) { return layout::Size{layout.status_width, status.measure(c).height}; },
+        [this](const render::Rect& r) {
+            status_box = r;
+            status.arrange(r);
+        });
+    auto end_row = layout::row({status_cell, toggle_row});
     end_row->spacing(layout.column_space).cross_align(layout::CrossAlign::center);
     auto header_row = layout::row({widgets::node(header), widgets::centered_node(*page_tabs), end_row});
     header_row->fill_main(true).main_align(layout::MainAlign::space_between).cross_align(layout::CrossAlign::center);
@@ -786,7 +794,11 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     }
     const color::ColorScheme& s = g.scheme;
     g.header.paint(canvas, s);
+    canvas.save();
+    canvas.push_clip(g.status_box);
     g.status.paint(canvas, s);
+    canvas.pop_clip();
+    canvas.restore();
     if (current) {
         g.header_widgets.paint(canvas, s);
         current->paint(canvas, s);
