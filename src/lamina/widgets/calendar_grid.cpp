@@ -71,14 +71,14 @@ std::string day_description(const calendar::CalendarLocale& locale, const calend
 }
 
 void paint_weekdays(render::Canvas& canvas, const color::ColorScheme& scheme, const text::FontStack& fonts,
-                    const calendar::CalendarLocale& locale, render::Point o) {
+                    const calendar::CalendarLocale& locale, render::Point o, double enabled) {
     const text::TextStyle style = style_of(t.weekday_type);
     for (int i = 0; i < calendar::days_per_week; ++i) {
         const calendar::Weekday w = calendar::weekday_from_index(calendar::weekday_index(locale.first_day_of_week) + i);
         const text::TextLine line =
             text::layout_line(fonts, locale.names.weekdays_narrow[static_cast<std::size_t>(calendar::weekday_index(w))], style);
         const double x = o.x + i * t.cell_size + (t.cell_size - line.width) / 2.0;
-        text::draw_line(canvas, fonts, line, {x, o.y + (t.cell_size - line.box_height()) / 2.0}, scheme[k.weekday]);
+        text::draw_line(canvas, fonts, line, {x, o.y + (t.cell_size - line.box_height()) / 2.0}, dim(scheme[k.weekday], enabled));
     }
 }
 

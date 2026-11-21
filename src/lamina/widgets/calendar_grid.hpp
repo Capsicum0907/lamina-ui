@@ -59,7 +59,7 @@ std::string day_description(const calendar::CalendarLocale& locale, const calend
                             const DaySelection& selection);
 
 void paint_weekdays(render::Canvas& canvas, const color::ColorScheme& scheme, const text::FontStack& fonts,
-                    const calendar::CalendarLocale& locale, render::Point origin);
+                    const calendar::CalendarLocale& locale, render::Point origin, double enabled = 1.0);
 void paint_month(render::Canvas& canvas, const color::ColorScheme& scheme, const text::FontStack& fonts, render::Point grid_origin,
                  const calendar::YearMonth& month, const MonthGridState& state);
 void month_accessible(std::vector<AccessibleNode>& out, render::Point grid_origin, const calendar::YearMonth& month,

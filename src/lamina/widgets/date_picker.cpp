@@ -891,7 +891,7 @@ void DatePicker::paint_picker(render::Canvas& canvas, const color::ColorScheme& 
             previous_button_.paint(canvas, scheme);
             next_button_.paint(canvas, scheme);
         }
-        paint_weekdays(canvas, scheme, fonts_, *locale_, weekday_origin());
+        paint_weekdays(canvas, scheme, fonts_, *locale_, weekday_origin(), enabled_.amount());
         const render::Point g = grid_origin();
         canvas.push_clip({g.x, g.y, month_grid_width(), month_grid_height()});
         const double w = month_grid_width();

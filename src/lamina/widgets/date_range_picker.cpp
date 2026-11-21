@@ -565,7 +565,7 @@ std::optional<double> DateRangePicker::next_wake_seconds() const {
 }
 
 void DateRangePicker::paint_picker(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    paint_weekdays(canvas, scheme, fonts_, *locale_, {origin_.x + t.horizontal_padding, content_top()});
+    paint_weekdays(canvas, scheme, fonts_, *locale_, {origin_.x + t.horizontal_padding, content_top()}, enabled_.amount());
     const render::Rect area = list_area();
     canvas.push_clip(area);
     const MonthGridState s = grid_state(true);
