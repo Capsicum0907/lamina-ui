@@ -7,11 +7,11 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr std::array<std::string_view, static_cast<std::size_t>(AccessibleRole::spin_button) + 1> role_names{
+constexpr std::array<std::string_view, static_cast<std::size_t>(AccessibleRole::cell) + 1> role_names{
     "button",     "toggle button", "checkbox",   "radio button", "switch",  "slider",     "tab list",
     "tab",        "text field",    "label",      "menu",         "menu item", "menu group", "dialog",
     "navigation", "navigation item", "progress indicator", "status", "tooltip", "title bar", "group",
-    "separator",  "list",          "list item",  "toolbar",      "heading", "spin button",
+    "separator",  "list",          "list item",  "toolbar",      "heading", "spin button", "menu bar",   "table", "row", "column header", "cell",
 };
 
 std::string_view toggle_name(AccessibleToggle t) {

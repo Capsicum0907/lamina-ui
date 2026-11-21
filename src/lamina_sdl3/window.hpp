@@ -33,6 +33,7 @@ struct Frame {
     std::vector<input::KeyEvent> keys;
     std::vector<input::TextEvent> text;
     layout::WindowSizeClass size_class = {};
+    std::vector<input::ContextClick> context = {};
 };
 
 bool client_title_bar_supported();

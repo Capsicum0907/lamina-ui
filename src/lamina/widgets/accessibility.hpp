@@ -41,6 +41,11 @@ enum class AccessibleRole {
     toolbar,
     heading,
     spin_button,
+    menu_bar,
+    table,
+    row,
+    column_header,
+    cell,
 };
 
 enum class AccessibleToggle { off, on, mixed };

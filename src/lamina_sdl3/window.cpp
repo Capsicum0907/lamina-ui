@@ -82,6 +82,20 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_KP_EQUALS: return Key::equals;
     case SDLK_KP_LEFTPAREN: return Key::paren_left;
     case SDLK_KP_RIGHTPAREN: return Key::paren_right;
+    case SDLK_F1: return Key::f1;
+    case SDLK_F2: return Key::f2;
+    case SDLK_F3: return Key::f3;
+    case SDLK_F4: return Key::f4;
+    case SDLK_F5: return Key::f5;
+    case SDLK_F6: return Key::f6;
+    case SDLK_F7: return Key::f7;
+    case SDLK_F8: return Key::f8;
+    case SDLK_F9: return Key::f9;
+    case SDLK_F10: return Key::f10;
+    case SDLK_F11: return Key::f11;
+    case SDLK_F12: return Key::f12;
+    case SDLK_INSERT: return Key::insert;
+    case SDLK_APPLICATION: return Key::menu;
     default: break;
     }
     if (k >= SDLK_A && k <= SDLK_Z) {
@@ -141,6 +155,7 @@ struct Window::Impl {
     bool close_requested = false;
     std::array<SDL_Cursor*, cursor_count> cursors{};
     input::Cursor cursor = input::Cursor::arrow;
+    bool alt_alone = false;
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
@@ -307,6 +322,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
     frame.wheel.clear();
     frame.keys.clear();
     frame.text.clear();
+    frame.context.clear();
     if (!animating) {
         if (impl_->wake_seconds >= 0.0) {
             SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(impl_->wake_seconds * milliseconds_per_second)));
@@ -335,16 +351,22 @@ bool Window::next_frame(Frame& frame, bool animating) {
                                      static_cast<double>(e.motion.timestamp) / nanoseconds_per_second});
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            impl_->alt_alone = false;
             if (e.button.button == SDL_BUTTON_LEFT) {
+                const SDL_Keymod mod = SDL_GetModState();
                 frame.pointer.push_back(
                     {PointerAction::down, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), e.button.clicks, pointer_kind(e.button.which),
-                     static_cast<double>(e.button.timestamp) / nanoseconds_per_second});
+                     static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0, ctrl_held(mod)});
+            } else if (e.button.button == SDL_BUTTON_RIGHT) {
+                frame.context.push_back({impl_->to_dp(e.button.x), impl_->to_dp(e.button.y)});
             }
             break;
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (e.button.button == SDL_BUTTON_LEFT) {
+                const SDL_Keymod mod = SDL_GetModState();
                 frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which),
-                                         static_cast<double>(e.button.timestamp) / nanoseconds_per_second});
+                                         static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0,
+                                         ctrl_held(mod)});
             }
             break;
         case SDL_EVENT_MOUSE_WHEEL: {
@@ -354,9 +376,23 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         }
         case SDL_EVENT_KEY_DOWN:
+            if (e.key.key == SDLK_LALT || e.key.key == SDLK_RALT) {
+                impl_->alt_alone = e.key.repeat ? impl_->alt_alone : (e.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_GUI)) == 0;
+            } else {
+                impl_->alt_alone = false;
+            }
             if (const auto key = key_of(e.key)) {
                 frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod), e.key.repeat, (e.key.mod & SDL_KMOD_ALT) != 0});
             }
+            break;
+        case SDL_EVENT_KEY_UP:
+            if ((e.key.key == SDLK_LALT || e.key.key == SDLK_RALT) && impl_->alt_alone) {
+                frame.keys.push_back({Key::alt, false});
+            }
+            impl_->alt_alone = false;
+            break;
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            impl_->alt_alone = false;
             break;
         case SDL_EVENT_TEXT_INPUT:
             frame.text.push_back({TextEventKind::commit, e.text.text, 0});

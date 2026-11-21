@@ -18,6 +18,13 @@ struct PointerEvent {
     int clicks = 0;
     PointerKind kind = PointerKind::mouse;
     double time_seconds = 0.0;
+    bool shift = false;
+    bool ctrl = false;
+};
+
+struct ContextClick {
+    double x_dp;
+    double y_dp;
 };
 
 enum class Key {
@@ -82,6 +89,21 @@ enum class Key {
     space,
     page_up,
     page_down,
+    f1,
+    f2,
+    f3,
+    f4,
+    f5,
+    f6,
+    f7,
+    f8,
+    f9,
+    f10,
+    f11,
+    f12,
+    insert,
+    menu,
+    alt,
 };
 
 constexpr std::optional<Key> key_for_character(char32_t c) {
