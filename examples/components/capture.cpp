@@ -2492,6 +2492,125 @@ const std::map<std::string, Scene>& files_videos() {
     return scenes;
 }
 
+render::Point font_button(examples::components::Gallery& g) {
+    const auto nodes = g.accessible_nodes();
+    std::optional<widgets::AccessibleNode> found;
+    widgets::visit_accessible(nodes, [&](const widgets::AccessibleNode& n) {
+        if (n.role == widgets::AccessibleRole::button && n.name.starts_with("Font, ")) {
+            found = n;
+        }
+    });
+    if (!found) {
+        throw std::runtime_error("no font button");
+    }
+    return {found->bounds.x + found->bounds.width / 2.0, found->bounds.y + found->bounds.height / 2.0};
+}
+
+void choose_font(Driver& d, examples::components::Gallery& g, const std::string& name) {
+    d.move_to(font_button(g), 0.8);
+    d.wait(0.2);
+    d.click();
+    d.wait(0.6);
+    d.move_to(menu_entry(g, name), 0.6);
+    d.wait(0.3);
+    d.click();
+    d.wait(1.4);
+}
+
+void tour_pages(Driver& d) {
+    d.move_to({1100.0, 90.0}, 0.5);
+    d.move_to("Dates", 0.5);
+    d.click();
+    d.wait(0.5);
+    d.move_to("日本語", 0.6);
+    d.click();
+    d.wait(1.2);
+    d.move_to("Desktop", 0.7);
+    d.click();
+    d.wait(0.5);
+    d.move_to("Files", 0.6);
+    d.click();
+    d.wait(1.2);
+    d.move_to("Basics", 0.7);
+    d.click();
+    d.wait(0.6);
+}
+
+const std::map<std::string, Scene>& font_stills() {
+    static const std::map<std::string, Scene> scenes{
+        {"fonts_menu",
+         [](Driver& d, examples::components::Gallery& g) {
+             d.move_to(font_button(g), 0.3);
+             d.click();
+             d.wait(0.6);
+             d.move_to(menu_entry(g, "Roboto Flex"), 0.3);
+         }},
+    };
+    return scenes;
+}
+
+const std::map<std::string, Scene>& font_videos() {
+    static const std::map<std::string, Scene> scenes{
+        {"fonts_switch",
+         [](Driver& d, examples::components::Gallery& g) {
+             d.wait(0.8);
+             for (const char* name : {"Roboto Flex", "OS fonts", "Google Sans Flex"}) {
+                 choose_font(d, g, name);
+                 tour_pages(d);
+             }
+             d.wait(0.6);
+         }},
+        {"fonts_keyboard",
+         [](Driver& d, examples::components::Gallery& g) {
+             d.move_to({1180.0, 470.0}, 0.4);
+             d.wait(0.6);
+             tab_to(d, g, "Font, Google Sans Flex");
+             d.wait(0.6);
+             const int downs[] = {1, 2, 0};
+             for (int n : downs) {
+                 d.key(Key::enter);
+                 d.wait(0.6);
+                 for (int i = 0; i < n; ++i) {
+                     d.key(Key::down);
+                     d.wait(0.35);
+                 }
+                 d.key(Key::enter);
+                 d.wait(2.4);
+             }
+         }},
+        {"fonts_japanese",
+         [](Driver& d, examples::components::Gallery&) {
+             d.wait(0.4);
+             d.move_to("Name", 0.6);
+             d.click();
+             d.wait(0.4);
+             d.type("山田太郎（例）", 0.18);
+             d.wait(0.6);
+             d.move_to("Search", 0.6);
+             d.click();
+             d.wait(0.4);
+             d.type("東京での予定 Tokyo 2026", 0.12);
+             d.wait(0.8);
+             d.move_to("Dialog", 0.7);
+             d.click();
+             d.wait(0.8);
+             d.move_to("Email", 0.6);
+             d.click();
+             d.type("例えば user@example.com", 0.1);
+             d.wait(1.0);
+             d.key(Key::escape);
+             d.wait(0.8);
+             d.move_to("Dates", 0.7);
+             d.click();
+             d.wait(0.5);
+             d.move_to("日本語", 0.6);
+             d.click();
+             d.wait(1.6);
+         }},
+    };
+    return scenes;
+}
+
 const Scene* find_scene(std::initializer_list<const std::map<std::string, Scene>*> maps, const std::string& name) {
     for (const auto* m : maps) {
         if (const auto it = m->find(name); it != m->end()) {
@@ -2543,7 +2662,7 @@ int main(int argc, char** argv) {
         gallery.set_dark(dark);
 
         if (mode == "still") {
-            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills(), &font_stills()}, scene);
             if (!found || argc < 6) {
                 return usage();
             }
@@ -2563,7 +2682,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "tree") {
-            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills(), &font_stills()}, scene);
             if (!found) {
                 return usage();
             }
@@ -2579,7 +2698,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "video") {
-            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos(), &files_videos()}, scene);
+            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos(), &files_videos(), &font_videos()}, scene);
             if (!found) {
                 return usage();
             }

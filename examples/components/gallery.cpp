@@ -610,7 +610,7 @@ void Gallery::Impl::build_right(std::vector<layout::NodePtr>& column) {
         const text::TypefaceSpec& current = text::typeface_spec(typefaces->typeface);
         std::vector<widgets::MenuItem> items;
         for (const text::TypefaceSpec& t : text::typefaces) {
-            items.push_back({std::string(t.name), t.typeface == current.typeface ? std::optional<icons::Icon>(icon(res::icons::check)) : std::nullopt});
+            items.push_back({std::string(t.name), icon(t.typeface == current.typeface ? res::icons::check : res::icons::text_fields)});
         }
         font_menu = std::make_unique<widgets::Menu>(widgets::MenuOptions{std::move(items), "Fonts"}, fonts);
         font_button = &chrome.emplace_with<widgets::Button>(
