@@ -85,6 +85,7 @@ add_library(lamina STATIC
     src/lamina/widgets/list_view.cpp
     src/lamina/widgets/menu.cpp
     src/lamina/widgets/navigation_bar.cpp
+    src/lamina/widgets/navigation_drawer.cpp
     src/lamina/widgets/navigation_rail.cpp
     src/lamina/widgets/overlay_stack.cpp
     src/lamina/widgets/pattern_strings.cpp
@@ -281,6 +282,7 @@ if(LAMINA_BUILD_TESTS)
         tests/menu_test.cpp
         tests/motion_tokens_test.cpp
         tests/navigation_bar_test.cpp
+        tests/navigation_drawer_test.cpp
         tests/navigation_rail_test.cpp
         tests/overlay_stack_test.cpp
         tests/placeholder_test.cpp
