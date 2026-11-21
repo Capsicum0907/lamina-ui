@@ -207,6 +207,17 @@ public:
         frame();
     }
 
+    void wheel_sideways(double dx) {
+        wheel_events_.push_back({pointer_.x, pointer_.y, dx, 0.0});
+        frame();
+    }
+
+    void shift_wheel(double dy) {
+        wheel_events_.push_back({pointer_.x, pointer_.y, 0.0, dy, true});
+        badge("Shift + wheel");
+        frame();
+    }
+
     void settle() { wait(style_.settle_seconds); }
     double still_seconds() const { return style_.still_seconds; }
 
@@ -271,6 +282,59 @@ private:
             path.close();
             return path;
         };
+        const input::Cursor shape = gallery_.cursor().value_or(input::Cursor::arrow);
+        if (shape == input::Cursor::resize_horizontal || shape == input::Cursor::resize_vertical) {
+            const bool across = shape == input::Cursor::resize_horizontal;
+            auto resize = [&](double grow) {
+                const double half = s * 0.6 + grow;
+                const double head = s * 0.32 + grow;
+                const double shaft = s * 0.09 + grow * 0.6;
+                auto at = [&](double along, double side) {
+                    return across ? render::Point{p.x + along, p.y + side} : render::Point{p.x + side, p.y + along};
+                };
+                render::Path path;
+                path.move_to(at(-half, 0.0));
+                path.line_to(at(-half + head, -head));
+                path.line_to(at(-half + head, -shaft));
+                path.line_to(at(half - head, -shaft));
+                path.line_to(at(half - head, -head));
+                path.line_to(at(half, 0.0));
+                path.line_to(at(half - head, head));
+                path.line_to(at(half - head, shaft));
+                path.line_to(at(-half + head, shaft));
+                path.line_to(at(-half + head, head));
+                path.close();
+                return path;
+            };
+            canvas_.fill_path(resize(1.5), style_.cursor_outline);
+            canvas_.fill_path(resize(0.0), style_.cursor_fill);
+            return;
+        }
+        if (shape == input::Cursor::text) {
+            auto beam = [&](double grow) {
+                const double h = s * 0.55 + grow;
+                const double w = s * 0.08 + grow * 0.6;
+                const double cap = s * 0.22 + grow;
+                render::Path path;
+                path.move_to({p.x - cap, p.y - h});
+                path.line_to({p.x + cap, p.y - h});
+                path.line_to({p.x + cap, p.y - h + 2.0 * w});
+                path.line_to({p.x + w, p.y - h + 2.0 * w});
+                path.line_to({p.x + w, p.y + h - 2.0 * w});
+                path.line_to({p.x + cap, p.y + h - 2.0 * w});
+                path.line_to({p.x + cap, p.y + h});
+                path.line_to({p.x - cap, p.y + h});
+                path.line_to({p.x - cap, p.y + h - 2.0 * w});
+                path.line_to({p.x - w, p.y + h - 2.0 * w});
+                path.line_to({p.x - w, p.y - h + 2.0 * w});
+                path.line_to({p.x - cap, p.y - h + 2.0 * w});
+                path.close();
+                return path;
+            };
+            canvas_.fill_path(beam(1.5), style_.cursor_outline);
+            canvas_.fill_path(beam(0.0), style_.cursor_fill);
+            return;
+        }
         canvas_.fill_path(arrow(1.5), style_.cursor_outline);
         canvas_.fill_path(arrow(0.0), style_.cursor_fill);
     }
@@ -1752,6 +1816,312 @@ const std::map<std::string, Scene>& expressive_videos() {
     return scenes;
 }
 
+render::Point slider_point(examples::components::Gallery& g, double value, double min, double max) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(
+        nodes, [](const widgets::AccessibleNode& n) { return n.name == "Window width" && n.role == widgets::AccessibleRole::slider; });
+    if (!node) {
+        throw std::runtime_error("no window width slider");
+    }
+    const render::Rect r = node->bounds;
+    const double inset = r.height / 2.0;
+    const double f = (value - min) / (max - min);
+    return {r.x + inset + (r.width - 2.0 * inset) * f, r.y + r.height / 2.0};
+}
+
+render::Point field_point(examples::components::Gallery& g, const std::string& name) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(
+        nodes, [&](const widgets::AccessibleNode& n) { return n.name == name && n.role == widgets::AccessibleRole::spin_button; });
+    if (!node) {
+        throw std::runtime_error("no numeric field " + name);
+    }
+    return {node->bounds.x + node->bounds.width - 40.0, node->bounds.y + node->bounds.height / 2.0};
+}
+
+render::Point handle_point(examples::components::Gallery& g, const std::string& name) {
+    const auto nodes = g.accessible_nodes();
+    const auto node = widgets::find_accessible(
+        nodes, [&](const widgets::AccessibleNode& n) { return n.name == name && n.role == widgets::AccessibleRole::separator; });
+    if (!node) {
+        throw std::runtime_error("no divider " + name);
+    }
+    return {node->bounds.x + node->bounds.width / 2.0, node->bounds.y + node->bounds.height / 2.0};
+}
+
+void preset(Driver& d, const char* name) {
+    d.set_cursor(false);
+    d.move_to(name, 0.05);
+    d.click();
+    d.move_to({720.0, 845.0}, 0.05);
+    d.set_cursor(true);
+    d.wait(1.2);
+}
+
+void editor_view(Driver& d) {
+    show_page(d, "Desktop");
+    d.set_cursor(false);
+    d.move_to("Editor", 0.05);
+    d.click();
+    d.move_to({720.0, 845.0}, 0.05);
+    d.set_cursor(true);
+    d.wait(0.6);
+}
+
+const std::map<std::string, Scene>& adaptive_stills() {
+    static const std::map<std::string, Scene> scenes{
+        {"adaptive", [](Driver& d, examples::components::Gallery&) { show_page(d, "Adaptive"); }},
+        {"adaptive_compact",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Phone");
+         }},
+        {"adaptive_medium",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Tablet");
+         }},
+        {"adaptive_expanded",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Laptop");
+         }},
+        {"adaptive_large",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Monitor");
+         }},
+        {"adaptive_detail",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Phone");
+             click_named(d, "Trevor Hansen", 0.5);
+             d.move_to({720.0, 845.0}, 0.3);
+             d.wait(1.0);
+         }},
+        {"adaptive_supporting",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Laptop");
+             click_named(d, "Supporting", 0.4);
+             d.move_to({720.0, 845.0}, 0.3);
+             d.wait(1.0);
+         }},
+        {"adaptive_handle",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Adaptive");
+             preset(d, "Laptop");
+             d.move_to(handle_point(g, "Pane expansion drag handle"), 0.5);
+             d.press();
+             d.move_to({d.pointer().x + 140.0, d.pointer().y}, 0.6);
+             d.wait(0.3);
+         }},
+        {"adaptive_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Adaptive");
+             preset(d, "Laptop");
+             tab_to(d, g, "Pane expansion drag handle");
+             d.wait(0.6);
+         }},
+        {"adaptive_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Laptop");
+             click_named(d, "Enabled", 0.4);
+             d.move_to({720.0, 845.0}, 0.3);
+         }},
+        {"desktop", [](Driver& d, examples::components::Gallery&) { show_page(d, "Desktop"); }},
+        {"desktop_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Desktop");
+             tab_to(d, g, "Range");
+             d.wait(0.6);
+         }},
+        {"desktop_editor", [](Driver& d, examples::components::Gallery&) { editor_view(d); }},
+        {"desktop_editor_scrolled",
+         [](Driver& d, examples::components::Gallery& g) {
+             editor_view(d);
+             const render::Rect r = *g.find("Timeline");
+             d.move_to({r.x + r.width * 0.6, r.y + r.height * 0.6}, 0.4);
+             for (int i = 0; i < 8; ++i) {
+                 d.shift_wheel(1.0);
+                 d.wait(0.05);
+             }
+             d.wait(0.4);
+         }},
+        {"desktop_divider",
+         [](Driver& d, examples::components::Gallery& g) {
+             editor_view(d);
+             d.move_to(handle_point(g, "Assets and stage"), 0.5);
+             d.wait(0.4);
+         }},
+        {"desktop_editing",
+         [](Driver& d, examples::components::Gallery& g) {
+             editor_view(d);
+             click_at(d, field_point(g, "Width"), 0.5);
+             d.wait(0.3);
+             d.type("12x", 0.1);
+             d.key(Key::enter);
+             d.wait(0.3);
+             click_at(d, field_point(g, "Rotation"), 0.5);
+             d.type("4-5", 0.1);
+             d.key(Key::enter);
+             d.move_to({d.pointer().x + 30.0, d.pointer().y + 6.0}, 0.3);
+             d.wait(0.4);
+         }},
+        {"desktop_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             editor_view(d);
+             click_named(d, "Enabled", 0.4);
+             d.move_to({720.0, 845.0}, 0.3);
+         }},
+    };
+    return scenes;
+}
+
+const std::map<std::string, Scene>& adaptive_videos() {
+    static const std::map<std::string, Scene> scenes{
+        {"adaptive_sweep",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Adaptive");
+             preset(d, "Phone");
+             d.move_to(slider_point(g, 412.0, 360.0, 1392.0), 0.8);
+             d.wait(0.3);
+             d.press();
+             d.move_to(slider_point(g, 1392.0, 360.0, 1392.0), 9.0);
+             d.wait(1.0);
+             d.move_to(slider_point(g, 760.0, 360.0, 1392.0), 4.0);
+             d.wait(0.8);
+             d.release();
+             d.wait(0.6);
+         }},
+        {"adaptive_panes",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Adaptive");
+             preset(d, "Phone");
+             click_named(d, "Trevor Hansen", 0.6);
+             d.wait(1.2);
+             click_named(d, "Back", 0.6);
+             d.wait(1.0);
+             click_named(d, "Britta Holt", 0.6);
+             d.wait(1.0);
+             d.key(Key::escape);
+             d.wait(1.0);
+             d.move_to(slider_point(g, 412.0, 360.0, 1392.0), 0.6);
+             d.drag_to(slider_point(g, 1000.0, 360.0, 1392.0), 2.0);
+             d.wait(1.0);
+             click_named(d, "Sandra Adams", 0.6);
+             d.wait(1.2);
+         }},
+        {"pane_divider",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Adaptive");
+             preset(d, "Laptop");
+             d.move_to(handle_point(g, "Pane expansion drag handle"), 0.8);
+             d.wait(0.4);
+             d.press();
+             d.move_to({d.pointer().x + 160.0, d.pointer().y}, 1.0);
+             d.wait(0.2);
+             d.release();
+             d.wait(1.2);
+             d.move_to(handle_point(g, "Pane expansion drag handle"), 0.5);
+             d.fling_to({d.pointer().x + 120.0, d.pointer().y}, 0.12);
+             d.wait(1.4);
+             d.move_to(handle_point(g, "Pane expansion drag handle"), 0.5);
+             d.press();
+             d.move_to({d.pointer().x - 380.0, d.pointer().y}, 1.4);
+             d.wait(0.2);
+             d.release();
+             d.wait(1.2);
+             d.move_to({720.0, 845.0}, 0.5);
+             d.set_recording(false);
+             tab_to(d, g, "Pane expansion drag handle");
+             d.set_recording(true);
+             d.wait(0.6);
+             for (int i = 0; i < 3; ++i) {
+                 d.key(Key::enter);
+                 d.wait(1.0);
+             }
+             for (int i = 0; i < 4; ++i) {
+                 d.key(Key::left);
+                 d.wait(0.25);
+             }
+             d.wait(0.8);
+         }},
+        {"numeric_scrub",
+         [](Driver& d, examples::components::Gallery& g) {
+             editor_view(d);
+             const render::Point x = field_point(g, "X");
+             d.move_to(x, 0.8);
+             d.wait(0.3);
+             d.press();
+             d.move_to({x.x + 120.0, x.y}, 1.6);
+             d.move_to({x.x - 60.0, x.y}, 1.4);
+             d.wait(0.2);
+             d.release();
+             d.wait(0.5);
+             const render::Point o = field_point(g, "Opacity");
+             d.move_to(o, 0.6);
+             d.press();
+             d.move_to({o.x - 200.0, o.y}, 1.4);
+             d.release();
+             d.wait(0.5);
+             click_at(d, field_point(g, "Duration"), 0.6);
+             d.wait(0.3);
+             for (int i = 0; i < 4; ++i) {
+                 d.key(Key::up);
+                 d.wait(0.25);
+             }
+             d.key(Key::up, true);
+             d.wait(0.4);
+             d.type("12.25", 0.12);
+             d.key(Key::enter);
+             d.wait(0.8);
+         }},
+        {"timeline_scroll",
+         [](Driver& d, examples::components::Gallery& g) {
+             editor_view(d);
+             const render::Rect r = *g.find("Timeline");
+             d.move_to({r.x + r.width * 0.6, r.y + r.height * 0.55}, 0.8);
+             for (int i = 0; i < 10; ++i) {
+                 d.shift_wheel(1.0);
+                 d.wait(0.12);
+             }
+             d.wait(0.6);
+             for (int i = 0; i < 16; ++i) {
+                 d.wheel_sideways(-0.5);
+                 d.wait(0.04);
+             }
+             d.wait(0.6);
+             const render::Rect t = *g.find("Timeline");
+             d.move_to({t.x + 160.0, t.y + t.height - 4.0}, 0.6);
+             d.wait(0.4);
+             d.drag_to({t.x + 560.0, t.y + t.height - 4.0}, 1.4);
+             d.wait(0.6);
+             d.move_to(handle_point(g, "Stage and timeline"), 0.7);
+             d.wait(0.3);
+             d.drag_to({d.pointer().x, d.pointer().y - 120.0}, 1.0);
+             d.wait(0.4);
+             d.move_to(handle_point(g, "Assets and stage"), 0.7);
+             d.wait(0.3);
+             d.drag_to({d.pointer().x + 100.0, d.pointer().y}, 1.0);
+             d.wait(0.8);
+         }},
+        {"density",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Desktop");
+             d.wait(0.6);
+             for (const char* s : {"Density 0", "Density -1", "Density -2", "Density -3"}) {
+                 d.move_to(centre_in(g, s, "Week"), 0.5);
+                 d.click();
+                 d.wait(0.3);
+             }
+             d.wait(0.6);
+         }},
+    };
+    return scenes;
+}
+
 const Scene* find_scene(std::initializer_list<const std::map<std::string, Scene>*> maps, const std::string& name) {
     for (const auto* m : maps) {
         if (const auto it = m->find(name); it != m->end()) {
@@ -1796,7 +2166,7 @@ int main(int argc, char** argv) {
         gallery.set_dark(dark);
 
         if (mode == "still") {
-            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills()}, scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills()}, scene);
             if (!found || argc < 6) {
                 return usage();
             }
@@ -1816,7 +2186,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "tree") {
-            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills()}, scene);
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills()}, scene);
             if (!found) {
                 return usage();
             }
@@ -1832,7 +2202,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "video") {
-            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos()}, scene);
+            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos()}, scene);
             if (!found) {
                 return usage();
             }
