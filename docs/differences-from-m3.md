@@ -33,6 +33,7 @@ Where lamina-ui does not follow Material 3 and its Compose implementation: value
 - The state layer of switches, checkboxes and radio buttons is on-surface instead of the local content color. [State layers of the selection controls](design-tokens.md#state-layers-of-the-selection-controls)
 - A removable input chip has its own remove target and is removed with Delete or Backspace. [Chips](design-tokens.md#chips)
 - A segmented button row is one Tab stop with arrow keys; the date picker follows the WAI-ARIA date grid keys. [Segmented button](design-tokens.md#segmented-button), [Date picker](design-tokens.md#date-picker)
+- A segment label or a split button's leading label that does not fit is cut to one line with an ellipsis, where a Compose `Text` with its defaults wraps; a segmented row stops shrinking at a minimum that keeps each segment's paddings, icon slot and an ellipsis, where Compose's weighted segments have none. [Segmented button](design-tokens.md#segmented-button), [Split buttons](design-tokens.md#split-buttons)
 - In 24-hour mode the time picker's handle follows the pointer, and 0 and 00 are invalid hours in 12-hour mode. [Time picker](design-tokens.md#time-picker)
 - A disabled floating toolbar dims its FAB and stops it reacting; Compose's FABs have no disabled state. [Floating toolbars](design-tokens.md#floating-toolbars)
 
