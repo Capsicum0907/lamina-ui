@@ -59,31 +59,65 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
     elevation_.snap_to(target_elevation());
 }
 
-double Button::content_width() const {
+double Button::content_width_for(double label_width) const {
     if (!options_.leading_icon) {
-        return label_.width * label_scale_;
+        return label_width * label_scale_;
     }
     const auto& size = tokens::button_size(options_.size);
     const double gap = options_.label.empty() ? 0.0 : size.icon_label_space * label_scale_;
-    return icon_size() * icon_scale_ + gap + label_.width * label_scale_;
+    return icon_size() * icon_scale_ + gap + label_width * label_scale_;
+}
+
+double Button::content_width() const {
+    return content_width_for(shown_label().width);
 }
 
 double Button::intrinsic_width() const {
     const ButtonPadding pad = padding();
-    return std::max(options_.min_width.value_or(tokens::button_min_width), pad.leading + content_width() + pad.trailing);
+    return std::max(options_.min_width.value_or(tokens::button_min_width), pad.leading + content_width_for(label_.width) + pad.trailing);
+}
+
+double Button::min_width() const {
+    if (!options_.ellipsize_label || options_.label.empty()) {
+        return intrinsic_width();
+    }
+    const ButtonPadding pad = padding();
+    const double mark = text::layout_line(fonts_, tokens::ellipsis, label_.style).width;
+    return std::max(options_.min_width.value_or(tokens::button_min_width), pad.leading + content_width_for(std::min(label_.width, mark)) + pad.trailing);
+}
+
+void Button::fit_label() {
+    if (!options_.ellipsize_label || options_.label.empty() || label_scale_ <= 0.0) {
+        return;
+    }
+    const ButtonPadding pad = padding();
+    const double room = (width_ - pad.leading - pad.trailing - content_width_for(0.0)) / label_scale_;
+    if (room == label_room_) {
+        return;
+    }
+    label_room_ = room;
+    ellipsized_ = width_ < pad.leading + content_width_for(label_.width) + pad.trailing;
+    if (ellipsized_) {
+        shown_ = text::ellipsize_line(fonts_, options_.label, label_.style, room, tokens::ellipsis);
+    }
 }
 
 void Button::set_label(std::string label) {
     options_.label = std::move(label);
     label_ = text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)));
+    ellipsized_ = false;
+    label_room_ = -1.0;
     if (!sized_) {
         width_ = intrinsic_width();
     }
+    fit_label();
 }
 
 void Button::set_content_scale(double label_scale, double icon_scale) {
     label_scale_ = label_scale;
     icon_scale_ = icon_scale;
+    label_room_ = -1.0;
+    fit_label();
 }
 
 void Button::set_shape(tokens::ButtonShape shape) {
@@ -103,12 +137,15 @@ void Button::set_icon(std::optional<icons::Icon> icon) {
     if (!sized_) {
         width_ = intrinsic_width();
     }
+    label_room_ = -1.0;
+    fit_label();
 }
 
 void Button::set_size(double width, double height) {
     sized_ = true;
     width_ = width;
     height_ = height;
+    fit_label();
 }
 
 void Button::set_density(tokens::Density density) {
@@ -368,14 +405,15 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     if (options_.label.empty()) {
         return;
     }
+    const text::TextLine& label = shown_label();
     if (label_scale_ == 1.0) {
-        text::draw_line(canvas, fonts_, label_, {x, r.y + (r.height - label_.box_height()) / 2.0}, label_color);
+        text::draw_line(canvas, fonts_, label, {x, r.y + (r.height - label.box_height()) / 2.0}, label_color);
         return;
     }
     canvas.save();
-    canvas.translate(x, r.y + (r.height - label_.box_height() * label_scale_) / 2.0);
+    canvas.translate(x, r.y + (r.height - label.box_height() * label_scale_) / 2.0);
     canvas.scale(label_scale_);
-    text::draw_line(canvas, fonts_, label_, {0.0, 0.0}, label_color);
+    text::draw_line(canvas, fonts_, label, {0.0, 0.0}, label_color);
     canvas.restore();
 }
 

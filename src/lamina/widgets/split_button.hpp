@@ -46,6 +46,11 @@ public:
 
     double width() const;
     double height() const;
+    double natural_width() const;
+    double min_width() const;
+    void set_width(double width);
+    layout::Size measure(const layout::Constraints& c) const;
+    void arrange(const render::Rect& r);
     void set_origin(render::Point origin);
     render::Rect bounds() const { return {origin_.x, origin_.y, width(), height()}; }
     void set_window(layout::Size window) { window_ = window; }

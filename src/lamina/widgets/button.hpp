@@ -64,6 +64,7 @@ struct ButtonOptions {
     std::optional<double> min_width = std::nullopt;
     std::optional<double> icon_size = std::nullopt;
     tokens::Density density = {};
+    bool ellipsize_label = false;
 };
 
 class Button {
@@ -82,6 +83,9 @@ public:
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
     double intrinsic_width() const;
+    double min_width() const;
+    bool label_ellipsized() const { return ellipsized_; }
+    const text::TextLine& shown_label() const { return ellipsized_ ? shown_ : label_; }
     render::CornerRadii corner_radii() const;
     double content_offset() const;
     ButtonPadding padding() const;
@@ -112,6 +116,8 @@ public:
 
 private:
     double content_width() const;
+    double content_width_for(double label_width) const;
+    void fit_label();
     double rest_corner() const;
     double pressed_corner() const;
     double corner() const;
@@ -128,6 +134,9 @@ private:
     ButtonOptions options_;
     text::FontStack fonts_;
     text::TextLine label_;
+    text::TextLine shown_;
+    bool ellipsized_ = false;
+    double label_room_ = -1.0;
     double width_;
     double height_;
     bool sized_ = false;

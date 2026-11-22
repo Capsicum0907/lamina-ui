@@ -1,6 +1,7 @@
 #include "lamina/widgets/split_button.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "lamina/widgets/interaction.hpp"
 
@@ -22,6 +23,7 @@ SplitButton::SplitButton(SplitButtonOptions options, const text::FontStack& font
                                std::nullopt, t.shape_spring};
     lead.padding = ButtonPadding{s.leading_leading_space, s.leading_trailing_space};
     lead.min_width = t.min_width;
+    lead.ellipsize_label = true;
     leading_ = std::make_unique<Button>(std::move(lead), fonts);
 
     ButtonOptions trail{"", options_.style, options_.size, tokens::ButtonShape::round, icons::Icon{icon_font, t.chevron}};
@@ -44,6 +46,31 @@ SplitButton::SplitButton(SplitButtonOptions options, const text::FontStack& font
 
 double SplitButton::width() const {
     return leading_->width() + t.between_space + trailing_->width();
+}
+
+double SplitButton::natural_width() const {
+    return leading_->intrinsic_width() + t.between_space + trailing_->width();
+}
+
+double SplitButton::min_width() const {
+    return leading_->min_width() + t.between_space + trailing_->width();
+}
+
+void SplitButton::set_width(double width) {
+    const double room = width >= natural_width() ? leading_->intrinsic_width() : width - t.between_space - trailing_->width();
+    const double lead = std::max(leading_->min_width(), room);
+    leading_->set_size(lead, leading_->height());
+    set_origin(origin_);
+}
+
+layout::Size SplitButton::measure(const layout::Constraints& c) const {
+    const double room = std::isfinite(c.max_width) ? c.max_width : natural_width();
+    return {std::max(min_width(), std::min(natural_width(), room)), height()};
+}
+
+void SplitButton::arrange(const render::Rect& r) {
+    set_width(std::min(natural_width(), r.width));
+    set_origin({r.x, r.y + (r.height - height()) / 2.0});
 }
 
 double SplitButton::height() const {

@@ -16,8 +16,8 @@ using widgets::SplitButtonOptions;
 
 namespace {
 
-SplitButton make(ButtonSize size = ButtonSize::small, bool with_menu = true) {
-    SplitButtonOptions o{"Send", icons::Icon{icon_font(), res::icons::send}};
+SplitButton make(ButtonSize size = ButtonSize::small, bool with_menu = true, const char* label = "Send") {
+    SplitButtonOptions o{label, icons::Icon{icon_font(), res::icons::send}};
     o.size = size;
     o.trailing_name = "More send options";
     if (with_menu) {
@@ -188,4 +188,75 @@ TEST_CASE("the leading half is named by its label and the group by the split but
     const auto node = s.accessible();
     CHECK(node.name == "Send options");
     CHECK(node.children[0].name == "Send");
+}
+
+TEST_CASE("a split button gives the trailing half its width first and shrinks the leading half to the rest") {
+    SplitButton s = make(ButtonSize::extra_large, false, "Send to everyone");
+    const auto& t = tokens::split_button_tokens;
+    const double natural = s.natural_width();
+    const double trailing = s.trailing().width();
+    CHECK(s.width() == doctest::Approx(natural));
+    CHECK(s.measure({0.0, layout::unbounded, 0.0, layout::unbounded}).width == doctest::Approx(natural));
+    CHECK(s.measure({0.0, natural + 50.0, 0.0, layout::unbounded}).width == doctest::Approx(natural));
+    CHECK(s.measure({0.0, natural - 50.0, 0.0, layout::unbounded}).width == doctest::Approx(natural - 50.0));
+    CHECK(s.measure({0.0, 1.0, 0.0, layout::unbounded}).width == doctest::Approx(s.min_width()));
+
+    s.arrange({0.0, 0.0, natural - 50.0, s.height()});
+    CHECK(s.width() == doctest::Approx(natural - 50.0));
+    CHECK(s.trailing().width() == doctest::Approx(trailing));
+    CHECK(s.trailing().bounds().x == doctest::Approx(s.leading().bounds().x + s.leading().width() + t.between_space));
+    CHECK(s.trailing().bounds().x + s.trailing().width() == doctest::Approx(natural - 50.0));
+    CHECK(s.leading().label_ellipsized());
+    const widgets::ButtonPadding pad = s.leading().padding();
+    const double icon = s.leading().icon_size() + tokens::button_size(ButtonSize::extra_large).icon_label_space;
+    CHECK(s.leading().shown_label().width <= s.leading().width() - pad.leading - pad.trailing - icon + 1e-9);
+
+    s.arrange({0.0, 0.0, natural, s.height()});
+    CHECK_FALSE(s.leading().label_ellipsized());
+    CHECK(s.width() == doctest::Approx(natural));
+}
+
+TEST_CASE("a split button's leading half keeps its paddings and room for an ellipsis at its narrowest") {
+    SplitButton s = make(ButtonSize::extra_large, false, "Send to everyone");
+    const auto& size = tokens::split_button_size(ButtonSize::extra_large);
+    s.set_width(1.0);
+    CHECK(s.width() == doctest::Approx(s.min_width()));
+    CHECK(s.leading().width() >= tokens::split_button_tokens.min_width);
+    const widgets::ButtonPadding pad = s.leading().padding();
+    CHECK(pad.leading == size.leading_leading_space);
+    CHECK(pad.trailing == size.leading_trailing_space);
+    CHECK(s.leading().shown_label().width > 0.0);
+}
+
+TEST_CASE("a split button's leading half follows a gradual resize without jumps") {
+    SplitButton s = make(ButtonSize::extra_large, false, "Send to everyone");
+    const double from = s.natural_width() + 20.0;
+    const double to = s.min_width() - 20.0;
+    s.arrange({0.0, 0.0, from, s.height()});
+    double previous = s.leading().width();
+    for (double w = from - 1.0; w >= to; w -= 1.0) {
+        s.arrange({0.0, 0.0, w, s.height()});
+        CHECK(previous - s.leading().width() <= 1.0 + 1e-9);
+        CHECK(s.leading().width() <= previous + 1e-9);
+        previous = s.leading().width();
+    }
+}
+
+TEST_CASE("a button ellipsizes its label only when asked to") {
+    widgets::ButtonOptions plain{"A rather long label"};
+    widgets::Button b(plain, fonts());
+    const double natural = b.width();
+    b.set_size(natural - 40.0, b.height());
+    CHECK_FALSE(b.label_ellipsized());
+    CHECK(b.min_width() == doctest::Approx(b.intrinsic_width()));
+
+    widgets::ButtonOptions opt{"A rather long label"};
+    opt.ellipsize_label = true;
+    widgets::Button e(opt, fonts());
+    CHECK(e.min_width() < e.intrinsic_width());
+    e.set_size(natural - 40.0, e.height());
+    CHECK(e.label_ellipsized());
+    CHECK(e.shown_label().width <= natural - 40.0 - e.padding().leading - e.padding().trailing + 1e-9);
+    e.set_size(natural, e.height());
+    CHECK_FALSE(e.label_ellipsized());
 }
