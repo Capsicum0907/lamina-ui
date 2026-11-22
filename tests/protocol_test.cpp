@@ -2,9 +2,15 @@
 
 #include "lamina/layout/layout.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/button_group.hpp"
+#include "lamina/widgets/card.hpp"
 #include "lamina/widgets/checkbox.hpp"
+#include "lamina/widgets/chip.hpp"
+#include "lamina/widgets/chip_group.hpp"
 #include "lamina/widgets/dialog.hpp"
 #include "lamina/widgets/fab.hpp"
+#include "lamina/widgets/flexible_bottom_app_bar.hpp"
+#include "lamina/widgets/floating_toolbar.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
@@ -14,10 +20,14 @@
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/protocol.hpp"
 #include "lamina/widgets/radio_button.hpp"
+#include "lamina/widgets/range_slider.hpp"
+#include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/slider.hpp"
+#include "lamina/widgets/split_button.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/widget_set.hpp"
 #include "support.hpp"
 
@@ -52,6 +62,11 @@ static_assert(Focusable<Button> && Focusable<IconButton> && Focusable<Fab> && Fo
               Focusable<NavigationBar> && Focusable<NavigationRail>);
 static_assert(HandlesKeys<IconButton> && HandlesKeys<Fab> && HandlesKeys<Switch> && HandlesKeys<Checkbox> && HandlesKeys<RadioButton>);
 static_assert(!Focusable<Label> && !Focusable<Dialog>);
+static_assert(Targeted<Button> && Targeted<IconButton> && Targeted<Chip> && Targeted<Checkbox> && Targeted<RadioButton> && Targeted<Switch> &&
+              Targeted<Card> && Targeted<Slider> && Targeted<RangeSlider> && Targeted<SegmentedButtonRow>);
+static_assert(Targeted<WidgetSet> && Targeted<ButtonGroup> && Targeted<ChipGroup> && Targeted<FloatingToolbar> && Targeted<TopAppBar> &&
+              Targeted<FlexibleBottomAppBar> && Targeted<SplitButton>);
+static_assert(!Targeted<Fab> && !Targeted<TextField> && !Targeted<Menu> && !Targeted<Label>);
 
 namespace {
 
