@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,6 +37,7 @@ struct AdaptiveLayout {
     double pane_gap = 12.0;
     std::array<double, 4> presets{412.0, 720.0, 1000.0, 1392.0};
     std::array<const char*, 4> preset_names{"Phone", "Tablet", "Laptop", "Monitor"};
+    std::string report_prefix = "Frame: ";
     color::Role list_container = color::Role::surface_container_low;
     color::Role detail_container = color::Role::surface_container;
     tokens::CornerSize pane_corner = tokens::CornerSize::large;
@@ -61,11 +63,14 @@ constexpr std::array<Message, 5> messages{{
 
 class SizedFrame final : public layout::Node {
 public:
-    SizedFrame(DemoFrame& frame, layout::NodePtr content, const double& width, double height)
-        : frame_(frame), content_(std::move(content)), width_(width), height_(height) {}
+    SizedFrame(DemoFrame& frame, layout::NodePtr content, const double& width, double height, std::function<void(double)> on_width)
+        : frame_(frame), content_(std::move(content)), width_(width), height_(height), on_width_(std::move(on_width)) {}
 
 protected:
-    layout::Size on_measure(const layout::Constraints& c) override { return c.constrain({width_, height_}); }
+    layout::Size on_measure(const layout::Constraints& c) override {
+        on_width_(c.max_width);
+        return c.constrain({width_, height_});
+    }
     void on_arrange(const render::Rect& r) override {
         frame_node_ = frame_node_ ? frame_node_ : frame_.node(content_);
         frame_.set_size({r.width, r.height});
@@ -79,6 +84,7 @@ private:
     layout::NodePtr frame_node_;
     const double& width_;
     double height_;
+    std::function<void(double)> on_width_;
 };
 
 class Choice final : public layout::Node {
@@ -170,15 +176,18 @@ public:
         add_pane_focus();
         back_tip_ = &gated_tip(*back_, [this] { return back_shown(); });
 
-        auto controls_row = layout::row({widgets::node(width_label), width_limited(widgets::node(*slider_), l.slider_width),
-                                         widgets::node(*presets_), widgets::node(*layouts_)});
-        controls_row->spacing(l.control_gap).cross_align(layout::CrossAlign::center);
-        auto navigation_row = layout::row({widgets::node(*navigation_), widgets::node(*class_label_)});
-        navigation_row->spacing(l.control_gap).cross_align(layout::CrossAlign::center);
-        auto frame = std::make_shared<SizedFrame>(frame_, widgets::measured_node(*suite_), width_, l.frame_height);
-        auto column = layout::column({controls_row, navigation_row, frame});
-        column->spacing(base_page_layout.heading_gap * 2.0);
-        root = column;
+        auto controls_row = items({widgets::node(width_label), width_limited(widgets::node(*slider_), l.slider_width), widgets::node(*presets_),
+                                   widgets::node(*layouts_)});
+        controls_row->spacing(l.control_gap).line_spacing(base_page_layout.heading_gap * 2.0);
+        auto navigation_row = items({widgets::node(*navigation_), widgets::node(*class_label_)});
+        navigation_row->spacing(l.control_gap).line_spacing(base_page_layout.heading_gap * 2.0);
+        auto frame = std::make_shared<SizedFrame>(frame_, widgets::measured_node(*suite_), width_, l.frame_height,
+                                                  [this](double room) {
+                                                      available_ = room;
+                                                      apply_width(std::min(width_, available_), false);
+                                                  });
+        root = columns({{controls_row, navigation_row, frame}}, l.control_gap, base_page_layout.heading_gap * 2.0);
+        reported_class_ = std::string(layout::name(layout::compute_window_size_class(l.initial_width, l.frame_height).width_class()));
         set_width(l.initial_width);
     }
 
@@ -328,20 +337,30 @@ private:
 
     void set_width(double width) {
         width_ = std::clamp(width, adaptive_layout.min_width, adaptive_layout.max_width);
-        const widgets::WindowAdaptiveInfo info{layout::compute_window_size_class(width_, adaptive_layout.frame_height)};
+        apply_width(std::min(width_, available_), true);
+    }
+
+    void apply_width(double width, bool chosen) {
+        if (width == shown_width_ && !chosen) {
+            return;
+        }
+        shown_width_ = width;
+        const widgets::WindowAdaptiveInfo info{layout::compute_window_size_class(width, adaptive_layout.frame_height)};
         suite_->update(info);
         const widgets::PaneScaffoldDirective d = widgets::calculate_pane_scaffold_directive(info);
         list_navigator_->set_directive(d);
         supporting_navigator_->set_directive(d);
         const layout::WindowWidthClass c = info.window_size_class.width_class();
-        const std::string text = std::to_string(static_cast<int>(width_)) + " dp, " + std::string(layout::name(c));
+        const std::string text = std::to_string(static_cast<int>(width)) + " dp, " + std::string(layout::name(c));
         if (text != shown_class_) {
             class_label_->set_text(text);
-            if (layout::name(c) != reported_class_) {
-                reported_class_ = std::string(layout::name(c));
-                ctx.report("Width: " + reported_class_);
-            }
             shown_class_ = text;
+        }
+        if (layout::name(c) != reported_class_) {
+            reported_class_ = std::string(layout::name(c));
+            if (chosen) {
+                ctx.report(adaptive_layout.report_prefix + reported_class_);
+            }
         }
     }
 
@@ -521,6 +540,8 @@ private:
 
     DemoFrame frame_;
     double width_ = 0.0;
+    double shown_width_ = 0.0;
+    double available_ = layout::unbounded;
     widgets::Slider* slider_ = nullptr;
     widgets::SegmentedButtonRow* presets_ = nullptr;
     widgets::SegmentedButtonRow* layouts_ = nullptr;

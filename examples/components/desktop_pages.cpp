@@ -227,6 +227,7 @@ public:
             [this](widgets::SegmentedButtonRow&, const widgets::SegmentedButtonResponse& r) {
                 if (r.clicked) {
                     view_ = *r.clicked;
+                    reflow.snap();
                     ctx.report(view_ == 0 ? "View: density" : view_ == 1 ? "View: editor" : "View: files");
                 }
             },
@@ -238,13 +239,11 @@ public:
         for (int d : l.densities) {
             columns.push_back(build_column(d));
         }
-        auto density_row = layout::row(std::move(columns));
-        density_row->spacing(l.column_gap).cross_align(layout::CrossAlign::start);
+        auto density_row = items(std::move(columns));
+        density_row->spacing(l.column_gap).line_spacing(l.column_gap).cross_align(layout::CrossAlign::start);
         auto editor = editor_frame_.node(build_editor());
         auto body = std::make_shared<Choice>(std::vector<layout::NodePtr>{density_row, editor, files_->node()}, view_);
-        auto column = layout::column({widgets::node(*views_), body});
-        column->spacing(base_page_layout.heading_gap * 2.0);
-        root = column;
+        root = this->columns({{widgets::node(*views_), body}}, l.column_gap, base_page_layout.heading_gap * 2.0);
         for (std::size_t i = 0; i < columns_.size(); ++i) {
             focus_.add_group(columns_[i]->focus, [this] { return view_ == 0; });
         }
