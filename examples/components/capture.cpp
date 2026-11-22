@@ -29,6 +29,7 @@
 #include "lamina/layout/window_size_class.hpp"
 #include "lamina/render/path.hpp"
 #include "lamina/text/layout.hpp"
+#include "lamina/tokens/scroll_area.hpp"
 #include "lamina/tokens/typography.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
 #include "lamina_thorvg/canvas.hpp"
@@ -713,13 +714,15 @@ const std::map<std::string, Scene>& stills() {
          }},
         {"times", [](Driver& d, examples::components::Gallery&) { show_page(d, "Times"); }},
         {"times_side_scrolled",
-         [](Driver& d, examples::components::Gallery&) {
+         [](Driver& d, examples::components::Gallery& g) {
              show_page(d, "Times");
              d.move_to(d.style().side_scroll_target, 0.3);
              for (int i = 0; i < d.style().scroll_notches; ++i) {
                  d.shift_wheel(1.0);
                  d.wait(d.style().reveal_pause_seconds);
              }
+             const render::Rect r = *g.find(d.style().side_scroll_target);
+             d.move_to({r.x + r.width / 2.0, r.y + r.height - tokens::scroll_area_tokens.bar_hit_width / 2.0}, 0.3);
              d.wait(0.4);
          }},
         {"sheets", [](Driver& d, examples::components::Gallery&) { show_page(d, "Sheets"); }},

@@ -192,6 +192,9 @@ public:
             merge(p->next_wake_seconds());
         }
         merge(dialog_->next_wake_seconds());
+        if (const double bar = side_->scroll().next_wake_seconds(); bar >= 0.0) {
+            merge(bar);
+        }
         return wake;
     }
     void set_window(layout::Size window) override {
