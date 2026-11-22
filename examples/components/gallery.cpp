@@ -15,7 +15,10 @@
 #include "components/pages.hpp"
 #include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
+#include "lamina/color/mix.hpp"
 #include "lamina/layout/layout.hpp"
+#include "lamina/motion/animated.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/dialog.hpp"
@@ -69,6 +72,9 @@ struct Layout {
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
     double title_top = 16.0;
+    color::Role veil = color::Role::surface;
+    motion::SpringSpec veil_spring = tokens::motion_scheme.fast_effects();
+    double veil_swap_at = 0.99;
     double status_width = 150.0;
     double status_gap = 24.0;
     std::string font_name_prefix = "Font, ";
@@ -151,6 +157,8 @@ struct Gallery::Impl {
     void open_dialog();
     GalleryState state() const;
     void switch_page(std::size_t next);
+    void show_pending_page();
+    void paint_veil(render::Canvas& canvas, const color::ColorScheme& scheme) const;
     void handle_title_bar(const input::PointerEvent& e);
     widgets::FocusManager& current_focus() { return page == 0 ? focus : pages[page - 1]->focus(); }
     Page* current_page() const { return page == 0 ? nullptr : pages[page - 1].get(); }
@@ -179,6 +187,9 @@ struct Gallery::Impl {
     widgets::TabRow* page_tabs = nullptr;
     std::vector<std::unique_ptr<Page>> pages;
     std::size_t page = 0;
+    std::optional<std::size_t> pending_page;
+    motion::Animated veil{0.0, layout.veil_spring};
+    std::shared_ptr<layout::Linear> page_box;
     widgets::IconButton* dark_toggle = nullptr;
     widgets::Button* menu_button = nullptr;
     widgets::Button* dialog_button = nullptr;
@@ -302,7 +313,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
     for (const auto& p : pages) {
         bodies.push_back(p->body());
     }
-    auto page_box = layout::column({std::make_shared<PageSwitch>(std::move(bodies), page)});
+    page_box = layout::column({std::make_shared<PageSwitch>(std::move(bodies), page)});
     page_box->padding({layout.margin, layout.row_gap, layout.margin, layout.margin}).fill_cross(true);
     page_box->self_align = layout::CrossAlign::stretch;
     auto content = layout::column({header_row, widgets::full_width_node(*page_tabs), page_box});
@@ -697,7 +708,27 @@ void Gallery::Impl::handle_title_bar(const input::PointerEvent& e) {
 }
 
 void Gallery::Impl::switch_page(std::size_t next) {
-    if (next == page || next > pages.size()) {
+    if (next > pages.size() || next == pending_page.value_or(page)) {
+        return;
+    }
+    pending_page = next;
+    veil.animate_to(1.0);
+}
+
+void Gallery::Impl::paint_veil(render::Canvas& canvas, const color::ColorScheme& s) const {
+    if (veil.value() > 0.0) {
+        canvas.fill_rect(page_box->rect(), color::scale_alpha(s[layout.veil], std::min(1.0, veil.value())));
+    }
+}
+
+void Gallery::Impl::show_pending_page() {
+    if (!pending_page || veil.value() < layout.veil_swap_at) {
+        return;
+    }
+    const std::size_t next = *pending_page;
+    pending_page.reset();
+    veil.animate_to(0.0);
+    if (next == page) {
         return;
     }
     const bool tabs_focused = page_tabs->focused();
@@ -765,6 +796,7 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         impl_->report(impl_->layout.font_report_prefix + std::string(text::typeface_spec(next.typeface).name));
     }
     Impl& g = *impl_;
+    g.show_pending_page();
     g.window = {frame.width_dp, frame.height_dp};
     if (g.title_bar) {
         g.title_bar->set_maximized(frame.maximized);
@@ -876,6 +908,7 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     Impl& g = *impl_;
     const double dt = frame.dt_seconds;
     g.theme.step(dt);
+    g.veil.step(dt);
     Page* current = g.current_page();
     if (current) {
         current->step(dt);
@@ -907,7 +940,8 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
         g.header_widgets.paint(canvas, s);
         current->paint(canvas, s);
         current->paint_overlays(canvas, s);
-        return !g.theme.settled() || g.header_widgets.animating() || current->animating() || (g.title_bar && g.title_bar->animating());
+        g.paint_veil(canvas, s);
+        return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.header_widgets.animating() || current->animating() || (g.title_bar && g.title_bar->animating());
     }
     for (const Row& row : g.rows) {
         row.caption->paint(canvas, s);
@@ -931,11 +965,12 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     for (const auto& t : g.tooltips) {
         t->paint(canvas, s);
     }
+    g.paint_veil(canvas, s);
     bool tooltips_moving = false;
     for (const auto& t : g.tooltips) {
         tooltips_moving = tooltips_moving || t->animating();
     }
-    return !g.theme.settled() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
+    return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
            (g.font_menu && g.font_menu->animating()) || g.dialog->animating() || tooltips_moving || (g.title_bar && g.title_bar->animating());
 }
 
