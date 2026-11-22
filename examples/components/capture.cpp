@@ -2611,7 +2611,13 @@ const std::map<std::string, Scene>& gallery_videos() {
              d.wait(0.6);
              tab_to(d, g, "Pages");
              d.wait(0.6);
-             for (int i = 0; i < 14; ++i) {
+             const auto nodes = g.accessible_nodes();
+             const auto row = widgets::find_accessible(
+                 nodes, [](const widgets::AccessibleNode& n) { return n.name == "Pages" && n.role == widgets::AccessibleRole::tab_list; });
+             if (!row) {
+                 throw std::runtime_error("no page tabs");
+             }
+             for (std::size_t i = 1; i < row->children.size(); ++i) {
                  d.key(Key::right);
                  d.wait(0.5);
              }
