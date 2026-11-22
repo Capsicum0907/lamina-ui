@@ -574,6 +574,7 @@ Material 3 にはスクロールバーの定めがなく、Compose Material 3 �
 - 重なり：選ばれた区画は 5 を足し、押されているときとフォーカスがあるときにそれぞれ 1 を足します。
 - 中身：アイコンの場所は常に測られ（18 dp とアイコンの大きいほう）、アイコンがないと文字を −(18 + 8)/2 = −13 dp ずらし、最初の配置のあとは速い空間のばねで動かします。既定のアイコンは `Icons.Filled.Check` で、選ばれていないときのアイコンがなければ `AnimatedVisibility` で `fadeIn(DefaultEffects) + scaleIn(0、左下、FastSpatial)`、消えるときの動きはありません。あれば `Crossfade(DefaultEffects)` です。
 - 読み上げ：一つだけ選ぶ行は `selectableGroup` の中の `Role.RadioButton` の `selectable`、いくつでも選べる行は役割のない `toggleable` です。
+- 幅：どちらの行も `Row(modifier.defaultMinSize(minHeight = ContainerHeight).width(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(-space))` で、区画の `Surface` は `.weight(1f)` のあとに `.defaultMinSize(minWidth = ButtonDefaults.MinWidth, minHeight = ButtonDefaults.MinHeight)` が付きます。行が本来の幅より狭いとき（たとえば狭い親の中で `fillMaxWidth()` を付けたとき）、重みのある区画はちょうどの取り分の幅で測られ、`defaultMinSize` は最小が 0 のときにしか効かないので、Compose の区画には縮む下限がありません。`SegmentedButtonContentMeasurePolicy` はアイコンと文字を同じ制約で測り、文字の前に必ず max(18 dp, アイコン) + 8 dp を数えます。文字は呼び出し側の部品で、このファイルは `maxLines` も `overflow` も付けないので、既定のままの `Text`（折り返しあり・行数の上限なし）は狭い区画で複数行に折り返します。lamina-ui は文字を 1 行のまま「…」（`tokens::ellipsis`）で切り、同じ幅の区画を `min_width()` で止めます。いちばん幅の要る区画について 2 × 12 dp + 18 + 8 dp + 文字と「…」の狭いほう（アイコンだけの区画は 18 dp）で、58 dp 以上です。`fill_width` がなければ行は本来の幅より広くならず、あれば `fillMaxWidth()` と同じく幅いっぱいに広がります。
 - 違い：Compose がすぐに切り替える色を、標準の効果のばねで移しています。行全体を Tab の止まり位置一つとし、矢印キーを受けます（一つだけ選ぶ行では選び、いくつでも選べる行ではフォーカスを動かします）。Compose はどの区画も Tab の止まり位置で、矢印キーはありません。いくつでも選べる区画は `toggle_button` を返します。区画の内側にフォーカスの輪を描くのは lamina-ui の足したものです。
 
 ### スライダー：縦・中央から・トラックの角・値の表示
@@ -619,6 +620,7 @@ Material 3 にはスクロールバーの定めがなく、Compose Material 3 �
 - 時と分の箱は 96 × 80 dp、角 8 dp、Display L。選ばれた側は primary-container と on-primary-container、ほかは surface-container-highest と on-surface。区切りは 24 dp で、":" は on-surface で 4 dp 上げます。
 - 午前・午後の切り替え（新しい形。`isUpdatedTimepickerToggleEnabled` が true）：4 dp 離した二つの切り替えボタンで、52 × 80 dp（縦。分の 4 dp 後）か 216 × 38 dp（横。16 dp 下）。選ばれていない側は surface-container-lowest と on-surface-variant で角が丸く、選ばれた側は primary-container と on-primary-container で角 12 dp、文字は太字です。形は `FastSpatial` で変わります。
 - 配置：縦は表示・36 dp・文字盤・24 dp、横は表示の列・36 dp・文字盤。Compose は画面が縦より横に長いと横を選びます。lamina-ui は `TimePickerLayout` で決めます。
+- 幅：`TimePickerDefaults.layoutType()` は `defaultTimePickerLayoutType` を返し、その KDoc は「画面の大きさを使う」と書いています。`TimePickerLayoutType.Horizontal` は「横長の向きで使う」ものです。`ClockFaceSizeModifier` は文字盤の大きさを渡された高さから決め（`TimePickerMaxHeight` の 384 dp 以上なら 256 dp、`TimePickerMidHeight` の 330 dp 以上なら `ClockDialMidContainerSize` の 238 dp、それより低ければ `ClockDialMinContainerSize` の 200 dp）、幅からは決めないので、横の配置は狭くなりません。lamina-ui の横の時刻の選択はどの幅でも 508 dp で、文字盤はどの高さでも 256 dp のままです。部品の一覧は、窓のほうが狭いとき、カードの中で横にスクロールさせます（[見本](examples.ja.md#components部品の一覧)）。
 - 動き：つまみは近い向きを回って `DefaultSpatial` で動きます。押したときは分を 5 分に、時をいちばん近い時に合わせ、時を押したときは動きが終わってから 100 ms 待って分を出します。ドラッグではつまみが指に付き、離したときに切り替えます。数字の組は `DefaultEffects` で入れ替わります。
 - 入力：欄は 96 × 72 dp で Display M、フォーカスがあると primary-container の地に 2 dp の枠線（outline）。下 7 dp に Body S で 2 行の補助の文字："Hour" と "Minute"、範囲外なら "Hour must be 1–12"・"Hour must be 0–23"・"Minute must be 0–59" をエラーの色で出します。埋まった欄に打つと新しい数字だけが残り、時を 2 桁（12 時間制なら 2〜9 の 1 桁）打つと分へ進みます。
 - ダイアログ：内側に 24 dp、中身の 20 dp 上に Label M の題（"Select Time" / "Enter Time"）、ボタンの行は先頭にモードの切り替え（`Keyboard` / `Schedule`）、末尾に Cancel と OK を 8 dp 空けて置きます。
@@ -727,6 +729,7 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 - 形は標準の効果のばねで移ります。オンの後ろ半分は円になり、中身の色を 10 % 重ね（`TrailingButtonStateLayerAlpha`）、中身を見た目の中心に置きます。
 - 下向きの山形（`keyboard_arrow_down`）は、オンになると半回転します。ばねは見本の `animateFloatAsState` の既定（減衰 1、硬さ 1500）です。
 - メニュー：`SplitButtonWithDropdownMenuSample` と同じく、後ろ半分をオンにすると分割ボタン全体の下にメニューが開き、項目を選ぶかメニューを閉じるとオフに戻ります。後ろ半分は見本の `stateDescription` と同じく、値で "Expanded" か "Collapsed" を伝えます。
+- 幅：`SplitButtonLayout` は後ろの半分の本来の幅を見積もり、それと間の幅を最大の幅から引いたものを前の半分に回します。後ろの半分を先に測り（「幅を優先するため」）、残りで前の半分を測ります。二つの半分の行には `defaultMinSize(minWidth = LeadingButtonMinWidth / TrailingButtonMinWidth)` があり、`widthIn` はなく、文字に `maxLines` も `overflow` も付けません。lamina-ui も後ろの半分と 2 dp の間に先に幅を渡し、前の半分を左右の余白・アイコン・「…」の幅（48 dp 以上）まで縮めます。Compose の `Text` なら折り返すところを、1 行のまま切ります。
 - 違い：filled・tonal・outlined・elevated の色はボタンの色（`ButtonDefaults.*Colors`）です。lamina-ui は色を標準の効果のばねで移します。
 
 ### 拡張 FAB
@@ -932,8 +935,8 @@ Material 3 にはデータテーブルがありません。下の値は、MDC We
 
 - 上に挙げた部品のほかは、まだトークンを調べていません。
 - 第 2 段階の部品で作っていないもの：チップの `shapes:` の版（`ChipShapes`）、2 dp の間と位置ごとの角を持つ `SegmentedListItem`、チップ・カード・リストの項目を引きずる操作、トップアプリバー自身を引きずる操作。
-- 第 3 段階の部品で作っていないもの：月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
+- 第 3 段階の部品で作っていないもの：月の間のスワイプ、Compose の vibrant な時刻の選択（`TimeScroll` と `shapes:` の版）、低い高さでの時刻の選択の文字盤の 238 dp と 200 dp の大きさ、Compose にないスライダーの形（トラックの中のアイコン、XS〜XL の大きさ）。
 - 第 4 段階の画面のパターンで作っていないもの：予測型の戻る操作（シート・ドロワー・レール・検索）、アンカーへはじく動きの減速の段階、シートの中身とシートの間の入れ子のスクロール、`AppBarWithSearch`・`ExpandedFullScreenContainedSearchBar`・`ExpandedDockedSearchBarWithGap`、M3 のデザインのサイトにあるサイドシートの寸法（スクリプトなしでは読めません）。
 - 第 5 段階の Expressive の部品で作っていないもの：縦のボタンの組と項目ごとのそろえ方、キーで押したときのボタンの広がり、スクロールで常に退く浮かぶツールバーと `minimumInteractiveBalancedPadding`、受け渡しの前に直線の波の表示の線を速めて走り切らせる動き、スクロールする FAB メニュー、`Modifier.animateFloatingActionButton`、`AppBarWithSearch` などの Expressive の検索バー、はみ出しを持つ `AppBarRow` と `AppBarColumn`、`CheckableDropdownMenuItem` と `SelectableDropdownMenuItem`、`ScrollField` と `Modifier.nonInteractiveScrollbar`。
-- 第 6 段階の画面の広さとデスクトップ向けの作業で作っていないもの：チェックボックス・ラジオボタン・スイッチの密度、中くらいの短いナビゲーションバーの並び、ナビゲーションスイートの主な操作、浮かせたペイン、ヒンジ、予測型の戻る操作とペインの状態の保存、ペインの止まる位置を選ぶ前の減速、区分ボタンの行の幅の指定。
+- 第 6 段階の画面の広さとデスクトップ向けの作業で作っていないもの：チェックボックス・ラジオボタン・スイッチの密度、中くらいの短いナビゲーションバーの並び、ナビゲーションスイートの主な操作、浮かせたペイン、ヒンジ、予測型の戻る操作とペインの状態の保存、ペインの止まる位置を選ぶ前の減速。
 - 第 7 段階のデスクトップ向けの作業で作っていないもの：メニューの先頭文字での移動、macOS の Command キー、チェックやラジオのメニュー項目、表のセルの省略記号、表の列の並べ替えと中身に合わせる操作、チェックボックスの列、ページ分け、セルの編集。

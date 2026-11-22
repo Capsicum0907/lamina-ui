@@ -32,13 +32,15 @@
 
 `lamina/widgets/segmented_button.hpp`：Compose の `SingleChoiceSegmentedButtonRow` と `MultiChoiceSegmentedButtonRow`（`SegmentSelection`）。区画は高さ 40 dp、幅はいちばん広い区画にそろえ（最小 58 dp）、左右に 12 dp、18 dp のアイコンの場所と、Label L の文字の前に 8 dp を空けます。1 dp の枠線は隣の区画と重なり、最初と最後の区画は外側の角を丸くします。選ばれた区画は secondary-container で塗ります。アイコンのない区画もアイコンの場所を取っておき、選ばれていない間は文字を 13 dp 戻します。選ぶとチェックの印が左下から速い空間のばねで大きくなりながら文字が横へずれ、外すと印はすぐに消えて文字が戻ります（Compose の `SegmentedButtonDefaults.Icon`）。アイコンのある区画は、標準の効果のばねでアイコンとチェックの印を入れ替えます。アイコンだけの区画には `accessible_name` が要ります。行全体で Tab の止まり位置は一つです。一つだけ選ぶ行では、ラジオボタンの組と同じく `←`・`→`・`Home`・`End` で選び、いくつでも選べる行では、それらでフォーカスを動かして `Space` か `Enter` で切り替えます。読み上げでは、`group` の中のラジオボタンか切り替えボタンです。
 
+行の幅は、区画が必要とする幅です（`natural_width()`）。それより狭い幅を `measure` と `arrange`（`widgets::node` が使います）か `set_width` で渡すと、区画は同じ幅のまま `min_width()` まで縮みます。`min_width()` は、どの区画にも左右の余白・アイコンの場所・「…」の入る幅が残り、しかも 58 dp 以上ある幅です。収まらない文字は 1 行のまま「…」で切ります（`shown_label`・`label_ellipsized`）。`SegmentedButtonRowOptions::fill_width` を付けると、行は渡された幅をすべて使い、区画はやはり同じ幅です。区画は毎コマ渡された幅に付いていくので、滑って動く親の中や、大きさを変えている窓の中でも跳びません。行に `widgets::node` を使うと、これまでは本来の幅で置いていましたが、今は測って縮めます。
+
 ## ボタンの組
 
 `ButtonGroup`（`lamina/widgets/button_group.hpp`）は `ButtonGroupItem` を 12 dp あけて並べます。`ButtonGroupOptions::connected` にすると 2 dp あけ、つながった形にします。`selection` は `none`（ふつうのボタン）・`single`（ラジオの切り替え）・`multiple`（切り替えボタン）です。押したボタンは幅の 15 % までとなりへ広がり、となりは同じだけ縮むので、列の幅は変わりません（`animate_width`）。入りきらないボタンは「その他のオプション」のアイコンボタンの後ろのメニューに移ります。`handle` は `clicked` を持つ `ButtonGroupResponse` を返します。値は[ボタンの組](../design-tokens.ja.md#ボタンの組)にあります。
 
 ## 分割ボタン
 
-`SplitButton`（`lamina/widgets/split_button.hpp`）は、前のボタンと後ろの山形の印を 2 dp あけて並べたものです。大きさはボタンの五つ（32・40・56・96・136 dp）、形は `filled`・`tonal`・`outlined`・`elevated` です。後ろの半分をオンにすると、山形が半回転し、ボタン全体の下に `SplitButtonOptions::menu` を開きます。項目を選ぶかメニューを閉じるとオフに戻ります。`handle` は `leading_clicked`・`trailing_toggled`・`chosen` を持つ `SplitButtonResponse` を返します。値は[分割ボタン](../design-tokens.ja.md#分割ボタン)にあります。
+`SplitButton`（`lamina/widgets/split_button.hpp`）は、前のボタンと後ろの山形の印を 2 dp あけて並べたものです。大きさはボタンの五つ（32・40・56・96・136 dp）、形は `filled`・`tonal`・`outlined`・`elevated` です。後ろの半分をオンにすると、山形が半回転し、ボタン全体の下に `SplitButtonOptions::menu` を開きます。項目を選ぶかメニューを閉じるとオフに戻ります。`handle` は `leading_clicked`・`trailing_toggled`・`chosen` を持つ `SplitButtonResponse` を返します。本来の幅（`natural_width()`）より狭い幅を `measure` と `arrange` か `set_width` で渡すと、後ろの半分と 2 dp の間はそのままで、前の半分が残りの幅を取り、`min_width()` まで縮みます。前の半分は左右の余白とアイコンを残し、文字を「…」で切ります。ボタンが文字を切るのは `ButtonOptions::ellipsize_label` を付けたときだけで、分割ボタンは前の半分にこれを付けます（`Button::min_width`・`label_ellipsized`・`shown_label`）。分割ボタンに `widgets::node` を使うと、セグメントボタンと同じく測って縮めます。値は[分割ボタン](../design-tokens.ja.md#分割ボタン)にあります。
 
 ## 出典
 
