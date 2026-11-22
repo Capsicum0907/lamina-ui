@@ -1,6 +1,7 @@
 #include "lamina/widgets/segmented_button.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <numeric>
 #include <stdexcept>
 
@@ -48,18 +49,26 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
         const bool shows_icon = on || (spec.icon && !spec.label.empty());
         text::TextLine line = text::layout_line(fonts_, spec.label, style);
         const bool allowed = spec.enabled;
-        segments_.push_back(Item{std::move(spec), std::move(line), {}, motion::Animated(0.0, m.state_layer),
+        text::TextLine shown = line;
+        segments_.push_back(Item{std::move(spec), std::move(line), std::move(shown), false, {}, motion::Animated(0.0, m.state_layer),
                                  motion::Animated(on ? 1.0 : 0.0, m.colors), motion::Animated(on ? 1.0 : 0.0, m.check_scale),
                                  motion::Animated(on ? 1.0 : 0.0, m.check_fade), motion::Animated(on ? 1.0 : 0.0, m.icon_crossfade),
                                  motion::Animated(shows_icon ? 0.0 : hidden_offset(), m.label_shift), Enablement(allowed && enabled_),
                                  allowed});
     }
+    const double mark = text::layout_line(fonts_, tokens::ellipsis, style).width;
     double widest = t.min_width;
+    double narrowest = t.min_width;
     for (const Item& item : segments_) {
         const double label = item.spec.label.empty() ? t.icon_size : item.label.width;
+        const double least = item.spec.label.empty() ? t.icon_size : std::min(item.label.width, mark);
         widest = std::max(widest, 2.0 * t.horizontal_padding + icon_slot() + label);
+        narrowest = std::max(narrowest, 2.0 * t.horizontal_padding + icon_slot() + least);
     }
+    natural_segment_ = widest;
+    min_segment_ = narrowest;
     segment_width_ = widest;
+    fit_labels();
     double tallest = 0.0;
     for (const Item& item : segments_) {
         tallest = std::max(tallest, item.spec.label.empty() ? t.icon_size : item.label.box_height());
@@ -79,9 +88,58 @@ void SegmentedButtonRow::set_density(tokens::Density density) {
     update_height();
 }
 
+double SegmentedButtonRow::row_width(double segment) const {
+    return count() * segment - (count() - 1.0) * t.outline_width;
+}
+
 double SegmentedButtonRow::width() const {
-    const double n = static_cast<double>(segments_.size());
-    return n * segment_width_ - (n - 1.0) * t.outline_width;
+    return row_width(segment_width_);
+}
+
+double SegmentedButtonRow::natural_width() const {
+    return row_width(natural_segment_);
+}
+
+double SegmentedButtonRow::min_width() const {
+    return row_width(min_segment_);
+}
+
+void SegmentedButtonRow::set_width(double width) {
+    const double segment = (width + (count() - 1.0) * t.outline_width) / count();
+    segment_width_ = std::max(min_segment_, segment);
+    fit_labels();
+}
+
+layout::Size SegmentedButtonRow::measure(const layout::Constraints& c) const {
+    const double room = std::isfinite(c.max_width) ? c.max_width : natural_width();
+    const double w = options_.fill_width ? room : std::min(natural_width(), room);
+    return {std::max(min_width(), w), height_};
+}
+
+void SegmentedButtonRow::arrange(const render::Rect& r) {
+    set_width(options_.fill_width ? r.width : std::min(natural_width(), r.width));
+    set_origin({r.x, r.y + (r.height - height_) / 2.0});
+}
+
+void SegmentedButtonRow::fit_labels() {
+    const double room = segment_width_ - 2.0 * t.horizontal_padding - icon_slot();
+    if (room == label_room_) {
+        return;
+    }
+    label_room_ = room;
+    const text::TextStyle style = tokens::text_style(tokens::type_style(t.label));
+    for (Item& item : segments_) {
+        const bool fits = item.spec.label.empty() || item.label.width <= room;
+        if (fits) {
+            if (item.ellipsized) {
+                item.shown = item.label;
+                item.ellipsized = false;
+            }
+            continue;
+        }
+        item.shown = text::ellipsize_line(fonts_, item.spec.label, style, room, tokens::ellipsis);
+        item.ellipsized = true;
+    }
 }
 
 double SegmentedButtonRow::height() const {
@@ -337,7 +395,7 @@ void SegmentedButtonRow::paint_segment(render::Canvas& canvas, const color::Colo
     ring.append(render::rounded_rect_path(inner, {inset(radii.top_left), inset(radii.top_right), inset(radii.bottom_right), inset(radii.bottom_left)}));
     canvas.fill_path(ring, outline, render::FillRule::even_odd);
 
-    const double label_w = item.spec.label.empty() ? t.icon_size : item.label.width;
+    const double label_w = item.spec.label.empty() ? t.icon_size : item.shown.width;
     const double content_w = icon_slot() + label_w;
     const double cx = r.x + (r.width - content_w) / 2.0;
     const double icon_y = r.y + (r.height - t.icon_size) / 2.0;
@@ -365,7 +423,7 @@ void SegmentedButtonRow::paint_segment(render::Canvas& canvas, const color::Colo
     if (item.spec.label.empty()) {
         item.spec.icon->font.draw(canvas, item.spec.icon->symbol, {label_x, icon_y}, t.icon_size, content);
     } else {
-        text::draw_line(canvas, fonts_, item.label, {label_x, r.y + (r.height - item.label.box_height()) / 2.0}, content);
+        text::draw_line(canvas, fonts_, item.shown, {label_x, r.y + (r.height - item.shown.box_height()) / 2.0}, content);
     }
     canvas.pop_clip();
     if (focused_segment() == index) {

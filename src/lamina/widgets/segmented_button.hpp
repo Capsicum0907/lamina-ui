@@ -8,6 +8,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/events.hpp"
+#include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
@@ -36,6 +37,7 @@ struct SegmentedButtonRowOptions {
     std::string accessible_name = {};
     bool enabled = true;
     tokens::Density density = {};
+    bool fill_width = false;
 };
 
 struct SegmentedButtonResponse {
@@ -49,7 +51,14 @@ public:
 
     double width() const;
     double height() const;
+    double natural_width() const;
+    double min_width() const;
+    void set_width(double width);
+    layout::Size measure(const layout::Constraints& c) const;
+    void arrange(const render::Rect& r);
     double segment_width() const { return segment_width_; }
+    const text::TextLine& shown_label(std::size_t index) const { return segments_[index].shown; }
+    bool label_ellipsized(std::size_t index) const { return segments_[index].ellipsized; }
     tokens::Density density() const { return options_.density; }
     void set_density(tokens::Density density);
     void set_origin(render::Point origin) { origin_ = origin; }
@@ -87,6 +96,8 @@ private:
     struct Item {
         Segment spec;
         text::TextLine label;
+        text::TextLine shown;
+        bool ellipsized = false;
         PressState press;
         motion::Animated state_layer;
         motion::Animated checked_amount;
@@ -103,12 +114,18 @@ private:
     void retarget();
     int z_of(std::size_t index) const;
     void paint_segment(render::Canvas& canvas, const color::ColorScheme& scheme, std::size_t index) const;
+    double count() const { return static_cast<double>(segments_.size()); }
+    double row_width(double segment) const;
+    void fit_labels();
 
     SegmentedButtonRowOptions options_;
     text::FontStack fonts_;
     icons::Icon checkmark_;
     std::vector<Item> segments_;
     double segment_width_ = 0.0;
+    double natural_segment_ = 0.0;
+    double min_segment_ = 0.0;
+    double label_room_ = -1.0;
     double height_ = 0.0;
     double tallest_ = 0.0;
     void update_height();

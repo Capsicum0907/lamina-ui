@@ -196,3 +196,98 @@ TEST_CASE("a checked segment fills with secondary-container and draws over its n
     const render::Rect b = r.segment_bounds(1);
     CHECK(canvas.pixel(static_cast<int>(b.x + b.width - 6.0), 20) == scheme()[color::Role::surface]);
 }
+
+TEST_CASE("a segmented row measures to its natural width and shrinks to the room it is given") {
+    SegmentedButtonRow r = row(SegmentSelection::single, days());
+    const auto& t = tokens::segmented_button_tokens;
+    const double natural = r.natural_width();
+    CHECK(r.width() == doctest::Approx(natural));
+    CHECK(r.measure({0.0, layout::unbounded, 0.0, layout::unbounded}).width == doctest::Approx(natural));
+    CHECK(r.measure({0.0, natural + 100.0, 0.0, layout::unbounded}).width == doctest::Approx(natural));
+    CHECK(r.measure({0.0, natural - 40.0, 0.0, layout::unbounded}).width == doctest::Approx(natural - 40.0));
+    CHECK(r.measure({0.0, 10.0, 0.0, layout::unbounded}).width == doctest::Approx(r.min_width()));
+    CHECK(r.min_width() >= 4.0 * t.min_width - 3.0 * t.outline_width);
+
+    r.arrange({10.0, 20.0, natural + 100.0, 60.0});
+    CHECK(r.width() == doctest::Approx(natural));
+    CHECK(r.bounds().x == 10.0);
+    CHECK(r.bounds().y == doctest::Approx(20.0 + (60.0 - r.height()) / 2.0));
+
+    r.arrange({0.0, 0.0, natural - 40.0, r.height()});
+    CHECK(r.width() == doctest::Approx(natural - 40.0));
+    for (std::size_t i = 0; i + 1 < r.size(); ++i) {
+        CHECK(r.segment_bounds(i).width == doctest::Approx(r.segment_bounds(i + 1).width));
+        CHECK(r.segment_bounds(i + 1).x == doctest::Approx(r.segment_bounds(i).x + r.segment_bounds(i).width - t.outline_width));
+    }
+    const render::Rect last = r.segment_bounds(r.size() - 1);
+    CHECK(last.x + last.width == doctest::Approx(natural - 40.0));
+    CHECK(r.accessible().children.back().bounds.width == doctest::Approx(last.width));
+}
+
+TEST_CASE("a filling segmented row spreads equal segments over the whole width") {
+    SegmentedButtonRow r({days(), SegmentSelection::single, "Row", true, {}, true}, fonts(), icon_font());
+    const double natural = r.natural_width();
+    CHECK(r.measure({0.0, natural + 120.0, 0.0, layout::unbounded}).width == doctest::Approx(natural + 120.0));
+    CHECK(r.measure({0.0, layout::unbounded, 0.0, layout::unbounded}).width == doctest::Approx(natural));
+    r.arrange({0.0, 0.0, natural + 120.0, r.height()});
+    CHECK(r.width() == doctest::Approx(natural + 120.0));
+    CHECK(r.segment_bounds(0).width == doctest::Approx(r.segment_bounds(3).width));
+    for (std::size_t i = 0; i < r.size(); ++i) {
+        CHECK_FALSE(r.label_ellipsized(i));
+    }
+}
+
+TEST_CASE("segment labels ellipsize when the segments are narrower than their labels and come back when widened") {
+    SegmentedButtonRow r = row(SegmentSelection::single, {{"Short"}, {"A much longer label", std::nullopt, true}});
+    const auto& t = tokens::segmented_button_tokens;
+    const double natural = r.natural_width();
+    r.set_width(natural - 60.0);
+    CHECK_FALSE(r.label_ellipsized(0));
+    CHECK(r.label_ellipsized(1));
+    const double room = r.segment_width() - 2.0 * t.horizontal_padding - t.icon_size - t.icon_spacing;
+    CHECK(r.shown_label(1).width <= room);
+    CHECK(r.shown_label(1).width < label_width("A much longer label"));
+    r.set_width(natural);
+    CHECK_FALSE(r.label_ellipsized(1));
+    CHECK(r.shown_label(1).width == doctest::Approx(label_width("A much longer label")));
+}
+
+TEST_CASE("a segmented row stops shrinking at its minimum, where an ellipsis still fits") {
+    SegmentedButtonRow r = row(SegmentSelection::single, {{"Monday"}, {"Tuesday"}, {"Wednesday"}});
+    const auto& t = tokens::segmented_button_tokens;
+    r.set_width(1.0);
+    CHECK(r.width() == doctest::Approx(r.min_width()));
+    CHECK(r.segment_width() >= t.min_width);
+    const double room = r.segment_width() - 2.0 * t.horizontal_padding - t.icon_size - t.icon_spacing;
+    const double mark = label_width("\xe2\x80\xa6");
+    CHECK(room >= mark - 1e-9);
+    for (std::size_t i = 0; i < r.size(); ++i) {
+        CHECK(r.shown_label(i).width <= room + 1e-9);
+    }
+
+    SegmentedButtonRow icons = row(SegmentSelection::single, {{"", icons::Icon{icon_font(), tokens::segmented_button_tokens.checkmark}, true, true, "Check"},
+                                                              {"Label"}});
+    icons.set_width(1.0);
+    CHECK(icons.segment_width() >= 2.0 * t.horizontal_padding + 2.0 * t.icon_size + t.icon_spacing);
+}
+
+TEST_CASE("segment widths follow a gradual resize without jumps") {
+    SegmentedButtonRow r = row(SegmentSelection::single, {{"English (US)", std::nullopt, true}, {"English (UK)"}, {"Japanese"}});
+    const double from = r.natural_width() + 40.0;
+    const double to = r.min_width() - 20.0;
+    const double step = 1.0;
+    r.arrange({0.0, 0.0, from, r.height()});
+    double previous_segment = r.segment_width();
+    double previous_label = r.shown_label(0).width;
+    double biggest_label_step = 0.0;
+    for (double w = from - step; w >= to; w -= step) {
+        r.arrange({0.0, 0.0, w, r.height()});
+        CHECK(previous_segment - r.segment_width() <= step / 3.0 + 1e-9);
+        CHECK(r.segment_width() <= previous_segment + 1e-9);
+        CHECK(r.shown_label(0).width <= previous_label + 1e-9);
+        biggest_label_step = std::max(biggest_label_step, previous_label - r.shown_label(0).width);
+        previous_segment = r.segment_width();
+        previous_label = r.shown_label(0).width;
+    }
+    CHECK(biggest_label_step < label_width("English (US)") / 2.0);
+}
