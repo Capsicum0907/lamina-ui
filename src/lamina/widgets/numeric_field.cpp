@@ -4,6 +4,8 @@
 #include <charconv>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <string_view>
 
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
@@ -15,6 +17,28 @@ namespace lamina::widgets {
 namespace {
 
 constexpr const tokens::NumericFieldTokens& t = tokens::numeric_field_tokens;
+
+std::optional<double> parse_double(std::string_view s) {
+    double v = 0.0;
+#if defined(__cpp_lib_to_chars)
+    const auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), v);
+    if (ec != std::errc() || ptr != s.data() + s.size()) {
+        return std::nullopt;
+    }
+#else
+    constexpr std::string_view number_chars = "0123456789.eE+-";
+    if (s.empty() || s.front() == '+' || s.find_first_not_of(number_chars) != std::string_view::npos) {
+        return std::nullopt;
+    }
+    const std::string copy(s);
+    char* end = nullptr;
+    v = std::strtod(copy.c_str(), &end);
+    if (end != copy.c_str() + copy.size()) {
+        return std::nullopt;
+    }
+#endif
+    return v;
+}
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
@@ -161,9 +185,8 @@ std::optional<double> NumericField::parse(const std::string& s) const {
     if (s[b] == '+') {
         ++b;
     }
-    double v = 0.0;
-    const auto [ptr, ec] = std::from_chars(s.data() + b, s.data() + e, v);
-    if (ec != std::errc() || ptr != s.data() + e || !std::isfinite(v)) {
+    const std::optional<double> v = parse_double(std::string_view(s).substr(b, e - b));
+    if (!v || !std::isfinite(*v)) {
         return std::nullopt;
     }
     return v;

@@ -1,5 +1,6 @@
 #include <array>
 #include <chrono>
+#include <ctime>
 #include <memory>
 #include <string>
 
@@ -298,9 +299,17 @@ private:
 };
 
 calendar::Date local_today() {
+#if defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L
     const auto now = std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::system_clock::now()}.get_local_time();
     const std::chrono::year_month_day ymd{std::chrono::floor<std::chrono::days>(now)};
     return {static_cast<int>(ymd.year()), static_cast<int>(static_cast<unsigned>(ymd.month())), static_cast<int>(static_cast<unsigned>(ymd.day()))};
+#else
+    constexpr int tm_year_base = 1900;
+    const std::time_t now = std::time(nullptr);
+    std::tm local{};
+    localtime_r(&now, &local);
+    return {local.tm_year + tm_year_base, local.tm_mon + 1, local.tm_mday};
+#endif
 }
 
 }
