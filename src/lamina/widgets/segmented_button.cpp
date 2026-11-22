@@ -106,7 +106,7 @@ double SegmentedButtonRow::min_width() const {
 
 void SegmentedButtonRow::set_width(double width) {
     const double segment = (width + (count() - 1.0) * t.outline_width) / count();
-    segment_width_ = std::max(min_segment_, segment);
+    segment_width_ = std::max(width >= natural_width() ? natural_segment_ : min_segment_, segment);
     fit_labels();
 }
 
@@ -129,7 +129,7 @@ void SegmentedButtonRow::fit_labels() {
     label_room_ = room;
     const text::TextStyle style = tokens::text_style(tokens::type_style(t.label));
     for (Item& item : segments_) {
-        const bool fits = item.spec.label.empty() || item.label.width <= room;
+        const bool fits = item.spec.label.empty() || 2.0 * t.horizontal_padding + icon_slot() + item.label.width <= segment_width_;
         if (fits) {
             if (item.ellipsized) {
                 item.shown = item.label;
