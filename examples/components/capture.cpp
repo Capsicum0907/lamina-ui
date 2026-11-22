@@ -63,11 +63,7 @@ struct CaptureStyle {
     int scroll_notches = 6;
     std::string_view page_tabs = "Pages";
     double overlap_tolerance = 0.5;
-    std::array<std::pair<std::string_view, std::string_view>, 5> known_overflows{{{"dates", "Locale"},
-                                                                                  {"times", "Time locale"},
-                                                                                  {"times", "9:41 AM"},
-                                                                                  {"groups", "Extra large split button"},
-                                                                                  {"adaptive", "Window presets"}}};
+    std::array<std::pair<std::string_view, std::string_view>, 1> known_overflows{{{"times", "9:41 AM"}}};
     std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
                                                  "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop"};
 };

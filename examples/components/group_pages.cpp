@@ -268,7 +268,7 @@ private:
         composites_.push_back(Composite{[this, &s](const input::PointerEvent& e) { return report(s, s.handle(e)); },
                                         [this, &s](const input::KeyEvent& e) { return report(s, s.handle(e)); },
                                         [&s] { return s.menu_open(); }});
-        row.push_back(widgets::centered_node(s));
+        row.push_back(widgets::node(s));
         return s;
     }
 
