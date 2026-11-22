@@ -4,12 +4,12 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <cstdio>
 #include <exception>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include <SDL3/SDL.h>
@@ -17,6 +17,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "lamina_sdl3/caption_frame.hpp"
+#include "lamina_sdl3/report.hpp"
 
 namespace lamina::sdl3 {
 
@@ -44,7 +45,14 @@ constexpr std::array<SDL_SystemCursor, 7> system_cursors{SDL_SYSTEM_CURSOR_DEFAU
                                                        SDL_SYSTEM_CURSOR_EW_RESIZE, SDL_SYSTEM_CURSOR_NS_RESIZE, SDL_SYSTEM_CURSOR_MOVE,
                                                        SDL_SYSTEM_CURSOR_NOT_ALLOWED};
 constexpr std::size_t cursor_count = system_cursors.size();
-constexpr const char* unavailable_title_bar_message = "lamina: the client-drawn title bar is not available; using the system frame\n";
+constexpr const char* unavailable_title_bar_message = "lamina: the client-drawn title bar is not available; using the system frame";
+#ifdef __ANDROID__
+constexpr bool leave_after_touch_up = true;
+constexpr int redraws_after_restore = 2;
+#else
+constexpr bool leave_after_touch_up = false;
+constexpr int redraws_after_restore = 0;
+#endif
 
 std::optional<Key> to_key(SDL_Keycode k) {
     switch (k) {
@@ -96,6 +104,9 @@ std::optional<Key> to_key(SDL_Keycode k) {
     case SDLK_F12: return Key::f12;
     case SDLK_INSERT: return Key::insert;
     case SDLK_APPLICATION: return Key::menu;
+#ifdef __ANDROID__
+    case SDLK_AC_BACK: return Key::escape;
+#endif
     default: break;
     }
     if (k >= SDLK_A && k <= SDLK_Z) {
@@ -156,6 +167,7 @@ struct Window::Impl {
     std::array<SDL_Cursor*, cursor_count> cursors{};
     input::Cursor cursor = input::Cursor::arrow;
     bool alt_alone = false;
+    int pending_redraws = 0;
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
@@ -233,13 +245,20 @@ struct Window::Impl {
         return window_coord * pixel_density() / scale();
     }
 
+    void drop_texture() {
+        if (texture) {
+            SDL_DestroyTexture(texture);
+        }
+        texture = nullptr;
+        texture_w = 0;
+        texture_h = 0;
+    }
+
     void ensure_texture(int w, int h) {
         if (texture && w == texture_w && h == texture_h) {
             return;
         }
-        if (texture) {
-            SDL_DestroyTexture(texture);
-        }
+        drop_texture();
         texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, w, h);
         if (!texture) {
             fail("SDL_CreateTexture");
@@ -261,12 +280,13 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
+    SDL_SetHint(SDL_HINT_ANDROID_TRAP_BACK_BUTTON, "1");
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fail("SDL_Init");
     }
     const bool client_title_bar = options.client_title_bar && client_title_bar_supported();
     if (options.client_title_bar && !client_title_bar) {
-        std::fprintf(stderr, "%s", unavailable_title_bar_message);
+        report_error(unavailable_title_bar_message);
     }
     SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
     if (client_title_bar) {
@@ -282,7 +302,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
             impl_->caption = detail::attach_caption_frame(impl_->window, impl_->caption_pointer_event);
         }
         if (!impl_->caption) {
-            std::fprintf(stderr, "%s", unavailable_title_bar_message);
+            report_error(unavailable_title_bar_message);
             SDL_SetWindowBordered(impl_->window, true);
         }
     }
@@ -291,7 +311,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
                       static_cast<int>(std::lround(options.height_dp * factor)));
     SDL_SetWindowPosition(impl_->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     if (!SDL_SetRenderVSync(impl_->renderer, 1)) {
-        std::fprintf(stderr, "lamina: vsync is not available (%s); frames are not paced\n", SDL_GetError());
+        report_error(std::string("lamina: vsync is not available (") + SDL_GetError() + "); frames are not paced");
     }
     SDL_ShowWindow(impl_->window);
     impl_->last_ns = SDL_GetTicksNS();
@@ -338,7 +358,9 @@ bool Window::next_frame(Frame& frame, bool animating) {
     frame.keys.clear();
     frame.text.clear();
     frame.context.clear();
-    if (!animating) {
+    const bool redraw = impl_->pending_redraws > 0;
+    impl_->pending_redraws = std::max(0, impl_->pending_redraws - 1);
+    if (!animating && !redraw) {
         if (impl_->wake_seconds >= 0.0) {
             SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(impl_->wake_seconds * milliseconds_per_second)));
             impl_->frame_limit_seconds = std::max(max_frame_seconds, impl_->wake_seconds);
@@ -382,6 +404,11 @@ bool Window::next_frame(Frame& frame, bool animating) {
                 frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which),
                                          static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0,
                                          ctrl_held(mod)});
+                if constexpr (leave_after_touch_up) {
+                    if (pointer_kind(e.button.which) == input::PointerKind::touch) {
+                        frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
+                    }
+                }
             }
             break;
         case SDL_EVENT_MOUSE_WHEEL: {
@@ -417,6 +444,12 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
             frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
+            break;
+        case SDL_EVENT_WINDOW_RESTORED:
+            impl_->pending_redraws = redraws_after_restore;
+            break;
+        case SDL_EVENT_RENDER_DEVICE_RESET:
+            impl_->drop_texture();
             break;
         default:
             break;
@@ -462,7 +495,7 @@ void Window::set_minimum_size(double width_dp, double height_dp) {
 
 void Window::set_always_on_top(bool on_top) {
     if (!SDL_SetWindowAlwaysOnTop(impl_->window, on_top)) {
-        std::fprintf(stderr, "lamina: cannot change always on top (%s)\n", SDL_GetError());
+        report_error(std::string("lamina: cannot change always on top (") + SDL_GetError() + ")");
     }
 }
 

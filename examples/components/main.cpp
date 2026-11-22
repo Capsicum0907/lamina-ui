@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <exception>
 #include <optional>
 
@@ -7,8 +6,13 @@
 #include "components/gallery.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina_sdl3/app.hpp"
+#include "lamina_sdl3/report.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
 #include "res.hpp"
+
+#ifdef __ANDROID__
+#include <SDL3/SDL_main.h>
+#endif
 
 using namespace lamina;
 
@@ -63,7 +67,7 @@ int main(int argc, char** argv) {
         sdl3::run_app(window, update, paint);
         return 0;
     } catch (const std::exception& ex) {
-        std::fprintf(stderr, "%s\n", ex.what());
+        sdl3::report_error(ex.what());
         return 1;
     }
 }

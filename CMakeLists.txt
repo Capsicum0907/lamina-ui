@@ -165,6 +165,7 @@ if(LAMINA_BUILD_SDL3)
     find_package(SDL3 CONFIG REQUIRED)
     add_library(lamina_sdl3 STATIC
         src/lamina_sdl3/app.cpp
+        src/lamina_sdl3/report.cpp
         src/lamina_sdl3/resources.cpp
         src/lamina_sdl3/system_fonts.cpp
         src/lamina_sdl3/window.cpp
