@@ -99,13 +99,8 @@ render::Image avatar_image(std::size_t index) {
 class ChipsPage final : public BasePage {
 public:
     explicit ChipsPage(PageContext context) : BasePage(std::move(context)) {
-        auto left = layout::column({assist(), suggestion(), filter(), input(), wrapping()});
-        left->spacing(page_layout.row_gap);
-        auto right = layout::column({cards(), card_states(), dividers()});
-        right->spacing(page_layout.row_gap);
-        auto columns = layout::row({left, right});
-        columns->spacing(page_layout.column_space);
-        root = columns;
+        root = columns({{assist(), suggestion(), filter(), input(), wrapping()}, {cards(), card_states(), dividers()}}, page_layout.column_space,
+                       page_layout.row_gap);
     }
 
 private:
@@ -300,9 +295,7 @@ public:
         auto settings_list = settings();
         auto standalone_card = standalone();
         auto messages_list = messages();
-        auto columns = layout::row({settings_list, standalone_card, messages_list});
-        columns->spacing(page_layout.column_space);
-        root = columns;
+        root = columns({{settings_list}, {standalone_card}, {messages_list}}, page_layout.column_space, page_layout.row_gap);
     }
 
     bool handle(const input::WheelEvent& e) override {
@@ -448,11 +441,9 @@ public:
                 f.bar->arrange({r.x, r.y, r.width, f.bar->height()});
             }));
         }
-        auto row = layout::row(std::move(frame_nodes));
-        row->spacing(page_layout.column_gap + page_layout.heading_gap);
-        auto column = layout::column({captioned("Top app bars", row), captioned("Badges", badges())});
-        column->spacing(page_layout.row_gap);
-        root = column;
+        auto row = items(std::move(frame_nodes));
+        row->spacing(page_layout.column_gap + page_layout.heading_gap).line_spacing(page_layout.column_gap + page_layout.heading_gap).cross_align(layout::CrossAlign::start);
+        root = columns({{captioned("Top app bars", row), captioned("Badges", badges())}}, page_layout.column_space, page_layout.row_gap);
         refresh_badges();
     }
 
@@ -632,21 +623,21 @@ private:
             focus_.add(b);
             buttons.push_back(widgets::node(b));
         };
-        auto icon_row = layout::row(std::move(buttons));
-        icon_row->spacing(page_layout.badge_button_gap).cross_align(layout::CrossAlign::center);
+        auto icon_row = items(std::move(buttons));
+        icon_row->spacing(page_layout.badge_button_gap);
         buttons.clear();
         text_button("Add 1", page_layout.add_small);
         text_button("Add 100", page_layout.add_large);
         text_button("Clear", 0);
-        auto button_row = layout::row({icon_row, items(std::move(buttons))});
-        button_row->spacing(page_layout.badge_button_gap).cross_align(layout::CrossAlign::center);
+        auto button_row = items({icon_row, items(std::move(buttons))});
+        button_row->spacing(page_layout.badge_button_gap);
         bar_ = &controls.emplace<widgets::NavigationBar>(widgets::NavigationBarOptions{nav_items(), 0, "Sections"}, ctx.fonts);
         focus_.add(*bar_);
         rail_ = &controls.emplace<widgets::NavigationRail>(widgets::NavigationRailOptions{nav_items(), 0, false, nullptr, "Sections rail"}, ctx.fonts);
         focus_.add(*rail_);
         auto left = layout::column({button_row, sized(widgets::full_width_node(*bar_), page_layout.bar_width, bar_->height())});
         left->spacing(page_layout.row_gap);
-        auto r = layout::row({left, sized(widgets::measured_node(*rail_), tokens::navigation_rail_tokens.collapsed_width, page_layout.rail_height)});
+        auto r = items({left, sized(widgets::measured_node(*rail_), tokens::navigation_rail_tokens.collapsed_width, page_layout.rail_height)});
         r->spacing(page_layout.column_space).cross_align(layout::CrossAlign::start);
         return r;
     }

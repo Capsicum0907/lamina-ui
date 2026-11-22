@@ -49,17 +49,19 @@ struct LiveTip {
 inline layout::NodePtr width_limited(layout::NodePtr node, double width) {
     return std::make_shared<layout::Leaf>(
         [node, width](const layout::Constraints& c) {
-            const layout::Size s = node->measure({0.0, width, 0.0, c.max_height});
-            return layout::Size{width, s.height};
+            const double w = std::min(width, c.max_width);
+            const layout::Size s = node->measure({0.0, w, 0.0, c.max_height});
+            return layout::Size{w, s.height};
         },
         [node](const render::Rect& r) { node->arrange(r); });
 }
 
 inline layout::NodePtr sized(layout::NodePtr node, double width, double height) {
     return std::make_shared<layout::Leaf>(
-        [node, width, height](const layout::Constraints&) {
-            node->measure(layout::Constraints::tight({width, height}));
-            return layout::Size{width, height};
+        [node, width, height](const layout::Constraints& c) {
+            const double w = std::min(width, c.max_width);
+            node->measure(layout::Constraints::tight({w, height}));
+            return layout::Size{w, height};
         },
         [node](const render::Rect& r) { node->arrange(r); });
 }
