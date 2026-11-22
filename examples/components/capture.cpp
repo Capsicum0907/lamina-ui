@@ -2606,6 +2606,18 @@ const std::map<std::string, Scene>& gallery_videos() {
                  d.wait(1.0);
              }
          }},
+        {"gallery_pages_keys",
+         [](Driver& d, examples::components::Gallery& g) {
+             d.wait(0.6);
+             tab_to(d, g, "Pages");
+             d.wait(0.6);
+             for (int i = 0; i < 14; ++i) {
+                 d.key(Key::right);
+                 d.wait(0.5);
+             }
+             d.key(Key::home, false, "Home");
+             d.wait(1.2);
+         }},
         {"gallery_resize",
          [](Driver& d, examples::components::Gallery&) {
              const CaptureStyle& style = d.style();
