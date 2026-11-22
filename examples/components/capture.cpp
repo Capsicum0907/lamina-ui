@@ -63,7 +63,9 @@ struct CaptureStyle {
     int scroll_notches = 6;
     std::string_view page_tabs = "Pages";
     double overlap_tolerance = 0.5;
-    std::array<std::pair<std::string_view, std::string_view>, 1> known_overflows{{{"times", "9:41 AM"}}};
+    std::array<std::pair<std::string_view, std::string_view>, 0> known_overflows{};
+    std::string_view side_scroll_target = "Horizontal time picker";
+    int side_focus_tabs = 8;
     std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
                                                  "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop"};
 };
@@ -710,6 +712,16 @@ const std::map<std::string, Scene>& stills() {
              d.wait(0.4);
          }},
         {"times", [](Driver& d, examples::components::Gallery&) { show_page(d, "Times"); }},
+        {"times_side_scrolled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Times");
+             d.move_to(d.style().side_scroll_target, 0.3);
+             for (int i = 0; i < d.style().scroll_notches; ++i) {
+                 d.shift_wheel(1.0);
+                 d.wait(d.style().reveal_pause_seconds);
+             }
+             d.wait(0.4);
+         }},
         {"sheets", [](Driver& d, examples::components::Gallery&) { show_page(d, "Sheets"); }},
         {"drawers", [](Driver& d, examples::components::Gallery&) { show_page(d, "Drawers"); }},
         {"search", [](Driver& d, examples::components::Gallery&) { show_page(d, "Search"); }},
@@ -750,6 +762,16 @@ const std::map<std::string, Scene>& stills() {
              d.key(Key::tab);
              d.key(Key::right);
              d.wait(0.4);
+         }},
+        {"times_side_focus",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Times");
+             d.set_cursor(false);
+             tab_to(d, g, "Clock");
+             for (int i = 0; i < d.style().side_focus_tabs; ++i) {
+                 d.key(Key::tab);
+             }
+             d.wait(0.6);
          }},
         {"times_disabled",
          [](Driver& d, examples::components::Gallery&) {
@@ -2688,6 +2710,16 @@ const std::map<std::string, Scene>& gallery_videos() {
                      d.wait(0.8);
                  }
              }
+             sweep_width(d, d.stage_width(), style.sweep_back_seconds);
+             d.wait(0.8);
+         }},
+        {"times_resize",
+         [](Driver& d, examples::components::Gallery&) {
+             const CaptureStyle& style = d.style();
+             show_page(d, "Times");
+             d.wait(0.6);
+             sweep_width(d, style.sweep_narrowest, style.sweep_back_seconds);
+             d.wait(0.8);
              sweep_width(d, d.stage_width(), style.sweep_back_seconds);
              d.wait(0.8);
          }},

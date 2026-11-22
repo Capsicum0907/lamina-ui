@@ -4,6 +4,7 @@
 
 #include "components/base_page.hpp"
 #include "components/pages.hpp"
+#include "components/side_scroll.hpp"
 #include "lamina/calendar/locale.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/picker_dialog.hpp"
@@ -22,6 +23,8 @@ struct TimesLayout {
     int minute = 41;
     std::array<const char*, 3> locale_names{"English (US)", "English (UK)", "日本語"};
     std::array<const char*, 2> clock_names{"12-hour", "24-hour"};
+    const char* horizontal_name = "Horizontal";
+    const char* side_scroll_name = "Horizontal time picker";
 };
 
 const TimesLayout times_layout;
@@ -76,7 +79,18 @@ public:
             return p;
         };
         auto& dial = picker(widgets::TimePickerLayout::vertical, widgets::TimePickerMode::dial, "Dial");
-        auto& wide = picker(widgets::TimePickerLayout::horizontal, widgets::TimePickerMode::dial, "Horizontal");
+        wide_ = std::make_unique<widgets::TimePicker>(
+            widgets::TimePickerOptions{.hour = l.hour, .minute = l.minute, .is_24_hour = false, .layout = widgets::TimePickerLayout::horizontal},
+            ctx.fonts);
+        wide_->add_focus_stops(focus_);
+        pickers_.push_back(wide_.get());
+        side_ = &controls.emplace_with<SideScroll<widgets::TimePicker>>(
+            [this](SideScroll<widgets::TimePicker>&, const widgets::TimePickerResponse& r) {
+                if (r.changed) {
+                    ctx.report(std::string(times_layout.horizontal_name) + ": " + wide_->formatted());
+                }
+            },
+            *wide_, std::string(l.side_scroll_name));
         auto& typed = picker(widgets::TimePickerLayout::vertical, widgets::TimePickerMode::input, "Input");
 
         dialog_picker_ = std::make_unique<widgets::TimePicker>(
@@ -102,7 +116,7 @@ public:
 
         gated_tip(*dialog_->leading(), [this] { return dialog_->is_open(); }, true);
         auto pickers = columns({{heading("Dial", widgets::node(dial))},
-                                {heading("Horizontal", widgets::node(wide)), heading("Input", widgets::node(typed)), heading("Dialog", widgets::node(*open_))}},
+                                {heading(l.horizontal_name, widgets::node(*side_)), heading("Input", widgets::node(typed)), heading("Dialog", widgets::node(*open_))}},
                                l.column_space, l.row_gap * 2.0);
         auto settings = items({captioned("Locale", widgets::node(locales)), captioned("Clock", widgets::node(*clock_))});
         settings->spacing(l.column_space).line_spacing(l.row_gap);
@@ -118,6 +132,7 @@ public:
         }
         return BasePage::handle(e);
     }
+    bool handle(const input::WheelEvent& e) override { return side_->handle(e) || BasePage::handle(e); }
     bool handle(const input::KeyEvent& e) override {
         source_ = input::InputSource::keyboard;
         if (dialog_->is_open()) {
@@ -235,6 +250,8 @@ private:
     input::InputSource source_ = input::InputSource::pointer;
     widgets::SegmentedButtonRow* clock_ = nullptr;
     std::vector<widgets::TimePicker*> pickers_;
+    std::unique_ptr<widgets::TimePicker> wide_;
+    SideScroll<widgets::TimePicker>* side_ = nullptr;
     widgets::Button* open_ = nullptr;
     std::unique_ptr<widgets::TimePicker> dialog_picker_;
     std::unique_ptr<widgets::PickerDialog> dialog_;
