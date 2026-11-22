@@ -1,0 +1,2 @@
+file(STRINGS "${ENTRIES}" entries)
+file(ARCHIVE_CREATE OUTPUT "${OUTPUT}" PATHS ${entries} FORMAT zip COMPRESSION None)

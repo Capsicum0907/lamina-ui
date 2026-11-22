@@ -13,11 +13,48 @@
         "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>",
         "LAMINA_BUILD_TESTS": "ON"
       }
+    },
+    {
+      "name": "android",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "$env{ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake",
+        "ANDROID_PLATFORM": "android-28",
+        "ANDROID_STL": "c++_shared",
+        "CMAKE_BUILD_TYPE": "Release",
+        "LAMINA_BUILD_TESTS": "OFF",
+        "LAMINA_BUILD_TOOLS": "OFF",
+        "LAMINA_CLIENT_TITLE_BAR": "OFF",
+        "Python3_EXECUTABLE": "$env{LAMINA_HOST_PYTHON}",
+        "LAMINA_ANDROID_SDK": "$env{ANDROID_HOME}",
+        "LAMINA_ANDROID_JDK": "$env{JAVA_HOME}",
+        "LAMINA_ANDROID_PLATFORM": "android-36.1",
+        "LAMINA_ANDROID_BUILD_TOOLS": "36.1.0",
+        "LAMINA_ANDROID_MIN_SDK": "28",
+        "LAMINA_ANDROID_TARGET_SDK": "35",
+        "LAMINA_ANDROID_SDL_ARCHIVE": "$env{VCPKG_ROOT}/downloads/libsdl-org-SDL-release-3.4.10.tar.gz"
+      }
+    },
+    {
+      "name": "android-x64",
+      "inherits": "android",
+      "binaryDir": "${sourceDir}/build-android-x64",
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-android", "ANDROID_ABI": "x86_64" }
+    },
+    {
+      "name": "android-arm64",
+      "inherits": "android",
+      "binaryDir": "${sourceDir}/build-android-arm64",
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "arm64-android", "ANDROID_ABI": "arm64-v8a" }
     }
   ],
   "buildPresets": [
     { "name": "release", "configurePreset": "default", "configuration": "Release" },
-    { "name": "debug", "configurePreset": "default", "configuration": "Debug" }
+    { "name": "debug", "configurePreset": "default", "configuration": "Debug" },
+    { "name": "android-x64", "configurePreset": "android-x64", "targets": ["components_apk"] },
+    { "name": "android-arm64", "configurePreset": "android-arm64", "targets": ["components_apk"] }
   ],
   "testPresets": [
     { "name": "release", "configurePreset": "default", "configuration": "Release", "output": { "outputOnFailure": true } },

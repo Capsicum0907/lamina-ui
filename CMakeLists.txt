@@ -140,8 +140,8 @@ lamina_write_resource_header("${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamin
 target_include_directories(lamina PUBLIC src "${CMAKE_CURRENT_BINARY_DIR}/lamina_resources/lamina/include")
 target_compile_features(lamina PUBLIC cxx_std_20)
 function(lamina_find_vcpkg_library var name)
-    find_library(${var}_RELEASE NAMES ${name} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH REQUIRED)
-    find_library(${var}_DEBUG NAMES ${name} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib" NO_DEFAULT_PATH REQUIRED)
+    find_library(${var}_RELEASE NAMES ${name} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib" NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH REQUIRED)
+    find_library(${var}_DEBUG NAMES ${name} PATHS "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib" NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH REQUIRED)
     set(${var} optimized ${${var}_RELEASE} debug ${${var}_DEBUG} PARENT_SCOPE)
 endfunction()
 
@@ -172,6 +172,9 @@ if(LAMINA_BUILD_SDL3)
     )
     add_library(lamina::sdl3 ALIAS lamina_sdl3)
     target_link_libraries(lamina_sdl3 PUBLIC lamina PRIVATE SDL3::SDL3)
+    if(ANDROID)
+        include(cmake/LaminaAndroid.cmake)
+    endif()
     if(WIN32 AND LAMINA_CLIENT_TITLE_BAR)
         target_sources(lamina_sdl3 PRIVATE src/lamina_sdl3/caption_frame_win32.cpp)
         target_link_libraries(lamina_sdl3 PRIVATE dwmapi comctl32)
@@ -181,7 +184,7 @@ if(LAMINA_BUILD_SDL3)
     lamina_warnings(lamina_sdl3)
 endif()
 
-if(LAMINA_BUILD_EXAMPLES OR LAMINA_BUILD_TESTS)
+if((LAMINA_BUILD_EXAMPLES AND NOT ANDROID) OR LAMINA_BUILD_TESTS)
     add_library(calculator_engine STATIC examples/calculator/engine.cpp examples/calculator/keypad_layout.cpp)
     target_include_directories(calculator_engine PUBLIC examples)
     target_compile_features(calculator_engine PUBLIC cxx_std_20)
@@ -198,7 +201,14 @@ endif()
 
 function(lamina_add_example name dir)
     cmake_parse_arguments(PARSE_ARGV 2 arg "" "" "ICONS;TEXT_FONTS")
-    add_executable(${name} examples/${dir}/main.cpp)
+    if(ANDROID)
+        add_library(${name} SHARED examples/${dir}/main.cpp)
+        set_target_properties(${name} PROPERTIES OUTPUT_NAME main LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/android/${name}/lib")
+        target_link_libraries(${name} PRIVATE SDL3::SDL3)
+        target_link_options(${name} PRIVATE "-Wl,-u,JNI_OnLoad" "-Wl,-z,max-page-size=${LAMINA_ANDROID_PAGE_SIZE}")
+    else()
+        add_executable(${name} examples/${dir}/main.cpp)
+    endif()
     target_link_libraries(${name} PRIVATE lamina lamina_sdl3 lamina_examples_common)
     if(arg_ICONS OR arg_TEXT_FONTS)
         lamina_add_resources(${name}_resources NAMESPACE lamina::examples::res HEADER res.hpp ICONS ${arg_ICONS} TEXT_FONTS ${arg_TEXT_FONTS})
@@ -217,11 +227,13 @@ if(LAMINA_BUILD_EXAMPLES)
     target_include_directories(lamina_examples_common PUBLIC examples)
     target_link_libraries(lamina_examples_common PUBLIC lamina PRIVATE lamina_thorvg lamina_sdl3)
     lamina_warnings(lamina_examples_common)
-    lamina_add_example(playground playground)
-    lamina_add_example(buttons buttons)
-    lamina_add_example(text_field text_field)
-    lamina_add_example(shapes_gallery shapes)
-    lamina_add_example(layout_demo layout)
+    if(NOT ANDROID)
+        lamina_add_example(playground playground)
+        lamina_add_example(buttons buttons)
+        lamina_add_example(text_field text_field)
+        lamina_add_example(shapes_gallery shapes)
+        lamina_add_example(layout_demo layout)
+    endif()
     lamina_add_example(components components TEXT_FONTS google_sans_flex roboto_flex noto_sans_jp ICONS
         add remove close check check_small search menu settings home favorite star bookmark delete edit share
         content_copy send mail person notifications info warning error visibility visibility_off refresh download
@@ -236,25 +248,29 @@ if(LAMINA_BUILD_EXAMPLES)
     examples/components/drawer_pages.cpp examples/components/search_pages.cpp examples/components/group_pages.cpp
     examples/components/progress_pages.cpp examples/components/toolbar_pages.cpp examples/components/adaptive_pages.cpp
     examples/components/desktop_pages.cpp examples/components/files_view.cpp)
-    add_executable(components_capture examples/components/capture.cpp examples/components/gallery.cpp examples/components/pages.cpp examples/components/input_pages.cpp
-    examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
-    examples/components/drawer_pages.cpp examples/components/search_pages.cpp examples/components/group_pages.cpp
-    examples/components/progress_pages.cpp examples/components/toolbar_pages.cpp examples/components/adaptive_pages.cpp
-    examples/components/desktop_pages.cpp examples/components/files_view.cpp)
-    target_link_libraries(components_capture PRIVATE lamina lamina_thorvg lamina_sdl3 lamina_examples_common components_resources)
-    lamina_warnings(components_capture)
-    lamina_add_example(navigation navigation ICONS
-        bookmark check content_copy dark_mode delete download edit favorite grid_view home mail menu menu_open more_vert
-        person refresh search send settings share star view_list)
-    lamina_add_example(calculator calculator ICONS backspace)
-    target_sources(calculator PRIVATE examples/calculator/display.cpp)
-    target_link_libraries(calculator PRIVATE calculator_engine)
-    lamina_add_example(timer timer ICONS backspace pause play_arrow refresh stop)
-    target_sources(timer PRIVATE examples/timer/readout.cpp)
-    target_link_libraries(timer PRIVATE timer_engine)
-    lamina_add_example(todo todo ICONS add delete expand_more task_alt)
-    target_sources(todo PRIVATE examples/todo/row.cpp examples/todo/storage.cpp)
-    target_link_libraries(todo PRIVATE todo_engine)
+    if(ANDROID)
+        lamina_android_apk(components PACKAGE io.github.capsicum0907.lamina.components LABEL "lamina components" OUTPUT_NAME lamina-components)
+    else()
+        add_executable(components_capture examples/components/capture.cpp examples/components/gallery.cpp examples/components/pages.cpp examples/components/input_pages.cpp
+        examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
+        examples/components/drawer_pages.cpp examples/components/search_pages.cpp examples/components/group_pages.cpp
+        examples/components/progress_pages.cpp examples/components/toolbar_pages.cpp examples/components/adaptive_pages.cpp
+        examples/components/desktop_pages.cpp examples/components/files_view.cpp)
+        target_link_libraries(components_capture PRIVATE lamina lamina_thorvg lamina_sdl3 lamina_examples_common components_resources)
+        lamina_warnings(components_capture)
+        lamina_add_example(navigation navigation ICONS
+            bookmark check content_copy dark_mode delete download edit favorite grid_view home mail menu menu_open more_vert
+            person refresh search send settings share star view_list)
+        lamina_add_example(calculator calculator ICONS backspace)
+        target_sources(calculator PRIVATE examples/calculator/display.cpp)
+        target_link_libraries(calculator PRIVATE calculator_engine)
+        lamina_add_example(timer timer ICONS backspace pause play_arrow refresh stop)
+        target_sources(timer PRIVATE examples/timer/readout.cpp)
+        target_link_libraries(timer PRIVATE timer_engine)
+        lamina_add_example(todo todo ICONS add delete expand_more task_alt)
+        target_sources(todo PRIVATE examples/todo/row.cpp examples/todo/storage.cpp)
+        target_link_libraries(todo PRIVATE todo_engine)
+    endif()
 endif()
 
 if(LAMINA_BUILD_TOOLS)

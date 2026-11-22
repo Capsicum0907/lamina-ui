@@ -1,0 +1,40 @@
+package @LAMINA_APK_PACKAGE@;
+
+import android.os.Build;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowInsetsController;
+
+import org.libsdl.app.SDLActivity;
+
+public class LaminaActivity extends SDLActivity {
+    @Override
+    protected String[] getLibraries() {
+        return new String[] {"c++_shared", "@LAMINA_APK_LIBRARY@"};
+    }
+
+    @Override
+    protected boolean sendCommand(int command, Object data) {
+        boolean sent = super.sendCommand(command, data);
+        if (sent && command == COMMAND_CHANGE_WINDOW_STYLE) {
+            getWindow().getDecorView().post(new Runnable() {
+                @Override
+                public void run() {
+                    applyLightSystemBars();
+                }
+            });
+        }
+        return sent;
+    }
+
+    private void applyLightSystemBars() {
+        Window window = getWindow();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            window.getInsetsController().setSystemBarsAppearance(light, light);
+        } else {
+            View decor = window.getDecorView();
+            decor.setSystemUiVisibility(decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        }
+    }
+}
