@@ -1,0 +1,25 @@
+[[step]]
+action = "activate"
+
+[[step]]
+action = "capture"
+name = "send_before"
+
+[[step]]
+action = "press"
+x = 296
+y = 182
+hold = 0.3
+gap = 0
+snapshot = [{ at = 0.15, name = "send_pressed" }]
+
+[[step]]
+action = "capture"
+name = "send_lifted"
+settle = 0.1
+
+[[step]]
+action = "drag"
+from = [700, 600]
+to = [700, 400]
+duration = 0.08

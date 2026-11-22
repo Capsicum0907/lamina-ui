@@ -1,0 +1,20 @@
+[injection]
+max_contacts = 2
+feedback = "none"
+frame_interval_seconds = 0.008
+contact_half_size_dp = 4
+pressure = 512
+orientation = 90
+
+[timing]
+tap_hold_seconds = 0.05
+long_press_seconds = 0.8
+settle_seconds = 0.6
+gesture_gap_seconds = 0.3
+foreground_wait_seconds = 1.0
+
+[capture]
+extension = ".png"
+
+[watch]
+keyboard_processes = ["TextInputHost.exe"]
