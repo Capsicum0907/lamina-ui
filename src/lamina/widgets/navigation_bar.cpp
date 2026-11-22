@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/item_focus.hpp"
 
@@ -21,7 +22,7 @@ double label_height(const text::TextLine& line) {
 }
 
 NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack& fonts)
-    : options_(std::move(options)), fonts_(fonts), badges_(options_.items, fonts_) {
+    : options_(std::move(options)), fonts_(fonts), badges_(options_.items, fonts_), labels_(options_.labels ? 1.0 : 0.0, motion_scheme.default_spatial()) {
     name_navigation_items(options_.items);
     const auto style = tokens::text_style(tokens::type_style(t.label));
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
@@ -41,7 +42,7 @@ double NavigationBar::item_padding() const {
     return std::max(0.0, t.item_vertical_padding - (l.base - l.at(options_.density)) / 2.0);
 }
 
-double NavigationBar::height() const {
+double NavigationBar::labelled_height() const {
     double content = tokens::density_tokens.navigation_bar.at(options_.density);
     for (const Item& item : items_) {
         if (item.label) {
@@ -49,6 +50,34 @@ double NavigationBar::height() const {
         }
     }
     return content;
+}
+
+double NavigationBar::height() const {
+    const double icon_only = std::max(t.icon_only_min_height, 2.0 * item_padding() + t.indicator_height);
+    return motion::lerp(icon_only, labelled_height(), std::clamp(labels_.value(), 0.0, 1.0));
+}
+
+double NavigationBar::label_space(const Item& item) const {
+    return item.label ? std::clamp(labels_.value(), 0.0, 1.0) * (t.indicator_to_label_space + label_height(*item.label)) : 0.0;
+}
+
+double NavigationBar::label_opacity() const {
+    const double hide = std::clamp((labels_.value() - t.label_hide_progress) / (1.0 - t.label_hide_progress), 0.0, 1.0);
+    return hide * hide;
+}
+
+void NavigationBar::set_labels(bool labels) {
+    options_.labels = labels;
+    labels_.animate_to(labels ? 1.0 : 0.0);
+}
+
+void NavigationBar::snap_to_targets() {
+    labels_.snap_to(labels_.target());
+    for (Item& item : items_) {
+        for (motion::Animated* a : {&item.state_layer, &item.indicator, &item.color}) {
+            a->snap_to(a->target());
+        }
+    }
 }
 
 render::Rect NavigationBar::bounds() const {
@@ -66,7 +95,7 @@ double NavigationBar::content_top(std::size_t index) const {
     if (!item.label) {
         return r.y + (r.height - t.indicator_height) / 2.0;
     }
-    const double content = 2.0 * item_padding() + t.indicator_height + t.indicator_to_label_space + label_height(*item.label);
+    const double content = 2.0 * item_padding() + t.indicator_height + label_space(item);
     return r.y + (r.height - content) / 2.0 + item_padding();
 }
 
@@ -159,6 +188,7 @@ void NavigationBar::cancel_interaction() {
 
 void NavigationBar::step(double dt) {
     focus_.step(dt);
+    labels_.step(dt);
     for (Item& item : items_) {
         item.state_layer.step(dt);
         item.indicator.step(dt);
@@ -168,7 +198,7 @@ void NavigationBar::step(double dt) {
 }
 
 bool NavigationBar::animating() const {
-    return !focus_.settled() || motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::color, &Item::enabled);
+    return !focus_.settled() || !labels_.settled() || motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::color, &Item::enabled);
 }
 
 void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -194,10 +224,10 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
         badges_.paint(canvas, scheme, i,
                       {full.x + (full.width - t.icon_size) / 2.0, full.y + (full.height - t.icon_size) / 2.0, t.icon_size, t.icon_size},
                       item_rect(i));
-        if (item.label) {
+        if (item.label && label_opacity() > 0.0) {
             const double x = full.x + (full.width - item.label->width) / 2.0;
-            text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space},
-                            item.enabled.mix(resolve(scheme, t.disabled_label), color::mix(scheme[t.inactive_label], scheme[t.active_label], k)));
+            const color::Argb c = item.enabled.mix(resolve(scheme, t.disabled_label), color::mix(scheme[t.inactive_label], scheme[t.active_label], k));
+            text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space}, color::scale_alpha(c, label_opacity()));
         }
     }
     if (!items_.empty()) {

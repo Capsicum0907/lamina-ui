@@ -25,6 +25,7 @@ struct NavigationRailOptions {
     layout::NodePtr header = nullptr;
     std::string accessible_name = {};
     tokens::Density density = {};
+    bool labels = true;
 };
 
 class NavigationRail {
@@ -41,6 +42,10 @@ public:
     tokens::Density density() const { return options_.density; }
     void set_density(tokens::Density density);
     void set_expanded(bool expanded);
+    bool labels() const { return options_.labels; }
+    void set_labels(bool labels);
+    double labels_progress() const { return labels_.value(); }
+    void snap_to_targets();
     std::size_t count() const { return items_.size(); }
     std::size_t selected() const { return options_.selected; }
     void select(std::size_t index);
@@ -100,6 +105,7 @@ private:
         double ripple_width;
         double ripple_height;
         double indicator_width;
+        double padding;
         render::Point icon;
         render::Point label;
         bool start_label;
@@ -108,6 +114,8 @@ private:
 
     Geometry geometry(std::size_t index, double item_max_width) const;
     double item_min_height(bool expanded) const;
+    double icon_only_item_min_height() const;
+    double collapsed_width() const;
     const text::TextLine& label_line(std::size_t index) const;
     double header_offset() const;
     void update_width();
@@ -121,6 +129,7 @@ private:
     motion::Animated full_width_;
     motion::Animated item_space_;
     motion::Animated item_min_height_;
+    motion::Animated labels_;
     double max_width_;
     double width_ = 0.0;
     double current_width_ = 0.0;

@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include <cmath>
+
 #include "lamina/widgets/navigation_bar.hpp"
 #include "lamina_thorvg/canvas.hpp"
 #include "support.hpp"
@@ -77,4 +79,29 @@ TEST_CASE("the navigation bar paints the selected pill on the container") {
     CHECK(canvas.pixel(36, 22) == scheme()[color::Role::secondary_container]);
     CHECK(canvas.pixel(150, 22) == scheme()[color::Role::surface_container]);
     CHECK(canvas.pixel(156, 22) == scheme()[color::Role::surface_container]);
+}
+
+TEST_CASE("without labels the navigation bar fades them and shortens to 48 dp with the pill centered") {
+    auto bar = make();
+    bar.set_labels(false);
+    double last = bar.height();
+    int between = 0;
+    for (int i = 0; i < 480; ++i) {
+        bar.step(1.0 / 240.0);
+        CHECK(std::abs(bar.height() - last) < 2.0);
+        between += bar.height() > 49.0 && bar.height() < 63.0 ? 1 : 0;
+        last = bar.height();
+    }
+    CHECK(between >= 6);
+    settle(bar);
+    CHECK(bar.height() == doctest::Approx(48.0));
+    const render::Rect pill = bar.indicator_rect(0);
+    CHECK(pill.y == doctest::Approx(8.0));
+    CHECK(pill.height == doctest::Approx(32.0));
+    CHECK(click(bar, 180.0, 24.0));
+    CHECK(bar.selected() == 1);
+    bar.set_labels(true);
+    bar.snap_to_targets();
+    CHECK(bar.height() == doctest::Approx(64.0));
+    CHECK(bar.indicator_rect(0).y == doctest::Approx(6.0));
 }

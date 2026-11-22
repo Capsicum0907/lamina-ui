@@ -56,6 +56,7 @@ struct NavigationSuiteScaffoldOptions {
     std::string accessible_name = {};
     const PatternStrings* strings = &english_us_patterns();
     tokens::Density density = {};
+    bool labels = true;
 };
 
 struct NavigationSuiteResponse {
@@ -81,6 +82,9 @@ public:
     double side_progress() const { return side_.value(); }
     double drawer_amount() const { return drawer_.value(); }
     double side_width() const;
+    bool labels() const { return labels_; }
+    void set_labels(bool labels);
+    void snap_to_targets();
 
     NavigationBar& bar() { return bar_widget_; }
     NavigationRail& rail() { return rail_widget_; }
@@ -130,6 +134,7 @@ private:
     render::Rect rect_{0.0, 0.0, 0.0, 0.0};
     render::Rect content_{0.0, 0.0, 0.0, 0.0};
     bool enabled_ = true;
+    bool labels_ = true;
     tokens::Density density_{};
 };
 

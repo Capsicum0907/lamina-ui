@@ -22,10 +22,11 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
     : options_(std::move(options)),
       fonts_(fonts),
       badges_(options_.items, fonts_),
-      min_width_(options_.expanded ? t.expanded_min_width : t.collapsed_width, motion_scheme.default_spatial()),
-      full_width_(options_.expanded ? t.expanded_max_width : t.collapsed_width, motion_scheme.default_spatial()),
+      min_width_(options_.expanded ? t.expanded_min_width : collapsed_width(), motion_scheme.default_spatial()),
+      full_width_(options_.expanded ? t.expanded_max_width : collapsed_width(), motion_scheme.default_spatial()),
       item_space_(options_.expanded ? t.expanded_item_space : t.collapsed_item_space, motion_scheme.default_spatial()),
       item_min_height_(item_min_height(options_.expanded), motion_scheme.default_spatial()),
+      labels_(options_.labels ? 1.0 : 0.0, motion_scheme.default_spatial()),
       max_width_(t.expanded_max_width) {
     const auto top_style = tokens::text_style(tokens::type_style(t.top_label));
     const auto start_style = tokens::text_style(tokens::type_style(t.start_label));
@@ -49,6 +50,15 @@ double NavigationRail::item_min_height(bool expanded) const {
     return tokens::density_tokens.rail_collapsed_item.at(options_.density);
 }
 
+double NavigationRail::icon_only_item_min_height() const {
+    const tokens::DenseLength& l = tokens::density_tokens.rail_collapsed_item;
+    return std::max(tokens::minimum_interactive_size, t.icon_only_item_min_height - (l.base - l.at(options_.density)));
+}
+
+double NavigationRail::collapsed_width() const {
+    return options_.labels ? t.collapsed_width : t.icon_only_width;
+}
+
 void NavigationRail::set_density(tokens::Density density) {
     options_.density = density;
     item_min_height_.snap_to(item_min_height(options_.expanded));
@@ -65,6 +75,10 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
     const double lw = line.width;
     const double lh = line.style.line_height;
     const double icon = t.icon_size;
+    const double shown = std::clamp(labels_.value(), 0.0, 1.0);
+    const double hide = std::clamp((shown - t.label_hide_progress) / (1.0 - t.label_hide_progress), 0.0, 1.0);
+    const double top_lw = lw * shown;
+    const double top_label_h = shown * (t.top_icon_label_space + lh);
 
     const double pad_h = motion::lerp((t.top_indicator_width - icon) / 2.0, t.start_indicator_leading_space, pd);
     const double start_indicator = tokens::density_tokens.rail_expanded_item.at(options_.density);
@@ -72,12 +86,13 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
     const double ripple_w = motion::lerp(icon, icon + lw + t.start_icon_label_space, p) + 2.0 * pad_h;
     const double ripple_h = motion::lerp(icon, std::max(icon, lh), p) + 2.0 * pad_v;
 
-    const double start = t.item_horizontal_padding;
-    const double end = top ? t.item_horizontal_padding : 0.0;
-    const double width_top = std::min(item_max_width, std::max(lw + start + end, icon + start + end + 2.0 * pad_h));
+    const double icon_only_padding = (t.icon_only_width - t.top_indicator_width) / 2.0;
+    const double start = motion::lerp(icon_only_padding, t.item_horizontal_padding, shown);
+    const double end = top ? start : 0.0;
+    const double width_top = std::min(item_max_width, std::max(top_lw + start + end, icon + start + end + 2.0 * pad_h));
     const double width_start = std::min(item_max_width, ripple_w + start + end);
     const double content_w = motion::lerp(width_top, width_start, p);
-    const double content_h = motion::lerp(ripple_h + t.top_icon_label_space + lh, ripple_h, p);
+    const double content_h = motion::lerp(ripple_h + top_label_h, ripple_h, p);
 
     const double icon_y_top = pad_v;
     const double icon_y_start = (content_h - icon) / 2.0 - icon_y_top;
@@ -91,7 +106,7 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
     const double fade = (p - t.label_switch_progress) / t.label_switch_progress;
 
     const double width = std::clamp(content_w, t.item_min_width, std::max(t.item_min_width, item_max_width));
-    const double height = std::max(content_h, item_min_height_.value());
+    const double height = std::max(content_h, motion::lerp(icon_only_item_min_height(), item_min_height_.value(), shown));
     return {
         width,
         height,
@@ -102,10 +117,11 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
         ripple_w,
         ripple_h,
         ripple_w * std::max(0.0, item.indicator.value()),
+        start,
         {start + pad_h, icon_y},
         {start + (first_half ? label_x_top : label_x_start * p), first_half ? label_y_top : label_y_start},
         start_label,
-        std::min(1.0, fade * fade),
+        std::min(1.0, fade * fade) * hide * hide,
     };
 }
 
@@ -180,13 +196,35 @@ render::Rect NavigationRail::bounds() const {
 
 void NavigationRail::set_expanded(bool expanded) {
     options_.expanded = expanded;
-    min_width_.animate_to(expanded ? t.expanded_min_width : t.collapsed_width);
-    full_width_.animate_to(expanded ? t.expanded_max_width : t.collapsed_width);
+    min_width_.animate_to(expanded ? t.expanded_min_width : collapsed_width());
+    full_width_.animate_to(expanded ? t.expanded_max_width : collapsed_width());
     item_space_.animate_to(expanded ? t.expanded_item_space : t.collapsed_item_space);
     item_min_height_.animate_to(item_min_height(expanded));
     for (Item& item : items_) {
         item.position.animate_to(expanded ? 1.0 : 0.0);
         item.label_mode.animate_to(expanded ? 1.0 : 0.0);
+    }
+    update_width();
+}
+
+void NavigationRail::set_labels(bool labels) {
+    options_.labels = labels;
+    labels_.animate_to(labels ? 1.0 : 0.0);
+    if (!options_.expanded) {
+        min_width_.animate_to(collapsed_width());
+        full_width_.animate_to(collapsed_width());
+    }
+    update_width();
+}
+
+void NavigationRail::snap_to_targets() {
+    for (motion::Animated* a : {&min_width_, &full_width_, &item_space_, &item_min_height_, &labels_}) {
+        a->snap_to(a->target());
+    }
+    for (Item& item : items_) {
+        for (motion::Animated* a : {&item.state_layer, &item.indicator, &item.position, &item.color, &item.label_mode}) {
+            a->snap_to(a->target());
+        }
     }
     update_width();
 }
@@ -203,13 +241,13 @@ render::Rect NavigationRail::item_rect(std::size_t index) const {
 render::Rect NavigationRail::indicator_rect(std::size_t index) const {
     const render::Rect r = item_rect(index);
     const Geometry& g = layout_[index];
-    return {r.x + g.content_x + t.item_horizontal_padding, r.y + g.content_y, g.indicator_width, g.ripple_height};
+    return {r.x + g.content_x + g.padding, r.y + g.content_y, g.indicator_width, g.ripple_height};
 }
 
 render::Rect NavigationRail::state_layer_rect(std::size_t index) const {
     const render::Rect r = item_rect(index);
     const Geometry& g = layout_[index];
-    return {r.x + g.content_x + t.item_horizontal_padding, r.y + g.content_y, g.ripple_width, g.ripple_height};
+    return {r.x + g.content_x + g.padding, r.y + g.content_y, g.ripple_width, g.ripple_height};
 }
 
 render::Rect NavigationRail::icon_rect(std::size_t index) const {
@@ -307,6 +345,7 @@ void NavigationRail::step(double dt) {
     full_width_.step(dt);
     item_space_.step(dt);
     item_min_height_.step(dt);
+    labels_.step(dt);
     for (Item& item : items_) {
         item.state_layer.step(dt);
         item.indicator.step(dt);
@@ -319,7 +358,7 @@ void NavigationRail::step(double dt) {
 }
 
 bool NavigationRail::animating() const {
-    if (!min_width_.settled() || !full_width_.settled() || !item_space_.settled() || !item_min_height_.settled() || !focus_.settled()) {
+    if (!min_width_.settled() || !full_width_.settled() || !item_space_.settled() || !item_min_height_.settled() || !labels_.settled() || !focus_.settled()) {
         return true;
     }
     return motion::any_unsettled(items_, &Item::state_layer, &Item::indicator, &Item::position, &Item::color, &Item::label_mode,

@@ -110,3 +110,24 @@ TEST_CASE("the focus follows the navigation component when the type changes") {
     s.set_density(tokens::Density{-3});
     CHECK(s.bar().height() == 52.0);
 }
+
+TEST_CASE("labels turn off on the bar and the rail together, and snap_to_targets lands a type change and the labels at once") {
+    Content c;
+    auto node = std::make_shared<layout::Leaf>([](const layout::Constraints& k) { return layout::Size{k.min_width, k.min_height}; },
+                                               [&c](const render::Rect& r) { c.rect = r; });
+    widgets::NavigationSuiteScaffold s({.items = items(), .content = node, .type = NavigationSuiteType::navigation_drawer, .labels = false}, fonts());
+    CHECK_FALSE(s.labels());
+    CHECK_FALSE(s.rail().labels());
+    CHECK_FALSE(s.bar().labels());
+    place(s, 1300.0);
+    s.set_type(NavigationSuiteType::wide_navigation_rail_collapsed);
+    s.snap_to_targets();
+    CHECK_FALSE(s.animating());
+    CHECK(c.rect.x == doctest::Approx(80.0));
+    s.set_labels(true);
+    CHECK(s.rail().labels());
+    CHECK(s.bar().labels());
+    settle(s);
+    place(s, 1300.0);
+    CHECK(c.rect.x == doctest::Approx(96.0));
+}

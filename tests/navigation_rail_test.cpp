@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 
 #include "lamina/widgets/navigation_rail.hpp"
@@ -178,4 +179,70 @@ TEST_CASE("the rail paints the selected pill on the surface") {
     CHECK(canvas.pixel(static_cast<int>(pill.x + 4.0), static_cast<int>(pill.y + 16.0)) == scheme()[color::Role::secondary_container]);
     CHECK(canvas.pixel(10, 66) == scheme()[color::Role::surface]);
     CHECK(canvas.pixel(100, 66) == 0xffffffff);
+}
+
+TEST_CASE("without labels the collapsed rail narrows to 80 dp, fades the labels and shortens the items to 56 dp on the spatial spring") {
+    auto rail = make();
+    rail.set_labels(false);
+    double last_width = rail.width();
+    double last_opacity = rail.label_opacity(0);
+    int between = 0;
+    for (int i = 0; i < 480; ++i) {
+        rail.step(1.0 / 240.0);
+        CHECK(rail.label_opacity(0) <= last_opacity + 1e-9);
+        CHECK(std::abs(rail.width() - last_width) < 4.0);
+        between += rail.width() > 81.0 && rail.width() < 95.0 ? 1 : 0;
+        last_width = rail.width();
+        last_opacity = rail.label_opacity(0);
+    }
+    CHECK(between >= 6);
+    settle(rail);
+    CHECK(rail.width() == doctest::Approx(80.0));
+    CHECK(rail.label_opacity(0) == doctest::Approx(0.0));
+    const render::Rect item = rail.item_rect(0);
+    CHECK(item.width == doctest::Approx(80.0));
+    CHECK(item.height == doctest::Approx(56.0));
+    CHECK(rail.item_rect(1).y == doctest::Approx(44.0 + 56.0 + 4.0));
+    const render::Rect pill = rail.indicator_rect(0);
+    CHECK(pill.x == doctest::Approx(12.0));
+    CHECK(pill.width == doctest::Approx(56.0));
+    CHECK(pill.y == doctest::Approx(44.0 + 12.0));
+    CHECK(rail.icon_rect(0).x == doctest::Approx(28.0));
+    rail.set_labels(true);
+    settle(rail);
+    CHECK(rail.width() == doctest::Approx(96.0));
+    CHECK(rail.item_rect(0).height == doctest::Approx(64.0));
+    CHECK(rail.label_opacity(0) == doctest::Approx(1.0));
+}
+
+TEST_CASE("collapsing an expanded rail without labels never brings the top label back") {
+    widgets::NavigationRailOptions o = options();
+    o.expanded = true;
+    auto rail = make(std::move(o));
+    settle(rail);
+    REQUIRE(rail.width() == doctest::Approx(220.0));
+    rail.set_expanded(false);
+    rail.set_labels(false);
+    double last = rail.label_opacity(0);
+    for (int i = 0; i < 480; ++i) {
+        rail.step(1.0 / 240.0);
+        CHECK(rail.label_opacity(0) <= last + 1e-9);
+        last = rail.label_opacity(0);
+    }
+    settle(rail);
+    CHECK(rail.width() == doctest::Approx(80.0));
+    CHECK(rail.label_opacity(0) == doctest::Approx(0.0));
+}
+
+TEST_CASE("snap_to_targets ends the rail's width, label and item springs at once") {
+    auto rail = make();
+    rail.set_expanded(true);
+    rail.snap_to_targets();
+    CHECK_FALSE(rail.animating());
+    CHECK(rail.width() == doctest::Approx(220.0));
+    rail.set_expanded(false);
+    rail.set_labels(false);
+    rail.snap_to_targets();
+    CHECK(rail.width() == doctest::Approx(80.0));
+    CHECK(rail.label_opacity(0) == doctest::Approx(0.0));
 }

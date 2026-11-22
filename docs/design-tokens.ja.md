@@ -407,6 +407,7 @@ C の `tokens/NavigationBarTokens.kt`（64 dp・surface-container・色・Label 
 - 状態の重ねは 56 × 32 dp の印の形の全体で、ポインターが項目のどこにあっても出ます。色は on-surface（バーの文字の色）です。
 - 入れ物に高さはありません。`ShortNavigationBar` は `ContainerElevation`（Level2）を使いません。
 - Compose はアイコンとラベルの色を一度に変えますが、lamina-ui は標準の効果のばねで移します。
+- 名前を隠すのは lamina-ui が足したものです。バーは標準の空間のばねで、印とその余白の高さ（少なくとも 48 dp。触れる部品の最小の大きさ）まで縮みます。名前の不透明度は、名前の進み具合 L に対して (2 (L − 0.5))² です。
 
 ### ナビゲーションレール
 
@@ -419,7 +420,8 @@ C の `tokens/NavigationRailCollapsedTokens.kt`（96 dp・上の 44 dp・項目�
 - 色：印は secondary-container、選んだアイコンは on-secondary-container、選んだ名前は上にあるとき secondary・前にあるとき on-secondary-container（.kt はここで `ItemActiveIcon` を使い回し、足りないトークンについての `TODO` があります）、選んでいないものは on-surface-variant です。Compose は名前の色を標準の効果のばねで動かし、アイコンの色は一度に変えます。lamina-ui は両方をそのばねで動かします。
 - 状態の重ねは、全幅の印の形の全体で、ポインターが項目のどこにあっても出ます。色は on-surface です。波紋はレールの文字の色を取るので、`NavigationRailColorTokens` の状態の重ねの値（on-secondary-container）は使われません。
 - 見出しの部品は中身の領域の左上に置き、項目はその 40 dp 下から始めます（`HeaderSpaceMinimum`）。
-- まだないもの：中央と下の配置、名前のない項目、幅 80 dp の狭い `NavigationRail`。手前に重なるレール（`ModalWideNavigationRail`）は下のモーダルな幅の広いナビゲーションレールの節にあります。
+- 名前を隠すのは lamina-ui が足したもので、Compose にはありません。畳んだレールは幅 80 dp（狭い `NavigationRail` の幅で、印は中央）に、項目は高さ 56 dp に狭まります。どちらも 64 dp の項目と同じく密度で下がります。名前の不透明度は、名前の進み具合 L に対して (2 (L − 0.5))² で、半分で消えます。
+- まだないもの：中央と下の配置、最初から名前のない項目、幅 80 dp の狭い `NavigationRail` そのもの。手前に重なるレール（`ModalWideNavigationRail`）は下のモーダルな幅の広いナビゲーションレールの節にあります。
 
 ### メニュー
 

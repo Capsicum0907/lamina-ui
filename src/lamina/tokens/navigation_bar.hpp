@@ -13,6 +13,8 @@ struct NavigationBarTokens {
     double icon_size;
     double item_vertical_padding;
     double indicator_to_label_space;
+    double icon_only_min_height;
+    double label_hide_progress;
     TypeRole label;
     color::Role container;
     color::Role indicator;
@@ -32,6 +34,8 @@ inline constexpr NavigationBarTokens navigation_bar_tokens{
     .icon_size = 24.0,
     .item_vertical_padding = 6.0,
     .indicator_to_label_space = 4.0,
+    .icon_only_min_height = minimum_interactive_size,
+    .label_hide_progress = 0.5,
     .label = TypeRole::label_medium,
     .container = color::Role::surface_container,
     .indicator = color::Role::secondary_container,

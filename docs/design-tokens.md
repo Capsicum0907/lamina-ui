@@ -407,6 +407,7 @@ C `tokens/NavigationBarTokens.kt` (64 dp, surface-container, colors, Label M), `
 - The state layer is the whole 56 × 32 dp pill, shown while the pointer is anywhere on the item. Its color is on-surface (the bar's content color).
 - The container has no elevation: `ShortNavigationBar` does not use `ContainerElevation` (Level2).
 - Compose switches the icon and label colors at once; lamina-ui fades them with the default effects spring.
+- Hiding the labels is lamina-ui's own addition: the bar shortens on the default spatial spring to the indicator and its padding, at least 48 dp (the minimum interactive size), and the labels fade as (2 (L − 0.5))² of the labels progress L.
 
 ### Navigation rail
 
@@ -419,7 +420,8 @@ C `tokens/NavigationRailCollapsedTokens.kt` (96 dp, 44 dp at the top, 4 dp betwe
 - Colors: indicator secondary-container, selected icon on-secondary-container, selected label secondary on top and on-secondary-container at the start (the .kt reuses `ItemActiveIcon` there, with a TODO for a missing token), unselected on-surface-variant. Compose animates the label color on the default effects spring and switches the icon color at once; lamina-ui moves both on that spring.
 - The state layer is the whole pill at its full width, shown while the pointer is anywhere on the item. Its color is on-surface: the ripple takes the rail's content color, not the `NavigationRailColorTokens` state-layer value (on-secondary-container).
 - The header is placed at the top start of the content area, and the items start 40 dp below it (`HeaderSpaceMinimum`).
-- Not done: the center and bottom arrangements, items without labels, and the narrow 80 dp `NavigationRail`. The modal rail (`ModalWideNavigationRail`) is described under Modal wide navigation rail below.
+- Hiding the labels is lamina-ui's own addition, not in Compose: the collapsed rail narrows to 80 dp (the width of the narrow `NavigationRail`, with the pill centered) and its items to 56 dp, both lowered with the density like the 64 dp items, and the labels fade as (2 (L − 0.5))² of the labels progress L, so they are gone halfway.
+- Not done: the center and bottom arrangements, items that never have labels, and the narrow 80 dp `NavigationRail` itself. The modal rail (`ModalWideNavigationRail`) is described under Modal wide navigation rail below.
 
 ### Menu
 

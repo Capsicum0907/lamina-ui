@@ -46,9 +46,9 @@ NavigationSuiteScaffold::NavigationSuiteScaffold(NavigationSuiteScaffoldOptions 
     : type_(options.type),
       selected_(options.selected),
       content_node_(options.content),
-      bar_widget_(NavigationBarOptions{options.items, options.selected, options.accessible_name, options.density}, fonts),
+      bar_widget_(NavigationBarOptions{options.items, options.selected, options.accessible_name, options.density, options.labels}, fonts),
       rail_widget_(NavigationRailOptions{options.items, options.selected, options.type == NavigationSuiteType::wide_navigation_rail_expanded,
-                                         nullptr, options.accessible_name, options.density},
+                                         nullptr, options.accessible_name, options.density, options.labels},
                    fonts),
       drawer_widget_(DrawerSheetOptions{drawer_entries(options.items), options.selected, DrawerSheetStyle::standard, options.strings,
                                         options.accessible_name, options.density},
@@ -56,6 +56,7 @@ NavigationSuiteScaffold::NavigationSuiteScaffold(NavigationSuiteScaffoldOptions 
       bar_(is_bar(options.type) ? 1.0 : 0.0, t.spring),
       side_(!is_bar(options.type) && options.type != NavigationSuiteType::none ? 1.0 : 0.0, t.spring),
       drawer_(is_drawer(options.type) ? 1.0 : 0.0, t.spring),
+      labels_(options.labels),
       density_(options.density) {}
 
 bool NavigationSuiteScaffold::is_bar(NavigationSuiteType type) {
@@ -138,6 +139,23 @@ void NavigationSuiteScaffold::set_type(NavigationSuiteType type) {
     cancel_interaction();
     if (had_focus) {
         set_focused(true);
+    }
+}
+
+void NavigationSuiteScaffold::set_labels(bool labels) {
+    labels_ = labels;
+    bar_widget_.set_labels(labels);
+    rail_widget_.set_labels(labels);
+}
+
+void NavigationSuiteScaffold::snap_to_targets() {
+    for (motion::Animated* a : {&bar_, &side_, &drawer_}) {
+        a->snap_to(a->target());
+    }
+    bar_widget_.snap_to_targets();
+    rail_widget_.snap_to_targets();
+    if (rect_.width > 0.0) {
+        place();
     }
 }
 

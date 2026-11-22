@@ -29,6 +29,9 @@ struct NavigationRailTokens {
     double top_icon_label_space;
     double start_icon_label_space;
     double label_switch_progress;
+    double icon_only_width;
+    double icon_only_item_min_height;
+    double label_hide_progress;
     TypeRole top_label;
     TypeRole start_label;
     color::Role container;
@@ -63,6 +66,9 @@ inline constexpr NavigationRailTokens navigation_rail_tokens{
     .top_icon_label_space = 4.0,
     .start_icon_label_space = 8.0,
     .label_switch_progress = 0.5,
+    .icon_only_width = 80.0,
+    .icon_only_item_min_height = 56.0,
+    .label_hide_progress = 0.5,
     .top_label = TypeRole::label_medium,
     .start_label = TypeRole::label_large,
     .container = color::Role::surface,

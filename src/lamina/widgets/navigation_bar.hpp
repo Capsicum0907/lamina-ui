@@ -23,6 +23,7 @@ struct NavigationBarOptions {
     std::size_t selected = 0;
     std::string accessible_name = {};
     tokens::Density density = {};
+    bool labels = true;
 };
 
 class NavigationBar {
@@ -35,6 +36,10 @@ public:
     tokens::Density density() const { return options_.density; }
     void set_density(tokens::Density density) { options_.density = density; }
     void set_origin(render::Point origin) { origin_ = origin; }
+    bool labels() const { return options_.labels; }
+    void set_labels(bool labels);
+    double labels_progress() const { return labels_.value(); }
+    void snap_to_targets();
     render::Rect bounds() const;
 
     std::size_t count() const { return items_.size(); }
@@ -79,12 +84,16 @@ private:
 
     double content_top(std::size_t index) const;
     double item_padding() const;
+    double labelled_height() const;
+    double label_space(const Item& item) const;
+    double label_opacity() const;
     render::Rect full_indicator_rect(std::size_t index) const;
 
     NavigationBarOptions options_;
     text::FontStack fonts_;
     NavigationBadges badges_;
     std::vector<Item> items_;
+    motion::Animated labels_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};
     FocusIndicator focus_;
