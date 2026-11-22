@@ -1,0 +1,26 @@
+# Testing
+
+[日本語](testing.ja.md) · [README](../README.md#documentation)
+
+## Unit tests
+
+The tests are in `tests/`, one doctest file per area (`tabs_test.cpp`, `side_navigation_test.cpp` and so on), built into `build/Release/lamina_tests.exe`. `ctest --preset release` runs it with three more tests that check the resource build errors ([Resources](resources.md#tests)). `lamina_tests.exe -tc="*scroll*"` runs only the matching test cases.
+
+`tests/support.hpp` gives the shared fixtures: `fonts()`, `icon_font()` and `scheme()`, `settle(widget)` (steps 240 frames of 1/60 s), `click(widget, x, y)` and `count_color`. Widgets are tested without a window: build one, give it a width and events, step it and read its rectangles or paint it on a `thorvg::Canvas` and read pixels.
+
+The test fonts and their license are listed under [Attribution](../README.md#attribution).
+
+## Offscreen capture
+
+The gallery is `examples/components/gallery.hpp`, behind a small host interface, so `build/Release/components_capture.exe` drives it without a window: it renders frames with ThorVG from scripted pointer, key, text and wheel events at a fixed 60 frames per second, finds its targets by accessible name, draws the pointer and the last key itself, and writes the pixels as raw BGRA (`size <scale>`; `still <scene> <light|dark> <scale> <file>` for one frame, with scenes for every page (`chips`, `chips_focus`, `chips_hover`, `chips_disabled`, `lists`, `lists_focus`, `lists_disabled`, `bars`, `bars_scrolled`); `video <scene> <light|dark> <scale>` to standard output, for ffmpeg, with `filter_chips`, `input_chip`, `card`, `list_keys`, `badge` and `app_bar` for the components of the second stage and `segments`, `range_slider`, `date_picker`, `date_range` and `time_picker` for the third; the stills of the third stage are `inputs`, `inputs_focus`, `inputs_disabled`, `dates`, `dates_years`, `dates_input`, `dates_dialog`, `dates_range_dialog`, `dates_docked`, `dates_japanese`, `dates_focus`, `dates_disabled`, `times`, `times_24h`, `times_dialog`, `times_input_dialog`, `times_focus`, `times_disabled`, and `inputs_tooltip`, `dates_tooltip` and `times_tooltip` for the name tooltips on the icon-only segments and the pickers' icon buttons; the stills of the fourth stage are `sheets`, `sheets_modal`, `sheets_expanded`, `sheets_side_modal`, `sheets_side_detached`, `sheets_side_standard`, `sheets_focus`, `sheets_tooltip`, `sheets_disabled`, `drawers`, `drawers_modal`, `drawers_dismissible`, `drawers_permanent`, `drawers_rail`, `drawers_hiding`, `drawers_focus`, `drawers_disabled`, `search`, `search_full`, `search_docked`, `search_focus`, `search_tooltip` and `search_disabled`, and its videos `bottom_sheet`, `side_sheet`, `drawer` and `search`, whose drags and flings carry timestamps so that their releases have a velocity; the fifth stage's stills are `groups`, `groups_pressed`, `groups_overflow`, `groups_split`, `groups_focus`, `groups_tooltip`, `groups_collapsed`, `groups_disabled`, `progress`, `progress_running`, `progress_handoff`, `toolbars`, `toolbars_scrolled`, `toolbars_menu`, `toolbars_focus`, `toolbars_tooltip` and `toolbars_disabled`, and its videos `button_groups`, `split_button`, `fab_menu`, `loading`, `wavy_progress` and `toolbars`; the sixth stage's stills are `adaptive`, `adaptive_compact`, `adaptive_medium`, `adaptive_expanded`, `adaptive_large`, `adaptive_detail`, `adaptive_supporting`, `adaptive_handle`, `adaptive_focus`, `adaptive_disabled`, `desktop`, `desktop_focus`, `desktop_editor`, `desktop_editor_scrolled`, `desktop_divider`, `desktop_editing` and `desktop_disabled`, and its videos `adaptive_sweep`, `adaptive_panes`, `pane_divider`, `numeric_scrub`, `timeline_scroll` and `density`, and the capture draws the resize and text cursors the gallery asks for; the seventh stage's stills are `files`, `files_file_menu`, `files_edit_menu`, `files_context_edge`, `files_sorted`, `files_resized`, `files_scrolled`, `files_dense` and `files_disabled`, and its videos `files_menubar`, `files_context`, `files_table` and `files_scroll`, which right click, Ctrl- and Shift-click and press chords such as Alt+F and Ctrl+S; `tree` prints the accessibility tree after a scene). It is a development tool that needs no display; CI builds it but does not run it.
+
+`--window <width>x<height>` (in dp) sets the window size of every mode; the default is 1440 × 860 dp. A target that has scrolled out of view, such as a page tab outside the tab row, stops the scene with "… is out of view" instead of clicking empty space. The scenes `gallery_pages` (clicks through seven pages), `gallery_pages_keys` (walks the page tabs with the arrow keys) and `gallery_resize` (narrows the window to just below each window size class breakpoint and to 360 dp, then widens it again; the space outside the window is painted grey) are for recording the gallery itself.
+
+Example: one frame of the Basics page at a phone width, and a video for ffmpeg:
+
+```
+components_capture --window 412x860 still default light 1 basics.bgra
+components_capture video gallery_resize dark 1 | ffmpeg -f rawvideo -pix_fmt bgra -s 1440x860 -r 60 -i - out.mp4
+```
+
+`components_capture size <scale>` prints the pixel size of a frame for the same options.

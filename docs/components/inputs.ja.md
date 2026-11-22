@@ -1,0 +1,23 @@
+# 入力
+
+[English](inputs.md) · [README](../../README.ja.md#資料)
+
+## 入力欄
+
+`lamina/widgets/text_field.hpp`：枠線つきの入力欄。ほかの部品と同じく `TextFieldOptions`（ラベル・`multiline`・クリップボード）とフォントを受け取ります。幅は 280 dp で、`set_width` で広げられます。ほかの部品と同じく `width()` と `height()` を持ちます。`handle(PointerEvent)` は、押した位置が欄の中のときに true を返し、そのとき欄に焦点が移ります。焦点が当たるか文字が入ると、ラベルがばねで枠線の上に移ります。枠線の形はラベルの後ろだけ切れているので（ラベルのない欄の枠線は切れません）、入力欄は自分以外を塗らず、背景の色を受け取りません。カーソルの点滅は、点滅の間に描き直さずに済むよう時間で起こします（`Window::wake_after`）。日本語は OS の IME で入力し、変換中の文字はその場に下線つきで描き、候補ウィンドウはカーソルの位置に出します（`Window::set_text_input`）。選択は `Shift` を押しながら矢印・`Home`・`End` で広げるほか、ドラッグで範囲を、ダブルクリックで単語を（日本語では漢字・ひらがな・カタカナの同じ種類の連なりを）、トリプルクリックと `Ctrl+A` で全体を選びます。選択中に文字を打つ・IME で確定する・`Backspace` や `Delete` を押すと、選択した部分が置き換わります。`Ctrl+←` と `Ctrl+→` で単語ごとに動き、`Ctrl+Backspace` と `Ctrl+Delete` で単語ごとに消します。`Ctrl+C`・`Ctrl+X`・`Ctrl+V` は `TextFieldOptions` で渡したクリップボードを使います（OS のものは `Window::clipboard()`、テストでは任意の `input::Clipboard`）。1行の入力欄はカーソルが見えるよう横に送り、文字を欄の内側で切り抜きます（`Canvas::push_clip`）。`Enter` で送信します。`TextFieldOptions::multiline` にすると文字は欄の幅で折り返し、欄は 56 dp（文字の上下に 16 dp）から1行ずつ高くなります。`Enter` で改行し `Ctrl+Enter` で送信します。上下の矢印はカーソルの横位置を保ったまま行を移り、`Home` と `End` は行の頭と末尾へ、`Ctrl` を添えると全体の頭と末尾へ動きます。`TextFieldOptions::placeholder` は、欄が空の間、入力が入る位置に薄い案内の文字（Body L、色は on-surface-variant）を出します。ラベルがあるときはフォーカスがある間だけ、ラベルがないときはいつも出します。空の欄がフォーカスを得たときや文字を消して空になったときは遅い効果のばねで現れ、それ以外は速い効果のばねで消えます。最初の一文字（IME の変換中の文字も含みます）で、Compose の入力欄と同じくすぐに消えます。`TextFieldOptions::supporting_text`（または `set_supporting_text`）は欄の 4 dp 下に Body S で出ます。`set_error(true)` で、その文字・枠線・ラベル・カーソルが標準の効果のばねでエラーの色（ポインターを乗せた枠線は on-error-container）になり、読み上げでは `invalid` になります。`TextFieldOptions::filter` は打った文字と貼り付けた文字を一つずつ置き換えるか捨て（`widgets::ascii_digit` は全角を含む数字だけを残します）、`max_length` は長さの上限、`mask`（`MM/dd/yyyy` など。英字が文字の入る場所、それ以外が区切り）は、文字の入る場所の文字だけを中身にし、区切りはその前の部分が埋まった時点で見せます。Compose の日付の入力と同じで、カーソルと選択は区切りを飛ばします。`min_width` で 280 dp の最小幅を下げられます。`TextFieldOptions::enabled` と `set_enabled` で欄を無効にできます。無効な欄はフォーカス・ポインター・文字を受けず、枠線（on-surface の 12 %）・文字・ラベル・案内の文字（on-surface の 38 %）が無効の色へ移ります。`TextFieldOptions::accepts_tab` にすると、`Tab` はフォーカスを移す代わりにカーソルの位置にタブ文字を入れ、選択があればそれを置き換えます。`Shift+Tab` と `Ctrl` 付きの `Tab` はフォーカスの順番に任せます（`Ctrl+Tab` では `FocusManager` がフォーカスを外へ移します。後述）。この欄は貼り付けた文字と `set_text` のタブもそのまま残します。ほかの欄はタブを空白に変えます。入力欄にフォーカスがある間は、`Ctrl+Z` でその欄の編集を取り消し、`Ctrl+Shift+Z` か `Ctrl+Y` でやり直します。続けて打った文字は、ひとまとまりで取り消します。まとまりは、単語のあとに空白を打ったとき、編集せずにカーソルや選択を動かしたとき、欄にフォーカスが移ったときと外れたとき、入力から削除へ、または削除から入力へ切り替えたとき、1 秒（`undo_pause_seconds`）より長く手を止めたときに区切ります。貼り付け・切り取り・タブ文字の入力・IME の確定・選択した部分の置き換えは、それぞれ一つのまとまりです。取り消しとやり直しでは、文字と一緒にカーソルと選択もそのときの位置に戻ります。取り消したあとに新しく編集すると、やり直せるまとまりは消えます。履歴は 100 まで残し（`undo_depth`）、`set_text` で消えます。取り消すものもやり直すものもないときは、キーを押しても欄では何も起きず、`handles_history_key(e)` が false を返すので、プログラムはそのキーを自分の取り消しに回せます（ToDo リストがそうしています）。`can_undo()` と `can_redo()` でも同じことがわかります。IME で変換している間は、欄が取り消しのキーを受け取ったうえで何もしません（`handles_history_key` は true）。そのため変換中の文字はそのまま残り、プログラムの取り消しも動きません。手を止めた時間は `step` に渡す時間で測ります。欄にフォーカスがある間は、カーソルの点滅が窓を起こすので `step` が呼ばれ続けます。`build/Release/text_field.exe` は小さな入力の画面で、メッセージ欄が複数行で、タブを受け取ります。そこでは `Tab` でタブを入れ、`Ctrl+Tab` か `Shift+Tab` で名前の欄に戻ります。`TextFieldOptions::outlined = false` にすると枠線とラベルなしで欄を描きます。`padding_start` と `padding_end`（`set_padding` でも）で、持ち主が描くアイコンの場所を空けられます。検索バーがそうしています。
+
+IME による日本語の入力は[文字とフォント](../text-and-fonts.ja.md#日本語の入力)に書いています。
+
+## 数値の欄
+
+`lamina/widgets/numeric_field.hpp`：`NumericField` は詰めた数値欄です（密度 0 で 40 dp、最小 28 dp）。ラベルは始まりか中、単位は終わりに置きます。上をドラッグすると値が段ずつ変わり、クリックで編集でき、↑ と ↓ で一段ずつ（Shift・Page Up・Page Down で大きな段）変わり、Enter で確定し、Escape で戻します。値は範囲に収まり、数でない文字のあいだは無効の印が付きます。
+
+## 検索バー
+
+`lamina/widgets/search_bar.hpp`：Compose の `SearchBar` と `ExpandedFullScreenSearchBar`・`ExpandedDockedSearchBar`。バーは surface-container-high の高さ 56 dp の両端の丸い形で、幅は 360 から 720 dp です。検索のアイコン・検索語の欄・付けてもよい末尾のアイコンボタンを持ちます。クリック・↓・文字の入力で、遅い空間のばねで結果の表示（`ListView`。検索語が変わるたびに `set_results` で入れ替えます）に広がります。範囲の幅が 600 dp 未満では全画面の表示になり、面がバーから範囲いっぱいに育って角が直角になります。600 dp からはバーの下に開く表示で、結果がバーの下に出ます。高さは 240 dp 以上で、範囲の 2/3 までです。広げると先頭のアイコンは戻るボタンになります。↓ で結果へ入り、最初の結果で ↑ を押すと戻ります。欄で Enter を押すと `searched`、結果で Enter を押すかクリックすると `chosen` を知らせます。Escape か戻るボタンで標準の空間のばねで畳み、Tab は中にとどまります。欄の名前は "Search" で、広げている間は "Suggestions below" と伝えます。`OverlayStack` に積むとページのフォーカスが外れますが、広げたバーは次の `step` で自分の欄にフォーカスを戻します。キーボードで開いたモーダルなレールも同じくレールに戻します。
+
+## 出典
+
+- Material 3 の 入力欄：<https://m3.material.io/components/text-fields/overview>
+- Material 3 の 検索：<https://m3.material.io/components/search/overview>
+- 値ごとのソースのファイルとコミット：[デザイントークン](../design-tokens.ja.md)
