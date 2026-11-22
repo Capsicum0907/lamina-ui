@@ -141,6 +141,16 @@ public:
             widgets::SegmentedButtonRowOptions{{{"List-detail", std::nullopt, true}, {"Supporting"}}, widgets::SegmentSelection::single, "Pane layout"},
             ctx.fonts, ctx.icon_font);
         focus_.add(*layouts_);
+        navigation_ = &controls.emplace_with<widgets::SegmentedButtonRow>(
+            [this](widgets::SegmentedButtonRow&, const widgets::SegmentedButtonResponse& r) {
+                if (r.clicked) {
+                    suite_->set_labels(*r.clicked == 0);
+                    ctx.report(*r.clicked == 0 ? "Navigation: labels" : "Navigation: icons");
+                }
+            },
+            widgets::SegmentedButtonRowOptions{{{"Labels", std::nullopt, true}, {"Icons"}}, widgets::SegmentSelection::single, "Navigation labels"},
+            ctx.fonts, ctx.icon_font);
+        focus_.add(*navigation_);
         class_label_ = &controls.emplace<widgets::Label>(
             widgets::LabelOptions{"", tokens::TypeRole::title_small, color::Role::on_surface, false}, ctx.fonts);
 
@@ -161,10 +171,12 @@ public:
         back_tip_ = &gated_tip(*back_, [this] { return back_shown(); });
 
         auto controls_row = layout::row({widgets::node(width_label), width_limited(widgets::node(*slider_), l.slider_width),
-                                         widgets::node(*presets_), widgets::node(*layouts_), widgets::node(*class_label_)});
+                                         widgets::node(*presets_), widgets::node(*layouts_)});
         controls_row->spacing(l.control_gap).cross_align(layout::CrossAlign::center);
+        auto navigation_row = layout::row({widgets::node(*navigation_), widgets::node(*class_label_)});
+        navigation_row->spacing(l.control_gap).cross_align(layout::CrossAlign::center);
         auto frame = std::make_shared<SizedFrame>(frame_, widgets::measured_node(*suite_), width_, l.frame_height);
-        auto column = layout::column({controls_row, frame});
+        auto column = layout::column({controls_row, navigation_row, frame});
         column->spacing(base_page_layout.heading_gap * 2.0);
         root = column;
         set_width(l.initial_width);
@@ -512,6 +524,7 @@ private:
     widgets::Slider* slider_ = nullptr;
     widgets::SegmentedButtonRow* presets_ = nullptr;
     widgets::SegmentedButtonRow* layouts_ = nullptr;
+    widgets::SegmentedButtonRow* navigation_ = nullptr;
     widgets::Label* class_label_ = nullptr;
     std::string shown_class_;
     std::string reported_class_;

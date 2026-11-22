@@ -1925,6 +1925,12 @@ const std::map<std::string, Scene>& adaptive_stills() {
              show_page(d, "Adaptive");
              preset(d, "Monitor");
          }},
+        {"adaptive_icons",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Adaptive");
+             preset(d, "Monitor");
+             preset(d, "Icons");
+         }},
         {"adaptive_detail",
          [](Driver& d, examples::components::Gallery&) {
              show_page(d, "Adaptive");
