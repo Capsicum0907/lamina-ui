@@ -24,6 +24,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/clipboard.hpp"
+#include "lamina/layout/window_size_class.hpp"
 #include "lamina/render/path.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/typography.hpp"
@@ -50,7 +51,31 @@ struct CaptureStyle {
     color::Argb badge_fill = 0xd0202020;
     color::Argb badge_text = 0xffffffff;
     tokens::TypeRole badge_type = tokens::TypeRole::label_large;
+    color::Argb stage = 0xff808080;
+    double sweep_below_breakpoint = 40.0;
+    double sweep_narrowest = 360.0;
+    double sweep_step_seconds = 1.6;
+    double sweep_back_seconds = 3.0;
 };
+
+inline constexpr std::string_view window_option = "--window";
+
+struct WindowSize {
+    double width = examples::components::window_width_dp;
+    double height = examples::components::window_height_dp;
+};
+
+WindowSize take_window(int& argc, char** argv) {
+    const std::optional<std::string> value = examples::take_option(argc, argv, window_option);
+    if (!value) {
+        return {};
+    }
+    const std::size_t x = value->find('x');
+    if (x == std::string::npos) {
+        throw std::invalid_argument(std::string(window_option) + " " + *value + ": expected <width>x<height> in dp");
+    }
+    return {std::stod(value->substr(0, x)), std::stod(value->substr(x + 1))};
+}
 
 class MemoryClipboard final : public input::Clipboard {
 public:
@@ -71,12 +96,20 @@ private:
 
 class Driver {
 public:
-    Driver(examples::components::Gallery& gallery, const text::FontStack& fonts, double scale, std::FILE* out)
+    Driver(examples::components::Gallery& gallery, const text::FontStack& fonts, double scale, std::FILE* out, WindowSize window)
         : gallery_(gallery),
           fonts_(fonts),
           scale_(scale),
           out_(out),
-          canvas_(static_cast<int>(examples::components::window_width_dp * scale), static_cast<int>(examples::components::window_height_dp * scale)) {}
+          stage_(window),
+          window_(window),
+          canvas_(static_cast<int>(window.width * scale), static_cast<int>(window.height * scale)) {}
+
+    double stage_width() const { return stage_.width; }
+    double fps() const { return style_.fps; }
+    const CaptureStyle& style() const { return style_; }
+    double window_width() const { return window_.width; }
+    void set_window_width(double width) { window_.width = std::clamp(width, 1.0, stage_.width); }
 
     void set_recording(bool on) { recording_ = on; }
     void set_cursor(bool on) { cursor_ = on; }
@@ -84,8 +117,8 @@ public:
 
     void frame() {
         sdl3::Frame f{1.0 / style_.fps,
-                      static_cast<double>(examples::components::window_width_dp),
-                      static_cast<double>(examples::components::window_height_dp),
+                      window_.width,
+                      window_.height,
                       scale_,
                       false,
                       true,
@@ -101,11 +134,15 @@ public:
         key_events_.clear();
         text_events_.clear();
         const color::Argb background = gallery_.update(f);
-        canvas_.clear(background);
+        const render::Rect window_rect{0.0, 0.0, window_.width, window_.height};
+        canvas_.clear(style_.stage);
         canvas_.save();
         canvas_.scale(scale_);
+        canvas_.fill_rect(window_rect, background);
+        canvas_.push_clip(window_rect);
         gallery_.paint(canvas_, f);
         paint_overlay();
+        canvas_.pop_clip();
         canvas_.restore();
         badge_left_ -= f.dt_seconds;
         clock_ += f.dt_seconds;
@@ -295,7 +332,7 @@ private:
             const text::TextLine line = text::layout_line(fonts_, badge_text_, tokens::text_style(tokens::type_style(style_.badge_type)));
             const double h = line.box_height() + 2.0 * style_.key_badge_padding;
             const double w = line.width + 2.0 * style_.key_badge_padding;
-            const render::Rect r{style_.key_badge_margin, examples::components::window_height_dp - style_.key_badge_margin - h, w, h};
+            const render::Rect r{style_.key_badge_margin, window_.height - style_.key_badge_margin - h, w, h};
             const double a = std::clamp(badge_left_ / 0.2, 0.0, 1.0);
             canvas_.fill_path(render::rounded_rect_path(r, render::uniform_radii(h / 2.0)), color::scale_alpha(style_.badge_fill, a));
             text::draw_line(canvas_, fonts_, line, {r.x + style_.key_badge_padding, r.y + style_.key_badge_padding},
@@ -383,6 +420,8 @@ private:
     text::FontStack fonts_;
     double scale_;
     std::FILE* out_;
+    WindowSize stage_;
+    WindowSize window_;
     thorvg::Canvas canvas_;
     CaptureStyle style_;
     bool recording_ = false;
@@ -2542,6 +2581,49 @@ void tour_pages(Driver& d) {
     d.wait(0.6);
 }
 
+void sweep_width(Driver& d, double to, double seconds) {
+    const double from = d.window_width();
+    const int n = std::max(1, static_cast<int>(std::lround(seconds * d.fps())));
+    for (int i = 1; i <= n; ++i) {
+        const double t = static_cast<double>(i) / n;
+        const double k = t * t * (3.0 - 2.0 * t);
+        d.set_window_width(from + (to - from) * k);
+        d.frame();
+    }
+}
+
+const std::map<std::string, Scene>& gallery_videos() {
+    static const std::map<std::string, Scene> scenes{
+        {"gallery_pages",
+         [](Driver& d, examples::components::Gallery&) {
+             d.wait(0.6);
+             for (const char* name : {"Chips", "Dates", "Sheets", "Progress", "Adaptive", "Desktop", "Basics"}) {
+                 d.move_to(name, 0.6);
+                 d.click();
+                 d.wait(1.0);
+             }
+         }},
+        {"gallery_resize",
+         [](Driver& d, examples::components::Gallery&) {
+             const CaptureStyle& style = d.style();
+             const auto below = [&style](layout::WindowWidthClass c) {
+                 return layout::window_breakpoints.width[static_cast<std::size_t>(c)] - style.sweep_below_breakpoint;
+             };
+             d.wait(0.6);
+             for (const double w : {below(layout::WindowWidthClass::large), below(layout::WindowWidthClass::expanded),
+                                    below(layout::WindowWidthClass::medium), style.sweep_narrowest}) {
+                 if (w < d.window_width()) {
+                     sweep_width(d, w, style.sweep_step_seconds);
+                     d.wait(0.8);
+                 }
+             }
+             sweep_width(d, d.stage_width(), style.sweep_back_seconds);
+             d.wait(0.8);
+         }},
+    };
+    return scenes;
+}
+
 const std::map<std::string, Scene>& font_stills() {
     static const std::map<std::string, Scene> scenes{
         {"fonts_menu",
@@ -2631,10 +2713,10 @@ int usage() {
         keys += (keys.empty() ? "" : "|") + std::string(t.key);
     }
     std::fprintf(stderr,
-                 "usage: components_capture [%s %s] <mode> ...\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
+                 "usage: components_capture [%s %s] [%s <width>x<height>] <mode> ...\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
                  "  components_capture tree <scene> <light|dark> <scale>\n"
                  "  components_capture video <scene> <light|dark> <scale>\n",
-                 examples::typeface_option.data(), keys.c_str());
+                 examples::typeface_option.data(), keys.c_str(), window_option.data());
     return 2;
 }
 
@@ -2643,14 +2725,14 @@ int usage() {
 int main(int argc, char** argv) {
     try {
         const text::Typeface typeface = examples::take_typeface(argc, argv);
+        const WindowSize window = take_window(argc, argv);
         if (argc < 3) {
             return usage();
         }
         const std::string mode = argv[1];
         if (mode == "size") {
             const double scale = std::stod(argv[2]);
-            std::printf("%d %d\n", static_cast<int>(examples::components::window_width_dp * scale),
-                        static_cast<int>(examples::components::window_height_dp * scale));
+            std::printf("%d %d\n", static_cast<int>(window.width * scale), static_cast<int>(window.height * scale));
             return 0;
         }
         if (argc < 5) {
@@ -2671,7 +2753,7 @@ int main(int argc, char** argv) {
             if (!found || argc < 6) {
                 return usage();
             }
-            Driver driver(gallery, fonts, scale, nullptr);
+            Driver driver(gallery, fonts, scale, nullptr, window);
             driver.settle();
             (*found)(driver, gallery);
             driver.wait(driver.still_seconds());
@@ -2691,7 +2773,7 @@ int main(int argc, char** argv) {
             if (!found) {
                 return usage();
             }
-            Driver driver(gallery, fonts, scale, nullptr);
+            Driver driver(gallery, fonts, scale, nullptr, window);
             driver.settle();
             try {
                 (*found)(driver, gallery);
@@ -2703,14 +2785,14 @@ int main(int argc, char** argv) {
             return 0;
         }
         if (mode == "video") {
-            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos(), &files_videos(), &font_videos()}, scene);
+            const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos(), &files_videos(), &font_videos(), &gallery_videos()}, scene);
             if (!found) {
                 return usage();
             }
 #ifdef _WIN32
             _setmode(_fileno(stdout), _O_BINARY);
 #endif
-            Driver driver(gallery, fonts, scale, stdout);
+            Driver driver(gallery, fonts, scale, stdout, window);
             driver.settle();
             driver.set_recording(true);
             (*found)(driver, gallery);
