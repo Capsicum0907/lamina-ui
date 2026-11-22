@@ -15,6 +15,7 @@ lamina-ui が Material 3 Expressive から借りる値です。Google が公開�
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
 | A | androidx/androidx の `compose/material3/adaptive/`（adaptive・adaptive-layout・adaptive-navigation）、`compose/material3/material3-adaptive-navigation-suite/`、`window/window-core/` | `6068a9492ba8` | Apache-2.0 |
 | D | [material-components/material-components-web](https://github.com/material-components/material-components-web) の `packages/mdc-density/` と部品ごとの `$density-config` | `6ceadb81df50` | MIT |
+| S | Android Studio が入れた Android SDK：SDK Platform `android-36.1`（リビジョン 1）の `platforms/android-36.1/data/res/values/config.xml` と、Sources for Android `android-36.1`（リビジョン 1）の `sources/android-36.1/android/view/ViewConfiguration.java` | 2026-11-22 に読みました | Apache-2.0 |
 | J | [JetBrains/compose-multiplatform-core](https://github.com/JetBrains/compose-multiplatform-core) の `compose/foundation/foundation/src/desktopMain/` と `compose/ui/ui/src/desktopMain/`（Compose Multiplatform Desktop） | 2026-11-21 に読んだ `jb-main` ブランチ（コミットは記録していません） | Apache-2.0 |
 
 値を使うときは Apache-2.0 の表示と出典を残します（D は MIT の表示）。
@@ -397,7 +398,7 @@ C の `tokens/PrimaryNavigationTabTokens.kt` と `tokens/SecondaryNavigationTabT
 - 下の区切り線は `HorizontalDivider`（1 dp の outline-variant）で、secondary のトークンにある surface-variant ではありません。
 - 印の位置と幅は標準の空間のばねで動き、最初に置くときは動かしません。ラベルとアイコンの色は、現れるときは標準の効果のばね、消えるときは速い効果のばねで移ります（`TabTransition`）。状態の重ねは、選んだときの文字の色でタブ全体に掛かります。
 - Compose の `Tab` は、色を渡さなければ選んでいないときの色を選んだときと同じにします。lamina-ui はトークンのファイルにある選んでいないときの色（on-surface-variant）を使います。
-- 横に送れるタブの列（C の `TabRow.kt`。androidx-main を 2026-11-22 に読みました。`PrimaryScrollableTabRow`・`SecondaryScrollableTabRow`。`TabRowOptions::scrollable`）：各タブの幅は少なくとも 90 dp（`TabRowDefaults.ScrollableTabRowMinTabWidth`）で、最初のタブの前と最後のタブの後に 52 dp をあけます（`ScrollableTabRowEdgeStartPadding`。`ScrollableTabRow` の配置が両端にあけます）。入りきるタブは引き伸ばしません。タブを選ぶと、そのタブが列の中央に来るように、両端で止めつつ送ります（`ScrollableTabData.calculateTabOffset`）。送る動きは、Compose の `scrollAnimationSpec` と同じく標準の空間のばねです。ホイールの 1 ノッチの量（64 dp、`scroll_area_tokens.wheel_step`）は lamina-ui の値です。Compose の列は `horizontalScroll` で送ります。
+- 横に送れるタブの列（C の `TabRow.kt`。androidx-main を 2026-11-22 に読みました。`PrimaryScrollableTabRow`・`SecondaryScrollableTabRow`。`TabRowOptions::scrollable`）：各タブの幅は少なくとも 90 dp（`TabRowDefaults.ScrollableTabRowMinTabWidth`）で、最初のタブの前と最後のタブの後に 52 dp をあけます（`ScrollableTabRowEdgeStartPadding`。`ScrollableTabRow` の配置が両端にあけます）。入りきるタブは引き伸ばしません。タブを選ぶと、そのタブが列の中央に来るように、両端で止めつつ送ります（`ScrollableTabData.calculateTabOffset`）。送る動きは、Compose の `scrollAnimationSpec` と同じく標準の空間のばねです。ホイールの 1 ノッチの量（64 dp、`scroll_area_tokens.wheel_step`）は lamina-ui の値です。Compose の列は `horizontalScroll` で送ります。指でなぞると、スクロールする範囲と同じく列が動き、はじくと滑ります。遊びを越えてなぞると、なぞり始めたタブの押下は取り消されます（[指でのスクロール](#指でのスクロール)）。
 
 ### ナビゲーションバー
 
@@ -559,7 +560,7 @@ Material 3 にはスクロールバーの定めがなく、Compose Material 3 �
 - 両端に 4 dp（`TopAppBarHorizontalPadding`）。題名は max(12 dp, 戻るアイコンの枠) に 4 dp を足した所から始まるので、アイコンなしで 16 dp、48 dp の枠があれば 56 dp です。中央そろえの題名はバー全体の中央に置き、アイコンにかかるときだけ内側へ押します。下の段の題名は、最後の行の基線から測って下から 24 dp（中くらい）か 28 dp（大きいもの）に置きます。
 - `TopAppBarState`：`heightOffsetLimit` は、1 段ではバーの高さ、2 段では下の段の高さにマイナスを付けたもの。`collapsedFraction` は `heightOffset / limit`、`overlappedFraction` は `|contentOffset| / |limit|` で、1 を超えません。`pinned` は中身の動きを数えるだけ、`enter_always` はどのスクロールもまずバーを動かし、`exit_until_collapsed` は先へ送るスクロールをまずバーが取り、中身が先頭で使い切れなかった分だけバーを戻します。
 - 小さいバー：`overlappedFraction` が 0.01 を超えると、標準の効果のばねでスクロール時の色へ移ります。2 段のバー：アニメーションなしで `lerp(container, scrolled, FastOutLinearInEasing(f))`。下の題名は 1 − f、上の題名は `TopTitleAlphaEasing`（0.8, 0, 0.8, 0.15）で現れ消えします。下の段は縮み、題名を切り抜きます。
-- 止まり方：Compose は `onPostFling`（はじいたあとか、バー自身を引きずったあと）で止め方を決めます。1 % 未満か 100 % ならそのまま、それ以外は近いほうの端へ `snapAnimationSpec`（標準の効果のばね）で動きます。lamina-ui にははじく動きがないので、スクロールする範囲が止まったとき（目標が残っておらず、つまみも引きずっていないとき）に止め方を決め、中身もバーと一緒に動かします。
+- 止まり方：Compose は `onPostFling`（はじいたあとか、バー自身を引きずったあと）で止め方を決めます。1 % 未満か 100 % ならそのまま、それ以外は近いほうの端へ `snapAnimationSpec`（標準の効果のばね）で動きます。lamina-ui は、スクロールする範囲が止まったとき（目標が残っておらず、つまみも指も引きずっておらず、はじいた動きも終わったとき。`ScrollArea::scroll_in_progress`）に止め方を決め、中身もバーと一緒に動かします。
 - 取り入れていないもの：バー自身を引きずってはじく動き（lamina-ui のバーは引きずれません）。`onPreScroll` が、バーが少しでも動けば限界を超えた分も含めて差分をすべてバーに渡してしまう点。lamina-ui は残りを中身に渡します。
 - 意味づけ：Compose のバーは役割なしのたどる順のまとまりで、題名に `heading` はありません。lamina-ui は `toolbar` と、題名の `label` を返します。2 段のバーは、`hideTopRowSemantics` と同じく、半分縮んだ所から上の段の題名を見せます。
 
@@ -637,8 +638,36 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 
 - 速さ：デスクトップの `PlatformVelocityTracker` が使う、`VelocityTracker1D` の `Lsq2` の方式です。使うのは直近の 20 個のサンプル（`HistorySize`）で、いちばん新しいものの 100 ms 前（`HorizonMilliseconds`）までさかのぼり、40 ms を超える間（`AssumePointerMoveStoppedMilliseconds`）があればそこで止めます。サンプルは 2 個以上要ります。時刻に対する位置を 2 次の最小二乗で当てはめ、いちばん新しいサンプルでの傾きを速さにします。最後の動きから 40 ms より後に離したときは、動きを忘れます（b/238654963 の修正）。時刻は `PointerEvent::time_seconds` が運び、SDL の窓は出来事の時刻からこれを埋めます。
 - 行き先：`computeTarget` そのままです。速さがなければいちばん近いアンカーです。速さのしきい値以上なら、はじいた向きの次のアンカーです。それ未満なら、後ろのアンカーから位置のしきい値だけ離れたときは次のアンカー、そうでなければ後ろのアンカーです。ドラッグの間、位置は外側のアンカーの間に収めます。
-- lamina-ui が決めたこと：ドラッグは軸に沿って 8 dp 動いてから始まります（Android のタッチの遊び。Compose のデスクトップの値は読んでいません）。遊びを越えた分は、Compose の `overSlop` と同じくすぐに位置を動かします。離したときの速さは、Android のはじく速さの上限の 8000 dp/s までに抑えます。Compose の減速の段階（`exponentialDecay`）は移していません。落ち着くまではいつもばね一つかトゥイーン一つです。
+- lamina-ui が決めたこと：ドラッグは軸に沿って 8 dp を超えて動いてから始まります（Android のタッチの遊び。S の `config_viewConfigurationTouchSlop`。[指でのスクロール](#指でのスクロール)を見てください。Compose のデスクトップの値は読んでいません）。遊びを越えた分は、Compose の `overSlop` と同じくすぐに位置を動かします。離したときの速さは、Android のはじく速さの上限の 8000 dp/s までに抑えます（S の `config_viewMaxFlingVelocity`）。ここでの落ち着き方には Compose の減速の段階（`exponentialDecay`）を使わず、いつもばね一つかトゥイーン一つです。[指でのスクロール](#指でのスクロール)の減速の曲線を使うのは、スクロールする範囲と横に送れるタブの列だけです。
 - 子が先：シートやドロワーの中の部品が先に押下を受けます。入れ物が操作を引き取るのは、遊びを越えて子がその動きを使ったと知らせなかったときだけで、そのあと子の押下を取り消します。Compose はポインターの出来事の消費で同じ順を決めます。
+
+### 指でのスクロール
+
+2026-11-22 に読みました。`6068a9492ba8` の androidx（この節の C はこのコミットで、`material3` の外のファイルです）の animation の `SplineBasedDecay.kt`（`AndroidFlingSpline`）・`FlingCalculator.kt`・`SplineBasedFloatDecayAnimationSpec.kt` と `androidMain` の `SplineBasedFloatDecayAnimationSpec.android.kt`、foundation の `gestures/Draggable.kt`・`gestures/DragGestureDetector.kt`・`gestures/AbstractScrollableNode.kt`・`gestures/Scrollable.kt` と `androidMain` の `gestures/Scrollable.android.kt`、ui の `input/pointer/util/VelocityTracker.kt` と `androidMain` の `platform/AndroidViewConfiguration.android.kt` です。Android 自身の値は S から読みました。入れた先は `lamina/tokens/drag.hpp`（`touch_scroll`・`fling_decay`）、`lamina/motion/spline_decay.hpp`（`SplineDecay`・`Fling`）、`lamina/widgets/touch_scroll.hpp`（`TouchScroll`）と `ScrollArea::route` です。
+
+| 値 | lamina-ui | 出どころ |
+|---|---|---|
+| タッチの遊び | 8 dp（`touch_slop`） | S の `config.xml` の `config_viewConfigurationTouchSlop` = 8dp。`ViewConfiguration` がこれを読んで `getScaledTouchSlop()` で返します。`ViewConfiguration.java` の `TOUCH_SLOP = 8`。C の `AndroidViewConfiguration.touchSlop` は `scaledTouchSlop` を返します。 |
+| はじく速さの上限 | 8000 dp/s（`maximum_fling_velocity`） | S の `config_viewMaxFlingVelocity` = 8000dp と `MAXIMUM_FLING_VELOCITY = 8000`。C の `AndroidViewConfiguration.maximumFlingVelocity` |
+| スクロールの摩擦 | 0.015（`fling_decay.friction`） | S の `config_scrollFriction` = 0.015 と `SCROLL_FRICTION = 0.015f`。`getScrollFriction()` が返します。C の `platformFlingScrollFriction = ViewConfiguration.getScrollFriction()` |
+| 曲線 | 曲がり目 0.35、始めの張り 0.5、終わりの張り 1.0、標本 100 個、二分法で 1e-5 まで | C の `SplineBasedDecay.kt`：`Inflection`・`StartTension`・`EndTension`・`P1 = StartTension * Inflection`・`P2 = 1 - EndTension * (1 - Inflection)`・`NbSamples = 100`・`computeSplineInfo`（`abs(tx - alpha) < 1E-5`）・`flingPosition`・`deceleration = ln(Inflection * abs(velocity) / friction)` |
+| 減速 | 9.80665 m/s²、1 m あたり 39.37 インチ、1 インチあたり 160 dp、0.84。率は ln 0.78 / ln 0.9 | C の `FlingCalculator.kt`：`GravityEarth`・`InchesPerMeter`・`computeDeceleration(0.84f, density)` = `GravityEarth * InchesPerMeter * density * 160f * friction`・`DecelerationRate`・`flingDuration`・`flingDistance`・`FlingInfo.position` と `velocity` |
+| はじき始め | 1 dp/s より速いとき（`touch_scroll.minimum_fling_velocity`） | C の `AbstractScrollableNode.kt` の `DefaultFlingBehavior.performFling`：`if (abs(initialVelocity) > 1f)`（px/s） |
+| 端で止まる | 端を 0.5 dp より越えるとき（`touch_scroll.edge_tolerance`） | C の同じ所：`if (abs(delta - consumed) > 0.5f) this.cancelAnimation()` |
+| 向きの決まり方 | 30° 以下は横、30° を超えて 90° までは縦（`horizontal_angle_limit_degrees`・`vertical_angle_limit_degrees`） | C の `Draggable.kt`：`HorizontalAngleUpperBounds = 30`・`VerticalAngleUpperBounds = 90`・`isDragAngleAlignedWithOrientation`。角度は `atan2(abs(y), abs(x))` を度にしたもの |
+| 速さの測り方 | [ドラッグの操作](#ドラッグの操作)と同じ | C の `VelocityTracker.kt`：`HistorySize = 20`・`HorizonMilliseconds = 100`・`AssumePointerMoveStoppedMilliseconds = 40`・`MinSampleSize = 2` |
+
+- ポインターの種類：中身を引きずって動かすのは `PointerKind::touch` だけです。SDL の窓は、指から SDL が作るマウスの出来事（`SDL_TOUCH_MOUSEID`）を指として渡すので、指の出来事を別に読むことはしません。マウスはこれまでどおり、ホイール・バー・部品自身のドラッグ（文字の選択・スライダー・つまみ）に使えます。指はバーに乗らず、バーをつかみません。
+- 遊び：片方の向きにだけスクロールするものは、その軸に沿った動きだけを比べます（向きがあるときの `TouchSlopDetector.mainAxis()`）。両方の向きにスクロールするものは距離で比べます（向きが `null`）。遊びを越えた分はすぐに中身を動かします（`overSlop`）。lamina-ui は、自分の `AnchoredDraggable` と同じく 8 dp を超えたら始めます。Compose の `hasCrossedSlop` は「以上」です。
+- 子が先：スクロールするものは、自分の遊びを調べる前に、動きをまず中身に渡します。Compose で Main の段階が先に子へ届くのと同じ順です。押下を持っている部品があれば、その部品が操作を続けます（`holds_pointer()`。`WidgetSet` が中の部品から集めます）。スライダーと範囲スライダー、分割の境目とペインの境目のつまみ、時刻の文字盤、値をなぞって変えている数値欄、ドラッグを引き取った内側のスクロールやタブの列、引きずられているシート・ドロワー・レール、開いているメニュー・ダイアログ・モーダルなシートがそうです。そうでなければ、遊びを越えたところでスクロールするものが操作を引き取り、中身には離れる出来事が届きます。これで中身の押下とポインターを乗せた状態が消えるので、指を離してもクリックになりません。
+- 入れ子：遊びを待っているスクロールするものは、中身に渡す出来事の `PointerEvent::waiting_scrollers` に自分の軸を記します。内側のスクロールするものは、遊びを越えても、なぞった角度が自分の軸に合わず、待っている外側の軸に合うときは操作を手放します。Compose が `traverseParentDraggableGestures` で調べるのと同じです。縦のページの中の横のスクロールの上で 40° になぞるとページが動き、20° なら内側が動きます。
+- なぞっている間、中身は指と同じだけ動きます。指を離すと、軸ごとの速さを速さの測り方から取って 8000 dp/s までに抑え、減速の曲線ではじきます。lamina-ui はこれを密度 1 の dp で計算します。密度は `computeDeceleration` と px の速さの両方に入って打ち消し合うので、px での距離を密度で割ると dp での距離になり、時間は同じです。
+- はじいている間に指を置くと、動きが止まり、遊びを待たずにすぐ引きずれます。その押下は中身に届かないので、タップにはなりません。Compose では `shouldScrollImmediately()` が `isScrollInProgress` を返し、そのとき `startDragImmediately` が true になり、`DragGestureNode.processInitialDownState` が押下を消費して（`firstDown.consume()`）ドラッグを始めます。
+- 端：中身は端で止まります。Compose の端で伸びる動き（`OverscrollEffect`）は作っていません。
+- アプリバー：`ScrollArea::scroll_in_progress()` は指でのドラッグとはじいた動きの間も true で、トップアプリバーとフレキシブルなボトムアプリバーは、それが終わってから止め方を決めます（Compose は `onPostFling` で決めます）。
+- シートの中身：ボトムシートの中身を指でなぞると、なぞり始めにその向きへ中身がスクロールできるときは中身が先に動きます。下向きは中身が一番上にないとき、上向きはシートが Expanded の位置にあって中身が一番下にないときです。そうでなければシートが動きます。Compose は操作の途中でも、入れ子のスクロールで残りの量を中身とシートの間で受け渡しますが、lamina-ui は一回の操作ごとに一度だけ決めます。
+- 入力欄（lamina-ui が決めたこと）：指では、押したときではなく、欄の中で指を離したとき（タップ）に入力欄へ焦点が移ります。そのため欄の上から始めたスクロールで焦点が移ることはなく、ほかの場所のタップは指を離したときに焦点を外します。マウスはこれまでどおり、押したときに焦点を移して選択を始めます。
+- 作っていないもの：端で伸びる動き。入れ子のスクロール（ページの中のリストが端に着いたとき、なぞりやはじきの残りをページに渡すこと）。Android の仕組みの速さの測り方（Compose は `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` のときに使います。その既定値は読んでいません。lamina-ui は Lsq2 のままです）。二本目からの指（SDL がマウスに写すのは最初の指だけです）。Android のはじく速さの下限（S の `config_viewMinFlingVelocity` = 50dp）。Compose のスクロールもこれは使いません。データ表は押したときに行を選ぶので、行の上から始めた指のなぞりはその行を選びます。
 
 ### ボトムシート
 
@@ -652,7 +681,7 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 - 閉じ方：戻る操作（`settleToDismiss`）は半分開いた状態を持つ広げたシートをまず半分開いた状態にし、そうでなければ隠します。幕のクリックはすぐに隠します（`animateToDismiss`）。隠れた状態に落ち着くはじきやドラッグでも閉じます。lamina-ui にはキーを離した出来事がないので、戻る操作は Escape を押したときに当てます。`BottomSheetResponse::dismissed` は閉じ始めたときに立ちます。Compose は隠す動きが終わってから `onDismissRequest` を呼びます。
 - 読み上げ：モーダルなシートは "Bottom Sheet" という名前のモーダルな `dialog`（`BottomSheetPaneTitle`。en-GB では "Bottom sheet"、日本語ではボトムシート）で、モーダルでないシートは `group` です。ドラッグハンドルは "Drag handle" のボタンで、説明はクリックでする操作（"Expand bottom sheet"・"Collapse bottom sheet"・"Dismiss bottom sheet"）です。これは Compose の独自の読み上げ用の操作の代わりで、lamina-ui の木にはそれを置く場所がありません。幕は "Close sheet" のボタンです。
 - フォーカス：モーダルなシートは、Compose のダイアログの窓と同じく Tab を自分の中にとどめます（ハンドル・中身の止まり位置の順で、端では先頭へ戻ります）。キーボードで開くとハンドルにフォーカスを置きます。モーダルでないシートのハンドルと中身は、プログラムの Tab の順に加わります。
-- 違い：ハンドルのマウスを乗せたとき・フォーカス・押下の重ねは 32 × 48 dp の当たりを囲む両端の丸い形で、フォーカスの輪もその周りに描きます。Compose の波紋は四角で、輪はありません。マウスのホイールは中身をスクロールし、シートは動かしません（Compose はホイールの量を入れ子のスクロールに送るので、シートが動くことがあります）。中身はドラッグでスクロールできないので、中身の上のドラッグはいつもシートを動かします。予測型の戻る操作は作っていません。
+- 違い：ハンドルのマウスを乗せたとき・フォーカス・押下の重ねは 32 × 48 dp の当たりを囲む両端の丸い形で、フォーカスの輪もその周りに描きます。Compose の波紋は四角で、輪はありません。マウスのホイールは中身をスクロールし、シートは動かしません（Compose はホイールの量を入れ子のスクロールに送るので、シートが動くことがあります）。中身を指でなぞると、なぞり始めにその向きへ中身がスクロールできるときだけ中身が動き、そうでなければシートが動きます（[指でのスクロール](#指でのスクロール)）。予測型の戻る操作は作っていません。
 
 ### サイドシート
 
@@ -868,7 +897,7 @@ androidx の `6068a9492ba8` の `compose/material3/adaptive/adaptive-layout/.../
 
 ### スクロールの範囲：横
 
-上の縦のスクロールの範囲に並べた lamina-ui の追加です。`set_content_width` で中身を横にもスクロールさせます。ホイールの横の軸（タッチパッドや傾けるホイール）で横へ動き、Shift を押しながら縦のホイールを回すと、中身が表示より広ければ横へ、そうでなければ縦へ動きます（`WheelEvent::shift`。`SDL_GetModState` から取る）。横のバーは下の辺に沿い、大きさは縦のバーと同じで、それぞれのバーの溝は角をもう一方に譲ります。
+上の縦のスクロールの範囲に並べた lamina-ui の追加です。`set_content_width` で中身を横にもスクロールさせます。ホイールの横の軸（タッチパッドや傾けるホイール）で横へ動き、Shift を押しながら縦のホイールを回すと、中身が表示より広ければ横へ、そうでなければ縦へ動きます（`WheelEvent::shift`。`SDL_GetModState` から取る）。横のバーは下の辺に沿い、大きさは縦のバーと同じで、それぞれのバーの溝は角をもう一方に譲ります。中身が縦にも横にも表示より大きいときは、指でなぞると両方の向きに動きます（[指でのスクロール](#指でのスクロール)）。
 
 ### 数値欄
 

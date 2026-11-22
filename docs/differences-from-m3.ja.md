@@ -6,7 +6,7 @@ lamina-ui が Material 3 とその Compose の実装に従っていないとこ�
 
 ## Material 3 に無い部品
 
-- スクロールの領域：Material 3 はスクロールバーを決めていないので、`lamina/tokens/scroll_area.hpp` の値は横のスクロールも含めてすべて lamina-ui のものです。[スクロールする範囲](design-tokens.ja.md#スクロールする範囲)・[スクロールの範囲：横](design-tokens.ja.md#スクロールの範囲横)
+- スクロールの領域：Material 3 はスクロールバーを決めていないので、`lamina/tokens/scroll_area.hpp` の値は横のスクロールも含めてすべて lamina-ui のものです。指でのスクロールは Compose と Android に合わせましたが、端で伸びる動きと入れ子のスクロールはなく、入力欄は押したときではなく指を離したときに焦点を受けます。[スクロールする範囲](design-tokens.ja.md#スクロールする範囲)・[スクロールの範囲：横](design-tokens.ja.md#スクロールの範囲横)・[指でのスクロール](design-tokens.ja.md#指でのスクロール)
 - 横のナビゲーション：アイコンだけのレール・幅のあるレール・ドロワーを一つの並びで表します。ばね（減衰 1.0、硬さ 380）と名前の消え方は lamina-ui の値です。[横のナビゲーション](design-tokens.ja.md#横のナビゲーション)
 - 分割ペイン・数値欄・メニューバー：M3 の色の役割から組み立て、大きさは lamina-ui が決めました。[分割ペイン](design-tokens.ja.md#分割ペイン)・[数値欄](design-tokens.ja.md#数値欄)・[メニューバー](design-tokens.ja.md#メニューバー)
 - データの表：MDC Web のデータの表にある値はそこから取り、無いものは lamina-ui が決めました。[表](design-tokens.ja.md#表)
