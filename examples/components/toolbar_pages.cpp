@@ -120,7 +120,7 @@ public:
             }
         }
 
-        std::vector<layout::NodePtr> columns;
+        std::vector<std::vector<layout::NodePtr>> sections;
         const std::array<const char*, 3> headings{"Floating toolbar with a FAB", "Vibrant, vertical and with side content",
                                                   "Flexible bottom app bar and FAB menu"};
         for (std::size_t i = 0; i < frames_.size(); ++i) {
@@ -129,11 +129,9 @@ public:
                 f->list->set_viewport(r);
                 place(*f);
             });
-            columns.push_back(heading(headings[i], f->frame.node(nullptr)));
+            sections.push_back({heading(headings[i], f->frame.node(nullptr))});
         }
-        auto row = layout::row(std::move(columns));
-        row->spacing(l.column_space).cross_align(layout::CrossAlign::start);
-        root = row;
+        root = columns(sections, l.column_space, l.column_space);
     }
 
     bool handle(const input::PointerEvent& e) override {

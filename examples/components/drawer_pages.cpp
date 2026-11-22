@@ -126,11 +126,10 @@ public:
         name_tip(open_modal);
         name_tip(toggle);
 
-        auto columns = layout::row({heading("Modal navigation drawer", modal_frame_.node(modal_screen)),
-                                    heading("Dismissible and permanent drawers", push_frame_.node(push_screen)),
-                                    heading("Modal wide navigation rail", rail_frame_.node(rail_screen))});
-        columns->spacing(l.column_space).cross_align(layout::CrossAlign::start);
-        root = columns;
+        root = columns({{heading("Modal navigation drawer", modal_frame_.node(modal_screen))},
+                        {heading("Dismissible and permanent drawers", push_frame_.node(push_screen))},
+                        {heading("Modal wide navigation rail", rail_frame_.node(rail_screen))}},
+                       l.column_space, l.column_space);
     }
 
     bool handle(const input::PointerEvent& e) override {

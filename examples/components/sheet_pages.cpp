@@ -110,11 +110,10 @@ public:
             gated_tip(*s->back_button(), [s] { return s->visible(); }, true);
         }
 
-        auto columns = layout::row({heading("Modal bottom sheet", modal_frame_.node(modal_screen)),
-                                    heading("Standard bottom sheet", standard_frame_.node(standard_screen)),
-                                    heading("Side sheets", side_frame_.node(side_row))});
-        columns->spacing(l.column_space).cross_align(layout::CrossAlign::start);
-        root = columns;
+        root = columns({{heading("Modal bottom sheet", modal_frame_.node(modal_screen))},
+                        {heading("Standard bottom sheet", standard_frame_.node(standard_screen))},
+                        {heading("Side sheets", side_frame_.node(side_row))}},
+                       l.column_space, l.column_space);
     }
 
     bool handle(const input::PointerEvent& e) override {
