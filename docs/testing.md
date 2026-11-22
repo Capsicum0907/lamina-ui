@@ -4,7 +4,7 @@
 
 ## Unit tests
 
-The tests are in `tests/`, one doctest file per area (`tabs_test.cpp`, `side_navigation_test.cpp` and so on), built into `build/Release/lamina_tests.exe`. `ctest --preset release` runs it with three more tests that check the resource build errors ([Resources](resources.md#tests)). `lamina_tests.exe -tc="*scroll*"` runs only the matching test cases.
+The tests are in `tests/`, one doctest file per area (`tabs_test.cpp`, `side_navigation_test.cpp` and so on), built into `build/Release/lamina_tests.exe`. `ctest --preset release` runs it with three tests that check the resource build errors ([Resources](resources.md#tests)) and `mcu_tests`, the GoogleTest tests of the vendored material-color-utilities. `lamina_tests.exe -tc="*scroll*"` runs only the matching test cases.
 
 `tests/support.hpp` gives the shared fixtures: `fonts()`, `icon_font()` and `scheme()`, `settle(widget)` (steps 240 frames of 1/60 s), `click(widget, x, y)` and `count_color`. Widgets are tested without a window: build one, give it a width and events, step it and read its rectangles or paint it on a `thorvg::Canvas` and read pixels.
 

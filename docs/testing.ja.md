@@ -4,7 +4,7 @@
 
 ## 単体テスト
 
-テストは `tests/` にあり、分野ごとに doctest のファイルが一つあります（`tabs_test.cpp`・`side_navigation_test.cpp` など）。ビルドすると `build/Release/lamina_tests.exe` になります。`ctest --preset release` はこれと、リソースのビルドの誤りを確かめる三つのテストを走らせます（[リソース](resources.ja.md#テスト)）。`lamina_tests.exe -tc="*scroll*"` で、名前の合うテストだけを走らせます。
+テストは `tests/` にあり、分野ごとに doctest のファイルが一つあります（`tabs_test.cpp`・`side_navigation_test.cpp` など）。ビルドすると `build/Release/lamina_tests.exe` になります。`ctest --preset release` はこれと、リソースのビルドの誤りを確かめる三つのテスト（[リソース](resources.ja.md#テスト)）と、同梱の material-color-utilities の GoogleTest のテスト `mcu_tests` を走らせます。`lamina_tests.exe -tc="*scroll*"` で、名前の合うテストだけを走らせます。
 
 `tests/support.hpp` には共通の道具があります：`fonts()`・`icon_font()`・`scheme()`、`settle(widget)`（1/60 秒を 240 コマ進めます）、`click(widget, x, y)`、`count_color`。部品は窓なしで確かめます。部品を作って幅と出来事を与え、時間を進めて四角形を読むか、`thorvg::Canvas` に描いて画素を読みます。
 
