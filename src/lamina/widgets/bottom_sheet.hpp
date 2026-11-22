@@ -156,6 +156,7 @@ private:
     bool content_claimed_ = false;
     bool tracking_ = false;
     double press_y_ = 0.0;
+    bool press_on_content_ = false;
 };
 
 }

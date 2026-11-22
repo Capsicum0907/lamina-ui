@@ -367,7 +367,7 @@ BottomSheetResponse BottomSheet::finish_drag(double time_seconds) {
 }
 
 bool BottomSheet::content_first(const input::PointerEvent& e) const {
-    if (e.kind != input::PointerKind::touch || drag_.dragging() || !content_.scrolls()) {
+    if (e.kind != input::PointerKind::touch || !press_on_content_ || drag_.dragging() || !content_.scrolls()) {
         return false;
     }
     const double dy = e.y_dp - press_y_;
@@ -399,6 +399,7 @@ BottomSheetResponse BottomSheet::handle(const input::PointerEvent& e) {
                 drag_.press(e.y_dp, e.time_seconds);
                 tracking_ = true;
                 press_y_ = e.y_dp;
+                press_on_content_ = contains(content_.viewport(), e.x_dp, e.y_dp);
             }
             handle_.handle(e);
             content_claimed_ = content_.handle(e);

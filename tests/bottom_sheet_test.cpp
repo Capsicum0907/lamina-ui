@@ -343,3 +343,42 @@ TEST_CASE("the sheet reports a dialog named after the Compose pane title") {
     CHECK(widgets::find_accessible(node->children, "シートを閉じる"));
     CHECK(widgets::find_accessible(node->children, "Item 1"));
 }
+
+namespace {
+
+void touch_drag(widgets::BottomSheet& s, Clock& clock, double x, double from, double to, double seconds) {
+    auto at = [&](PointerAction a, double y) { return input::PointerEvent{a, x, y, 0, input::PointerKind::touch, clock.now}; };
+    s.handle(at(PointerAction::down, from));
+    const int n = std::max(2, static_cast<int>(seconds / frame_seconds));
+    for (int i = 1; i <= n; ++i) {
+        clock.now += frame_seconds;
+        s.handle(at(PointerAction::move, from + (to - from) * i / n));
+        s.step(frame_seconds);
+    }
+    s.handle(at(PointerAction::up, to));
+}
+
+}
+
+TEST_CASE("a touch drag scrolls an expanded sheet's content where it can, and the handle still moves the sheet") {
+    Content c(30, 16.0);
+    widgets::BottomSheet s({.content = c.slot()});
+    s.set_area(area);
+    Clock clock;
+    s.show();
+    run(s, clock);
+    touch_drag(s, clock, 30.0, 500.0, 300.0, 0.3);
+    run(s, clock);
+    REQUIRE(s.current_value() == SheetValue::expanded);
+    CHECK(s.content().scroll().offset() == 0.0);
+    touch_drag(s, clock, 30.0, 600.0, 300.0, 1.0);
+    run(s, clock);
+    CHECK(s.current_value() == SheetValue::expanded);
+    const double scrolled = s.content().scroll().offset();
+    CHECK(scrolled > 200.0);
+    const render::Rect handle = s.bounds();
+    touch_drag(s, clock, handle.x + handle.width / 2.0, handle.y + 20.0, handle.y + 500.0, 1.0);
+    run(s, clock);
+    CHECK(s.current_value() != SheetValue::expanded);
+    CHECK(s.content().scroll().offset() == doctest::Approx(scrolled));
+}
