@@ -106,6 +106,7 @@ public:
     bool is_open() const;
     bool visible() const;
     bool dragging() const { return drag_.dragging(); }
+    bool holds_pointer() const { return (modal() && visible()) || drag_.dragging() || content_.holds_pointer(); }
     void set_gestures_enabled(bool enabled);
     bool gestures_enabled() const { return options_.gestures; }
 
@@ -138,6 +139,7 @@ private:
     BottomSheetResponse settle_to_dismiss();
     BottomSheetResponse animate_to_dismiss();
     BottomSheetResponse finish_drag(double time_seconds);
+    bool content_first(const input::PointerEvent& event) const;
     double damped(double velocity) const;
     void tab(bool backward);
 
@@ -153,6 +155,7 @@ private:
     bool scrim_pressed_ = false;
     bool content_claimed_ = false;
     bool tracking_ = false;
+    double press_y_ = 0.0;
 };
 
 }

@@ -290,25 +290,25 @@ ListViewResponse ListView::handle(const input::PointerEvent& e) {
         }
     }
     ListViewResponse response;
-    if (scroll_.handle(e)) {
-        response.consumed = true;
-        for (auto& [i, row] : live_) {
-            row->handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
-        }
-        return response;
-    }
-    const input::PointerEvent content = scroll_.to_content(e);
     std::vector<std::size_t> clicked;
-    for (auto& [i, row] : live_) {
-        if (row->handle(content).clicked) {
-            clicked.push_back(i);
+    const bool claimed = scroll_.route(e, [&](const input::PointerEvent& pe) {
+        const input::PointerEvent content = scroll_.to_content(pe);
+        for (auto& [i, row] : live_) {
+            if (row->handle(content).clicked) {
+                clicked.push_back(i);
+            }
+            if (row->pressed()) {
+                pressed_ = i;
+            }
         }
-        if (row->pressed()) {
-            pressed_ = i;
+        if (pe.action == input::PointerAction::up || pe.action == input::PointerAction::leave) {
+            pressed_.reset();
         }
-    }
-    if (e.action == input::PointerAction::up || e.action == input::PointerAction::leave) {
+    });
+    if (claimed) {
+        response.consumed = true;
         pressed_.reset();
+        return response;
     }
     for (std::size_t i : clicked) {
         after_click(i, response);

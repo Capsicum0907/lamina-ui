@@ -57,25 +57,28 @@ void ContentHost::reveal_focus() {
     }
 }
 
+bool ContentHost::holds_pointer() const {
+    return scroll_.dragging() || (widgets() && widgets()->holds_pointer());
+}
+
 bool ContentHost::handle(const input::PointerEvent& e) {
     if (empty()) {
         return false;
     }
-    if (scroll_.handle(e)) {
-        if (widgets()) {
-            widgets()->handle(left);
+    bool used = false;
+    const bool claimed = scroll_.route(e, [&](const input::PointerEvent& pe) {
+        if (!widgets()) {
+            return false;
         }
-        return true;
-    }
-    if (!widgets()) {
-        return false;
-    }
-    const input::PointerEvent inside = scroll_.to_content(e);
-    if (e.action == input::PointerAction::down && inside.action == input::PointerAction::leave) {
-        widgets()->handle(pressed_elsewhere);
-        return false;
-    }
-    return widgets()->handle(inside);
+        const input::PointerEvent inside = scroll_.to_content(pe);
+        if (pe.action == input::PointerAction::down && inside.action == input::PointerAction::leave) {
+            widgets()->handle(pressed_elsewhere);
+            return false;
+        }
+        used = widgets()->handle(inside);
+        return widgets()->holds_pointer();
+    });
+    return claimed || used;
 }
 
 bool ContentHost::handle(const input::WheelEvent& e) {

@@ -341,11 +341,10 @@ DialogResult Dialog::handle(const input::PointerEvent& e) {
         focus_shown_ = false;
     }
     if (slot_) {
-        if (scroll_.handle(e)) {
-            deliver_to_content({input::PointerAction::leave, 0.0, 0.0});
-        } else {
-            deliver_to_content(e);
-        }
+        scroll_.route(e, [&](const input::PointerEvent& pe) {
+            deliver_to_content(pe);
+            return content_ && content_->widgets && content_->widgets->holds_pointer();
+        });
         if (e.action == input::PointerAction::down && content_focused()) {
             clear_action_focus();
         }

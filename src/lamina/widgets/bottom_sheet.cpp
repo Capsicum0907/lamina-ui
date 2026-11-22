@@ -366,6 +366,18 @@ BottomSheetResponse BottomSheet::finish_drag(double time_seconds) {
     return {.dismissed = dismiss_after_settle(), .consumed = true};
 }
 
+bool BottomSheet::content_first(const input::PointerEvent& e) const {
+    if (e.kind != input::PointerKind::touch || drag_.dragging() || !content_.scrolls()) {
+        return false;
+    }
+    const double dy = e.y_dp - press_y_;
+    const ScrollArea& s = content_.scroll();
+    if (dy < 0.0) {
+        return drag_.offset() <= drag_.min_position() && s.offset() < s.max_offset();
+    }
+    return dy > 0.0 && s.offset() > 0.0;
+}
+
 BottomSheetResponse BottomSheet::handle(const input::PointerEvent& e) {
     if (!visible() || !drag_.positioned()) {
         return {};
@@ -386,6 +398,7 @@ BottomSheetResponse BottomSheet::handle(const input::PointerEvent& e) {
             if (options_.gestures && (!modal() || drag_.settled_value() != SheetValue::hidden || !drag_.idle())) {
                 drag_.press(e.y_dp, e.time_seconds);
                 tracking_ = true;
+                press_y_ = e.y_dp;
             }
             handle_.handle(e);
             content_claimed_ = content_.handle(e);
@@ -397,7 +410,7 @@ BottomSheetResponse BottomSheet::handle(const input::PointerEvent& e) {
         return {.consumed = blocks};
     }
     case input::PointerAction::move: {
-        if (tracking_ && !content_claimed_) {
+        if (tracking_ && !content_claimed_ && !content_first(e)) {
             const bool was_dragging = drag_.dragging();
             if (drag_.move(e.y_dp, e.time_seconds)) {
                 if (!was_dragging) {

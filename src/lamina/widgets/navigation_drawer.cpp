@@ -240,27 +240,29 @@ AccessibleNode DrawerSheet::accessible() const {
 
 DrawerResponse DrawerSheet::handle(const input::PointerEvent& e) {
     DrawerResponse r;
-    if (scroll_.handle(e)) {
+    const bool claimed = scroll_.route(e, [&](const input::PointerEvent& pe) {
+        if (pe.action == input::PointerAction::down && contains(rect_, pe.x_dp, pe.y_dp)) {
+            focus_.set_focused(false);
+        }
+        const std::optional<std::size_t> under = pe.action == input::PointerAction::leave ? std::nullopt : row_at(pe.x_dp, pe.y_dp);
+        for (std::size_t i = 0; i < rows_.size(); ++i) {
+            if (!row_enabled(i)) {
+                rows_[i].press = {};
+                continue;
+            }
+            if (rows_[i].press.update(pe, under == i ? item_rect(i) : render::Rect{0.0, 0.0, 0.0, 0.0})) {
+                select(i);
+                r.selected = i;
+            }
+        }
+        retarget();
+    });
+    if (claimed) {
         cancel_presses(rows_);
         retarget();
         r.consumed = true;
         return r;
     }
-    if (e.action == input::PointerAction::down && contains(rect_, e.x_dp, e.y_dp)) {
-        focus_.set_focused(false);
-    }
-    const std::optional<std::size_t> under = e.action == input::PointerAction::leave ? std::nullopt : row_at(e.x_dp, e.y_dp);
-    for (std::size_t i = 0; i < rows_.size(); ++i) {
-        if (!row_enabled(i)) {
-            rows_[i].press = {};
-            continue;
-        }
-        if (rows_[i].press.update(e, under == i ? item_rect(i) : render::Rect{0.0, 0.0, 0.0, 0.0})) {
-            select(i);
-            r.selected = i;
-        }
-    }
-    retarget();
     r.consumed = contains(rect_, e.x_dp, e.y_dp) && e.action != input::PointerAction::leave;
     return r;
 }

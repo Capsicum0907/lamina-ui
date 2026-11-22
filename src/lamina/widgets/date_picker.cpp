@@ -599,36 +599,37 @@ DatePickerResponse DatePicker::handle(const input::PointerEvent& e) {
     }
     menu_.state_layer.animate_to(menu_.press.state_layer_opacity());
     if (years_open_) {
-        if (years_scroll_.handle(e)) {
-            response.consumed = true;
-            return response;
-        }
-        std::optional<int> over;
-        const render::Rect area = years_area();
-        if (e.action != input::PointerAction::leave && contains(area, e.x_dp, e.y_dp)) {
-            for (int y = options_.year_range.first; y <= options_.year_range.last; ++y) {
-                if (contains(year_bounds(y), e.x_dp, e.y_dp)) {
-                    over = y;
-                    break;
+        const bool claimed = years_scroll_.route(e, [&](const input::PointerEvent& pe) {
+            std::optional<int> over;
+            const render::Rect area = years_area();
+            if (pe.action != input::PointerAction::leave && contains(area, pe.x_dp, pe.y_dp)) {
+                for (int y = options_.year_range.first; y <= options_.year_range.last; ++y) {
+                    if (contains(year_bounds(y), pe.x_dp, pe.y_dp)) {
+                        over = y;
+                        break;
+                    }
                 }
             }
-        }
-        pointer_.hovered_year = over;
-        if (e.action == input::PointerAction::down) {
-            pointer_.pressed_year = over;
-        } else if (e.action == input::PointerAction::up) {
-            if (over && over == pointer_.pressed_year) {
-                pick_year(*over);
+            pointer_.hovered_year = over;
+            if (pe.action == input::PointerAction::down) {
+                pointer_.pressed_year = over;
+            } else if (pe.action == input::PointerAction::up) {
+                if (over && over == pointer_.pressed_year) {
+                    pick_year(*over);
+                    response.consumed = true;
+                }
+                pointer_.pressed_year.reset();
+            } else if (pe.action == input::PointerAction::leave) {
+                pointer_.pressed_year.reset();
+            }
+            pointer_.state_layer.animate_to(pointer_.pressed_year ? tokens::state_layer_opacity::pressed
+                                            : over                ? tokens::state_layer_opacity::hover
+                                                                  : 0.0);
+            if (contains(area, pe.x_dp, pe.y_dp)) {
                 response.consumed = true;
             }
-            pointer_.pressed_year.reset();
-        } else if (e.action == input::PointerAction::leave) {
-            pointer_.pressed_year.reset();
-        }
-        pointer_.state_layer.animate_to(pointer_.pressed_year ? tokens::state_layer_opacity::pressed
-                                        : over                ? tokens::state_layer_opacity::hover
-                                                              : 0.0);
-        if (contains(area, e.x_dp, e.y_dp)) {
+        });
+        if (claimed) {
             response.consumed = true;
         }
         return response;

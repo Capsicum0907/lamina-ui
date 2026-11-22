@@ -34,6 +34,7 @@ public:
     void reveal_focus();
 
     bool handle(const input::PointerEvent& event);
+    bool holds_pointer() const;
     bool handle(const input::WheelEvent& event);
     bool handle(const input::KeyEvent& event);
     bool handle(const input::TextEvent& event);

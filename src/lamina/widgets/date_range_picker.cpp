@@ -416,41 +416,42 @@ DatePickerResponse DateRangePicker::handle(const input::PointerEvent& e) {
         }
         return response;
     }
-    if (list_.handle(e)) {
-        response.consumed = true;
-        return response;
-    }
-    std::optional<calendar::Date> over;
-    const render::Rect area = list_area();
-    if (e.action != input::PointerAction::leave && contains(area, e.x_dp, e.y_dp)) {
-        const int index = static_cast<int>((e.y_dp - area.y + list_.offset()) / item_height());
-        if (index >= 0 && index < month_count()) {
-            over = day_at(grid_origin(index), month_at(index), locale_->first_day_of_week, e.x_dp, e.y_dp);
-            if (over && !day_enabled(grid_state(false), *over)) {
-                over.reset();
+    const bool claimed = list_.route(e, [&](const input::PointerEvent& pe) {
+        std::optional<calendar::Date> over;
+        const render::Rect area = list_area();
+        if (pe.action != input::PointerAction::leave && contains(area, pe.x_dp, pe.y_dp)) {
+            const int index = static_cast<int>((pe.y_dp - area.y + list_.offset()) / item_height());
+            if (index >= 0 && index < month_count()) {
+                over = day_at(grid_origin(index), month_at(index), locale_->first_day_of_week, pe.x_dp, pe.y_dp);
+                if (over && !day_enabled(grid_state(false), *over)) {
+                    over.reset();
+                }
             }
         }
-    }
-    hovered_ = over;
-    switch (e.action) {
-    case input::PointerAction::down:
-        pressed_ = over;
-        break;
-    case input::PointerAction::up:
-        if (over && over == pressed_) {
-            focus_date_ = *over;
-            click(*over, response);
+        hovered_ = over;
+        switch (pe.action) {
+        case input::PointerAction::down:
+            pressed_ = over;
+            break;
+        case input::PointerAction::up:
+            if (over && over == pressed_) {
+                focus_date_ = *over;
+                click(*over, response);
+            }
+            pressed_.reset();
+            break;
+        case input::PointerAction::leave:
+            pressed_.reset();
+            break;
+        case input::PointerAction::move:
+            break;
         }
-        pressed_.reset();
-        break;
-    case input::PointerAction::leave:
-        pressed_.reset();
-        break;
-    case input::PointerAction::move:
-        break;
-    }
-    state_layer_.animate_to(pressed_ ? tokens::state_layer_opacity::pressed : over ? tokens::state_layer_opacity::hover : 0.0);
-    if (contains(area, e.x_dp, e.y_dp)) {
+        state_layer_.animate_to(pressed_ ? tokens::state_layer_opacity::pressed : over ? tokens::state_layer_opacity::hover : 0.0);
+        if (contains(area, pe.x_dp, pe.y_dp)) {
+            response.consumed = true;
+        }
+    });
+    if (claimed) {
         response.consumed = true;
     }
     return response;

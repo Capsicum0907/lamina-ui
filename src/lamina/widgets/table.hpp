@@ -129,6 +129,7 @@ public:
     AccessibleNode accessible() const;
 
     TableResponse handle(const input::PointerEvent& event);
+    bool holds_pointer() const { return scroll_.dragging() || resizing_.has_value(); }
     TableResponse handle(const input::KeyEvent& event);
     bool handle(const input::WheelEvent& event);
     bool handle(const input::ContextClick& event);
@@ -139,6 +140,7 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    void content_pointer(const input::PointerEvent& event, TableResponse& response);
     struct Column {
         std::string title;
         text::TextLine label;

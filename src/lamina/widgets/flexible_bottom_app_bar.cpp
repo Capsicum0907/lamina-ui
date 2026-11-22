@@ -89,7 +89,7 @@ void FlexibleBottomAppBar::set_bottom(double bottom) {
 
 void FlexibleBottomAppBar::follow(const ScrollArea& scroll) {
     state_.scrolled_to(scroll.offset());
-    if (scroll.target_offset() == scroll.offset() && !scroll.dragging()) {
+    if (scroll.target_offset() == scroll.offset() && !scroll.scroll_in_progress()) {
         state_.settle();
     }
     place();

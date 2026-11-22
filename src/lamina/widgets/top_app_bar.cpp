@@ -176,7 +176,7 @@ render::Rect TopAppBar::title_rect() const {
 
 void TopAppBar::follow(ScrollArea& scroll) {
     if (state_.settling()) {
-        if (scroll.offset() != driven_offset_ || scroll.target_offset() != scroll.offset() || scroll.dragging()) {
+        if (scroll.offset() != driven_offset_ || scroll.target_offset() != scroll.offset() || scroll.scroll_in_progress()) {
             state_.cancel_settle();
         } else {
             scroll.jump_to(state_.scroll_offset());
@@ -186,7 +186,7 @@ void TopAppBar::follow(ScrollArea& scroll) {
         }
     }
     state_.scrolled_to(scroll.offset());
-    if (scroll.target_offset() == scroll.offset() && !scroll.dragging()) {
+    if (scroll.target_offset() == scroll.offset() && !scroll.scroll_in_progress()) {
         state_.settle();
         driven_offset_ = scroll.offset();
     }

@@ -420,10 +420,17 @@ TableResponse Table::handle(const input::PointerEvent& e) {
         response.consumed = true;
         return response;
     }
-    if (scroll_.handle(e)) {
+    const bool claimed = scroll_.route(e, [&](const input::PointerEvent& pe) {
+        content_pointer(pe, response);
+        return resizing_.has_value();
+    });
+    if (claimed) {
         response.consumed = true;
-        return response;
     }
+    return response;
+}
+
+void Table::content_pointer(const input::PointerEvent& e, TableResponse& response) {
     if (e.action == input::PointerAction::leave) {
         hovered_model_.reset();
         divider_hover_.reset();
@@ -432,7 +439,7 @@ TableResponse Table::handle(const input::PointerEvent& e) {
             c.hover.animate_to(0.0);
         }
         retarget_rows();
-        return response;
+        return;
     }
     const bool in_header = contains(header_rect(), e.x_dp, e.y_dp);
     const std::optional<std::size_t> column = in_header ? column_at(e.x_dp) : std::nullopt;
@@ -446,7 +453,7 @@ TableResponse Table::handle(const input::PointerEvent& e) {
     if (e.action == input::PointerAction::down) {
         if (!contains(bounds_, e.x_dp, e.y_dp)) {
             set_focused(false);
-            return response;
+            return;
         }
         keyboard_ = false;
         focused_ = can_focus();
@@ -456,18 +463,18 @@ TableResponse Table::handle(const input::PointerEvent& e) {
             resizing_ = divider_hover_;
             resize_start_x_ = e.x_dp;
             resize_start_width_ = columns_[*divider_hover_].width;
-            return response;
+            return;
         }
         if (in_header) {
             pressed_header_ = column;
-            return response;
+            return;
         }
         if (!row) {
             if (!e.ctrl && !e.shift && selected_count_ > 0) {
                 clear_selection();
                 response.selection_changed = true;
             }
-            return response;
+            return;
         }
         const std::size_t m = order_[*row];
         const std::size_t anchor_view = view_row(anchor_model_);
@@ -485,7 +492,7 @@ TableResponse Table::handle(const input::PointerEvent& e) {
         if (e.clicks >= 2) {
             response.activated = m;
         }
-        return response;
+        return;
     }
     if (e.action == input::PointerAction::up && pressed_header_) {
         const std::size_t c = *pressed_header_;
@@ -498,7 +505,6 @@ TableResponse Table::handle(const input::PointerEvent& e) {
         }
         response.consumed = true;
     }
-    return response;
 }
 
 bool Table::handle(const input::WheelEvent& e) {
