@@ -1,5 +1,7 @@
 #include "support.hpp"
 
+#include <algorithm>
+#include <limits>
 #include <string>
 
 namespace lamina::test {
@@ -27,6 +29,32 @@ int count_color(render::Canvas& canvas, color::Argb c) {
         }
     }
     return n;
+}
+
+void RecordingCanvas::resize(int width, int height) {
+    width_ = width;
+    height_ = height;
+}
+
+void RecordingCanvas::fill_device_path(const render::Path& path, color::Argb color, render::FillRule) {
+    if (path.points().empty()) {
+        return;
+    }
+    double x0 = std::numeric_limits<double>::infinity();
+    double y0 = x0;
+    double x1 = -x0;
+    double y1 = -x0;
+    for (const render::Point& p : path.points()) {
+        x0 = std::min(x0, p.x);
+        y0 = std::min(y0, p.y);
+        x1 = std::max(x1, p.x);
+        y1 = std::max(y1, p.y);
+    }
+    fills.push_back({{x0, y0, x1 - x0, y1 - y0}, color});
+}
+
+void RecordingCanvas::fill_device_rect(render::Point from, render::Point to, color::Argb color) {
+    fills.push_back({{from.x, from.y, to.x - from.x, to.y - from.y}, color});
 }
 
 }
