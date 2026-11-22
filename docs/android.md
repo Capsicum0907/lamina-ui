@@ -86,6 +86,14 @@ lamina-ui follows the app's own scheme, not the system setting: an app can overr
 
 The gallery starts in the system's dark mode on Android, following `isSystemInDarkTheme`, and the dark theme button overrides it. On the desktop it starts light, as before. It tells its host each time its theme changes (`GalleryHost::set_dark_theme`, also once at start), and `examples/components/main.cpp` passes that to `set_dark_system_bars`.
 
+## Back
+
+lamina sets `SDL_HINT_ANDROID_TRAP_BACK_BUTTON`, so SDL keeps Back from the activity and reports it as the key `SDLK_AC_BACK`. `Window` hands it over as `Key::escape` with `KeyEvent::back` set, so whatever closes on Escape closes on Back. The app decides whether it used the key; when nothing did, it calls `Window::system_back()`. On Android that calls `SDL_SendAndroidBackButton()`, and SDL's Java side runs the platform's `Activity.onBackPressed()` on the UI thread (`SDLActivity.pressBackButton` and `superOnBackPressed`), past its own trap. On other platforms `system_back` does nothing and `KeyEvent::back` stays false, so Escape from a keyboard never leaves an app.
+
+What the platform then does, read in the SDK sources `sources/android-36.1/android/app/Activity.java`: `onBackPressed` (`:4331`) collapses an action view or pops the fragment back stack if there is one (the gallery has neither) and otherwise calls `onBackInvoked` (`:4344`), which reports the press to the activity task manager with `ActivityClient.onBackPressed`, passing a callback that finishes the activity if the server asks for it (`RequestFinishCallback`, `:4272`). The documentation of `onBackPressed` (`:4288-4330`) says that from Android 12 (`VERSION_CODES.S`) an activity that is the root of its task and declares `ACTION_MAIN` with `CATEGORY_LAUNCHER` is moved to the back together with its task instead of being finished, and that other activities are finished. The server side that makes this choice is not in the SDK sources and was not read. `LaminaActivity` is such a root launcher activity. On the API 37 emulator, with the gallery opened from its launcher icon, Back with nothing open moved the task to the back (`wm_task_moved` to the bottom, then `wm_stop_activity`) and kept the process: opening it again from the launcher showed the same scroll position and colors in the same process. With the gallery started by `adb shell am start`, with or without `-a MAIN -c LAUNCHER`, the same Back finished the activity instead (`wm_finish_activity ... app-request`, the server's request through `RequestFinishCallback`), so the server looks at more than the manifest, such as where the task was launched from; which condition it checks was not read.
+
+The gallery counts Back as used when a page or the base widgets say they used the key, which an open menu, dialog, sheet, drawer, search view or picker always does, and when a text field had the focus before the key. A text field drops its focus on Escape but returns false, because `TextField::handle` returns whether the text was submitted, not whether it used the key. An auto-repeated Back is never handed on.
+
 ## Install and run
 
 ```
@@ -105,7 +113,7 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 - The gallery starts and draws at about 411 dp wide, in the compact layout. Turning the screen to landscape switches it to the expanded layout.
 - Tapping works: the page tabs, a filter chip, a switch, the typeface menu and its items, the Menu and Dialog buttons and a text field. After a tap the button keeps no hover tint.
 - The layout stays out of the status bar and the gesture bar (`Frame::safe_area`).
-- Back closes an open menu or dialog and takes the focus from a text field (it reaches the gallery as Escape), and the app stays open.
+- Back closes an open menu or dialog and takes the focus from a text field (it reaches the gallery as Escape). With nothing open it sends the app to the back when it was opened from the launcher: the launcher shows, and opening the app again shows the same page and theme in the same process ([Back](#back)).
 - Text fields show the soft keyboard; keys typed on Gboard and `adb shell input text` arrive.
 - The mouse wheel scrolls the pages and the tabs (on the emulator, `adb shell input mouse scroll`).
 - A finger drag scrolls the pages up and down, and the page tabs and the side-scrolled time picker sideways; a quick swipe flings and slows down on Compose's spline decay, and a touch during a fling stops it. A swipe that starts on a button, a chip or a text field scrolls without clicking or focusing it, a tap still clicks, and the slider follows a drag that starts on it. Checked with `adb shell input swipe` and `adb shell input tap` ([Touch scrolling](design-tokens.md#touch-scrolling)).
@@ -118,7 +126,7 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 ## Not yet
 
 - Touch scrolling has no overscroll stretch at the ends and no nested scrolling: a list inside a page does not hand the rest of a drag or fling to the page. Only one finger is followed. The touch checks were made with `adb shell input`, not with a finger on a device.
-- Back when nothing is open does nothing; it does not leave the app.
+- Predictive back is not done. The manifest keeps `enableOnBackInvokedCallback="false"`, so Back arrives as a key, there is no `OnBackInvokedCallback` and no preview animation of the sheets, drawers or the app leaving.
 - The gallery reads the system dark mode only at start; it does not follow a change of the setting while it runs (`SDL_EVENT_SYSTEM_THEME_CHANGED` is not read).
 - Dialogs and menus are placed in the whole window, not inside the safe area.
 - The soft keyboard can cover a field low on the screen; SDL reports only whether the keyboard is shown, not its height.
