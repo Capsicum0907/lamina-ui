@@ -29,6 +29,7 @@
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina/tokens/tabs.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
 #include "lamina/widgets/title_bar.hpp"
@@ -67,7 +68,7 @@ struct Layout {
     double symbol_size = 24.0;
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
-    double page_tabs_width = 1000.0;
+    double title_top = 16.0;
     double status_width = 150.0;
     double status_gap = 24.0;
     std::string font_name_prefix = "Font, ";
@@ -231,9 +232,14 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
                 switch_page(w.selected());
             }
         },
-        widgets::TabRowOptions{page_items, tokens::TabStyle::secondary, state.page, widgets::TabIconPosition::top, "Pages"}, f);
+        widgets::TabRowOptions{.tabs = page_items,
+                               .style = tokens::TabStyle::secondary,
+                               .selected = state.page,
+                               .accessible_name = "Pages",
+                               .scrollable = true,
+                               .edge_padding = layout.margin - tokens::tab_tokens.horizontal_text_padding},
+        f);
     page = state.page;
-    page_tabs->set_width(layout.page_tabs_width);
     focus.add(*page_tabs);
     PageContext context{f, i, [this](std::string s) { report(std::move(s)); },
                         [this](widgets::FocusManager& m) {
@@ -265,8 +271,9 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
         });
     auto end_row = layout::row({status_cell, toggle_row});
     end_row->spacing(layout.status_gap).cross_align(layout::CrossAlign::center);
-    auto header_row = layout::row({widgets::node(header), widgets::centered_node(*page_tabs), end_row});
+    auto header_row = layout::row({widgets::node(header), end_row});
     header_row->fill_main(true).main_align(layout::MainAlign::space_between).cross_align(layout::CrossAlign::center);
+    header_row->padding({layout.margin, 0.0, layout.margin, 0.0});
     header_row->self_align = layout::CrossAlign::stretch;
 
     std::vector<layout::NodePtr> left;
@@ -295,8 +302,11 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
     for (const auto& p : pages) {
         bodies.push_back(p->body());
     }
-    auto content = layout::column({header_row, std::make_shared<PageSwitch>(std::move(bodies), page)});
-    content->spacing(layout.row_gap).padding(layout::Insets::all(layout.margin)).fill_cross(true);
+    auto page_box = layout::column({std::make_shared<PageSwitch>(std::move(bodies), page)});
+    page_box->padding({layout.margin, layout.row_gap, layout.margin, layout.margin}).fill_cross(true);
+    page_box->self_align = layout::CrossAlign::stretch;
+    auto content = layout::column({header_row, widgets::full_width_node(*page_tabs), page_box});
+    content->padding({0.0, layout.title_top, 0.0, 0.0}).fill_cross(true);
 
     root = content;
     if (host.client_title_bar()) {
@@ -814,6 +824,9 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         }
     }
     for (const auto& w : frame.wheel) {
+        if (g.page_tabs->handle(w)) {
+            continue;
+        }
         if (g.current_page()) {
             g.current_page()->handle(w);
         } else {

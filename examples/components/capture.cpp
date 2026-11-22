@@ -163,6 +163,9 @@ public:
         if (!r) {
             throw std::runtime_error("no widget named " + std::string(name));
         }
+        if (r->width <= 0.0 || r->height <= 0.0) {
+            throw std::runtime_error(std::string(name) + " is out of view");
+        }
         return {r->x + r->width / 2.0, r->y + r->height / 2.0};
     }
 
