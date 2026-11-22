@@ -199,6 +199,7 @@ struct Gallery::Impl {
     void paint_veil(render::Canvas& canvas, const color::ColorScheme& scheme) const;
     void handle_title_bar(const input::PointerEvent& e);
     void set_size_class(const layout::WindowSizeClass& c);
+    void place(const sdl3::Frame& frame);
     input::PointerEvent page_event(const input::PointerEvent& e);
     widgets::ScrollArea& scroll() { return page_box->scroll(); }
     void reveal_focus();
@@ -419,6 +420,13 @@ input::PointerEvent Gallery::Impl::page_event(const input::PointerEvent& e) {
         return e;
     }
     return {input::PointerAction::leave, 0.0, 0.0};
+}
+
+void Gallery::Impl::place(const sdl3::Frame& frame) {
+    layout::run(*root, layout::inset_rect({0.0, 0.0, frame.width_dp, frame.height_dp}, frame.safe_area));
+    if (title_bar) {
+        host.set_caption_regions(title_bar->regions());
+    }
 }
 
 void Gallery::Impl::reveal_focus() {
@@ -904,10 +912,7 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.title_bar->set_maximized(frame.maximized);
         g.title_bar->set_active(frame.active);
     }
-    layout::run(*g.root, layout::inset_rect({0.0, 0.0, frame.width_dp, frame.height_dp}, frame.safe_area));
-    if (g.title_bar) {
-        g.host.set_caption_regions(g.title_bar->regions());
-    }
+    g.place(frame);
     if (g.dialog->is_open()) {
         g.dialog->set_window(g.window);
     }
@@ -1018,6 +1023,9 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         if (!g.overlay.handle(t)) {
             g.controls.handle(t);
         }
+    }
+    if (!frame.pointer.empty() || !frame.context.empty() || !frame.wheel.empty() || !frame.keys.empty() || !frame.text.empty()) {
+        g.place(frame);
     }
     return g.scheme[color::Role::surface];
 }

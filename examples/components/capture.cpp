@@ -2,7 +2,9 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <fstream>
 #include <functional>
@@ -67,6 +69,9 @@ struct CaptureStyle {
     std::array<std::pair<std::string_view, std::string_view>, 0> known_overflows{};
     std::string_view side_scroll_target = "Horizontal time picker";
     int side_focus_tabs = 8;
+    std::string_view redraw_target = "Send";
+    int redraw_frame_limit = 600;
+    int redraw_tolerance = 2;
     std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
                                                  "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop"};
 };
@@ -129,6 +134,8 @@ public:
     void set_recording(bool on) { recording_ = on; }
     void set_cursor(bool on) { cursor_ = on; }
     render::Point pointer() const { return pointer_; }
+    void set_pointer(render::Point p) { pointer_ = p; }
+    bool animating() const { return animating_; }
 
     void frame() {
         sdl3::Frame f{1.0 / style_.fps,
@@ -155,7 +162,7 @@ public:
         canvas_.scale(scale_);
         canvas_.fill_rect(window_rect, background);
         canvas_.push_clip(window_rect);
-        gallery_.paint(canvas_, f);
+        animating_ = gallery_.paint(canvas_, f);
         paint_overlay();
         canvas_.pop_clip();
         canvas_.restore();
@@ -203,6 +210,30 @@ public:
         wait(0.08);
         pointer_events_.push_back(at(PointerAction::up));
         frame();
+    }
+
+    void touch_tap() {
+        input::PointerEvent down = at(PointerAction::down, 1);
+        down.kind = input::PointerKind::touch;
+        input::PointerEvent up = at(PointerAction::up);
+        up.kind = input::PointerKind::touch;
+        pointer_events_.push_back(down);
+        pointer_events_.push_back(up);
+        if (input::leaves_after_up(up.kind)) {
+            pointer_events_.push_back(at(PointerAction::leave));
+        }
+        frame();
+    }
+
+    std::vector<std::uint8_t> pixels() {
+        const render::PixelView px = canvas_.finish();
+        std::vector<std::uint8_t> out;
+        out.reserve(static_cast<std::size_t>(px.width) * static_cast<std::size_t>(px.height) * 4);
+        for (int y = 0; y < px.height; ++y) {
+            const auto* row = reinterpret_cast<const std::uint8_t*>(px.data) + px.stride * static_cast<std::size_t>(y);
+            out.insert(out.end(), row, row + static_cast<std::size_t>(px.width) * 4);
+        }
+        return out;
     }
 
     void right_click() {
@@ -444,6 +475,7 @@ private:
     CaptureStyle style_;
     bool recording_ = false;
     bool cursor_ = true;
+    bool animating_ = false;
     render::Point pointer_{720.0, 820.0};
     std::vector<input::PointerEvent> pointer_events_;
     std::vector<input::WheelEvent> wheel_events_;
@@ -2903,6 +2935,32 @@ PageCheck check_page(const std::string& scene, examples::components::Gallery& g,
     return {problems, known};
 }
 
+std::optional<std::string> check_tap_redraw(Driver& d, const CaptureStyle& style) {
+    d.set_cursor(false);
+    d.set_pointer(d.centre_of(style.redraw_target));
+    d.touch_tap();
+    int frames = 0;
+    while (d.animating() && frames < style.redraw_frame_limit) {
+        d.frame();
+        ++frames;
+    }
+    if (d.animating()) {
+        return "tap redraw: still animating " + std::to_string(frames) + " frames after a touch tap on " + std::string(style.redraw_target);
+    }
+    const std::vector<std::uint8_t> idle = d.pixels();
+    d.frame();
+    const std::vector<std::uint8_t> next = d.pixels();
+    int worst = 0;
+    for (std::size_t i = 0; i < idle.size() && i < next.size(); ++i) {
+        worst = std::max(worst, std::abs(static_cast<int>(idle[i]) - static_cast<int>(next[i])));
+    }
+    if (worst > style.redraw_tolerance) {
+        return "tap redraw: a touch tap on " + std::string(style.redraw_target) + " left the frame idle, but the next frame differs by " +
+               std::to_string(worst) + " levels, so the tap's result stays off screen until the next input";
+    }
+    return std::nullopt;
+}
+
 int usage() {
     std::string keys;
     for (const text::TypefaceSpec& t : text::typefaces) {
@@ -2952,6 +3010,16 @@ int main(int argc, char** argv) {
                 }
                 for (const std::string& p : result.problems) {
                     std::printf("%s\n", p.c_str());
+                    ++count;
+                }
+            }
+            {
+                HeadlessHost host;
+                examples::components::Gallery gallery(examples::components::GalleryFonts{load, typeface}, icon_font, host);
+                Driver driver(gallery, fonts, 1.0, nullptr, window);
+                driver.settle();
+                if (const auto problem = check_tap_redraw(driver, style)) {
+                    std::printf("%s\n", problem->c_str());
                     ++count;
                 }
             }
