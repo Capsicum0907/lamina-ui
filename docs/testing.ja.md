@@ -28,3 +28,41 @@ components_capture video gallery_resize dark 1 | ffmpeg -f rawvideo -pix_fmt bgr
 ### 配置の確認
 
 `components_capture [--window <幅>x<高さ>] check` は、十五のページを順に開いて動きが落ち着くのを待ち、窓の右端をはみ出す部品、どちらかの向きに押しつぶされて大きさがなくなった部品、別の塊の部品と重なる部品をすべて書き出します。塊とは、ページが置く区画・見出し・項目のことです（`Gallery::layout_blocks`）。枠の中の部品どうしのように、一つの塊の中の部品は比べません。問題が一つでもあれば 1 で終わります。窓に収まりようのない部品は `CaptureStyle::known_overflows` に載せられます。載せた部品は、中身の左端から始まっている間は、分かっているはみ出しとして書き出すだけで数えません。ページから消えたときは確認が失敗します。今この一覧は空です。412 dp では、セグメントボタンの行と分割ボタンが使える幅を分け合い、横向きの時刻ピッカーはカードの中で横にスクロールします。ページのあとで、`CaptureStyle::redraw_target`（Basics の Send）を、押す・離す・外へ出るの三つが一つのフレームに届くタッチでタップします。ギャラリーが動いている間フレームを進め、止まったフレームと、入力のないもう一つのフレームを比べます。差が `CaptureStyle::redraw_tolerance` の段階より大きければ問題として書き出します。フレームの繰り返しは、止まったフレームを次のイベントまで出したままにするからです（[アプリの組み立て](app-structure.ja.md)）。戻る操作も、新しく作った見本で三通り確かめます。何も開いていなければ、一回目の戻る操作がホストに渡ります（`GalleryHost::system_back`）。`CaptureStyle::back_menu` に Tab で移って Enter で開いたあとは、一回目でメニューが閉じ、二回目だけが渡ります。`CaptureStyle::back_field` に Tab で移ったあとは、一回目で欄のフォーカスが外れ、二回目だけが渡ります。確かめで開くどのページでも、何も開いていなければ一回目が渡ります。`CaptureStyle::back_dialog` に Tab で移って Enter で開いたあとと、`CaptureStyle::back_sheet_scene` の場面（モーダルのボトムシート）のあとは、一回目は渡らず、`CaptureStyle::back_press_limit` 回までのどこかで渡ります。`KeyEvent::back` の立っていない Escape は渡りません。また、見本が暗い配色かどうかを、起動したときに一度と、配色を切り替えたときにホストへ伝えることも確かめます（`GalleryHost::set_dark_theme`。窓はそれをシステムのバーに渡します。[Android](android.ja.md#システムのバー)）。CTest は、これを 412・800・1440 dp で走らせます。
+
+## Windows で指の入力を送る
+
+`tools/touch-inject/` は、Windows で本物の lamina の窓に作り物の指の入力を送ります。タッチ画面のない機械でも、SDL の指の経路・自分で描くタイトルバー・タッチキーボードを確かめられます。Python と ctypes と Pillow で書いてあり、`__pycache__` を書かないよう `python -B` で動かします。処理（窓を探す・送る前の確かめ・`InjectTouchInput`・窓の撮影）は `inject.py` にあり、`cli.py` は引数を読むだけです。
+
+```
+build/Release/components.exe --title-bar
+python -B tools/touch-inject/cli.py --pid <pid> info
+python -B tools/touch-inject/cli.py --pid <pid> run tools/touch-inject/scenarios/basics-send.toml --out shots --log shots/log.jsonl
+python -B tools/touch-inject/cli.py --pid <pid> run --out shots --step 'action="tap", x=170, y=562' --step 'action="capture", name="switch"'
+python -B tools/touch-inject/cli.py --pid <pid> capture shot.png
+python -B tools/touch-inject/cli.py --pid <pid> restore
+```
+
+相手の窓は、`--pid` のプロセスの見えている最上位の窓（一つだけ）です。手順は `[[step]]` の表を並べた TOML のファイルに書きます。`--step` は表を一つずつ足します。両方あるときはファイルの手順が先です。座標はクライアント領域の左上から測り、既定は dp です（画素なら `unit = "px"`）。dp から画素へは `GetDpiForWindow` で直します。動きの道筋は、指が触れたときに画面の画素に直します。なので、タイトルバーを引きずると、指は画面の上の道筋のまま動き、窓がそれについてきます。
+
+| 手順 | 項目 |
+|---|---|
+| `tap` | `x`・`y`・`hold`（既定は `timing.tap_hold_seconds`） |
+| `press` | `tap` と同じ。`hold` の既定は `timing.long_press_seconds` |
+| `drag` | `from`・`to`（`[x, y]`。指を何本も使うときはその並び）・`duration`・`profile`（`linear`・`ease_out`・`ease_in`）・`hold_start`・`hold_end`。`hold_end = 0` なら動いたまま指を離すので、はじく動きになります |
+| `capture` | `name`・`settle`（撮る前に待つ秒数） |
+| `wait` | `seconds` |
+| `activate` | 窓を前面に出します。まず `SetForegroundWindow`、Windows が断ったら最小化して元に戻します |
+| `resize` | クライアント領域の `width`・`height` |
+| `restore` | `ShowWindow(SW_RESTORE)`。最小化のあとに使います |
+| `watch` | `watch.keyboard_processes` のプロセスの最上位の窓を、DWM で隠されているかどうかと一緒に記録します |
+| `info` | DPI の倍率とクライアント領域の四角形を記録します |
+
+`tap`・`press`・`drag` には `gap`（動きのあとの待ち）と `snapshot` が付けられます。`snapshot` は `{at, name}` の並びで、指が触れてから `at` 秒の時点で、指を置いたまま撮ります。既定の値はすべて `tools/touch-inject/defaults.toml` にあります（`--settings` で別のファイルを読めます）。
+
+指の入力を一コマ送るたびに、次を確かめます：プロセスの窓が同じ一つのままか、それが前面の窓で最小化されていないか、点がそのクライアント領域の中で画面の上にあるか、その点の `WindowFromPoint` がその窓のものか。一つでも外れたら、置いている指を取り消して止まり、`run` は 3 で終わります。撮影は `PrintWindow` に `PW_CLIENTONLY | PW_RENDERFULLCONTENT` を付けて行うので、写るのはその窓のクライアント領域だけで、ほかの窓は写りません。
+
+タッチ画面のない Windows 11（SDL 3.4.10）で分かったこと：
+
+- `InitializeTouchInjection` と `InjectTouchInput` は、デジタイザーがなくても（`SM_DIGITIZER` が 0）動きます。SDL は指を `WM_TOUCH` で受け、指の出来事と、そこから作るマウスの出来事（`SDL_TOUCH_MOUSEID`）を出します。Windows が指から作るマウスのメッセージは捨てます（`GetMouseMessageSource`）。タップでスイッチは一度だけ切り替わります。
+- Windows はカーソルを最後に指を置いた点に残します。その下で窓が元の大きさに戻ったり大きさが変わったりすると、Windows は指の印のないマウスの動きを送ります。SDL はこれを `SDL_GLOBAL_MOUSE_ID` で出すので、前に指を置いた点の部品が、次に指で触るまでマウスのホバーの見た目になります。
+- SDL 3.4.10 は、デスクトップの Windows では画面のキーボードを出しません（`ShowScreenKeyboard` があるのは GDK のビルドだけです）。lamina-ui は UI オートメーションを出していません。なので、入力欄をタップしてもタッチキーボードは出ません。
