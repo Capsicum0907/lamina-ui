@@ -16,11 +16,10 @@
 #include "lamina/tokens/density.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
-#include "lamina/widgets/navigation_drawer.hpp"
 #include "lamina/widgets/navigation_item.hpp"
-#include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/pane_navigator.hpp"
 #include "lamina/widgets/pattern_strings.hpp"
+#include "lamina/widgets/side_navigation.hpp"
 
 namespace lamina::widgets {
 
@@ -80,18 +79,17 @@ public:
     void select(std::size_t index);
     double bar_progress() const { return bar_.value(); }
     double side_progress() const { return side_.value(); }
-    double drawer_amount() const { return drawer_.value(); }
+    double drawer_amount() const { return side_widget_.drawer_amount(); }
+    double expansion() const { return side_widget_.expansion(); }
     double side_width() const;
     bool labels() const { return labels_; }
     void set_labels(bool labels);
     void snap_to_targets();
 
     NavigationBar& bar() { return bar_widget_; }
-    NavigationRail& rail() { return rail_widget_; }
-    DrawerSheet& drawer() { return drawer_widget_; }
+    SideNavigation& side() { return side_widget_; }
     const NavigationBar& bar() const { return bar_widget_; }
-    const NavigationRail& rail() const { return rail_widget_; }
-    const DrawerSheet& drawer() const { return drawer_widget_; }
+    const SideNavigation& side() const { return side_widget_; }
 
     bool focused() const;
     void set_focused(bool focused);
@@ -111,14 +109,15 @@ public:
     std::vector<AccessibleNode> accessible_nodes() const;
 
 private:
-    enum class Active { bar, rail, drawer, none };
+    enum class Active { bar, side, none };
 
     static bool is_bar(NavigationSuiteType t);
     static bool is_drawer(NavigationSuiteType t);
+    static bool is_expanded(NavigationSuiteType t);
     Active active() const;
-    bool rail_visible() const;
-    bool drawer_visible() const;
+    bool side_visible() const;
     bool bar_visible() const;
+    void retarget_side();
     void place();
     void sync(std::size_t index);
 
@@ -126,11 +125,9 @@ private:
     std::size_t selected_;
     layout::NodePtr content_node_;
     NavigationBar bar_widget_;
-    NavigationRail rail_widget_;
-    DrawerSheet drawer_widget_;
+    SideNavigation side_widget_;
     motion::Animated bar_;
     motion::Animated side_;
-    motion::Animated drawer_;
     render::Rect rect_{0.0, 0.0, 0.0, 0.0};
     render::Rect content_{0.0, 0.0, 0.0, 0.0};
     bool enabled_ = true;

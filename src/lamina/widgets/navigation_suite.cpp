@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include "lamina/color/mix.hpp"
-#include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/navigation_suite.hpp"
 
 namespace lamina::widgets {
@@ -13,12 +11,9 @@ namespace {
 
 constexpr const tokens::NavigationSuiteTokens& t = tokens::navigation_suite_tokens;
 
-std::vector<DrawerEntry> drawer_entries(const std::vector<NavigationItem>& items) {
-    std::vector<DrawerEntry> out;
-    for (const NavigationItem& item : items) {
-        out.push_back({DrawerEntryKind::item, item.label.empty() ? item.accessible_name : item.label, item.icon, item.badge, item.enabled});
-    }
-    return out;
+bool side_type(NavigationSuiteType type) {
+    return type == NavigationSuiteType::wide_navigation_rail_collapsed || type == NavigationSuiteType::wide_navigation_rail_expanded ||
+           type == NavigationSuiteType::navigation_drawer;
 }
 
 }
@@ -47,15 +42,12 @@ NavigationSuiteScaffold::NavigationSuiteScaffold(NavigationSuiteScaffoldOptions 
       selected_(options.selected),
       content_node_(options.content),
       bar_widget_(NavigationBarOptions{options.items, options.selected, options.accessible_name, options.density, options.labels}, fonts),
-      rail_widget_(NavigationRailOptions{options.items, options.selected, options.type == NavigationSuiteType::wide_navigation_rail_expanded,
-                                         nullptr, options.accessible_name, options.density, options.labels},
+      side_widget_(SideNavigationOptions{options.items, options.selected, options.labels && is_expanded(options.type), is_drawer(options.type),
+                                         options.accessible_name.empty() ? options.strings->navigation_menu : options.accessible_name,
+                                         options.density},
                    fonts),
-      drawer_widget_(DrawerSheetOptions{drawer_entries(options.items), options.selected, DrawerSheetStyle::standard, options.strings,
-                                        options.accessible_name, options.density},
-                     fonts),
       bar_(is_bar(options.type) ? 1.0 : 0.0, t.spring),
-      side_(!is_bar(options.type) && options.type != NavigationSuiteType::none ? 1.0 : 0.0, t.spring),
-      drawer_(is_drawer(options.type) ? 1.0 : 0.0, t.spring),
+      side_(side_type(options.type) ? 1.0 : 0.0, t.spring),
       labels_(options.labels),
       density_(options.density) {}
 
@@ -67,26 +59,23 @@ bool NavigationSuiteScaffold::is_drawer(NavigationSuiteType type) {
     return type == NavigationSuiteType::navigation_drawer;
 }
 
+bool NavigationSuiteScaffold::is_expanded(NavigationSuiteType type) {
+    return type == NavigationSuiteType::wide_navigation_rail_expanded || type == NavigationSuiteType::navigation_drawer;
+}
+
 NavigationSuiteScaffold::Active NavigationSuiteScaffold::active() const {
     if (is_bar(type_)) {
         return Active::bar;
     }
-    if (is_drawer(type_)) {
-        return Active::drawer;
-    }
-    return type_ == NavigationSuiteType::none ? Active::none : Active::rail;
+    return side_type(type_) ? Active::side : Active::none;
 }
 
 bool NavigationSuiteScaffold::bar_visible() const {
     return bar_.value() > 0.0;
 }
 
-bool NavigationSuiteScaffold::rail_visible() const {
-    return side_.value() > 0.0 && drawer_.value() < 1.0;
-}
-
-bool NavigationSuiteScaffold::drawer_visible() const {
-    return side_.value() > 0.0 && drawer_.value() > 0.0;
+bool NavigationSuiteScaffold::side_visible() const {
+    return side_.value() > 0.0;
 }
 
 layout::Size NavigationSuiteScaffold::measure(const layout::Constraints& c) const {
@@ -96,20 +85,16 @@ layout::Size NavigationSuiteScaffold::measure(const layout::Constraints& c) cons
 }
 
 double NavigationSuiteScaffold::side_width() const {
-    const double rail = rail_widget_.width();
-    const double drawer = t.drawer_width;
-    return std::max(0.0, side_.value()) * motion::lerp(rail, drawer, std::clamp(drawer_.value(), 0.0, 1.0));
+    return std::max(0.0, side_.value()) * side_widget_.width();
 }
 
 void NavigationSuiteScaffold::place() {
-    rail_widget_.measure({0.0, rect_.width, rect_.height, rect_.height});
+    side_widget_.measure({0.0, rect_.width, rect_.height, rect_.height});
     const double side = std::min(side_width(), rect_.width);
     const double bar_h = bar_widget_.height() * std::clamp(bar_.value(), 0.0, 1.0);
     content_ = {rect_.x + side, rect_.y, std::max(0.0, rect_.width - side), std::max(0.0, rect_.height - bar_h)};
     const double hidden = 1.0 - std::clamp(side_.value(), 0.0, 1.0);
-    rail_widget_.arrange({rect_.x - hidden * rail_widget_.width(), rect_.y, rail_widget_.width(), rect_.height});
-    drawer_widget_.measure({0.0, t.drawer_width, rect_.height, rect_.height});
-    drawer_widget_.arrange({rect_.x - hidden * t.drawer_width, rect_.y, t.drawer_width, rect_.height});
+    side_widget_.arrange({rect_.x - hidden * side_widget_.width(), rect_.y, side_widget_.width(), rect_.height});
     bar_widget_.set_width(rect_.width);
     bar_widget_.set_origin({rect_.x, rect_.y + rect_.height - bar_h});
     if (content_node_) {
@@ -131,29 +116,33 @@ void NavigationSuiteScaffold::set_type(NavigationSuiteType type) {
     set_focused(false);
     type_ = type;
     bar_.animate_to(is_bar(type) ? 1.0 : 0.0);
-    side_.animate_to(!is_bar(type) && type != NavigationSuiteType::none ? 1.0 : 0.0);
-    drawer_.animate_to(is_drawer(type) ? 1.0 : 0.0);
-    if (type == NavigationSuiteType::wide_navigation_rail_collapsed || type == NavigationSuiteType::wide_navigation_rail_expanded) {
-        rail_widget_.set_expanded(type == NavigationSuiteType::wide_navigation_rail_expanded);
-    }
+    side_.animate_to(side_type(type) ? 1.0 : 0.0);
+    retarget_side();
     cancel_interaction();
     if (had_focus) {
         set_focused(true);
     }
 }
 
+void NavigationSuiteScaffold::retarget_side() {
+    if (side_type(type_)) {
+        side_widget_.set_drawer(is_drawer(type_));
+        side_widget_.set_expanded(labels_ && is_expanded(type_));
+    }
+}
+
 void NavigationSuiteScaffold::set_labels(bool labels) {
     labels_ = labels;
     bar_widget_.set_labels(labels);
-    rail_widget_.set_labels(labels);
+    retarget_side();
 }
 
 void NavigationSuiteScaffold::snap_to_targets() {
-    for (motion::Animated* a : {&bar_, &side_, &drawer_}) {
+    for (motion::Animated* a : {&bar_, &side_}) {
         a->snap_to(a->target());
     }
     bar_widget_.snap_to_targets();
-    rail_widget_.snap_to_targets();
+    side_widget_.snap_to_targets();
     if (rect_.width > 0.0) {
         place();
     }
@@ -168,11 +157,8 @@ void NavigationSuiteScaffold::sync(std::size_t index) {
     if (bar_widget_.selected() != index) {
         bar_widget_.select(index);
     }
-    if (rail_widget_.selected() != index) {
-        rail_widget_.select(index);
-    }
-    if (drawer_widget_.selected() != index) {
-        drawer_widget_.select(index);
+    if (side_widget_.selected() != index) {
+        side_widget_.select(index);
     }
 }
 
@@ -181,25 +167,21 @@ void NavigationSuiteScaffold::select(std::size_t index) {
 }
 
 bool NavigationSuiteScaffold::focused() const {
-    return bar_widget_.focused() || rail_widget_.focused() || drawer_widget_.focused();
+    return bar_widget_.focused() || side_widget_.focused();
 }
 
 void NavigationSuiteScaffold::set_focused(bool focused) {
     if (!focused) {
         bar_widget_.set_focused(false);
-        rail_widget_.set_focused(false);
-        drawer_widget_.set_focused(false);
+        side_widget_.set_focused(false);
         return;
     }
     switch (active()) {
     case Active::bar:
         bar_widget_.set_focused(true);
         break;
-    case Active::rail:
-        rail_widget_.set_focused(true);
-        break;
-    case Active::drawer:
-        drawer_widget_.set_focused(true);
+    case Active::side:
+        side_widget_.set_focused(true);
         break;
     case Active::none:
         break;
@@ -210,10 +192,8 @@ bool NavigationSuiteScaffold::can_focus() const {
     switch (active()) {
     case Active::bar:
         return bar_widget_.can_focus();
-    case Active::rail:
-        return rail_widget_.can_focus();
-    case Active::drawer:
-        return drawer_widget_.can_focus();
+    case Active::side:
+        return side_widget_.can_focus();
     case Active::none:
         break;
     }
@@ -224,10 +204,8 @@ render::Rect NavigationSuiteScaffold::focus_bounds() const {
     switch (active()) {
     case Active::bar:
         return bar_widget_.bounds();
-    case Active::rail:
-        return rail_widget_.bounds();
-    case Active::drawer:
-        return drawer_widget_.bounds();
+    case Active::side:
+        return side_widget_.bounds();
     case Active::none:
         break;
     }
@@ -237,15 +215,13 @@ render::Rect NavigationSuiteScaffold::focus_bounds() const {
 void NavigationSuiteScaffold::set_enabled(bool enabled) {
     enabled_ = enabled;
     bar_widget_.set_enabled(enabled);
-    rail_widget_.set_enabled(enabled);
-    drawer_widget_.set_enabled(enabled);
+    side_widget_.set_enabled(enabled);
 }
 
 void NavigationSuiteScaffold::set_density(tokens::Density density) {
     density_ = density;
     bar_widget_.set_density(density);
-    rail_widget_.set_density(density);
-    drawer_widget_.set_density(density);
+    side_widget_.set_density(density);
 }
 
 NavigationSuiteResponse NavigationSuiteScaffold::handle(const input::PointerEvent& e) {
@@ -261,22 +237,13 @@ NavigationSuiteResponse NavigationSuiteScaffold::handle(const input::PointerEven
     } else {
         bar_widget_.handle(away);
     }
-    if (a == Active::rail) {
-        if (rail_widget_.handle(e)) {
-            r.selected = rail_widget_.selected();
+    if (a == Active::side) {
+        if (side_widget_.handle(e)) {
+            r.selected = side_widget_.selected();
         }
         r.consumed = r.consumed || (e.action != input::PointerAction::leave && e.x_dp < content_.x && e.x_dp >= rect_.x);
     } else {
-        rail_widget_.handle(away);
-    }
-    if (a == Active::drawer) {
-        const DrawerResponse d = drawer_widget_.handle(e);
-        if (d.selected) {
-            r.selected = d.selected;
-        }
-        r.consumed = r.consumed || d.consumed || (e.action != input::PointerAction::leave && e.x_dp < content_.x && e.x_dp >= rect_.x);
-    } else {
-        drawer_widget_.handle(away);
+        side_widget_.handle(away);
     }
     if (r.selected) {
         sync(*r.selected);
@@ -293,18 +260,12 @@ NavigationSuiteResponse NavigationSuiteScaffold::handle(const input::KeyEvent& e
             r.consumed = true;
         }
         break;
-    case Active::rail:
-        if (rail_widget_.handle(e)) {
-            r.selected = rail_widget_.selected();
+    case Active::side:
+        if (side_widget_.handle(e)) {
+            r.selected = side_widget_.selected();
             r.consumed = true;
         }
         break;
-    case Active::drawer: {
-        const DrawerResponse d = drawer_widget_.handle(e);
-        r.selected = d.selected;
-        r.consumed = d.consumed;
-        break;
-    }
     case Active::none:
         break;
     }
@@ -319,44 +280,26 @@ NavigationSuiteResponse NavigationSuiteScaffold::handle(const input::KeyEvent& e
 
 void NavigationSuiteScaffold::cancel_interaction() {
     bar_widget_.cancel_interaction();
-    rail_widget_.cancel_interaction();
-    drawer_widget_.cancel_interaction();
+    side_widget_.cancel_interaction();
 }
 
 void NavigationSuiteScaffold::step(double dt) {
     bar_.step(dt);
     side_.step(dt);
-    drawer_.step(dt);
     bar_widget_.step(dt);
-    rail_widget_.step(dt);
-    drawer_widget_.step(dt);
+    side_widget_.step(dt);
     if (rect_.width > 0.0) {
         place();
     }
 }
 
 bool NavigationSuiteScaffold::animating() const {
-    return !bar_.settled() || !side_.settled() || !drawer_.settled() || bar_widget_.animating() || rail_widget_.animating() ||
-           drawer_widget_.animating();
+    return !bar_.settled() || !side_.settled() || bar_widget_.animating() || side_widget_.animating();
 }
 
 void NavigationSuiteScaffold::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const double drawer = std::clamp(drawer_.value(), 0.0, 1.0);
-    if (rail_visible()) {
-        if (drawer > 0.0) {
-            const color::ColorScheme faded = color::faded(scheme, 1.0 - drawer);
-            rail_widget_.paint(canvas, faded);
-        } else {
-            rail_widget_.paint(canvas, scheme);
-        }
-    }
-    if (drawer_visible()) {
-        if (drawer < 1.0) {
-            const color::ColorScheme faded = color::faded(scheme, drawer);
-            drawer_widget_.paint(canvas, faded);
-        } else {
-            drawer_widget_.paint(canvas, scheme);
-        }
+    if (side_visible()) {
+        side_widget_.paint(canvas, scheme);
     }
     if (bar_visible()) {
         canvas.save();
@@ -373,11 +316,8 @@ std::vector<AccessibleNode> NavigationSuiteScaffold::accessible_nodes() const {
     case Active::bar:
         out.push_back(bar_widget_.accessible());
         break;
-    case Active::rail:
-        out.push_back(rail_widget_.accessible());
-        break;
-    case Active::drawer:
-        out.push_back(drawer_widget_.accessible());
+    case Active::side:
+        out.push_back(side_widget_.accessible());
         break;
     case Active::none:
         break;
