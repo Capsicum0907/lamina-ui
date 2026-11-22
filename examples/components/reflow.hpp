@@ -225,7 +225,8 @@ protected:
             widths.push_back(w);
             natural += w;
         }
-        if (std::isfinite(c.max_width) && natural > c.max_width) {
+        const bool fits = !std::isfinite(c.max_width) || natural <= c.max_width;
+        if (!fits) {
             const double cap = shared_cap(widths, std::max(0.0, c.max_width - gaps));
             for (double& w : widths) {
                 w = std::min(w, cap);
@@ -234,12 +235,18 @@ protected:
         double x = 0.0;
         double height = 0.0;
         for (std::size_t i = 0; i < columns_.size(); ++i) {
+            const double room = fits ? std::max(0.0, c.max_width - x) : widths[i];
             double y = 0.0;
+            double w = 0.0;
             for (std::size_t k = 0; k < columns_[i].size(); ++k) {
-                const layout::Size s = columns_[i][k]->measure({0.0, widths[i], 0.0, layout::unbounded});
+                const layout::Size s = columns_[i][k]->measure({0.0, room, 0.0, layout::unbounded});
                 y += k == 0 ? 0.0 : row_gap_;
                 offsets_.push_back({x, y});
                 y += s.height;
+                w = std::max(w, s.width);
+            }
+            if (fits) {
+                widths[i] = w;
             }
             height = std::max(height, y);
             x += widths[i] + column_gap_;

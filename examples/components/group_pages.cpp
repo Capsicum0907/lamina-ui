@@ -52,13 +52,7 @@ class GroupsPage final : public BasePage {
 public:
     explicit GroupsPage(PageContext context) : BasePage(std::move(context)) {
         const GroupsLayout& l = groups_layout;
-        auto left = layout::column({groups(), extended()});
-        left->spacing(l.section_gap);
-        auto right = layout::column({splits()});
-        right->spacing(l.section_gap);
-        auto columns = layout::row({left, right});
-        columns->spacing(l.column_space).cross_align(layout::CrossAlign::start);
-        root = columns;
+        root = columns({{groups(), extended()}, {splits()}}, l.column_space, l.section_gap);
     }
 
     bool handle(const input::PointerEvent& e) override {
@@ -190,9 +184,8 @@ private:
         const auto style = tokens::text_style(tokens::type_style(base_page_layout.caption_type));
         captions.push_back(std::make_unique<widgets::Label>(
             widgets::LabelOptions{caption, base_page_layout.caption_type, base_page_layout.caption, false}, ctx.fonts));
-        auto r = layout::row({examples::caption_cell(*captions.back(), groups_layout.label_width, style.line_height, style.line_height), content});
-        r->cross_align(layout::CrossAlign::center);
-        return r;
+        return std::make_shared<Captioned>(reflow, examples::caption_cell(*captions.back(), groups_layout.label_width, style.line_height, style.line_height),
+                                           std::move(content), base_page_layout.heading_gap);
     }
 
     ButtonGroup& group(std::vector<layout::NodePtr>& rows, const char* caption, ButtonGroupOptions options, bool allowed = true,
@@ -361,8 +354,8 @@ private:
         focus_.add(toggle);
         enabler("Collapse", toggle);
         fabs.push_back(widgets::centered_node(toggle));
-        auto r = layout::row(std::move(fabs));
-        r->spacing(groups_layout.row_gap).cross_align(layout::CrossAlign::center);
+        auto r = items(std::move(fabs));
+        r->spacing(groups_layout.row_gap).line_spacing(groups_layout.row_gap);
         return heading("Extended FABs", r);
     }
 

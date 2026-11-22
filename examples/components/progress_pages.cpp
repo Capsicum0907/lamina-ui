@@ -48,11 +48,7 @@ class ProgressPage final : public BasePage {
 public:
     explicit ProgressPage(PageContext context) : BasePage(std::move(context)) {
         const ProgressLayout& l = progress_layout;
-        auto left = layout::column({loading(), controls_section()});
-        left->spacing(l.section_gap);
-        auto columns = layout::row({left, wavy()});
-        columns->spacing(l.column_space).cross_align(layout::CrossAlign::start);
-        root = columns;
+        root = columns({{loading(), controls_section()}, {wavy()}}, l.column_space, l.section_gap);
         set_all(l.start_progress, false);
     }
 
