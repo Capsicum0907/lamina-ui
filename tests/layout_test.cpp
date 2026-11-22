@@ -121,3 +121,57 @@ TEST_CASE("an end-to-start flow places the first child at the end of each line")
     CHECK(f->line_count() == 1);
     CHECK(c.rect.x + c.rect.width + 5 == b.rect.x);
 }
+
+TEST_CASE("a flow aligns each child within the height of its own line") {
+    Box a, b, c, d;
+    auto f = flow({a.node({60, 10}), b.node({50, 30}), c.node({70, 20}), d.node({40, 8})});
+    f->spacing(5).line_spacing(4);
+    run(*f, {0, 0, 120, 500});
+    CHECK(a.rect.y == 0);
+    CHECK(d.rect.y == 34);
+
+    f->cross_align(CrossAlign::center);
+    run(*f, {0, 0, 120, 500});
+    CHECK(a.rect.y == 10);
+    CHECK(b.rect.y == 0);
+    CHECK(c.rect.y == 34);
+    CHECK(d.rect.y == 34 + 6);
+
+    f->cross_align(CrossAlign::end);
+    run(*f, {0, 0, 120, 500});
+    CHECK(a.rect.y + a.rect.height == 30);
+    CHECK(d.rect.y + d.rect.height == 34 + 20);
+
+    f->cross_align(CrossAlign::stretch);
+    run(*f, {0, 0, 120, 500});
+    CHECK(a.rect.height == 30);
+    CHECK(d.rect.height == 20);
+    CHECK(f->measured().height == 30 + 4 + 20);
+}
+
+TEST_CASE("a child's own alignment overrides the flow's") {
+    Box a, b, c;
+    NodePtr top = a.node({20, 10});
+    top->self_align = CrossAlign::start;
+    auto f = flow({top, b.node({20, 30}), c.node({20, 10})});
+    f->cross_align(CrossAlign::center);
+    run(*f, {0, 0, 100, 100});
+    CHECK(a.rect.y == 0);
+    CHECK(c.rect.y == 10);
+}
+
+TEST_CASE("a flow reports where each of its lines starts") {
+    Box a, b, c, d;
+    auto f = flow({a.node({60, 10}), b.node({50, 10}), c.node({70, 10}), d.node({40, 10})});
+    f->spacing(5);
+    run(*f, {0, 0, 120, 500});
+    REQUIRE(f->line_count() == 2);
+    CHECK(f->line_start(0) == 0);
+    CHECK(f->line_start(1) == 2);
+    run(*f, {0, 0, 80, 500});
+    REQUIRE(f->line_count() == 4);
+    CHECK(f->line_start(1) == 1);
+    CHECK(f->line_start(3) == 3);
+    run(*f, {0, 0, 400, 500});
+    CHECK(f->line_count() == 1);
+}

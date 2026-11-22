@@ -180,8 +180,13 @@ public:
         direction_ = v;
         return *this;
     }
+    Flow& cross_align(CrossAlign v) {
+        cross_align_ = v;
+        return *this;
+    }
 
     std::size_t line_count() const { return lines_.size(); }
+    std::size_t line_start(std::size_t line) const { return lines_[line].begin; }
 
 protected:
     Size on_measure(const Constraints& c) override;
@@ -199,6 +204,7 @@ private:
     double spacing_ = 0.0;
     double line_spacing_ = 0.0;
     FlowDirection direction_ = FlowDirection::start_to_end;
+    CrossAlign cross_align_ = CrossAlign::start;
     std::vector<Line> lines_;
 };
 

@@ -217,12 +217,28 @@ void Flow::on_arrange(const render::Rect& rect) {
         double x = direction_ == FlowDirection::start_to_end ? rect.x : rect.x + rect.width;
         for (std::size_t i = line.begin; i < line.end; ++i) {
             const Size s = children_[i]->measured();
+            const CrossAlign align = children_[i]->self_align.value_or(cross_align_);
+            double h = s.height;
+            double top = y;
+            switch (align) {
+            case CrossAlign::start:
+                break;
+            case CrossAlign::center:
+                top += (line.height - s.height) / 2.0;
+                break;
+            case CrossAlign::end:
+                top += line.height - s.height;
+                break;
+            case CrossAlign::stretch:
+                h = line.height;
+                break;
+            }
             if (direction_ == FlowDirection::start_to_end) {
-                children_[i]->arrange({x, y, s.width, s.height});
+                children_[i]->arrange({x, top, s.width, h});
                 x += s.width + spacing_;
             } else {
                 x -= s.width;
-                children_[i]->arrange({x, y, s.width, s.height});
+                children_[i]->arrange({x, top, s.width, h});
                 x -= spacing_;
             }
         }
