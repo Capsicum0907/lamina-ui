@@ -25,8 +25,10 @@ SW_RESTORE = 9
 PW_CLIENTONLY = 1
 PW_RENDERFULLCONTENT = 2
 BI_RGB = 0
+BYTES_PER_PIXEL = 4
 DIB_RGB_COLORS = 0
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+MAX_EXTENDED_PATH = 32767
 DWMWA_CLOAKED = 14
 
 PT_TOUCH = 2
@@ -172,7 +174,7 @@ def process_name(pid):
     if not handle:
         return None
     try:
-        size = wt.DWORD(1024)
+        size = wt.DWORD(MAX_EXTENDED_PATH)
         buf = ctypes.create_unicode_buffer(size.value)
         if not kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)):
             return None
@@ -255,23 +257,30 @@ class Target:
     def is_foreground(self):
         return user32.GetForegroundWindow() == self.hwnd
 
-    def _wait_foreground(self, wait_seconds):
+    def is_ready(self):
+        return self.is_foreground() and not user32.IsIconic(self.hwnd)
+
+    def _wait_foreground(self, wait_seconds, polls):
         deadline = time.perf_counter() + wait_seconds
         while time.perf_counter() < deadline:
-            if self.is_foreground():
+            if self.is_ready():
                 return True
-            time.sleep(wait_seconds / 20)
-        return self.is_foreground()
+            time.sleep(wait_seconds / polls)
+        return self.is_ready()
 
-    def activate(self, wait_seconds):
-        if self.is_foreground():
+    def activate(self, wait_seconds, polls):
+        if self.is_ready():
             return "already"
+        if user32.IsIconic(self.hwnd):
+            user32.ShowWindow(self.hwnd, SW_RESTORE)
+            if self._wait_foreground(wait_seconds, polls):
+                return "restore"
         user32.SetForegroundWindow(self.hwnd)
-        if self._wait_foreground(wait_seconds):
+        if self._wait_foreground(wait_seconds, polls):
             return "set_foreground"
         user32.ShowWindow(self.hwnd, SW_MINIMIZE)
         user32.ShowWindow(self.hwnd, SW_RESTORE)
-        if self._wait_foreground(wait_seconds):
+        if self._wait_foreground(wait_seconds, polls):
             return "minimize_restore"
         return None
 
@@ -318,8 +327,8 @@ class Target:
         try:
             if not user32.PrintWindow(self.hwnd, mem_dc, PW_CLIENTONLY | PW_RENDERFULLCONTENT):
                 raise InjectError(f"PrintWindow failed ({ctypes.get_last_error()})")
-            header = BITMAPINFOHEADER(ctypes.sizeof(BITMAPINFOHEADER), w, -h, 1, 32, BI_RGB, 0, 0, 0, 0, 0)
-            buf = ctypes.create_string_buffer(w * h * 4)
+            header = BITMAPINFOHEADER(ctypes.sizeof(BITMAPINFOHEADER), w, -h, 1, BYTES_PER_PIXEL * 8, BI_RGB, 0, 0, 0, 0, 0)
+            buf = ctypes.create_string_buffer(w * h * BYTES_PER_PIXEL)
             if gdi32.GetDIBits(mem_dc, bmp, 0, h, buf, ctypes.byref(header), DIB_RGB_COLORS) != h:
                 raise InjectError("GetDIBits failed")
         finally:
@@ -344,13 +353,13 @@ def ease(profile, t):
     raise InjectError(f"unknown profile {profile}")
 
 
-def wait_until(deadline):
+def wait_until(deadline, timing):
     while True:
         left = deadline - time.perf_counter()
         if left <= 0:
             return
-        if left > 0.002:
-            time.sleep(left / 2)
+        if left > timing["spin_threshold_seconds"]:
+            time.sleep(left * timing["sleep_fraction"])
 
 
 @dataclass
@@ -428,7 +437,7 @@ class Injector:
                     while pending and time.perf_counter() - t0 >= pending[0]["at"]:
                         snap = pending.pop(0)
                         taken.append(self.target.capture(Path(out_dir) / (snap["name"] + extension)))
-                    wait_until(min(end, time.perf_counter() + interval))
+                    wait_until(min(end, time.perf_counter() + interval), self.settings["timing"])
                 if kind == "move":
                     live = {i: paths[i][1] for i in ids}
                     self._frame(live, FLAGS_MOVE)
@@ -487,7 +496,7 @@ def run_step(injector, step, out_dir, events):
     elif action == "info":
         record["info"] = target.info()
     elif action == "activate":
-        record["foreground"] = target.activate(timing["foreground_wait_seconds"])
+        record["foreground"] = target.activate(timing["foreground_wait_seconds"], timing["foreground_polls"])
         if not record["foreground"]:
             raise GuardError("the target window could not be brought to the foreground")
     else:

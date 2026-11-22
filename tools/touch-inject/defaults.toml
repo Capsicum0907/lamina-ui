@@ -12,6 +12,9 @@ long_press_seconds = 0.8
 settle_seconds = 0.6
 gesture_gap_seconds = 0.3
 foreground_wait_seconds = 1.0
+foreground_polls = 20
+spin_threshold_seconds = 0.002
+sleep_fraction = 0.5
 
 [capture]
 extension = ".png"
