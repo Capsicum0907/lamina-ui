@@ -51,18 +51,19 @@ python -B tools/touch-inject/cli.py --pid <pid> restore
 | `drag` | `from`・`to`（`[x, y]`。指を何本も使うときはその並び）・`duration`・`profile`（`linear`・`ease_out`・`ease_in`）・`hold_start`・`hold_end`。`hold_end = 0` なら動いたまま指を離すので、はじく動きになります |
 | `capture` | `name`・`settle`（撮る前に待つ秒数） |
 | `wait` | `seconds` |
-| `activate` | 窓を前面に出します。まず `SetForegroundWindow`、Windows が断ったら最小化して元に戻します |
+| `activate` | 窓を前面に出し、最小化から戻します。最小化されていれば `ShowWindow(SW_RESTORE)`、次に `SetForegroundWindow`、Windows が断ったら最小化して元に戻します。待つのは最大で `timing.foreground_wait_seconds` 秒で、その間に `timing.foreground_polls` 回確かめます |
 | `resize` | クライアント領域の `width`・`height` |
 | `restore` | `ShowWindow(SW_RESTORE)`。最小化のあとに使います |
 | `watch` | `watch.keyboard_processes` のプロセスの最上位の窓を、DWM で隠されているかどうかと一緒に記録します |
 | `info` | DPI の倍率とクライアント領域の四角形を記録します |
 
-`tap`・`press`・`drag` には `gap`（動きのあとの待ち）と `snapshot` が付けられます。`snapshot` は `{at, name}` の並びで、指が触れてから `at` 秒の時点で、指を置いたまま撮ります。既定の値はすべて `tools/touch-inject/defaults.toml` にあります（`--settings` で別のファイルを読めます）。
+`tap`・`press`・`drag` には `gap`（動きのあとの待ち）と `snapshot` が付けられます。`snapshot` は `{at, name}` の並びで、指が触れてから `at` 秒の時点で、指を置いたまま撮ります。コマの間は `injection.frame_interval_seconds` 秒です。コマの間の待ちは、残りが `timing.spin_threshold_seconds` 秒を切るまで残りの `timing.sleep_fraction` だけ眠り、そのあとは回って待ちます。既定の値はすべて `tools/touch-inject/defaults.toml` にあります（`--settings` で別のファイルを読めます）。
 
 指の入力を一コマ送るたびに、次を確かめます：プロセスの窓が同じ一つのままか、それが前面の窓で最小化されていないか、点がそのクライアント領域の中で画面の上にあるか、その点の `WindowFromPoint` がその窓のものか。一つでも外れたら、置いている指を取り消して止まり、`run` は 3 で終わります。撮影は `PrintWindow` に `PW_CLIENTONLY | PW_RENDERFULLCONTENT` を付けて行うので、写るのはその窓のクライアント領域だけで、ほかの窓は写りません。
 
 タッチ画面のない Windows 11（SDL 3.4.10）で分かったこと：
 
 - `InitializeTouchInjection` と `InjectTouchInput` は、デジタイザーがなくても（`SM_DIGITIZER` が 0）動きます。SDL は指を `WM_TOUCH` で受け、指の出来事と、そこから作るマウスの出来事（`SDL_TOUCH_MOUSEID`）を出します。Windows が指から作るマウスのメッセージは捨てます（`GetMouseMessageSource`）。タップでスイッチは一度だけ切り替わります。
-- Windows はカーソルを最後に指を置いた点に残します。その下で窓が元の大きさに戻ったり大きさが変わったりすると、Windows は指の印のないマウスの動きを送ります。SDL はこれを `SDL_GLOBAL_MOUSE_ID` で出すので、前に指を置いた点の部品が、次に指で触るまでマウスのホバーの見た目になります。
-- SDL 3.4.10 は、デスクトップの Windows では画面のキーボードを出しません（`ShowScreenKeyboard` があるのは GDK のビルドだけです）。lamina-ui は UI オートメーションを出していません。なので、入力欄をタップしてもタッチキーボードは出ません。
+- 指のあとのホバー。見たこと：タップのあと、カーソル（`GetCursorPos`）はタップした点にあります。窓を最小化から戻したり大きさを変えたりすると、その点の部品が、次に指で触るまでマウスのホバーの見た目になります。道具が窓を何も変えていないのに、最後に指を置いた部品にホバーが付いたことも一度ありました。ソースで分かること：窓が前面になると、SDL はメッセージの位置でマウスの動きを `SDL_GLOBAL_MOUSE_ID` で出します（`WIN_UpdateFocus`）。なので、最小化から戻したときのホバーは SDL が出しています。大きさを変えたときと、きっかけの分からない一度については、窓がカーソルの下で変わったので Windows が指の印のないマウスの動きを送った、と推し量っただけで、確かめていません。
+- 最小化から戻した窓は、とても小さな大きさから並べ直します。見たこと：`--title-bar` の見本では、最小化している間のクライアント領域は 160 × 28 px です。戻すと、中身が縮んだ並びからばねで元へ戻り、表示に幅の区分がもう一度出ます。戻した直後に送ったタップは、ねらった部品に当たりません。ソースで分かること：SDL は、最小化した窓の大きさを出来事では無視します（`WM_WINDOWPOSCHANGED`）。ですが `SDL_GetWindowSizeInPixels` は、幅が 0 より大きければ `GetClientRect` の値を返します。`Window::measure` はその大きさを毎コマ読みます。推し量ったこと：システムの枠のある窓は、最小化するとクライアント領域の幅がなくなるので、SDL は前の大きさを返します。なので、これが起きるのは自分で描くタイトルバーのときだけだと考えています。
+- タッチキーボードが出ない。見たこと：入力欄をタップするとフォーカスは移りますが、`TextInputHost.exe` の窓は隠されたままです。ソースで分かること：SDL 3.4.10 で `ShowScreenKeyboard` があるのは GDK のビルドだけで、デスクトップの Windows にはありません。一般に知られていること（ここでは確かめていません）：UI オートメーションで見える入力欄にフォーカスがあると、Windows は自分からタッチキーボードを出すことがあります。lamina-ui はこれを出していません。また既定では、物理キーボードがつながっていないときだけ出します。この機械には物理キーボードがつながっていて、設定は変えていません。なので、どれがキーボードを止めているのかは切り分けていません。
