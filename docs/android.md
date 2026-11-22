@@ -96,6 +96,7 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 - The mouse wheel scrolls the pages and the tabs (on the emulator, `adb shell input mouse scroll`).
 - A finger drag scrolls the pages up and down, and the page tabs and the side-scrolled time picker sideways; a quick swipe flings and slows down on Compose's spline decay, and a touch during a fling stops it. A swipe that starts on a button, a chip or a text field scrolls without clicking or focusing it, a tap still clicks, and the slider follows a drag that starts on it. Checked with `adb shell input swipe` and `adb shell input tap` ([Touch scrolling](design-tokens.md#touch-scrolling)).
 - The "OS fonts" typeface loads Noto Sans CJK from `/system/fonts`.
+- The 48 dp touch target: a tap up to about 3 dp above a 40 dp button (Send on Basics) or below one in a button group (Copy on Groups) clicks it, and a tap 4 dp or more away does not. A tap in the 8 dp gap between two filter chips selects only the nearer one. Taps just left of the overflow button of a button group open its menu and close it again. Checked with `adb shell input tap` ([Touch target](design-tokens.md#touch-target)).
 - Leaving the app with Home and coming back draws the gallery again.
 - On the emulator a frame of the animated Progress page takes about 19 ms (about 52 frames a second), measured from the start of `update` to the end of `present`. Drawing is ThorVG on the CPU into a 1080 × 2400 texture.
 
