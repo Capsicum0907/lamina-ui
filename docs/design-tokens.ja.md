@@ -826,7 +826,16 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 
 - `navigation_suite_type(info)` は Compose の `NavigationSuiteScaffoldDefaults.navigationSuiteType` です。幅が compact なら短いナビゲーションバー、卓上の姿勢か高さが compact なら中くらいの短いバー、それ以外は畳んだ幅のあるレールを選びます。広げたレールやドロワーは選びません。
 - バーと横の部品は、Compose の `AnimationSpec`（ばね、減衰 0.9、剛性 700）で出入りします。中身は、その進み具合だけバーの高さか横の部品の幅を譲ります。
-- 違い：`navigation_suite_type(info, choice)` と `widening_navigation_suite`（compact はバー、medium は畳んだレール、expanded は広げたレール、large と extra-large はドロワー、高さが compact なら中くらいのバー）は lamina-ui の選び方です。広いウィンドウほどナビゲーションを多く見せるという M3 の方針に沿いました。Compose は種類が変わると部品を切り替えるだけで移り変わりがありませんが、lamina-ui は同じばねでバーを下へ出してから横の部品を入れ、レールからドロワーへは横の幅をレールの幅からドロワーの 360 dp へ動かしながら重ねて切り替え、レールの開閉はレール自身の動きで行います。中くらいの短いバー（`ShortNavigationBarMedium`、アイコンの横にラベル）は compact と同じ形で描きます。lamina-ui のナビゲーションバーには縦に積む並びしかないためです。主な操作の枠（`primaryActionContent`）は作っていません。
+- 違い：`navigation_suite_type(info, choice)` と `widening_navigation_suite`（compact はバー、medium は畳んだレール、expanded は広げたレール、large と extra-large はドロワー、高さが compact なら中くらいのバー）は lamina-ui の選び方です。広いウィンドウほどナビゲーションを多く見せるという M3 の方針に沿いました。Compose は種類が変わると部品を切り替えるだけで移り変わりがありませんが、lamina-ui は同じばねでバーを下へ出してから横の部品を入れます。畳んだレール・広げたレール・ドロワーは一つの `SideNavigation`（「横のナビゲーション」を見てください）で見せるので、そのあいだの切り替えは一つの並びの形が変わるだけで、アイコンは動きません。畳んだレールは 80 dp のアイコンだけのレールです。アイコンの下に名前を置く 96 dp のレールは行が高く、アイコンが動いてしまうためです。名前を消すと、横の種類はどれもアイコンだけのレールにたたみます。中くらいの短いバー（`ShortNavigationBarMedium`、アイコンの横にラベル）は compact と同じ形で描きます。lamina-ui のナビゲーションバーには縦に積む並びしかないためです。主な操作の枠（`primaryActionContent`）は作っていません。
+
+### 横のナビゲーション
+
+lamina-ui 独自の部品で、上の値から組み立てました。`lamina/tokens/side_navigation.hpp`（`side_navigation_tokens`）と `lamina/widgets/side_navigation.hpp` にあります。Compose には、レールとドロワーを兼ねる一つの並びはありません。
+
+- M3 から取った値：畳んだ幅 80 dp（狭い `NavigationRail`。上のアイコンだけのレールと同じ）、幅のあるレールの 220〜360 dp、ドロワーの 360 dp、上の 12 dp・内側への 12 dp・アイコンの前の 16 dp・名前までの 12 dp・Label L（どれも `NavigationDrawerTokens`）、56 × 32 dp の形（`NavigationRailVerticalItemTokens`）、行の高さ（ドロワーの項目の 56 dp。密度で下がります）、レールの色です。
+- 一つの形ですべての姿をまかなえるように値がそろっています。80 = 12 + 56 + 12、56 = 16 + 24 + 16 なので、アイコンは畳んだ形の中でもドロワーの行でも x = 28 dp にあり、どの姿でも y = 12 dp + n × 行 + (行 − 24) / 2 にあります。
+- 幅のあるレールとの違い：項目を始まりの側から 20 + 16 dp ではなく 12 + 16 dp に置き、名前までを 8 dp ではなく 12 dp にし、行の上の 44 dp と行のあいだの 4 dp を無くしました。そうしないと、たたむときやドロワーに変わるときにアイコンが動きます。印はこれまでどおりアイコンと名前を囲みます。
+- 動き（lamina-ui 独自の値）：広がり E とドロワーへの進み D は、減衰 1.0・標準の空間の剛性（380）のばねで動きます。幅と印は行き過ぎず、一方向にだけ変わります。幅 = lerp(80, lerp(レール, ドロワー, D), E)、印の幅は lerp(56, lerp(名前まで囲む幅, 行, D), E)、高さは lerp(32, 行, E) で、行の上下の中央に置きます。名前の不透明度は (2 (E − 0.5))²（0〜1 に収める）で、たたむときは前半で消え、広げるときは後半で現れます。D には左右されません。選んだときは、レールと同じく標準の空間のばねで印の幅が始まりの側の端から伸びます。
 
 ### ペインの足場
 
