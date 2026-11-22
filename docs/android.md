@@ -10,7 +10,7 @@ The components gallery builds as an Android APK. The build uses CMake, the NDK a
 - A JDK 17 or later with `javac` and `jar`. Android Studio's bundled `jbr` works.
 - vcpkg (`VCPKG_ROOT`) with its `x64-android` and `arm64-android` triplets. The manifest is the same as on Windows; vcpkg builds HarfBuzz, SDL3, ThorVG and abseil for Android from source.
 - The SDL source archive of the version vcpkg builds, `$VCPKG_ROOT/downloads/libsdl-org-SDL-release-3.4.10.tar.gz`. vcpkg leaves it there when it builds `sdl3`. The APK takes SDL's Java sources from it; configure stops if their version is not the linked SDL's.
-- CMake 3.25 or later and Ninja on `PATH`. The Visual Studio generator cannot target Android.
+- CMake 4.3 or later and Ninja on `PATH`. The APK step writes its zip entries uncompressed with `file(ARCHIVE_CREATE ... COMPRESSION None)`, which CMake 4.1 rejects for zip; configure stops on an older CMake. vcpkg's own CMake (`downloads/tools/cmake-4.3.2-windows`) is new enough, and the SDK's `cmake/4.1.2/bin` has a Ninja. The Visual Studio generator cannot target Android.
 - Python 3 with fontTools and brotli on the host, as for the desktop build, for the icon fonts.
 - A debug keystore. By default it is `debug.keystore` in `ANDROID_USER_HOME`, or in `.android` under the home folder (Android Studio creates it).
 
@@ -37,6 +37,7 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:ANDROID_NDK_HOME = "$env:ANDROID_HOME\ndk\28.2.13676358"
 $env:JAVA_HOME = "$env:ProgramFiles\Android\Android Studio\jbr"
 $env:LAMINA_HOST_PYTHON = (Get-Command python).Source
+$env:PATH = "$env:VCPKG_ROOT\downloads\tools\cmake-4.3.2-windows\cmake-4.3.2-windows-x86_64\bin;$env:ANDROID_HOME\cmake\4.1.2\bin;$env:PATH"
 cmake --preset android-x64
 cmake --build --preset android-x64
 cmake --preset android-arm64
@@ -88,7 +89,7 @@ An emulator for the x86_64 APK: an AVD of the system image `android-37.0/google_
 Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 
 - The gallery starts and draws at about 411 dp wide, in the compact layout. Turning the screen to landscape switches it to the expanded layout.
-- Tapping works: the page tabs, buttons, chips, switches, list items, the typeface menu and the dialog. A touch release also ends the hover state.
+- Tapping works: the page tabs, a filter chip, a switch, the typeface menu and its items, the Menu and Dialog buttons and a text field. After a tap the button keeps no hover tint.
 - The layout stays out of the status bar and the gesture bar (`Frame::safe_area`).
 - Back closes an open menu or dialog and takes the focus from a text field (it reaches the gallery as Escape), and the app stays open.
 - Text fields show the soft keyboard; keys typed on Gboard and `adb shell input text` arrive.

@@ -10,7 +10,7 @@
 - `javac` と `jar` のある JDK 17 以降。Android Studio に入っている `jbr` で動きます。
 - vcpkg（`VCPKG_ROOT`）と、その `x64-android`・`arm64-android` のトリプレット。マニフェストは Windows と同じで、vcpkg が HarfBuzz・SDL3・ThorVG・abseil を Android 向けにソースから作ります。
 - vcpkg が作る版の SDL のソースのアーカイブ `$VCPKG_ROOT/downloads/libsdl-org-SDL-release-3.4.10.tar.gz`。vcpkg は `sdl3` を作るときにここへ置きます。APK は SDL の Java のソースをここから取ります。その版がリンクする SDL と違えば、構成の段階で止まります。
-- CMake 3.25 以降と、`PATH` の通った Ninja。Visual Studio のジェネレーターでは Android 向けに作れません。
+- CMake 4.3 以降と、`PATH` の通った Ninja。APK を組み立てる段階は `file(ARCHIVE_CREATE ... COMPRESSION None)` で zip の中身を圧縮せずに書きますが、CMake 4.1 は zip にこの指定を受け付けません。古い CMake では構成の段階で止まります。vcpkg が持っている CMake（`downloads/tools/cmake-4.3.2-windows`）なら足ります。SDK の `cmake/4.1.2/bin` に Ninja があります。Visual Studio のジェネレーターでは Android 向けに作れません。
 - アイコンのフォントを切り出すための、fontTools と brotli の入ったホストの Python 3（デスクトップと同じです）。
 - デバッグ用のキーストア。既定では `ANDROID_USER_HOME` の、またはホームの `.android` の `debug.keystore` です（Android Studio が作ります）。
 
@@ -37,6 +37,7 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:ANDROID_NDK_HOME = "$env:ANDROID_HOME\ndk\28.2.13676358"
 $env:JAVA_HOME = "$env:ProgramFiles\Android\Android Studio\jbr"
 $env:LAMINA_HOST_PYTHON = (Get-Command python).Source
+$env:PATH = "$env:VCPKG_ROOT\downloads\tools\cmake-4.3.2-windows\cmake-4.3.2-windows-x86_64\bin;$env:ANDROID_HOME\cmake\4.1.2\bin;$env:PATH"
 cmake --preset android-x64
 cmake --build --preset android-x64
 cmake --preset android-arm64
@@ -88,7 +89,7 @@ x86_64 の APK を動かすエミュレーターは、システムイメージ `
 API 37 のエミュレーター（16 KB ページ、GPU は SwiftShader）で確かめました。
 
 - 見本は幅およそ 411 dp の小さい幅の配置で起動して描かれます。画面を横にすると広い幅の配置に変わります。
-- タップが効きます。ページのタブ、ボタン、チップ、スイッチ、リストの項目、書体のメニュー、ダイアログで確かめました。指を離すとホバーの状態も消えます。
+- タップが効きます。ページのタブ、フィルターのチップ、スイッチ、書体のメニューとその項目、Menu と Dialog のボタン、文字の欄で確かめました。タップの後、ボタンにホバーの色は残りません。
 - 配置はステータスバーとジェスチャーのバーにかかりません（`Frame::safe_area`）。
 - 戻る操作で、開いているメニューやダイアログが閉じ、文字の欄からフォーカスが外れます（見本には Escape として届きます）。アプリは閉じません。
 - 文字の欄を押すとソフトウェアキーボードが出ます。Gboard で打った文字と `adb shell input text` の文字が入ります。

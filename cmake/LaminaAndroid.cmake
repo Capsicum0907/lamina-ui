@@ -21,6 +21,12 @@ endif()
 file(TO_CMAKE_PATH "${lamina_android_user_home}/debug.keystore" lamina_android_default_keystore)
 set(LAMINA_ANDROID_KEYSTORE "${lamina_android_default_keystore}" CACHE FILEPATH "Keystore that signs the APK")
 
+set(lamina_android_min_cmake 4.3)
+if(CMAKE_VERSION VERSION_LESS lamina_android_min_cmake)
+    message(FATAL_ERROR "The APK step stores its entries uncompressed with file(ARCHIVE_CREATE ... FORMAT zip COMPRESSION None), "
+        "which needs CMake ${lamina_android_min_cmake} or later; this is ${CMAKE_VERSION}")
+endif()
+
 foreach(var LAMINA_ANDROID_SDK LAMINA_ANDROID_JDK LAMINA_ANDROID_PLATFORM LAMINA_ANDROID_BUILD_TOOLS LAMINA_ANDROID_MIN_SDK
         LAMINA_ANDROID_TARGET_SDK LAMINA_ANDROID_SDL_ARCHIVE)
     if(NOT ${var})
