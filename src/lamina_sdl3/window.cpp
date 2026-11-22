@@ -16,6 +16,7 @@
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL_main.h>
 
+#include "lamina/layout/frame_size.hpp"
 #include "lamina_sdl3/caption_frame.hpp"
 #include "lamina_sdl3/report.hpp"
 #include "lamina_sdl3/system_ui.hpp"
@@ -167,24 +168,23 @@ struct Window::Impl {
     input::Cursor cursor = input::Cursor::arrow;
     bool alt_alone = false;
     int pending_redraws = 0;
+    layout::PixelSize last_pixels;
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
         frame.dt_seconds = std::min(frame_limit_seconds, static_cast<double>(now - last_ns) / nanoseconds_per_second);
         frame_limit_seconds = max_frame_seconds;
         last_ns = now;
-        int pw = 0;
-        int ph = 0;
-        SDL_GetWindowSizeInPixels(window, &pw, &ph);
-        pw = std::max(pw, 1);
-        ph = std::max(ph, 1);
-        canvas->resize(pw, ph);
+        layout::PixelSize reported;
+        SDL_GetWindowSizeInPixels(window, &reported.width, &reported.height);
+        const SDL_WindowFlags flags = SDL_GetWindowFlags(window);
+        last_pixels = layout::frame_pixel_size(reported, last_pixels, (flags & SDL_WINDOW_MINIMIZED) != 0);
+        canvas->resize(last_pixels.width, last_pixels.height);
         frame.scale = scale();
-        frame.width_dp = pw / frame.scale;
-        frame.height_dp = ph / frame.scale;
+        frame.width_dp = last_pixels.width / frame.scale;
+        frame.height_dp = last_pixels.height / frame.scale;
         frame.size_class = layout::compute_window_size_class(frame.width_dp, frame.height_dp);
         frame.safe_area = safe_area();
-        const SDL_WindowFlags flags = SDL_GetWindowFlags(window);
         frame.maximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
         frame.active = (flags & SDL_WINDOW_INPUT_FOCUS) != 0;
     }
