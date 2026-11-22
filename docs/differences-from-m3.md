@@ -6,7 +6,7 @@ Where lamina-ui does not follow Material 3 and its Compose implementation: value
 
 ## Components Material 3 does not have
 
-- Scroll area: Material 3 defines no scroll bar, so every value in `lamina/tokens/scroll_area.hpp` is lamina-ui's own, including horizontal scrolling. [Scroll area](design-tokens.md#scroll-area), [Scroll area: horizontal](design-tokens.md#scroll-area-horizontal)
+- Scroll area: Material 3 defines no scroll bar, so every value in `lamina/tokens/scroll_area.hpp` is lamina-ui's own, including horizontal scrolling. Touch scrolling follows Compose and Android, except that there is no overscroll stretch and no nested scrolling, and a text field takes the focus on a touch tap rather than on the press. [Scroll area](design-tokens.md#scroll-area), [Scroll area: horizontal](design-tokens.md#scroll-area-horizontal), [Touch scrolling](design-tokens.md#touch-scrolling)
 - Side navigation: one list that is the icon-only rail, the wide rail and the drawer. Its spring (damping 1.0, stiffness 380) and the label fade are lamina-ui's own. [Side navigation](design-tokens.md#side-navigation)
 - Split panes, the numeric field and the menu bar: built from M3 roles with lamina-ui's own sizes. [Split panes](design-tokens.md#split-panes), [Numeric field](design-tokens.md#numeric-field), [Menu bar](design-tokens.md#menu-bar)
 - Data table: the values come from MDC Web's data table where it has one, and are lamina-ui's own otherwise. [Table](design-tokens.md#table)

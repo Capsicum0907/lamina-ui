@@ -94,13 +94,14 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 - Back closes an open menu or dialog and takes the focus from a text field (it reaches the gallery as Escape), and the app stays open.
 - Text fields show the soft keyboard; keys typed on Gboard and `adb shell input text` arrive.
 - The mouse wheel scrolls the pages and the tabs (on the emulator, `adb shell input mouse scroll`).
+- A finger drag scrolls the pages up and down, and the page tabs and the side-scrolled time picker sideways; a quick swipe flings and slows down on Compose's spline decay, and a touch during a fling stops it. A swipe that starts on a button, a chip or a text field scrolls without clicking or focusing it, a tap still clicks, and the slider follows a drag that starts on it. Checked with `adb shell input swipe` and `adb shell input tap` ([Touch scrolling](design-tokens.md#touch-scrolling)).
 - The "OS fonts" typeface loads Noto Sans CJK from `/system/fonts`.
 - Leaving the app with Home and coming back draws the gallery again.
 - On the emulator a frame of the animated Progress page takes about 19 ms (about 52 frames a second), measured from the start of `update` to the end of `present`. Drawing is ThorVG on the CPU into a 1080 × 2400 texture.
 
 ## Not yet
 
-- Scrolling by dragging a finger. `ScrollArea` scrolls with the wheel and its scrollbar, but a drag on the content does not move it; this is the main gap on a phone.
+- Touch scrolling has no overscroll stretch at the ends and no nested scrolling: a list inside a page does not hand the rest of a drag or fling to the page. Only one finger is followed. The touch checks were made with `adb shell input`, not with a finger on a device.
 - Back when nothing is open does nothing; it does not leave the app.
 - The status and navigation bar icons stay dark in the gallery's dark theme.
 - Dialogs and menus are placed in the whole window, not inside the safe area.
