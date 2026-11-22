@@ -94,6 +94,7 @@ int main(int argc, char** argv) {
 | [Material 3 との違い](docs/differences-from-m3.ja.md) | lamina-ui が自分の値やふるまいを使うところ |
 | [デザイントークン](docs/design-tokens.ja.md) | すべての値と、そのソースのファイルとコミット |
 | [自前で描くタイトルバー](docs/custom-title-bar.ja.md) | lamina が自分で描く Windows のタイトルバー |
+| [Android](docs/android.ja.md) | 見本を Gradle なしで APK にする手順、動かし方、いま動くもの |
 | [描画の比較](docs/renderer-comparison.ja.md) | Blend2D ではなく ThorVG を選んだ理由 |
 
 ## 出典

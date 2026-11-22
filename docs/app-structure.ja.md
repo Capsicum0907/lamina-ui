@@ -14,7 +14,7 @@ lamina-ui のプログラムがどう動くかを書きます。窓とその繰�
 
 ## 窓
 
-`lamina_sdl3/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。1 フレームの時間の刻みは 0.1 秒までですが、`wake_after` で頼んだ待ちの後だけは、待った時間をそのまま刻みに含めます。そのため、テキストフィールドのカーソルの点滅のように `step` で数える時間は、窓が止まっている間も進みます。窓は ThorVG に依存しません。描く先の描画面を `std::unique_ptr<render::Canvas>` で受け取り、毎フレーム `Canvas::resize` で窓の画素の大きさに合わせ、`Canvas::finish` が返す画素を 32 ビットの ARGB として画面に送ります。そのため、ARGB の画素に描く描画面であれば何でも差し込めます。`set_size(width, height)` は窓の中身の大きさを dp で変えます。最大化しているときは先に元に戻します。`set_minimum_size` は、利用者が枠を引いてそれより小さくできない大きさを dp で決めます。どちらもコンストラクターと同じく表示の倍率で dp を換算します。`set_always_on_top` は窓をほかの窓より手前に保ちます。`native_handle` は、OS ごとのコードのために、Windows では窓の `HWND` を返します（ほかの OS では null）。見本は `examples::window_canvas()`（`examples/common/canvas.hpp`）が作る ThorVG の描画面を渡しています。
+`lamina_sdl3/window.hpp`：描画面を映す SDL3 の窓。ポインターの位置を dp に直し、何も動いていない間はイベントを待って止まります（`lamina::sdl3`）。1 フレームの時間の刻みは 0.1 秒までですが、`wake_after` で頼んだ待ちの後だけは、待った時間をそのまま刻みに含めます。そのため、テキストフィールドのカーソルの点滅のように `step` で数える時間は、窓が止まっている間も進みます。窓は ThorVG に依存しません。描く先の描画面を `std::unique_ptr<render::Canvas>` で受け取り、毎フレーム `Canvas::resize` で窓の画素の大きさに合わせ、`Canvas::finish` が返す画素を 32 ビットの ARGB として画面に送ります。そのため、ARGB の画素に描く描画面であれば何でも差し込めます。`set_size(width, height)` は窓の中身の大きさを dp で変えます。最大化しているときは先に元に戻します。`set_minimum_size` は、利用者が枠を引いてそれより小さくできない大きさを dp で決めます。どちらもコンストラクターと同じく表示の倍率で dp を換算します。`set_always_on_top` は窓をほかの窓より手前に保ちます。`native_handle` は、OS ごとのコードのために、Windows では窓の `HWND` を返します（ほかの OS では null）。見本は `examples::window_canvas()`（`examples/common/canvas.hpp`）が作る ThorVG の描画面を渡しています。`Frame::safe_area` は、システムのバーや画面の切り欠きがかからない窓の部分を、SDL の安全な領域から dp の余白として表したものです。デスクトップでは 0 です。換算（`safe_area_insets`）と `inset_rect` は `lamina/layout/safe_area.hpp` にあり、見本はその内側に配置します。
 
 ## 描画面
 

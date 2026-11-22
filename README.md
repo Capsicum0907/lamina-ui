@@ -94,6 +94,7 @@ How the frame loop, input and widgets fit together is in [App structure](docs/ap
 | [Differences from Material 3](docs/differences-from-m3.md) | where lamina-ui uses its own values or behaviour |
 | [Design tokens](docs/design-tokens.md) | every value, with its source file and commit |
 | [Client-drawn title bar](docs/custom-title-bar.md) | the Windows title bar that lamina draws itself |
+| [Android](docs/android.md) | building the gallery as an APK without Gradle, running it, and what works there yet |
 | [Renderer comparison](docs/renderer-comparison.md) | why ThorVG and not Blend2D |
 
 ## Attribution

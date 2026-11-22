@@ -16,6 +16,8 @@ ctest --preset release
 
 プリセット `default` は、Visual Studio 17 2022 のジェネレーター、`VCPKG_ROOT` の vcpkg のツールチェーン、トリプレット `x64-windows-static`、静的な MSVC のランタイムを使い、`LAMINA_BUILD_TESTS` を有効にします。ビルドの先は `build/` です。vcpkg は `vcpkg.json` に従って HarfBuzz・SDL3・ThorVG・abseil を入れ、テストのために doctest と GoogleTest を入れます。
 
+部品の見本は、プリセット `android-x64` と `android-arm64` で Android の APK としても作れます。[Android](android.ja.md) を見てください。
+
 ## CMake のオプション
 
 CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どちらも既定で有効）で二つのバックエンドを、`LAMINA_BUILD_EXAMPLES`・`LAMINA_BUILD_TOOLS`（どちらも有効）と `LAMINA_BUILD_TESTS`（プリセットで有効）でそれ以外をビルドします。見本には両方のバックエンドが、テストには ThorVG が要ります。これに合わない組み合わせでは、構成の段階でエラーになって止まります。両方のバックエンドを外しても、本体のライブラリと `tools/` の道具はビルドできます。

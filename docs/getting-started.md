@@ -16,6 +16,8 @@ ctest --preset release
 
 The `default` preset uses the Visual Studio 17 2022 generator, the vcpkg toolchain from `VCPKG_ROOT`, the `x64-windows-static` triplet and the static MSVC runtime, and turns `LAMINA_BUILD_TESTS` on. The build directory is `build/`. vcpkg installs HarfBuzz, SDL3, ThorVG and abseil from `vcpkg.json`, and doctest and GoogleTest for the tests.
 
+The components gallery also builds as an Android APK with the `android-x64` and `android-arm64` presets; see [Android](android.md).
+
 ## CMake options
 
 The CMake options `LAMINA_BUILD_THORVG` and `LAMINA_BUILD_SDL3` (both on by default) build the two backends, and `LAMINA_BUILD_EXAMPLES`, `LAMINA_BUILD_TOOLS` (both on) and `LAMINA_BUILD_TESTS` (on in the preset) build the rest. The examples need both backends and the tests need ThorVG; a combination that breaks this stops the configure step with an error. With both backends off, the core library and the tools in `tools/` still build.

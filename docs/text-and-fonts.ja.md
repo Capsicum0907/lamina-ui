@@ -14,7 +14,7 @@
 
 ## OS のフォント
 
-`lamina_sdl3/system_fonts.hpp`：OS のフォントから、日本語の画面の文字に使うフォントを探します。フォントのフォルダーは環境変数（`WINDIR`・`SystemRoot`・`LOCALAPPDATA`）から決め、候補を Noto Sans JP・Yu Gothic UI・Meiryo UI・BIZ UDPゴシック・MS UI Gothic の順に試します。どちらの一覧もヘッダーに置いたデータです。一つも見つからなければ、試したパスを全部並べたエラーを投げます。`font_stack_from_arguments` は、コマンドラインにフォントのファイルが渡されていれば、そちらを使います。`system_fallback_stack` は例外を投げずに空のスタックを返し、`typeface_stack(typeface, embedded)` は、埋め込んだフォントと、最後の代わりとしての OS のフォントから、書体のスタックを作ります（[docs/resources.ja.md](resources.ja.md#文字のフォントと書体)）。
+`lamina_sdl3/system_fonts.hpp`：OS のフォントから、日本語の画面の文字に使うフォントを探します。フォントのフォルダーは環境変数（`WINDIR`・`SystemRoot`・`LOCALAPPDATA`）から決め、候補を Noto Sans JP・Yu Gothic UI・Meiryo UI・BIZ UDPゴシック・MS UI Gothic の順に試します。Android ではフォルダーは `ANDROID_ROOT` の下の `fonts`（`/system/fonts`）で、候補は Noto Sans CJK の日本語の書体（`NotoSansCJK-Regular.ttc` の 0 番目。システムの `fonts.xml` が `ja` に挙げているもの）です。一覧はどれもヘッダーに置いたデータで、OS ごとに一組ずつあります。一つも見つからなければ、試したパスを全部並べたエラーを投げます。`font_stack_from_arguments` は、コマンドラインにフォントのファイルが渡されていれば、そちらを使います。`system_fallback_stack` は例外を投げずに空のスタックを返し、`typeface_stack(typeface, embedded)` は、埋め込んだフォントと、最後の代わりとしての OS のフォントから、書体のスタックを作ります（[docs/resources.ja.md](resources.ja.md#文字のフォントと書体)）。
 
 ## アイコン
 
