@@ -126,9 +126,9 @@ public:
         name_tip(open_modal);
         name_tip(toggle);
 
-        root = columns({{heading("Modal navigation drawer", modal_frame_.node(modal_screen))},
-                        {heading("Dismissible and permanent drawers", push_frame_.node(push_screen))},
-                        {heading("Modal wide navigation rail", rail_frame_.node(rail_screen))}},
+        root = columns({{heading("Modal navigation drawer", modal_frame_.node(modal_screen), layout::CrossAlign::stretch)},
+                        {heading("Dismissible and permanent drawers", push_frame_.node(push_screen), layout::CrossAlign::stretch)},
+                        {heading("Modal wide navigation rail", rail_frame_.node(rail_screen), layout::CrossAlign::stretch)}},
                        l.column_space, l.column_space);
     }
 

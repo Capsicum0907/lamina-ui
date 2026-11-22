@@ -110,9 +110,9 @@ public:
             gated_tip(*s->back_button(), [s] { return s->visible(); }, true);
         }
 
-        root = columns({{heading("Modal bottom sheet", modal_frame_.node(modal_screen))},
-                        {heading("Standard bottom sheet", standard_frame_.node(standard_screen))},
-                        {heading("Side sheets", side_frame_.node(side_row))}},
+        root = columns({{heading("Modal bottom sheet", modal_frame_.node(modal_screen), layout::CrossAlign::stretch)},
+                        {heading("Standard bottom sheet", standard_frame_.node(standard_screen), layout::CrossAlign::stretch)},
+                        {heading("Side sheets", side_frame_.node(side_row), layout::CrossAlign::stretch)}},
                        l.column_space, l.column_space);
     }
 

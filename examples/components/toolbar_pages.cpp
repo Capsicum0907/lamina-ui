@@ -129,7 +129,7 @@ public:
                 f->list->set_viewport(r);
                 place(*f);
             });
-            sections.push_back({heading(headings[i], f->frame.node(nullptr))});
+            sections.push_back({heading(headings[i], f->frame.node(nullptr), layout::CrossAlign::stretch)});
         }
         root = columns(sections, l.column_space, l.column_space);
     }

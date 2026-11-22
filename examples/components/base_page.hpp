@@ -208,11 +208,11 @@ protected:
         return std::make_shared<Columns>(reflow, sections, column_gap, row_gap);
     }
 
-    layout::NodePtr heading(const char* text, layout::NodePtr content) {
+    layout::NodePtr heading(const char* text, layout::NodePtr content, layout::CrossAlign align = layout::CrossAlign::start) {
         captions.push_back(
             std::make_unique<widgets::Label>(widgets::LabelOptions{text, base_page_layout.heading_type, base_page_layout.heading, false}, ctx.fonts));
         auto c = layout::column({widgets::node(*captions.back()), content});
-        c->spacing(base_page_layout.heading_gap);
+        c->spacing(base_page_layout.heading_gap).cross_align(align);
         return c;
     }
 

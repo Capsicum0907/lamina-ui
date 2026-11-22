@@ -635,7 +635,7 @@ private:
         focus_.add(*bar_);
         rail_ = &controls.emplace<widgets::NavigationRail>(widgets::NavigationRailOptions{nav_items(), 0, false, nullptr, "Sections rail"}, ctx.fonts);
         focus_.add(*rail_);
-        auto left = layout::column({button_row, sized(widgets::full_width_node(*bar_), page_layout.bar_width, bar_->height())});
+        auto left = layout::column({button_row, reflow.place(sized(widgets::full_width_node(*bar_), page_layout.bar_width, bar_->height()))});
         left->spacing(page_layout.row_gap);
         auto r = items({left, sized(widgets::measured_node(*rail_), tokens::navigation_rail_tokens.collapsed_width, page_layout.rail_height)});
         r->spacing(page_layout.column_space).cross_align(layout::CrossAlign::start);

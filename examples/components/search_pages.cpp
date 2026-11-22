@@ -59,8 +59,8 @@ public:
             gated_tip(s->back_button(), [s] { return s->is_open(); }, true);
             gated_tip(*s->trailing_button(), [] { return true; }, true);
         }
-        root = columns({{heading("Search bar, full-screen view", compact_frame_.node(compact_screen))},
-                        {heading("Search bar, docked view", wide_frame_.node(wide_screen))}},
+        root = columns({{heading("Search bar, full-screen view", compact_frame_.node(compact_screen), layout::CrossAlign::stretch)},
+                        {heading("Search bar, docked view", wide_frame_.node(wide_screen), layout::CrossAlign::stretch)}},
                        search_layout.column_space, search_layout.column_space);
     }
 
