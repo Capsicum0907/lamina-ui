@@ -72,6 +72,9 @@ struct CaptureStyle {
     std::string_view redraw_target = "Send";
     std::string_view back_menu = "Menu";
     std::string_view back_field = "Name";
+    std::string_view back_dialog = "Dialog";
+    std::string_view back_sheet_scene = "sheets_modal";
+    int back_press_limit = 4;
     int redraw_frame_limit = 600;
     int redraw_tolerance = 2;
     std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
@@ -3021,6 +3024,51 @@ std::optional<std::string> check_back(const examples::components::GalleryFonts& 
         return p;
     }
     if (auto p = run(style.back_field, [&](Driver& d, examples::components::Gallery& g) { tab_to(d, g, style.back_field); })) {
+        return p;
+    }
+    auto leaves = [&](const std::string& what, bool opened, auto setup) -> std::optional<std::string> {
+        HeadlessHost host;
+        examples::components::Gallery gallery(gallery_fonts, icon_font, host);
+        Driver d(gallery, fonts, 1.0, nullptr, window);
+        d.settle();
+        setup(d, gallery);
+        d.settle();
+        const int limit = opened ? style.back_press_limit : 1;
+        int presses = 0;
+        while (host.system_backs() == 0 && presses < limit) {
+            d.back();
+            d.settle();
+            ++presses;
+            if (opened && presses == 1 && host.system_backs() != 0) {
+                return "back: the first press after opening " + what + " was handed to the system";
+            }
+        }
+        if (host.system_backs() != 1) {
+            return "back: " + what + " handed Back to the system " + std::to_string(host.system_backs()) + " times within " +
+                   std::to_string(limit) + " presses, expected once";
+        }
+        return std::nullopt;
+    };
+    for (const std::string_view name : style.page_scenes) {
+        const Scene* scene = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, std::string(name));
+        if (!scene) {
+            return "back: no scene " + std::string(name);
+        }
+        if (auto p = leaves("the " + std::string(name) + " page", false, [&](Driver& d, examples::components::Gallery& g) { (*scene)(d, g); })) {
+            return p;
+        }
+    }
+    if (auto p = leaves(std::string(style.back_dialog), true, [&](Driver& d, examples::components::Gallery& g) {
+            tab_to(d, g, style.back_dialog);
+            d.key(Key::enter);
+        })) {
+        return p;
+    }
+    const Scene* sheet = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, std::string(style.back_sheet_scene));
+    if (!sheet) {
+        return "back: no scene " + std::string(style.back_sheet_scene);
+    }
+    if (auto p = leaves(std::string(style.back_sheet_scene), true, [&](Driver& d, examples::components::Gallery& g) { (*sheet)(d, g); })) {
         return p;
     }
     HeadlessHost host;
