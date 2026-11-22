@@ -1,6 +1,8 @@
 package @LAMINA_APK_PACKAGE@;
 
+import android.content.res.Configuration;
 import android.os.Build;
+import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsetsController;
@@ -8,6 +10,14 @@ import android.view.WindowInsetsController;
 import org.libsdl.app.SDLActivity;
 
 public class LaminaActivity extends SDLActivity {
+    private volatile boolean darkSystemBars;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        darkSystemBars = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        super.onCreate(savedInstanceState);
+    }
+
     @Override
     protected String[] getLibraries() {
         return new String[] {"c++_shared", "@LAMINA_APK_LIBRARY@"};
@@ -20,21 +30,34 @@ public class LaminaActivity extends SDLActivity {
             getWindow().getDecorView().post(new Runnable() {
                 @Override
                 public void run() {
-                    applyLightSystemBars();
+                    applySystemBars();
                 }
             });
         }
         return sent;
     }
 
-    private void applyLightSystemBars() {
+    public void setDarkSystemBars(boolean dark) {
+        darkSystemBars = dark;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                applySystemBars();
+            }
+        });
+    }
+
+    private void applySystemBars() {
         Window window = getWindow();
+        boolean light = !darkSystemBars;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-            window.getInsetsController().setSystemBarsAppearance(light, light);
+            int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            window.getInsetsController().setSystemBarsAppearance(light ? mask : 0, mask);
         } else {
             View decor = window.getDecorView();
-            decor.setSystemUiVisibility(decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+            int mask = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+            int flags = decor.getSystemUiVisibility();
+            decor.setSystemUiVisibility(light ? flags | mask : flags & ~mask);
         }
     }
 }

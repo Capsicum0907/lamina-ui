@@ -30,6 +30,11 @@ public:
     virtual void minimize() {}
     virtual void toggle_maximize() {}
     virtual void close() {}
+    virtual void set_dark_theme(bool) {}
+};
+
+struct GalleryStart {
+    bool dark = false;
 };
 
 struct GalleryFonts {
@@ -39,8 +44,8 @@ struct GalleryFonts {
 
 class Gallery {
 public:
-    Gallery(const text::FontStack& fonts, const icons::IconFont& icon_font, GalleryHost& host);
-    Gallery(GalleryFonts fonts, const icons::IconFont& icon_font, GalleryHost& host);
+    Gallery(const text::FontStack& fonts, const icons::IconFont& icon_font, GalleryHost& host, GalleryStart start = {});
+    Gallery(GalleryFonts fonts, const icons::IconFont& icon_font, GalleryHost& host, GalleryStart start = {});
     ~Gallery();
     Gallery(const Gallery&) = delete;
     Gallery& operator=(const Gallery&) = delete;

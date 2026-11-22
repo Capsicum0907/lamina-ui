@@ -384,6 +384,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
         dark_toggle->set_checked(true);
         dark_toggle->set_icon(icon(res::icons::light_mode));
     }
+    host.set_dark_theme(options.dark);
     if (!state.enabled) {
         controls.set_enabled(false);
         for (auto& p : pages) {
@@ -790,6 +791,7 @@ void Gallery::Impl::build_dialog() {
 void Gallery::Impl::retheme() {
     theme.fade_to(color::spec_2021().build(options));
     dark_toggle->set_icon(icon(options.dark ? res::icons::light_mode : res::icons::dark_mode));
+    host.set_dark_theme(options.dark);
 }
 
 void Gallery::Impl::handle_title_bar(const input::PointerEvent& e) {
@@ -886,11 +888,21 @@ void Gallery::Impl::open_dialog() {
     });
 }
 
-Gallery::Gallery(const text::FontStack& fonts, const icons::IconFont& icon_font, GalleryHost& host)
-    : impl_(std::make_unique<Impl>(fonts, nullptr, icon_font, host, GalleryState{})) {}
+namespace {
 
-Gallery::Gallery(GalleryFonts fonts, const icons::IconFont& icon_font, GalleryHost& host)
-    : impl_(std::make_unique<Impl>(fonts.load(fonts.typeface), &fonts, icon_font, host, GalleryState{})) {}
+GalleryState started(GalleryStart start) {
+    GalleryState state;
+    state.options.dark = start.dark;
+    return state;
+}
+
+}
+
+Gallery::Gallery(const text::FontStack& fonts, const icons::IconFont& icon_font, GalleryHost& host, GalleryStart start)
+    : impl_(std::make_unique<Impl>(fonts, nullptr, icon_font, host, started(start))) {}
+
+Gallery::Gallery(GalleryFonts fonts, const icons::IconFont& icon_font, GalleryHost& host, GalleryStart start)
+    : impl_(std::make_unique<Impl>(fonts.load(fonts.typeface), &fonts, icon_font, host, started(start))) {}
 
 Gallery::~Gallery() = default;
 

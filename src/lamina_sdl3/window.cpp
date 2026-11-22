@@ -18,6 +18,7 @@
 
 #include "lamina_sdl3/caption_frame.hpp"
 #include "lamina_sdl3/report.hpp"
+#include "lamina_sdl3/system_ui.hpp"
 
 namespace lamina::sdl3 {
 
@@ -493,6 +494,14 @@ void Window::set_always_on_top(bool on_top) {
     if (!SDL_SetWindowAlwaysOnTop(impl_->window, on_top)) {
         report_error(std::string("lamina: cannot change always on top (") + SDL_GetError() + ")");
     }
+}
+
+void Window::set_dark_system_bars(bool dark) {
+    detail::set_dark_system_bars(dark);
+}
+
+bool Window::system_dark_theme() const {
+    return SDL_GetSystemTheme() == SDL_SYSTEM_THEME_DARK;
 }
 
 void* Window::native_handle() const {

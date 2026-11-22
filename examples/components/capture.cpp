@@ -107,9 +107,12 @@ private:
 class HeadlessHost final : public examples::components::GalleryHost {
 public:
     input::Clipboard* clipboard() override { return &clipboard_; }
+    void set_dark_theme(bool dark) override { dark_theme_ = dark; }
+    std::optional<bool> dark_theme() const { return dark_theme_; }
 
 private:
     MemoryClipboard clipboard_;
+    std::optional<bool> dark_theme_;
 };
 
 class Driver {
@@ -2961,6 +2964,21 @@ std::optional<std::string> check_tap_redraw(Driver& d, const CaptureStyle& style
     return std::nullopt;
 }
 
+std::optional<std::string> check_dark_theme_host(const examples::components::GalleryFonts& fonts, const icons::IconFont& icon_font) {
+    for (const bool start : {false, true}) {
+        HeadlessHost host;
+        examples::components::Gallery gallery(fonts, icon_font, host, examples::components::GalleryStart{start});
+        if (host.dark_theme() != start) {
+            return std::string("dark theme: a gallery started ") + (start ? "dark" : "light") + " did not tell its host";
+        }
+        gallery.set_dark(!start);
+        if (host.dark_theme() != !start) {
+            return std::string("dark theme: switching a gallery started ") + (start ? "dark" : "light") + " did not tell its host";
+        }
+    }
+    return std::nullopt;
+}
+
 int usage() {
     std::string keys;
     for (const text::TypefaceSpec& t : text::typefaces) {
@@ -3018,6 +3036,10 @@ int main(int argc, char** argv) {
                 examples::components::Gallery gallery(examples::components::GalleryFonts{load, typeface}, icon_font, host);
                 Driver driver(gallery, fonts, 1.0, nullptr, window);
                 driver.settle();
+                if (const auto problem = check_dark_theme_host(examples::components::GalleryFonts{load, typeface}, icon_font)) {
+                    std::printf("%s\n", problem->c_str());
+                    ++count;
+                }
                 if (const auto problem = check_tap_redraw(driver, style)) {
                     std::printf("%s\n", problem->c_str());
                     ++count;

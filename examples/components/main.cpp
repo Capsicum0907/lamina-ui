@@ -27,6 +27,7 @@ public:
     void minimize() override { window_.minimize(); }
     void toggle_maximize() override { window_.toggle_maximize(); }
     void close() override { window_.close(); }
+    void set_dark_theme(bool dark) override { window_.set_dark_system_bars(dark); }
 
 private:
     sdl3::Window& window_;
@@ -44,11 +45,15 @@ int main(int argc, char** argv) {
                             examples::window_canvas());
         WindowHost host(window);
         auto load = [](text::Typeface t) { return sdl3::typeface_stack(t, examples::res::embedded_fonts); };
+        examples::components::GalleryStart start;
+#ifdef __ANDROID__
+        start.dark = window.system_dark_theme();
+#endif
         std::optional<examples::components::Gallery> built;
         if (argc > 1) {
-            built.emplace(sdl3::font_stack_from_arguments(argc, argv), icon_font, host);
+            built.emplace(sdl3::font_stack_from_arguments(argc, argv), icon_font, host, start);
         } else {
-            built.emplace(examples::components::GalleryFonts{load, typeface}, icon_font, host);
+            built.emplace(examples::components::GalleryFonts{load, typeface}, icon_font, host, start);
         }
         examples::components::Gallery& gallery = *built;
         auto update = [&](const sdl3::Frame& frame) {
