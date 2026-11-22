@@ -6,6 +6,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/tokens/scroll_area.hpp"
 #include "lamina/widgets/item_focus.hpp"
 
 namespace lamina::widgets {
@@ -24,7 +25,8 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
       indicator_offset_(0.0, motion_scheme.default_spatial()),
-      indicator_width_(0.0, motion_scheme.default_spatial()) {
+      indicator_width_(0.0, motion_scheme.default_spatial()),
+      scroll_(0.0, motion_scheme.default_spatial()) {
     const auto style = tokens::text_style(tokens::type_style(t.label));
     bool stacked = false;
     for (std::size_t i = 0; i < options_.tabs.size(); ++i) {
@@ -42,6 +44,9 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
                          motion::Animated(on, fade_in_spring), Enablement(item.enabled), item.enabled});
     }
     stacked_ = stacked;
+    for (const Tab& tab : tabs_) {
+        natural_widths_.push_back(natural_width(tab));
+    }
     update_height();
 }
 
@@ -55,8 +60,41 @@ void TabRow::set_density(tokens::Density density) {
 }
 
 void TabRow::set_width(double width) {
+    const bool first = !placed_;
     width_ = width;
     retarget_indicator();
+    if (first && options_.scrollable && !tabs_.empty()) {
+        scroll_.snap_to(centred_scroll(options_.selected));
+    }
+    clamp_scroll();
+}
+
+double TabRow::scroll_extent() const {
+    if (!options_.scrollable) {
+        return width_;
+    }
+    double sum = 2.0 * options_.edge_padding;
+    for (double w : natural_widths_) {
+        sum += w;
+    }
+    return sum;
+}
+
+double TabRow::max_scroll() const {
+    return options_.scrollable ? std::max(0.0, scroll_extent() - width_) : 0.0;
+}
+
+double TabRow::centred_scroll(std::size_t index) const {
+    const double target = slot_start(index) + slot_width(index) / 2.0 - width_ / 2.0;
+    return std::clamp(target, 0.0, max_scroll());
+}
+
+void TabRow::clamp_scroll() {
+    const double top = max_scroll();
+    scroll_.animate_to(std::clamp(scroll_.target(), 0.0, top));
+    if (scroll_.value() > top || scroll_.value() < 0.0) {
+        scroll_.snap_to(std::clamp(scroll_.value(), 0.0, top));
+    }
 }
 
 render::Rect TabRow::bounds() const {
@@ -67,12 +105,39 @@ double TabRow::tab_width() const {
     return tabs_.empty() ? 0.0 : width_ / static_cast<double>(tabs_.size());
 }
 
-render::Rect TabRow::tab_rect(std::size_t index) const {
-    const double w = tab_width();
-    return {origin_.x + w * static_cast<double>(index), origin_.y, w, height_};
+double TabRow::slot_start(std::size_t index) const {
+    if (!options_.scrollable) {
+        return tab_width() * static_cast<double>(index);
+    }
+    double x = options_.edge_padding;
+    for (std::size_t i = 0; i < index; ++i) {
+        x += natural_widths_[i];
+    }
+    return x;
 }
 
-double TabRow::content_width(const Tab& tab) const {
+double TabRow::slot_width(std::size_t index) const {
+    return options_.scrollable ? natural_widths_[index] : tab_width();
+}
+
+render::Rect TabRow::tab_rect(std::size_t index) const {
+    return {origin_.x + slot_start(index) - scroll_.value(), origin_.y, slot_width(index), height_};
+}
+
+double TabRow::natural_width(const Tab& tab) const {
+    const double padding = 2.0 * t.horizontal_text_padding;
+    const double text_width = tab.label ? tab.label->width : 0.0;
+    const double icon_width = tab.icon ? t.icon_size : 0.0;
+    double intrinsic = 0.0;
+    if (options_.icon_position == TabIconPosition::leading && tab.icon && tab.label) {
+        intrinsic = padding + icon_width + t.leading_icon_text_space + text_width;
+    } else {
+        intrinsic = std::max(tab.label ? text_width + padding : 0.0, icon_width + padding);
+    }
+    return std::max(intrinsic, t.scrollable_min_tab_width);
+}
+
+double TabRow::content_width(const Tab& tab, double slot) const {
     const double padding = 2.0 * t.horizontal_text_padding;
     const double text_width = tab.label ? tab.label->width : 0.0;
     const double icon_width = tab.icon ? t.icon_size : 0.0;
@@ -82,7 +147,7 @@ double TabRow::content_width(const Tab& tab) const {
     } else {
         intrinsic = std::max(tab.label ? text_width + padding : 0.0, icon_width);
     }
-    return std::max(std::min(intrinsic, tab_width()) - padding, t.indicator_min_width);
+    return std::max(std::min(intrinsic, slot) - padding, t.indicator_min_width);
 }
 
 double TabRow::indicator_target_width() const {
@@ -90,13 +155,16 @@ double TabRow::indicator_target_width() const {
         return 0.0;
     }
     if (tokens::tab_style(options_.style).indicator_matches_content) {
-        return content_width(tabs_[options_.selected]);
+        return content_width(tabs_[options_.selected], slot_width(options_.selected));
     }
-    return tab_width();
+    return slot_width(options_.selected);
 }
 
 void TabRow::retarget_indicator() {
-    const double offset = tab_width() * static_cast<double>(options_.selected);
+    if (tabs_.empty()) {
+        return;
+    }
+    const double offset = slot_start(options_.selected) + slot_width(options_.selected) / 2.0;
     const double width = indicator_target_width();
     if (!placed_) {
         indicator_offset_.snap_to(offset);
@@ -120,12 +188,15 @@ void TabRow::select(std::size_t index) {
     new_tab.selected.animate_to(1.0);
     options_.selected = index;
     retarget_indicator();
+    if (options_.scrollable) {
+        scroll_.animate_to(centred_scroll(index));
+    }
 }
 
 render::Rect TabRow::indicator_rect() const {
     const auto& style = tokens::tab_style(options_.style);
     const double w = std::max(0.0, indicator_width_.value());
-    const double x = origin_.x + indicator_offset_.value() + (tab_width() - w) / 2.0;
+    const double x = origin_.x + indicator_offset_.value() - scroll_.value() - w / 2.0;
     return {x, origin_.y + height_ - style.indicator_height, w, style.indicator_height};
 }
 
@@ -160,13 +231,20 @@ void TabRow::set_tab_enabled(std::size_t index, bool enabled) {
     refresh_tabs();
 }
 
+render::Rect TabRow::visible_rect(const render::Rect& r) const {
+    const render::Rect b = bounds();
+    const double left = std::max(r.x, b.x);
+    const double right = std::min(r.x + r.width, b.x + b.width);
+    return right > left ? render::Rect{left, r.y, right - left, r.height} : render::Rect{};
+}
+
 AccessibleNode TabRow::accessible() const {
     AccessibleNode row{AccessibleRole::tab_list, options_.accessible_name, bounds(),
                        {.enabled = enabled(), .focusable = can_focus(), .focused = focused()}};
     for (std::size_t i = 0; i < tabs_.size(); ++i) {
         const TabItem& item = options_.tabs[i];
         const bool on = i == options_.selected;
-        row.children.push_back({AccessibleRole::tab, item.accessible_name.empty() ? item.label : item.accessible_name, tab_rect(i),
+        row.children.push_back({AccessibleRole::tab, item.accessible_name.empty() ? item.label : item.accessible_name, visible_rect(tab_rect(i)),
                                 {.enabled = tab_enabled(i), .focused = focused() && on, .selected = on}});
     }
     return row;
@@ -180,7 +258,7 @@ void TabRow::set_enabled(bool enabled) {
 bool TabRow::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     const bool selected = select_on_click(
-        tabs_, e, options_.selected, [this](std::size_t i) { return tab_enabled(i) ? tab_rect(i) : render::Rect{}; },
+        tabs_, e, options_.selected, [this](std::size_t i) { return tab_enabled(i) ? visible_rect(tab_rect(i)) : render::Rect{}; },
         [this](std::size_t i) { select(i); });
     retarget_state_layers();
     return selected;
@@ -200,6 +278,18 @@ bool TabRow::handle(const input::KeyEvent& e) {
     return true;
 }
 
+bool TabRow::handle(const input::WheelEvent& e) {
+    if (!options_.scrollable || max_scroll() <= 0.0 || !contains(bounds(), e.x_dp, e.y_dp)) {
+        return false;
+    }
+    const double notches = e.dx != 0.0 ? e.dx : e.dy;
+    if (notches == 0.0) {
+        return false;
+    }
+    scroll_.animate_to(std::clamp(scroll_.target() + notches * tokens::scroll_area_tokens.wheel_step, 0.0, max_scroll()));
+    return true;
+}
+
 void TabRow::cancel_interaction() {
     cancel_presses(tabs_);
     retarget_state_layers();
@@ -208,6 +298,7 @@ void TabRow::cancel_interaction() {
 void TabRow::step(double dt) {
     indicator_offset_.step(dt);
     indicator_width_.step(dt);
+    scroll_.step(dt);
     focus_.step(dt);
     for (Tab& tab : tabs_) {
         tab.state_layer.step(dt);
@@ -217,7 +308,7 @@ void TabRow::step(double dt) {
 }
 
 bool TabRow::animating() const {
-    if (!indicator_offset_.settled() || !indicator_width_.settled() || !focus_.settled()) {
+    if (!indicator_offset_.settled() || !indicator_width_.settled() || !scroll_.settled() || !focus_.settled()) {
         return true;
     }
     return motion::any_unsettled(tabs_, &Tab::state_layer, &Tab::selected, &Tab::enabled);
@@ -270,11 +361,13 @@ void TabRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.pop_clip();
     const render::Rect divider{r.x, r.y + r.height - t.divider_thickness, r.width, t.divider_thickness};
     canvas.fill_rect(divider, scheme[t.divider]);
+    canvas.push_clip(r);
     if (!tabs_.empty()) {
         focus_.paint_inward(canvas, scheme, tab_rect(options_.selected), t.focus_ring_corner);
     }
     const render::Rect indicator = indicator_rect();
     canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(style.indicator_corner)), scheme[style.indicator]);
+    canvas.pop_clip();
 }
 
 }

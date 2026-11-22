@@ -44,6 +44,8 @@ struct TabTokens {
     TypeRole label;
     double focus_ring_corner;
     double disabled_content_opacity;
+    double scrollable_min_tab_width;
+    double scrollable_edge_padding;
 };
 
 inline constexpr TabTokens tab_tokens{
@@ -60,6 +62,8 @@ inline constexpr TabTokens tab_tokens{
     .label = TypeRole::title_small,
     .focus_ring_corner = 0.0,
     .disabled_content_opacity = disabled_alpha,
+    .scrollable_min_tab_width = 90.0,
+    .scrollable_edge_padding = 52.0,
 };
 
 }

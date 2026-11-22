@@ -36,6 +36,8 @@ struct TabRowOptions {
     TabIconPosition icon_position = TabIconPosition::top;
     std::string accessible_name = {};
     tokens::Density density = {};
+    bool scrollable = false;
+    double edge_padding = tokens::tab_tokens.scrollable_edge_padding;
 };
 
 class TabRow {
@@ -49,6 +51,10 @@ public:
     void set_width(double width);
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const;
+    bool scrollable() const { return options_.scrollable; }
+    double scroll_extent() const;
+    double scroll_offset() const { return scroll_.value(); }
+    double max_scroll() const;
 
     std::size_t count() const { return tabs_.size(); }
     std::size_t selected() const { return options_.selected; }
@@ -68,6 +74,7 @@ public:
 
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
+    bool handle(const input::WheelEvent& event);
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const;
@@ -85,7 +92,13 @@ private:
     };
 
     double tab_width() const;
-    double content_width(const Tab& tab) const;
+    double slot_start(std::size_t index) const;
+    double slot_width(std::size_t index) const;
+    double natural_width(const Tab& tab) const;
+    double content_width(const Tab& tab, double slot) const;
+    double centred_scroll(std::size_t index) const;
+    render::Rect visible_rect(const render::Rect& r) const;
+    void clamp_scroll();
     double indicator_target_width() const;
     void retarget_indicator();
     void retarget_state_layers();
@@ -102,6 +115,8 @@ private:
     bool placed_ = false;
     motion::Animated indicator_offset_;
     motion::Animated indicator_width_;
+    motion::Animated scroll_;
+    std::vector<double> natural_widths_;
     FocusIndicator focus_;
     bool row_enabled_ = true;
 
