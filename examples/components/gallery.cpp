@@ -1165,6 +1165,28 @@ std::vector<widgets::AccessibleNode> Gallery::accessible_nodes() const {
     return nodes;
 }
 
+std::vector<widgets::AccessibleNode> Gallery::page_nodes() const {
+    if (Page* p = impl_->current_page()) {
+        return p->accessible_nodes();
+    }
+    std::vector<widgets::AccessibleNode> nodes = impl_->chrome.accessible_nodes();
+    for (widgets::AccessibleNode& n : impl_->controls.accessible_nodes()) {
+        nodes.push_back(std::move(n));
+    }
+    return nodes;
+}
+
+std::vector<render::Rect> Gallery::layout_blocks() const {
+    if (Page* p = impl_->current_page()) {
+        return p->layout_blocks();
+    }
+    return impl_->reflow.blocks();
+}
+
+render::Rect Gallery::page_area() const {
+    return impl_->page_box->rect();
+}
+
 std::optional<render::Rect> Gallery::find(std::string_view name) const {
     const std::vector<widgets::AccessibleNode> nodes = accessible_nodes();
     auto node = widgets::find_accessible(

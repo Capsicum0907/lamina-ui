@@ -50,6 +50,7 @@ public:
     virtual void set_window(layout::Size window) = 0;
     virtual std::optional<input::Cursor> cursor() const { return std::nullopt; }
     virtual void snap_layout() {}
+    virtual std::vector<render::Rect> layout_blocks() const { return {}; }
 };
 
 std::unique_ptr<Page> make_chips_page(PageContext context);

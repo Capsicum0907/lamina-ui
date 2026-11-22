@@ -29,6 +29,7 @@ public:
 
     void step(double dt) { box_.step(dt); }
     bool settled() const { return box_.settled(); }
+    bool holds_placements() const { return holds_; }
 
 protected:
     layout::Size on_measure(const layout::Constraints& c) override { return child_->measure(c); }
@@ -38,6 +39,7 @@ private:
     Reflow& reflow_;
     layout::NodePtr child_;
     AnimatedBox box_;
+    bool holds_ = false;
 };
 
 class Reflow {
@@ -82,6 +84,22 @@ public:
     render::Point anchor() const { return anchors_.empty() ? render::Point{0.0, 0.0} : anchors_.back(); }
     void push_anchor(render::Point p) { anchors_.push_back(p); }
     void pop_anchor() { anchors_.pop_back(); }
+    Placement* enter(Placement* p) {
+        Placement* outer = open_.empty() ? nullptr : open_.back();
+        open_.push_back(p);
+        return outer;
+    }
+    void leave() { open_.pop_back(); }
+
+    std::vector<render::Rect> blocks() const {
+        std::vector<render::Rect> out;
+        for (const auto& p : placements_) {
+            if (!p->holds_placements() && p->rect().width > 0.0 && p->rect().height > 0.0) {
+                out.push_back(p->rect());
+            }
+        }
+        return out;
+    }
 
     std::vector<double> signature() const {
         std::vector<double> s{static_cast<double>(size_class_.width_class())};
@@ -112,6 +130,7 @@ private:
     std::vector<std::shared_ptr<Placement>> placements_;
     std::vector<std::shared_ptr<layout::Flow>> flows_;
     std::vector<render::Point> anchors_;
+    std::vector<Placement*> open_;
     std::vector<double> committed_;
     bool snap_ = true;
     bool switching_ = false;
@@ -127,9 +146,14 @@ inline void Placement::on_arrange(const render::Rect& r) {
     }
     const render::Rect b = box_.rect();
     const render::Rect at{origin.x + b.x, origin.y + b.y, b.width, b.height};
+    holds_ = false;
+    if (Placement* outer = reflow_.enter(this)) {
+        outer->holds_ = true;
+    }
     reflow_.push_anchor({at.x, at.y});
     child_->arrange(at);
     reflow_.pop_anchor();
+    reflow_.leave();
 }
 
 class ReflowRoot final : public layout::Node {

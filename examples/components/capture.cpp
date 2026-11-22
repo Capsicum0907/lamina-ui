@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -59,6 +61,9 @@ struct CaptureStyle {
     int reveal_notches = 40;
     double reveal_pause_seconds = 0.05;
     std::string_view page_tabs = "Pages";
+    double overlap_tolerance = 0.5;
+    std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
+                                                 "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop"};
 };
 
 inline constexpr std::string_view window_option = "--window";
@@ -2758,6 +2763,73 @@ const Scene* find_scene(std::initializer_list<const std::map<std::string, Scene>
     return nullptr;
 }
 
+bool contains_point(const render::Rect& r, double x, double y) {
+    return x >= r.x && x <= r.x + r.width && y >= r.y && y <= r.y + r.height;
+}
+
+int block_of(const std::vector<render::Rect>& blocks, const render::Rect& r) {
+    const double cx = r.x + r.width / 2.0;
+    const double cy = r.y + r.height / 2.0;
+    int best = -1;
+    for (std::size_t i = 0; i < blocks.size(); ++i) {
+        if (contains_point(blocks[i], cx, cy) &&
+            (best < 0 || blocks[i].width * blocks[i].height < blocks[static_cast<std::size_t>(best)].width * blocks[static_cast<std::size_t>(best)].height)) {
+            best = static_cast<int>(i);
+        }
+    }
+    return best;
+}
+
+std::vector<std::string> check_page(const std::string& scene, examples::components::Gallery& g, double window_width, double tolerance) {
+    std::vector<std::string> problems;
+    auto describe = [](const widgets::AccessibleNode& n) {
+        return std::string(widgets::role_name(n.role)) + " \"" + n.name + "\" at " + std::to_string(static_cast<int>(n.bounds.x)) + "," +
+               std::to_string(static_cast<int>(n.bounds.y)) + " " + std::to_string(static_cast<int>(n.bounds.width)) + "x" +
+               std::to_string(static_cast<int>(n.bounds.height));
+    };
+    std::vector<widgets::AccessibleNode> nodes;
+    for (widgets::AccessibleNode& n : g.page_nodes()) {
+        const bool wide = n.bounds.width > tolerance;
+        const bool tall = n.bounds.height > tolerance;
+        if (wide != tall) {
+            problems.push_back(scene + ": " + describe(n) + " is squeezed to nothing");
+        } else if (wide) {
+            nodes.push_back(std::move(n));
+        }
+    }
+    const std::vector<render::Rect> blocks = g.layout_blocks();
+    for (const render::Rect& b : blocks) {
+        if (b.x + b.width > window_width + tolerance) {
+            problems.push_back(scene + ": a block at " + std::to_string(static_cast<int>(b.x)) + "," + std::to_string(static_cast<int>(b.y)) + " " +
+                               std::to_string(static_cast<int>(b.width)) + " wide passes the right edge");
+        }
+    }
+    std::vector<int> groups;
+    for (std::size_t i = 0; i < nodes.size(); ++i) {
+        const widgets::AccessibleNode& n = nodes[i];
+        if (n.bounds.x + n.bounds.width > window_width + tolerance) {
+            problems.push_back(scene + ": " + describe(n) + " passes the right edge");
+        }
+        const int b = block_of(blocks, n.bounds);
+        groups.push_back(b >= 0 ? b : -1 - static_cast<int>(i));
+    }
+    for (std::size_t i = 0; i < nodes.size(); ++i) {
+        for (std::size_t k = i + 1; k < nodes.size(); ++k) {
+            if (groups[i] == groups[k]) {
+                continue;
+            }
+            const render::Rect& a = nodes[i].bounds;
+            const render::Rect& b = nodes[k].bounds;
+            const double w = std::min(a.x + a.width, b.x + b.width) - std::max(a.x, b.x);
+            const double h = std::min(a.y + a.height, b.y + b.height) - std::max(a.y, b.y);
+            if (w > tolerance && h > tolerance) {
+                problems.push_back(scene + ": " + describe(nodes[i]) + " overlaps " + describe(nodes[k]));
+            }
+        }
+    }
+    return problems;
+}
+
 int usage() {
     std::string keys;
     for (const text::TypefaceSpec& t : text::typefaces) {
@@ -2766,6 +2838,7 @@ int usage() {
     std::fprintf(stderr,
                  "usage: components_capture [%s %s] [%s <width>x<height>] <mode> ...\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
                  "  components_capture tree <scene> <light|dark> <scale>\n"
+                 "  components_capture check\n"
                  "  components_capture video <scene> <light|dark> <scale>\n",
                  examples::typeface_option.data(), keys.c_str(), window_option.data());
     return 2;
@@ -2777,10 +2850,35 @@ int main(int argc, char** argv) {
     try {
         const text::Typeface typeface = examples::take_typeface(argc, argv);
         const WindowSize window = take_window(argc, argv);
-        if (argc < 3) {
+        if (argc < 2 || (argc < 3 && std::string_view(argv[1]) != "check")) {
             return usage();
         }
         const std::string mode = argv[1];
+        if (mode == "check") {
+            auto load = [](text::Typeface t) { return sdl3::typeface_stack(t, examples::res::embedded_fonts); };
+            const text::FontStack fonts = load(typeface);
+            const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
+            const CaptureStyle style;
+            std::size_t count = 0;
+            for (const std::string_view name : style.page_scenes) {
+                const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, std::string(name));
+                if (!found) {
+                    throw std::runtime_error("no scene " + std::string(name));
+                }
+                HeadlessHost host;
+                examples::components::Gallery gallery(examples::components::GalleryFonts{load, typeface}, icon_font, host);
+                Driver driver(gallery, fonts, 1.0, nullptr, window);
+                driver.settle();
+                (*found)(driver, gallery);
+                driver.settle();
+                for (const std::string& p : check_page(std::string(name), gallery, window.width, style.overlap_tolerance)) {
+                    std::printf("%s\n", p.c_str());
+                    ++count;
+                }
+            }
+            std::printf("%d dp: %zu problems\n", static_cast<int>(window.width), count);
+            return count == 0 ? 0 : 1;
+        }
         if (mode == "size") {
             const double scale = std::stod(argv[2]);
             std::printf("%d %d\n", static_cast<int>(window.width * scale), static_cast<int>(window.height * scale));

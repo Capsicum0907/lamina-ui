@@ -85,6 +85,7 @@ public:
 
     layout::NodePtr body() const override { return body_; }
     void snap_layout() override { reflow.snap(); }
+    std::vector<render::Rect> layout_blocks() const override { return reflow.blocks(); }
     widgets::FocusManager& focus() override { return focus_; }
 
     bool handle(const input::PointerEvent& e) override {

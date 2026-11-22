@@ -52,6 +52,9 @@ public:
     std::optional<double> next_wake_seconds() const;
     std::optional<input::Cursor> cursor() const;
     std::vector<widgets::AccessibleNode> accessible_nodes() const;
+    std::vector<widgets::AccessibleNode> page_nodes() const;
+    std::vector<render::Rect> layout_blocks() const;
+    render::Rect page_area() const;
     std::optional<render::Rect> find(std::string_view name) const;
     void set_dark(bool dark);
     void set_typeface(text::Typeface typeface);
