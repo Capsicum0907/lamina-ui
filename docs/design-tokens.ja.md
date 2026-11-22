@@ -652,8 +652,8 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 | スクロールの摩擦 | 0.015（`fling_decay.friction`） | S の `config_scrollFriction` = 0.015 と `SCROLL_FRICTION = 0.015f`。`getScrollFriction()` が返します。C の `platformFlingScrollFriction = ViewConfiguration.getScrollFriction()` |
 | 曲線 | 曲がり目 0.35、始めの張り 0.5、終わりの張り 1.0、標本 100 個、二分法で 1e-5 まで | C の `SplineBasedDecay.kt`：`Inflection`・`StartTension`・`EndTension`・`P1 = StartTension * Inflection`・`P2 = 1 - EndTension * (1 - Inflection)`・`NbSamples = 100`・`computeSplineInfo`（`abs(tx - alpha) < 1E-5`）・`flingPosition`・`deceleration = ln(Inflection * abs(velocity) / friction)` |
 | 減速 | 9.80665 m/s²、1 m あたり 39.37 インチ、1 インチあたり 160 dp、0.84。率は ln 0.78 / ln 0.9 | C の `FlingCalculator.kt`：`GravityEarth`・`InchesPerMeter`・`computeDeceleration(0.84f, density)` = `GravityEarth * InchesPerMeter * density * 160f * friction`・`DecelerationRate`・`flingDuration`・`flingDistance`・`FlingInfo.position` と `velocity` |
-| はじき始め | 1 dp/s より速いとき（`touch_scroll.minimum_fling_velocity`） | C の `AbstractScrollableNode.kt` の `DefaultFlingBehavior.performFling`：`if (abs(initialVelocity) > 1f)`（px/s） |
-| 端で止まる | 端を 0.5 dp より越えるとき（`touch_scroll.edge_tolerance`） | C の同じ所：`if (abs(delta - consumed) > 0.5f) this.cancelAnimation()` |
+| はじき始め | 1 dp/s より速いとき（`touch_scroll.minimum_fling_velocity`） | C の `AbstractScrollableNode.kt` の `DefaultFlingBehavior.performFling`：`if (abs(initialVelocity) > 1f)`。単位は px/s で、lamina-ui は dp/s として読みます（密度 1 なら同じです） |
+| 端で止まる | 端を 0.5 dp より越えるとき（`touch_scroll.edge_tolerance`） | C の同じ所：`if (abs(delta - consumed) > 0.5f) this.cancelAnimation()`。単位は px で、lamina-ui は dp として読みます |
 | 向きの決まり方 | 30° 以下は横、30° を超えて 90° までは縦（`horizontal_angle_limit_degrees`・`vertical_angle_limit_degrees`） | C の `Draggable.kt`：`HorizontalAngleUpperBounds = 30`・`VerticalAngleUpperBounds = 90`・`isDragAngleAlignedWithOrientation`。角度は `atan2(abs(y), abs(x))` を度にしたもの |
 | 速さの測り方 | [ドラッグの操作](#ドラッグの操作)と同じ | C の `VelocityTracker.kt`：`HistorySize = 20`・`HorizonMilliseconds = 100`・`AssumePointerMoveStoppedMilliseconds = 40`・`MinSampleSize = 2` |
 
