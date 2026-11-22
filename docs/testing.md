@@ -28,3 +28,41 @@ components_capture video gallery_resize dark 1 | ffmpeg -f rawvideo -pix_fmt bgr
 ### Layout check
 
 `components_capture [--window <width>x<height>] check` opens each of the fifteen pages in turn, lets it settle and reports every widget that passes the window's right edge, has been squeezed to nothing in one direction, or overlaps a widget of another block. A block is a section, caption or item the page places (`Gallery::layout_blocks`); widgets inside one block, such as the parts of a frame, are not compared with each other. It exits with 1 when it finds a problem. Components that cannot fit a window can be listed in `CaptureStyle::known_overflows`; they are printed as known and not counted while they start at the content's left edge, and the check fails if one is no longer on its page. The list is empty: at 412 dp the segmented rows and split buttons share the width there is, and the horizontal time picker scrolls sideways inside its card. After the pages, the check also taps `CaptureStyle::redraw_target` (Send on Basics) with a touch whose down, up and leave arrive in one frame, runs frames while the gallery animates, and then compares the idle frame with one more frame without input; it reports a problem when they differ by more than `CaptureStyle::redraw_tolerance` levels, since the frame loop would then show the idle frame until the next event ([App structure](app-structure.md)). It checks Back three times on a fresh gallery: with nothing open the first Back is handed to the host (`GalleryHost::system_back`); after Tab and Enter on `CaptureStyle::back_menu` the first Back closes the menu and only the second is handed on; after Tab to `CaptureStyle::back_field` the first Back takes the focus from the field and only the second is handed on. On every page of the check, with nothing open, the first Back is handed on. After Tab and Enter on `CaptureStyle::back_dialog` and after the `CaptureStyle::back_sheet_scene` scene (the modal bottom sheet), the first Back is not handed on and a later one is, within `CaptureStyle::back_press_limit` presses. Escape without `KeyEvent::back` is never handed on. It also checks that a gallery tells its host whether it is dark, once at start and again when the theme is switched (`GalleryHost::set_dark_theme`, which the window passes to the system bars, [Android](android.md#system-bars)). CTest runs it at 412, 800 and 1440 dp.
+
+## Touch injection on Windows
+
+`tools/touch-inject/` drives a real lamina window with synthetic touch on Windows, so the SDL touch path, the client-drawn title bar and the touch keyboard can be checked on a machine without a touch screen. It is Python with ctypes and Pillow; run it with `python -B` so that no `__pycache__` is written. `inject.py` holds the logic (finding the window, the guard, `InjectTouchInput`, window capture) and `cli.py` only parses arguments.
+
+```
+build/Release/components.exe --title-bar
+python -B tools/touch-inject/cli.py --pid <pid> info
+python -B tools/touch-inject/cli.py --pid <pid> run tools/touch-inject/scenarios/basics-send.toml --out shots --log shots/log.jsonl
+python -B tools/touch-inject/cli.py --pid <pid> run --out shots --step 'action="tap", x=170, y=562' --step 'action="capture", name="switch"'
+python -B tools/touch-inject/cli.py --pid <pid> capture shot.png
+python -B tools/touch-inject/cli.py --pid <pid> restore
+```
+
+The window is the one visible top-level window of the process `--pid`. A scenario is a TOML file of `[[step]]` tables, and `--step` adds one inline table each; steps from both run in order. Coordinates are relative to the client area, in dp by default (`unit = "px"` for pixels), converted with `GetDpiForWindow`. A gesture's path is resolved to screen pixels when it starts, so dragging the title bar moves the window under a finger that keeps its screen path.
+
+| Action | Fields |
+|---|---|
+| `tap` | `x`, `y`, `hold` (default `timing.tap_hold_seconds`) |
+| `press` | as `tap`, `hold` defaulting to `timing.long_press_seconds` |
+| `drag` | `from`, `to` (`[x, y]`, or a list of them for several fingers), `duration`, `profile` (`linear`, `ease_out`, `ease_in`), `hold_start`, `hold_end`; with `hold_end = 0` the finger lifts while moving, which flings |
+| `capture` | `name`, `settle` (seconds to wait first) |
+| `wait` | `seconds` |
+| `activate` | brings the window to the foreground: `SetForegroundWindow`, then minimize and restore if Windows refuses it |
+| `resize` | `width`, `height` of the client area |
+| `restore` | `ShowWindow(SW_RESTORE)`, for after a minimize |
+| `watch` | logs the top-level windows of `watch.keyboard_processes` with their DWM cloaked state |
+| `info` | logs the DPI scale and the client rectangle |
+
+`tap`, `press` and `drag` take `gap` (the wait after the gesture) and `snapshot`, a list of `{at, name}` captures taken while the finger is down, `at` seconds after it touched. Every default lives in `tools/touch-inject/defaults.toml` (`--settings` reads another file).
+
+Before every touch frame the guard checks that the process still has that one window, that it is the foreground window and not minimized, that the point is inside its client area and on a monitor, and that `WindowFromPoint` at the point belongs to it. If a check fails, the fingers that are down are cancelled, the run stops and `run` exits with 3. Captures use `PrintWindow` with `PW_CLIENTONLY | PW_RENDERFULLCONTENT`, so they hold the window's client area only and never other windows.
+
+Findings on Windows 11 without a touch screen (SDL 3.4.10):
+
+- `InitializeTouchInjection` and `InjectTouchInput` work without a digitizer (`SM_DIGITIZER` 0). SDL receives the contacts as `WM_TOUCH`, sends finger events and the mouse events it makes from them with `SDL_TOUCH_MOUSEID`, and drops the mouse messages Windows promotes from touch (`GetMouseMessageSource`). A tap toggles a switch once.
+- Windows leaves the cursor at the last touch point. When the window is restored or resized under it, Windows sends a mouse move that is not marked as touch, SDL reports it with `SDL_GLOBAL_MOUSE_ID`, and the control under the old touch point shows mouse hover until the next touch.
+- SDL 3.4.10 shows no on-screen keyboard on desktop Windows (only the GDK build has `ShowScreenKeyboard`), and lamina-ui exposes no UI Automation, so tapping a text field does not bring up the touch keyboard.
