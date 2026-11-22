@@ -160,12 +160,16 @@ void Checkbox::toggle() {
     set_state(options_.state == tokens::CheckboxState::on ? tokens::CheckboxState::off : tokens::CheckboxState::on);
 }
 
+std::optional<TargetHit> Checkbox::target_hit(const input::PointerEvent& e) const {
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp);
+}
+
 bool Checkbox::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     if (!enabled()) {
         return false;
     }
-    const bool clicked = press_.update(e, touch_target(bounds()));
+    const bool clicked = press_.update(e, hit_area(e, bounds()));
     if (clicked) {
         toggle();
     }

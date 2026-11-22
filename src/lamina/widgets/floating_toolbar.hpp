@@ -108,6 +108,7 @@ public:
     void set_enabled(bool enabled);
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     FloatingToolbarResponse handle(const input::PointerEvent& event);
     FloatingToolbarResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -124,6 +125,8 @@ private:
 
     bool horizontal() const { return options_.orientation == ToolbarOrientation::horizontal; }
     const tokens::ToolbarColorTokens& colors() const;
+    template <typename Offer>
+    void offer_targets(const input::PointerEvent& event, Offer offer) const;
     Group& group(ToolbarSlot slot);
     const Group& group(ToolbarSlot slot) const;
     double extent(const Group& g) const;
@@ -145,6 +148,7 @@ private:
     Enablement enabled_;
     std::vector<std::unique_ptr<FocusStop>> stops_;
     render::Point origin_{0.0, 0.0};
+    TargetArbiter arbiter_;
 };
 
 }

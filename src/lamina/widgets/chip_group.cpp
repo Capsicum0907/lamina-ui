@@ -302,7 +302,23 @@ void ChipGroup::after_click(std::size_t entry, ChipGroupResponse& response) {
     }
 }
 
+template <typename Offer>
+void ChipGroup::offer_targets(const input::PointerEvent& e, Offer offer) const {
+    for (const Entry& entry : entries_) {
+        if (!entry.leaving) {
+            offer(entry.chip.get(), entry.chip->target_hit(e));
+        }
+    }
+}
+
+std::optional<TargetHit> ChipGroup::target_hit(const input::PointerEvent& e) const {
+    std::optional<TargetHit> best;
+    offer_targets(e, [&](const void*, const std::optional<TargetHit>& h) { best = best_hit(best, h); });
+    return best;
+}
+
 ChipGroupResponse ChipGroup::handle(const input::PointerEvent& e) {
+    arbiter_.resolve(e, [&](auto offer) { offer_targets(e, offer); });
     if (e.action == input::PointerAction::down) {
         focused_ = false;
     }
@@ -311,7 +327,7 @@ ChipGroupResponse ChipGroup::handle(const input::PointerEvent& e) {
         if (entries_[i].leaving) {
             continue;
         }
-        const ChipResponse r = entries_[i].chip->handle(e);
+        const ChipResponse r = entries_[i].chip->handle(arbiter_.routed(e, entries_[i].chip.get()));
         if (r.removed) {
             start_leaving(i, response);
         } else if (r.clicked) {

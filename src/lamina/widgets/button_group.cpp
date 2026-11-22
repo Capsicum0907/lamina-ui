@@ -295,14 +295,32 @@ void ButtonGroup::open_menu(input::InputSource source) {
     menu_->open(overflow_->bounds(), window_, source);
 }
 
-ButtonGroupResponse ButtonGroup::handle(const input::PointerEvent& e) {
+template <typename Offer>
+void ButtonGroup::offer_targets(const input::PointerEvent& e, Offer offer) const {
+    for (std::size_t i = 0; i < visible_; ++i) {
+        offer(items_[i].button.get(), items_[i].button->target_hit(e));
+    }
+    if (overflowing()) {
+        offer(overflow_.get(), overflow_->target_hit(e));
+    }
+}
+
+std::optional<TargetHit> ButtonGroup::target_hit(const input::PointerEvent& e) const {
+    std::optional<TargetHit> best;
+    offer_targets(e, [&](const void*, const std::optional<TargetHit>& h) { best = best_hit(best, h); });
+    return best;
+}
+
+ButtonGroupResponse ButtonGroup::handle(const input::PointerEvent& event) {
+    arbiter_.resolve(event, [&](auto offer) { offer_targets(event, offer); });
+    const input::PointerEvent e = arbiter_.routed(event, overflow_.get());
     ButtonGroupResponse response;
-    const bool inside_overflow = overflowing() && contains(overflow_->bounds(), e.x_dp, e.y_dp);
+    const bool inside_overflow = overflowing() && overflow_->hits(e);
     if (e.action == input::PointerAction::down && !inside_overflow) {
         reopen_blocked_ = false;
     }
     if (menu_open()) {
-        const MenuResponse m = menu_->handle(e);
+        const MenuResponse m = menu_->handle(event);
         if (m.chosen) {
             choose(menu_items_[*m.chosen], response);
             menu_->close();
@@ -318,7 +336,7 @@ ButtonGroupResponse ButtonGroup::handle(const input::PointerEvent& e) {
     }
     for (std::size_t i = 0; i < visible_; ++i) {
         Item& item = items_[i];
-        const bool clicked = item.button->handle(e);
+        const bool clicked = item.button->handle(arbiter_.routed(event, item.button.get()));
         track_press(item);
         if (clicked) {
             response.clicked = i;

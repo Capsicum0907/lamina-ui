@@ -76,6 +76,7 @@ public:
     void set_enabled(bool enabled);
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     std::optional<std::size_t> handle(const input::PointerEvent& event);
     std::optional<std::size_t> handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -84,11 +85,14 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    template <typename Offer>
+    void offer_targets(const input::PointerEvent& event, Offer offer) const;
     void place();
     bool shown() const { return height() > 0.0; }
 
     FlexibleBottomAppBarOptions options_;
     std::vector<std::unique_ptr<IconButton>> actions_;
+    TargetArbiter arbiter_;
     std::vector<std::unique_ptr<FocusStop>> stops_;
     BottomAppBarState state_;
     double width_ = 0.0;

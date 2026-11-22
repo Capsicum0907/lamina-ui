@@ -288,6 +288,24 @@ void SegmentedButtonRow::activate(std::size_t index, SegmentedButtonResponse& re
     }
 }
 
+render::Rect SegmentedButtonRow::segment_hit(std::size_t i) const {
+    render::Rect hit = segment_bounds(i);
+    if (i + 1 < segments_.size()) {
+        hit.width -= t.outline_width;
+    }
+    return hit;
+}
+
+std::optional<TargetHit> SegmentedButtonRow::target_hit(const input::PointerEvent& e) const {
+    std::optional<TargetHit> best;
+    for (std::size_t i = 0; i < segments_.size(); ++i) {
+        const render::Rect hit = segment_hit(i);
+        const render::Rect target = touch_target(hit, tokens::minimum_target(options_.density));
+        best = best_hit(best, widgets::target_hit(hit, {hit.x, target.y, hit.width, target.height}, e.x_dp, e.y_dp));
+    }
+    return best;
+}
+
 SegmentedButtonResponse SegmentedButtonRow::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     SegmentedButtonResponse response;
@@ -296,11 +314,8 @@ SegmentedButtonResponse SegmentedButtonRow::handle(const input::PointerEvent& e)
         if (!item.enabled.enabled()) {
             continue;
         }
-        render::Rect hit = segment_bounds(i);
-        if (i + 1 < segments_.size()) {
-            hit.width -= t.outline_width;
-        }
-        const render::Rect target = touch_target(hit, tokens::minimum_target(options_.density));
+        const render::Rect hit = segment_hit(i);
+        const render::Rect target = hit_area(e, hit, tokens::minimum_target(options_.density));
         if (item.press.update(e, {hit.x, target.y, hit.width, target.height})) {
             activate(i, response);
         }

@@ -67,6 +67,8 @@ public:
                 badge_ ? badge_->description() : std::string()};
     }
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
+    bool hits(const input::PointerEvent& event) const;
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();

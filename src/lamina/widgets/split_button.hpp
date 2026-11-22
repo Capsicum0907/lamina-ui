@@ -69,6 +69,7 @@ public:
     void set_enabled(bool enabled);
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     SplitButtonResponse handle(const input::PointerEvent& event);
     SplitButtonResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -83,6 +84,7 @@ private:
     SplitButtonOptions options_;
     std::unique_ptr<Button> leading_;
     std::unique_ptr<Button> trailing_;
+    TargetArbiter arbiter_;
     std::unique_ptr<Menu> menu_;
     motion::Animated rotation_;
     render::Point origin_{0.0, 0.0};

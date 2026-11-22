@@ -188,6 +188,10 @@ void RangeSlider::update_handles() {
     }
 }
 
+std::optional<TargetHit> RangeSlider::target_hit(const input::PointerEvent& e) const {
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp);
+}
+
 bool RangeSlider::handle(const input::PointerEvent& e) {
     for (FocusIndicator& f : focus_) {
         f.release_on_press(e);
@@ -199,7 +203,7 @@ bool RangeSlider::handle(const input::PointerEvent& e) {
     const std::array<double, 2> before = values_;
     switch (e.action) {
     case input::PointerAction::down:
-        if (contains(touch_target(bounds()), e.x_dp, e.y_dp)) {
+        if (contains(hit_area(e, bounds()), e.x_dp, e.y_dp)) {
             const double ps = axis().point(along(RangeThumb::start)).x;
             const double pe = axis().point(along(RangeThumb::end)).x;
             const double ds = std::abs(ps - e.x_dp);

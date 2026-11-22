@@ -385,6 +385,7 @@ if(LAMINA_BUILD_TESTS)
         tests/todo_engine_test.cpp
         tests/tooltip_test.cpp
         tests/touch_scroll_test.cpp
+        tests/touch_target_test.cpp
         tests/top_app_bar_test.cpp
         tests/todo_layout_test.cpp
         tests/toggle_button_test.cpp

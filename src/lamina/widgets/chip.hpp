@@ -73,6 +73,7 @@ public:
     const std::string& accessible_name() const { return options_.accessible_name.empty() ? options_.label : options_.accessible_name; }
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     ChipResponse handle(const input::PointerEvent& event);
     ChipResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -81,6 +82,7 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    std::optional<render::Rect> remove_target(const render::Rect& area) const;
     const std::optional<icons::Icon>& shown_leading() const;
     bool has_leading() const;
     double leading_width() const;

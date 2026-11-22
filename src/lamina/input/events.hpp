@@ -30,6 +30,7 @@ struct PointerEvent {
     bool shift = false;
     bool ctrl = false;
     ScrollAxes waiting_scrollers{};
+    bool margin_claimed = false;
 };
 
 struct ContextClick {

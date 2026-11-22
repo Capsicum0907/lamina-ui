@@ -14,6 +14,7 @@
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
+#include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/slider_track.hpp"
 
 namespace lamina::widgets {
@@ -73,6 +74,7 @@ public:
     void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     bool handle(const input::PointerEvent& event);
     void cancel_interaction();
     bool handle(const input::KeyEvent& event);

@@ -224,15 +224,32 @@ AccessibleNode TopAppBar::accessible() const {
     return node;
 }
 
+template <typename Offer>
+void TopAppBar::offer_targets(const input::PointerEvent& e, Offer offer) const {
+    if (navigation_) {
+        offer(&*navigation_, navigation_->target_hit(e));
+    }
+    for (const IconButton& a : actions_) {
+        offer(&a, a.target_hit(e));
+    }
+}
+
+std::optional<TargetHit> TopAppBar::target_hit(const input::PointerEvent& e) const {
+    std::optional<TargetHit> best;
+    offer_targets(e, [&](const void*, const std::optional<TargetHit>& h) { best = best_hit(best, h); });
+    return best;
+}
+
 TopAppBarResponse TopAppBar::handle(const input::PointerEvent& e) {
     TopAppBarResponse response;
     const bool inside = e.action != input::PointerAction::leave && contains(bounds(), e.x_dp, e.y_dp);
     const input::PointerEvent routed = inside || e.action == input::PointerAction::up ? e : input::PointerEvent{input::PointerAction::leave, 0.0, 0.0};
-    if (navigation_ && navigation_->handle(routed)) {
+    arbiter_.resolve(routed, [&](auto offer) { offer_targets(routed, offer); });
+    if (navigation_ && navigation_->handle(arbiter_.routed(routed, &*navigation_))) {
         response.navigation = true;
     }
     for (std::size_t i = 0; i < actions_.size(); ++i) {
-        if (actions_[i].handle(routed)) {
+        if (actions_[i].handle(arbiter_.routed(routed, &actions_[i]))) {
             response.action = i;
         }
     }

@@ -123,10 +123,19 @@ AccessibleNode SplitButton::accessible() const {
     return node;
 }
 
+std::optional<TargetHit> SplitButton::target_hit(const input::PointerEvent& e) const {
+    return best_hit(leading_->target_hit(e), trailing_->target_hit(e));
+}
+
 SplitButtonResponse SplitButton::handle(const input::PointerEvent& e) {
     SplitButtonResponse response;
+    arbiter_.resolve(e, [&](auto offer) {
+        offer(leading_.get(), leading_->target_hit(e));
+        offer(trailing_.get(), trailing_->target_hit(e));
+    });
+    const input::PointerEvent to_trailing = arbiter_.routed(e, trailing_.get());
     if (menu_open()) {
-        const bool inside = contains(trailing_->bounds(), e.x_dp, e.y_dp);
+        const bool inside = trailing_->hits(to_trailing);
         const MenuResponse m = menu_->handle(e);
         if (m.chosen) {
             response.chosen = m.chosen;
@@ -142,11 +151,11 @@ SplitButtonResponse SplitButton::handle(const input::PointerEvent& e) {
             return response;
         }
     }
-    if (leading_->handle(e)) {
+    if (leading_->handle(arbiter_.routed(e, leading_.get()))) {
         response.leading_clicked = true;
         response.consumed = true;
     }
-    if (trailing_->handle(e)) {
+    if (trailing_->handle(to_trailing)) {
         response.trailing_toggled = true;
         response.consumed = true;
         sync_menu(input::InputSource::pointer);

@@ -85,6 +85,7 @@ public:
     bool can_focus() const;
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     SegmentedButtonResponse handle(const input::PointerEvent& event);
     SegmentedButtonResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -93,6 +94,7 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    render::Rect segment_hit(std::size_t index) const;
     struct Item {
         Segment spec;
         text::TextLine label;

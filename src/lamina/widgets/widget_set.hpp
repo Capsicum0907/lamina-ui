@@ -4,6 +4,7 @@
 #include <concepts>
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -81,7 +82,20 @@ public:
         });
     }
 
-    bool handle(const input::PointerEvent& e) { return deliver(e); }
+    bool handle(const input::PointerEvent& e) {
+        arbiter_.resolve(e, [&](auto offer) {
+            visit([&](const Member& m) { offer(m.address(), m.target_hit(e)); });
+        });
+        bool consumed = false;
+        visit([&](Member& m) { consumed = m.deliver(arbiter_.routed(e, m.address())) || consumed; });
+        return consumed;
+    }
+
+    std::optional<TargetHit> target_hit(const input::PointerEvent& e) const {
+        std::optional<TargetHit> best;
+        visit([&](const Member& m) { best = best_hit(best, m.target_hit(e)); });
+        return best;
+    }
     bool handle(const input::KeyEvent& e) { return deliver(e); }
     bool handle(const input::TextEvent& e) { return deliver(e); }
 
@@ -144,6 +158,7 @@ private:
         virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
         virtual bool animating() const = 0;
         virtual bool holds_pointer() const = 0;
+        virtual std::optional<TargetHit> target_hit(const input::PointerEvent& e) const = 0;
         virtual void cancel_interaction() = 0;
         virtual void set_enabled(bool enabled) = 0;
         virtual void set_density(tokens::Density density) = 0;
@@ -178,6 +193,7 @@ private:
             }
         }
         bool holds_pointer() const override { return widgets::holds_pointer(widget); }
+        std::optional<TargetHit> target_hit(const input::PointerEvent& e) const override { return target_hit_of(widget, e); }
         void cancel_interaction() override {
             if constexpr (Cancellable<Widget>) {
                 widget.cancel_interaction();
@@ -286,6 +302,7 @@ private:
 
     std::vector<std::unique_ptr<Member>> entries_;
     mutable int depth_ = 0;
+    TargetArbiter arbiter_;
     tokens::Density density_{};
 };
 

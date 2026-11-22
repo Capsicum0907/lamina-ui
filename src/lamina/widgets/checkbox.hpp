@@ -4,6 +4,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include <optional>
 #include <string>
 
 #include "lamina/tokens/checkbox.hpp"
@@ -50,6 +51,7 @@ public:
                 {.enabled = enabled(), .focusable = enabled(), .focused = focused(), .toggle = toggle}};
     }
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();

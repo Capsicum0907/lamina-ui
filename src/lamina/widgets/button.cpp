@@ -282,12 +282,20 @@ void Button::set_enabled(bool enabled) {
     retarget();
 }
 
+std::optional<TargetHit> Button::target_hit(const input::PointerEvent& e) const {
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, tokens::minimum_target(options_.density));
+}
+
+bool Button::hits(const input::PointerEvent& e) const {
+    return contains(hit_area(e, bounds(), tokens::minimum_target(options_.density)), e.x_dp, e.y_dp);
+}
+
 bool Button::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     if (!enabled()) {
         return false;
     }
-    const bool clicked = press_.update(e, bounds());
+    const bool clicked = press_.update(e, hit_area(e, bounds(), tokens::minimum_target(options_.density)));
     if (clicked) {
         activate();
     }

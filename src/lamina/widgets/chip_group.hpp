@@ -60,6 +60,7 @@ public:
     bool can_focus() const;
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     ChipGroupResponse handle(const input::PointerEvent& event);
     ChipGroupResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -68,6 +69,8 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    template <typename Offer>
+    void offer_targets(const input::PointerEvent& event, Offer offer) const;
     struct Entry {
         std::unique_ptr<Chip> chip;
         motion::Animated presence;
@@ -92,6 +95,7 @@ private:
     tokens::Density density_{};
     text::FontStack fonts_;
     std::vector<Entry> entries_;
+    TargetArbiter arbiter_;
     render::Point origin_{0.0, 0.0};
     double width_ = 0.0;
     double height_ = 0.0;

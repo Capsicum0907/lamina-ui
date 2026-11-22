@@ -72,6 +72,7 @@ public:
     void set_enabled(bool enabled);
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     TopAppBarResponse handle(const input::PointerEvent& event);
     TopAppBarResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -80,6 +81,8 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    template <typename Offer>
+    void offer_targets(const input::PointerEvent& event, Offer offer) const;
     const tokens::TopAppBarKindTokens& kind() const { return tokens::top_app_bar_kind(options_.kind); }
     bool two_rows() const { return kind().two_rows; }
     bool has_subtitle() const { return !options_.subtitle.empty(); }
@@ -97,6 +100,7 @@ private:
     text::FontStack fonts_;
     std::optional<IconButton> navigation_;
     std::vector<IconButton> actions_;
+    TargetArbiter arbiter_;
     text::TextLine title_;
     std::optional<text::TextLine> subtitle_;
     text::TextLine small_title_;

@@ -83,6 +83,7 @@ public:
     void set_enabled(bool enabled);
     AccessibleNode accessible() const;
 
+    std::optional<TargetHit> target_hit(const input::PointerEvent& event) const;
     ButtonGroupResponse handle(const input::PointerEvent& event);
     ButtonGroupResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
@@ -92,6 +93,8 @@ public:
     void paint_overlay(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    template <typename Offer>
+    void offer_targets(const input::PointerEvent& event, Offer offer) const;
     struct Item {
         ButtonGroupItem spec;
         std::unique_ptr<Button> button;
@@ -114,6 +117,7 @@ private:
     icons::IconFont icon_font_;
     std::vector<Item> items_;
     std::unique_ptr<IconButton> overflow_;
+    TargetArbiter arbiter_;
     std::unique_ptr<Menu> menu_;
     std::vector<std::size_t> menu_items_;
     std::vector<std::unique_ptr<FocusStop>> stops_;

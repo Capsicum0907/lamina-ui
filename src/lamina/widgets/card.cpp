@@ -109,6 +109,10 @@ bool Card::holds_pointer() const {
     return options_.widgets && options_.widgets->holds_pointer();
 }
 
+std::optional<TargetHit> Card::target_hit(const input::PointerEvent& e) const {
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp);
+}
+
 bool Card::handle(const input::PointerEvent& e) {
     if (options_.widgets) {
         options_.widgets->handle(e);
@@ -121,7 +125,7 @@ bool Card::handle(const input::PointerEvent& e) {
     if (e.action != input::PointerAction::leave && over_content_control(e.x_dp, e.y_dp)) {
         own.action = input::PointerAction::leave;
     }
-    const bool clicked = press_.update(own, touch_target(rect_));
+    const bool clicked = press_.update(own, hit_area(e, rect_));
     retarget();
     return clicked;
 }

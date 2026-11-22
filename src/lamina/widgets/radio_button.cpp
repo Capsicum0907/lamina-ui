@@ -58,12 +58,16 @@ void RadioButton::set_enabled(bool enabled) {
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
+std::optional<TargetHit> RadioButton::target_hit(const input::PointerEvent& e) const {
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp);
+}
+
 bool RadioButton::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     if (!enabled()) {
         return false;
     }
-    const bool clicked = press_.update(e, touch_target(bounds()));
+    const bool clicked = press_.update(e, hit_area(e, bounds()));
     if (clicked) {
         set_selected(true);
     }

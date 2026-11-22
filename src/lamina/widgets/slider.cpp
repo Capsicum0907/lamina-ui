@@ -200,6 +200,10 @@ void Slider::set_enabled(bool enabled) {
     update_handle();
 }
 
+std::optional<TargetHit> Slider::target_hit(const input::PointerEvent& e) const {
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp);
+}
+
 bool Slider::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     if (!enabled()) {
@@ -209,7 +213,7 @@ bool Slider::handle(const input::PointerEvent& e) {
     const double before = options_.value;
     switch (e.action) {
     case input::PointerAction::down:
-        if (contains(touch_target(bounds()), e.x_dp, e.y_dp)) {
+        if (contains(hit_area(e, bounds()), e.x_dp, e.y_dp)) {
             dragging_ = true;
             options_.value = value_at(e.x_dp, e.y_dp);
         }

@@ -289,16 +289,38 @@ AccessibleNode FloatingToolbar::accessible() const {
     return node;
 }
 
+template <typename Offer>
+void FloatingToolbar::offer_targets(const input::PointerEvent& e, Offer offer) const {
+    for (ToolbarSlot slot : {ToolbarSlot::leading, ToolbarSlot::content, ToolbarSlot::trailing}) {
+        const Group& g = group(slot);
+        for (std::size_t i = 0; i < g.buttons.size(); ++i) {
+            if (shows(slot, i)) {
+                offer(g.buttons[i].get(), g.buttons[i]->target_hit(e));
+            }
+        }
+    }
+    if (has_fab()) {
+        offer(&fab_press_, widgets::target_hit(*fab_rect(), e.x_dp, e.y_dp));
+    }
+}
+
+std::optional<TargetHit> FloatingToolbar::target_hit(const input::PointerEvent& e) const {
+    std::optional<TargetHit> best;
+    offer_targets(e, [&](const void*, const std::optional<TargetHit>& h) { best = best_hit(best, h); });
+    return best;
+}
+
 FloatingToolbarResponse FloatingToolbar::handle(const input::PointerEvent& e) {
     FloatingToolbarResponse response;
     place();
+    arbiter_.resolve(e, [&](auto offer) { offer_targets(e, offer); });
     for (ToolbarSlot slot : {ToolbarSlot::leading, ToolbarSlot::content, ToolbarSlot::trailing}) {
         Group& g = group(slot);
         for (std::size_t i = 0; i < g.buttons.size(); ++i) {
             if (!shows(slot, i)) {
                 continue;
             }
-            if (g.buttons[i]->handle(e)) {
+            if (g.buttons[i]->handle(arbiter_.routed(e, g.buttons[i].get()))) {
                 response.clicked = ToolbarClick{slot, i};
                 response.consumed = true;
             }

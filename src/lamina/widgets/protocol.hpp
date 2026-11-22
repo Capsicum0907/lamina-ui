@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <optional>
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/events.hpp"
@@ -8,6 +9,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/render/geometry.hpp"
 #include "lamina/tokens/density.hpp"
+#include "lamina/widgets/interaction.hpp"
 
 namespace lamina::widgets {
 
@@ -39,6 +41,20 @@ concept HandlesKeys = requires(W& w, const input::KeyEvent& e) { w.handle(e); };
 
 template <typename W>
 concept HandlesText = requires(W& w, const input::TextEvent& e) { w.handle(e); };
+
+template <typename W>
+concept Targeted = requires(const W& w, const input::PointerEvent& e) {
+    { w.target_hit(e) } -> std::convertible_to<std::optional<TargetHit>>;
+};
+
+template <typename W>
+std::optional<TargetHit> target_hit_of(const W& w, const input::PointerEvent& e) {
+    if constexpr (Targeted<W>) {
+        return w.target_hit(e);
+    } else {
+        return std::nullopt;
+    }
+}
 
 template <typename W>
 concept Cancellable = requires(W& w) { w.cancel_interaction(); };

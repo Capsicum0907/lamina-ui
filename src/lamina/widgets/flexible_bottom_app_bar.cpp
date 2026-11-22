@@ -150,13 +150,30 @@ AccessibleNode FlexibleBottomAppBar::accessible() const {
     return node;
 }
 
+template <typename Offer>
+void FlexibleBottomAppBar::offer_targets(const input::PointerEvent& e, Offer offer) const {
+    if (!shown()) {
+        return;
+    }
+    for (const auto& a : actions_) {
+        offer(a.get(), a->target_hit(e));
+    }
+}
+
+std::optional<TargetHit> FlexibleBottomAppBar::target_hit(const input::PointerEvent& e) const {
+    std::optional<TargetHit> best;
+    offer_targets(e, [&](const void*, const std::optional<TargetHit>& h) { best = best_hit(best, h); });
+    return best;
+}
+
 std::optional<std::size_t> FlexibleBottomAppBar::handle(const input::PointerEvent& e) {
     std::optional<std::size_t> clicked;
     if (!shown()) {
         return clicked;
     }
+    arbiter_.resolve(e, [&](auto offer) { offer_targets(e, offer); });
     for (std::size_t i = 0; i < actions_.size(); ++i) {
-        if (actions_[i]->handle(e)) {
+        if (actions_[i]->handle(arbiter_.routed(e, actions_[i].get()))) {
             clicked = i;
         }
     }

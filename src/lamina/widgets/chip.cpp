@@ -129,11 +129,14 @@ std::optional<render::Rect> Chip::trailing_rect() const {
 }
 
 std::optional<render::Rect> Chip::remove_target() const {
+    return remove_target(touch_target(bounds(), tokens::minimum_target(options_.density)));
+}
+
+std::optional<render::Rect> Chip::remove_target(const render::Rect& target) const {
     if (!options_.removable) {
         return std::nullopt;
     }
     const render::Rect icon = *trailing_rect();
-    const render::Rect target = touch_target(bounds(), tokens::minimum_target(options_.density));
     const double x = icon.x - t.element_spacing / 2.0;
     return render::Rect{x, target.y, target.x + target.width - x, target.height};
 }
@@ -215,13 +218,18 @@ void Chip::activate(ChipResponse& response) {
     }
 }
 
+std::optional<TargetHit> Chip::target_hit(const input::PointerEvent& e) const {
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, tokens::minimum_target(options_.density));
+}
+
 ChipResponse Chip::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     ChipResponse response;
     if (!enabled()) {
         return response;
     }
-    const std::optional<render::Rect> remove = remove_target();
+    const render::Rect area = hit_area(e, bounds(), tokens::minimum_target(options_.density));
+    const std::optional<render::Rect> remove = remove_target(area);
     const bool over_remove = remove && e.action != input::PointerAction::leave && contains(*remove, e.x_dp, e.y_dp);
     if (remove && remove_press_.update(e, *remove)) {
         response.removed = true;
@@ -231,7 +239,7 @@ ChipResponse Chip::handle(const input::PointerEvent& e) {
     if (over_remove || remove_press_.pressed) {
         body.action = input::PointerAction::leave;
     }
-    if (press_.update(body, touch_target(bounds(), tokens::minimum_target(options_.density)))) {
+    if (press_.update(body, area)) {
         activate(response);
     }
     retarget();
