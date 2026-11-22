@@ -397,6 +397,7 @@ C の `tokens/PrimaryNavigationTabTokens.kt` と `tokens/SecondaryNavigationTabT
 - 下の区切り線は `HorizontalDivider`（1 dp の outline-variant）で、secondary のトークンにある surface-variant ではありません。
 - 印の位置と幅は標準の空間のばねで動き、最初に置くときは動かしません。ラベルとアイコンの色は、現れるときは標準の効果のばね、消えるときは速い効果のばねで移ります（`TabTransition`）。状態の重ねは、選んだときの文字の色でタブ全体に掛かります。
 - Compose の `Tab` は、色を渡さなければ選んでいないときの色を選んだときと同じにします。lamina-ui はトークンのファイルにある選んでいないときの色（on-surface-variant）を使います。
+- 横に送れるタブの列（`PrimaryScrollableTabRow`・`SecondaryScrollableTabRow`。`TabRowOptions::scrollable`）：各タブの幅は少なくとも 90 dp（`TabRowDefaults.ScrollableTabRowMinTabWidth`）で、最初のタブの前と最後のタブの後に 52 dp をあけます（`ScrollableTabRowEdgeStartPadding`。`ScrollableTabRow` の配置が両端にあけます）。入りきるタブは引き伸ばしません。タブを選ぶと、そのタブが列の中央に来るように、両端で止めつつ送ります（`ScrollableTabData.calculateTabOffset`）。送る動きは、Compose の `scrollAnimationSpec` と同じく標準の空間のばねです。ホイールの 1 ノッチの量（64 dp、`scroll_area_tokens.wheel_step`）は lamina-ui の値です。Compose の列は `horizontalScroll` で送ります。
 
 ### ナビゲーションバー
 
