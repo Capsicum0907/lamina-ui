@@ -35,6 +35,7 @@ public:
     virtual bool handle(const input::PointerEvent& event) = 0;
     virtual bool handle(const input::KeyEvent& event) = 0;
     virtual bool handle(const input::WheelEvent& event) = 0;
+    virtual bool holds_pointer() const { return false; }
     virtual void handle(const input::TextEvent&) {}
     virtual void handle(const input::ContextClick&) {}
     virtual std::optional<render::Rect> caret_area() const { return std::nullopt; }

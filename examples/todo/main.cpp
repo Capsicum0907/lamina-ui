@@ -428,20 +428,20 @@ int main(int argc, char** argv) {
                     add_from_input();
                     input.set_focused(true);
                 }
-                if (scroll.handle(e)) {
-                    continue;
-                }
-                const input::PointerEvent c = scroll.to_content(e);
-                const examples::todo::HeaderAction h = header.handle(c);
-                if (h.toggled) {
-                    expanded = !expanded;
-                    header.set_expanded(expanded);
-                }
-                if (h.clear) {
-                    dialog.open_in(body);
-                    overlays.push(dialog, on_dialog);
-                }
-                rows.handle(c);
+                scroll.route(e, [&](const input::PointerEvent& routed) {
+                    const input::PointerEvent c = scroll.to_content(routed);
+                    const examples::todo::HeaderAction h = header.handle(c);
+                    if (h.toggled) {
+                        expanded = !expanded;
+                        header.set_expanded(expanded);
+                    }
+                    if (h.clear) {
+                        dialog.open_in(body);
+                        overlays.push(dialog, on_dialog);
+                    }
+                    rows.handle(c);
+                    return rows.holds_pointer();
+                });
             }
             commit_unfocused();
             for (const auto& w : frame.wheel) {

@@ -332,6 +332,11 @@ widgets::FocusManager& FilesView::focus() {
     return impl_->focus;
 }
 
+bool FilesView::holds_pointer() const {
+    const Impl& v = *impl_;
+    return v.table->holds_pointer() || v.context_menu->is_open() || widgets::holds_pointer(*v.bar);
+}
+
 bool FilesView::handle(const input::PointerEvent& e) {
     Impl& v = *impl_;
     if (v.bar->handle(e).consumed) {

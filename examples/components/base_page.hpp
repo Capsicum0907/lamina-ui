@@ -111,6 +111,7 @@ public:
         return controls.handle(e);
     }
     bool handle(const input::WheelEvent&) override { return false; }
+    bool holds_pointer() const override { return controls.holds_pointer(); }
     void step(double dt) override {
         reflow.step(dt);
         controls.step(dt);

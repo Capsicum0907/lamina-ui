@@ -11,6 +11,7 @@
 #include "lamina/tokens/focus.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/interaction.hpp"
+#include "lamina/widgets/protocol.hpp"
 #include "lamina/widgets/scroll_area.hpp"
 
 namespace lamina::examples::components {
@@ -41,24 +42,28 @@ public:
 
     auto handle(const input::PointerEvent& e) {
         using Response = decltype(content_.handle(e));
-        if (area_.handle(e)) {
-            Response r = content_.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+        Response r{};
+        const bool claimed = area_.route(e, [&](const input::PointerEvent& pe) {
+            const bool inside = pe.action != input::PointerAction::leave && widgets::contains(area_.viewport(), pe.x_dp, pe.y_dp);
+            if (pe.action == input::PointerAction::down) {
+                held_ = inside;
+            }
+            if (!inside && !held_) {
+                r = content_.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+            } else {
+                r = content_.handle(pe);
+            }
+            if (pe.action == input::PointerAction::up || pe.action == input::PointerAction::leave) {
+                held_ = false;
+            }
+            return widgets::holds_pointer(content_);
+        });
+        if (claimed) {
             r.consumed = true;
-            return r;
-        }
-        const bool inside = e.action != input::PointerAction::leave && widgets::contains(area_.viewport(), e.x_dp, e.y_dp);
-        if (e.action == input::PointerAction::down) {
-            held_ = inside;
-        }
-        if (!inside && !held_) {
-            return content_.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
-        }
-        Response r = content_.handle(e);
-        if (e.action == input::PointerAction::up || e.action == input::PointerAction::leave) {
-            held_ = false;
         }
         return r;
     }
+    bool holds_pointer() const { return area_.dragging() || widgets::holds_pointer(content_); }
     auto handle(const input::KeyEvent& e) { return content_.handle(e); }
     void handle(const input::TextEvent& e) { content_.handle(e); }
     bool handle(const input::WheelEvent& e) {

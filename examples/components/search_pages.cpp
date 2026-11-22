@@ -64,6 +64,9 @@ public:
                        search_layout.column_space, search_layout.column_space);
     }
 
+    bool holds_pointer() const override {
+        return compact_->holds_pointer() || wide_->holds_pointer() || BasePage::holds_pointer();
+    }
     bool handle(const input::PointerEvent& e) override {
         handle_tips(e);
         if (handle_dialog_tips(e)) {

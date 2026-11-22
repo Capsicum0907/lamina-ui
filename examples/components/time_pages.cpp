@@ -123,6 +123,9 @@ public:
         root = columns({{settings, pickers}}, l.column_space, l.row_gap * 1.5);
     }
 
+    bool holds_pointer() const override {
+        return dialog_->is_open() || BasePage::holds_pointer();
+    }
     bool handle(const input::PointerEvent& e) override {
         source_ = input::InputSource::pointer;
         if (dialog_->is_open()) {

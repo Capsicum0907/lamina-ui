@@ -132,6 +132,10 @@ public:
                        l.column_space, l.column_space);
     }
 
+    bool holds_pointer() const override {
+        return hiding_rail_->holds_pointer() || rail_->holds_pointer() || modal_->holds_pointer() || dismissible_->holds_pointer() ||
+               permanent_->holds_pointer() || BasePage::holds_pointer();
+    }
     bool handle(const input::PointerEvent& e) override {
         source_ = input::InputSource::pointer;
         handle_tips(e);

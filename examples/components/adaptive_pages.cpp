@@ -191,6 +191,9 @@ public:
         set_width(l.initial_width);
     }
 
+    bool holds_pointer() const override {
+        return list_detail_->holds_pointer() || supporting_->holds_pointer() || BasePage::holds_pointer();
+    }
     bool handle(const input::PointerEvent& e) override {
         handle_tips(e);
         const bool in_frame = e.action != input::PointerAction::leave && widgets::contains(frame_.rect(), e.x_dp, e.y_dp);

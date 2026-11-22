@@ -129,7 +129,10 @@ public:
     const widgets::ScrollArea& scroll() const { return scroll_; }
 
     bool handle(const input::WheelEvent& e) { return scroll_.handle(e); }
-    bool handle(const input::PointerEvent& e) { return scroll_.handle(e); }
+    bool handle(const input::PointerEvent& e) {
+        return scroll_.route(e, [](const input::PointerEvent&) { return false; });
+    }
+    bool holds_pointer() const { return scroll_.dragging(); }
     void cancel_interaction() { scroll_.cancel_interaction(); }
     void step(double dt) { scroll_.step(dt); }
     bool animating() const { return scroll_.animating(); }
@@ -251,6 +254,11 @@ public:
         focus_.add_group(files_->focus(), [this] { return view_ == 2; });
     }
 
+    bool holds_pointer() const override {
+        return files_->holds_pointer() || timeline_.holds_pointer() || assets_.holds_pointer() || inspector_.holds_pointer() ||
+               std::any_of(splits_.begin(), splits_.end(), [](const widgets::SplitPane* s) { return s->holds_pointer(); }) ||
+               std::any_of(columns_.begin(), columns_.end(), [](const auto& c) { return c->widgets.holds_pointer(); }) || BasePage::holds_pointer();
+    }
     bool handle(const input::PointerEvent& e) override {
         handle_tips(e);
         if (view_ == 2) {

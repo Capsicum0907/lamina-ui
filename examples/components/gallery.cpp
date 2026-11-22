@@ -924,40 +924,45 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.source = input::InputSource::pointer;
         if (current) {
             g.handle_title_bar(e);
-            if (g.scroll().handle(e)) {
-                current->handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
-            } else {
-                current->handle(g.page_event(e));
-            }
+            g.scroll().route(e, [&](const input::PointerEvent& routed) {
+                current->handle(g.page_event(routed));
+                return current->holds_pointer();
+            });
             g.header_widgets.handle(e);
             continue;
         }
         if (g.overlay.handle(e)) {
             continue;
         }
-        if (g.scroll().handle(e)) {
-            g.header_widgets.handle(e);
-            continue;
-        }
-        const input::PointerEvent pe = g.page_event(e);
-        bool consumed = false;
-        for (auto& t : g.tooltips) {
-            const widgets::TooltipResponse r = t->handle(pe);
-            if (r.action) {
-                g.report("Tooltip: learn more");
+        bool tip_consumed = false;
+        const bool scrolled = g.scroll().route(e, [&](const input::PointerEvent& routed) {
+            const input::PointerEvent pe = g.page_event(routed);
+            bool consumed = false;
+            for (auto& t : g.tooltips) {
+                const widgets::TooltipResponse r = t->handle(pe);
+                if (r.action) {
+                    g.report("Tooltip: learn more");
+                }
+                consumed = consumed || r.consumed;
             }
-            consumed = consumed || r.consumed;
-        }
-        if (consumed) {
+            if (consumed) {
+                tip_consumed = true;
+                return false;
+            }
+            if (const auto seed = g.chips.handle(pe)) {
+                g.options.seed = *seed;
+                g.retheme();
+            }
+            g.controls.handle(pe);
+            g.chrome.handle(pe);
+            return g.controls.holds_pointer() || g.chrome.holds_pointer();
+        });
+        if (tip_consumed && !scrolled) {
             continue;
         }
-        g.handle_title_bar(e);
-        if (const auto seed = g.chips.handle(pe)) {
-            g.options.seed = *seed;
-            g.retheme();
+        if (!scrolled) {
+            g.handle_title_bar(e);
         }
-        g.controls.handle(pe);
-        g.chrome.handle(pe);
         g.header_widgets.handle(e);
     }
     for (const auto& c : frame.context) {

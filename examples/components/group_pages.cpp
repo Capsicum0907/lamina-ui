@@ -55,6 +55,9 @@ public:
         root = columns({{groups(), extended()}, {splits()}}, l.column_space, l.section_gap);
     }
 
+    bool holds_pointer() const override {
+        return std::any_of(composites_.begin(), composites_.end(), [](const Composite& c) { return c.menu_open(); }) || BasePage::holds_pointer();
+    }
     bool handle(const input::PointerEvent& e) override {
         handle_tips(e);
         if (Composite* open = open_composite()) {

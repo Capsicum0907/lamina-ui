@@ -173,6 +173,10 @@ public:
         }
         return handle_controls(e) || consumed;
     }
+    bool holds_pointer() const override {
+        return std::any_of(frames_.begin(), frames_.end(), [](const auto& f) { return f->list->holds_pointer(); }) || BasePage::holds_pointer();
+    }
+
 
     bool handle(const input::KeyEvent& e) override {
         handle_tips(e);

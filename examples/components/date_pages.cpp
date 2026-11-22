@@ -144,6 +144,9 @@ public:
         root = columns({{captioned("Locale", widgets::node(*locale_row_)), pickers}}, l.column_space, l.row_gap);
     }
 
+    bool holds_pointer() const override {
+        return dialog_->is_open() || range_dialog_->is_open() || BasePage::holds_pointer();
+    }
     bool handle(const input::PointerEvent& e) override {
         source_ = input::InputSource::pointer;
         if (auto* d = open_dialog()) {
