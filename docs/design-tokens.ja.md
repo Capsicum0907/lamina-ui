@@ -289,6 +289,16 @@ lamina-ui は、輪（`lamina/tokens/focus.hpp`）とフォーカスの状態の
 - スナックバー：操作のフォーカスの枠は secondary ではなく、操作の文字と同じ inverse-primary で描きます。inverse-surface の面の上では secondary の差が小さく、見えにくいためです。これは lamina-ui 独自の決めごとです。どのボタンでも `ButtonColors::focus_ring` で枠の色の役割を指定できます。
 - タブを受け取る入力欄は、WinForms と WPF の `AcceptsTab` のテキストボックスと同じく Ctrl+Tab で外へ出られるので、キーボードの罠になりません（WCAG 2.1 の達成基準 2.1.2）。
 
+### タッチの範囲
+
+2026-11-23 に androidx の `6068a9492ba8` から読みました。material3 の `InteractiveComponentSize.kt`（`Modifier.minimumInteractiveComponentSize`、`LocalMinimumInteractiveComponentSize` = 48 dp）と `Surface.kt`、ui の `platform/ViewConfiguration.kt`（`minimumTouchTargetSize` = 48 × 48 dp。`androidMain` の `AndroidViewConfiguration.android.kt` では変えていません）、`node/NodeCoordinator.kt`（`hitTest`、`distanceInMinimumTouchTarget`）、`node/HitTestResult.kt`（`isHitInMinimumTouchTargetBetter`、`DistanceAndFlags.compareTo`）です。値と仕組みは `lamina/tokens/interaction.hpp`（`minimum_interactive_size`）と `lamina/widgets/interaction.hpp`（`touch_target`・`hit_area`・`target_hit`・`TargetArbiter`）にあります。
+
+- 48 dp より小さい部品は、見た目の範囲を中心にした 48 dp の範囲でポインターを受けます。対象は、すべての大きさのボタン（ボタンの組・分割ボタン・切り替えボタンの中のものも）、アイコンボタン、チップ、チェックボックス、ラジオボタン、スイッチ、セグメントボタン（隣の区画と重ならないよう、高さだけ）、スライダー、範囲スライダー、カードです。描く大きさと並べる大きさは変わりません。
+- いくつかの部品の範囲が同じ点を含むときは、見た目の範囲にその点を含む部品が勝ちます。どれも含まないときは、点にいちばん近い部品が勝ちます。近さは Compose と同じく、部品の縁からの距離の 2 乗で比べます。同じ近さなら、後から足した部品（上に描かれる部品）が勝ちます。Compose は上から順に調べて最初に当たったものを残すので、こちらも上の部品が勝ちます。勝つ部品は押したときに決め、離すまで変えません。指が隣の部品のほうへずれても、押した部品は替わりません。
+- 負けた部品にもイベントは届きます。そのときは `PointerEvent::margin_claimed` が立っていて、部品は自分の見た目の範囲だけで判定します（`hit_area`）。なので、見た目の範囲の中の点には今までどおり反応し、ポップアップは外を押されると今までどおり閉じます。
+- 勝ち負けを決める場所：`WidgetSet` の中の部品どうし（入れ子の `WidgetSet` は、中でいちばんよい部品の範囲で競います）と、`ButtonGroup`・`ChipGroup`・`FloatingToolbar`・`TopAppBar`・`FlexibleBottomAppBar`・`SplitButton` の中です。部品は `target_hit`（`Targeted` の型の条件）で競争に加わります。これを持たない部品（リストの行・入力欄・メニューなど）は競わないので、隣の部品の範囲がその上にかかることがあります。
+- 違い：Compose の `minimumInteractiveComponentSize` は、並べる大きさにも 48 dp を取ります（「Reserves at least 48.dp in size」）。押せる `Surface(onClick)` は修飾の最初にこれを置くので、Compose の 40 dp のボタンは 48 dp の場所を取ります。lamina-ui は、ダイアログのボタン（[ダイアログ](#ダイアログ)）と同じく、並べる大きさを見た目の大きさのままにしています。Compose が範囲を広げるのはタッチだけで（`PointerType.Touch`。マウスとスタイラスは見た目の範囲）、lamina-ui はマウスとペンでも広げます。Compose には密度がなく、`LocalMinimumInteractiveComponentSize` を 0 dp にしてもタッチの範囲は広げたままです。lamina-ui は MDC と同じく、負の密度では範囲を外します（[密度](#密度)）。無効の部品も競争に加わるので、無効の部品が勝った余白を押しても何も起きません。
+
 ## 無効の状態
 
 2026-11-21 に androidx の `6068a9492ba8`（この節の C はこのコミット）で読みました。各部品の Compose の既定の無効の色で、トークンのファイルと違うこともあります。
@@ -842,7 +852,7 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 
 - 大・特大のボタンとアイコンボタンは密度を持ちません。96 dp や 136 dp から 4 dp ずつ削っても、載る量は変わらないためです。
 - 違い：MDC は最小を下回る段階をコンパイルの誤りにしますが、lamina-ui は最小で止めます。一つの段階を多くの部品にまとめて設定するためです。正の段階は既定で止めます。区分ボタン・ナビゲーションの項目・メニューは MDC に密度がないので、最小は lamina-ui が決めました。メニューバーも MDC にはありません。表は MDC のデータテーブルの行（52 → 36）に合わせ、見出しは MDC と同じく 4 dp 高くしました。
-- タッチの範囲：密度 0 では、部品は 48 dp の当たり判定を保ちます（`tokens::minimum_target`）。負の密度では、タッチやペンでも当たり判定は部品そのものの範囲です。MDC がタッチの範囲を外すのと同じです。48 dp より詰めて並べた部品で 48 dp の範囲を取ると、隣の範囲と重なるためです。
+- タッチの範囲：密度 0 では、部品は 48 dp の当たり判定を保ちます（`tokens::minimum_target`）。負の密度では、タッチやペンでも当たり判定は部品そのものの範囲です。MDC がタッチの範囲を外すのと同じです。48 dp より詰めて並べた部品で 48 dp の範囲を取ると、隣の範囲と重なるためです。密度 0 の部品どうしの範囲が重なるところでは、いちばん近い部品がポインターを受けます（[タッチの範囲](#タッチの範囲)）。
 - チェックボックス・ラジオボタン・スイッチは、まだ密度を持ちません。
 
 ### ウィンドウの大きさの区分
