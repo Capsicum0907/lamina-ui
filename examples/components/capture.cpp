@@ -56,6 +56,9 @@ struct CaptureStyle {
     double sweep_narrowest = 360.0;
     double sweep_step_seconds = 1.6;
     double sweep_back_seconds = 3.0;
+    int reveal_notches = 40;
+    double reveal_pause_seconds = 0.05;
+    std::string_view page_tabs = "Pages";
 };
 
 inline constexpr std::string_view window_option = "--window";
@@ -109,6 +112,8 @@ public:
     double fps() const { return style_.fps; }
     const CaptureStyle& style() const { return style_; }
     double window_width() const { return window_.width; }
+    double window_height() const { return window_.height; }
+    std::optional<render::Rect> find(std::string_view name) const { return gallery_.find(name); }
     void set_window_width(double width) { window_.width = std::clamp(width, 1.0, stage_.width); }
 
     void set_recording(bool on) { recording_ = on; }
@@ -451,8 +456,33 @@ void tab_to(Driver& d, examples::components::Gallery& g, std::string_view name, 
     throw std::runtime_error("Tab never reached " + std::string(name));
 }
 
+bool fully_in_view(const Driver& d, std::string_view name, std::string_view row) {
+    const std::optional<render::Rect> r = d.find(name);
+    const std::optional<render::Rect> box = d.find(row);
+    if (!r || !box) {
+        throw std::runtime_error("no widget named " + std::string(r ? row : name));
+    }
+    return r->width > 0.0 && r->x > box->x && r->x + r->width < box->x + box->width;
+}
+
+void reveal_in_row(Driver& d, std::string_view name, std::string_view row) {
+    bool scrolled = false;
+    for (const double direction : {1.0, -1.0}) {
+        for (int i = 0; i < d.style().reveal_notches && !fully_in_view(d, name, row); ++i) {
+            d.move_to(row, 0.0);
+            d.wheel(direction);
+            d.wait(d.style().reveal_pause_seconds);
+            scrolled = true;
+        }
+    }
+    if (scrolled) {
+        d.settle();
+    }
+}
+
 void show_page(Driver& d, std::string_view name) {
     d.set_cursor(false);
+    reveal_in_row(d, name, d.style().page_tabs);
     d.move_to(name, 0.05);
     d.click();
     d.move_to({720.0, 845.0}, 0.05);
