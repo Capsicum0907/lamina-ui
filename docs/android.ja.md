@@ -58,7 +58,7 @@ cmake --build --preset android-arm64
 4. `cmake/LaminaAndroidAssemble.cmake` が `classes.dex`、シンボルを落とした `libmain.so`、NDK の `libc++_shared.so` を `lib/<abi>/` に加え、すべてを圧縮せずに書きます。マニフェストは `extractNativeLibs="false"` なので、ライブラリは APK の中からそのまま読み込まれます。
 5. `zipalign -P 16` がライブラリを 16 KB のページ境界にそろえ、`apksigner` がデバッグ用のキーストアで署名します。
 
-`LaminaActivity` は `c++_shared` と `main` を読み込み、SDL が窓の表示のしかたを変えるたびに、ステータスバーとナビゲーションバーを明るい背景向けの表示に戻します。アクティビティは SDL の `configChanges` の一覧をそのまま持つので、端末を回しても作り直されません。`enableOnBackInvokedCallback="false"` なので、戻る操作はキーとしてアプリに届きます。
+`LaminaActivity` は `c++_shared` と `main` を読み込み、ステータスバーとナビゲーションバーのアイコンをアプリの上で読める色に保ちます（[システムのバー](#システムのバー)）。アクティビティは SDL の `configChanges` の一覧をそのまま持つので、端末を回しても作り直されません。`enableOnBackInvokedCallback="false"` なので、戻る操作はキーとしてアプリに届きます。
 
 | キャッシュ変数 | プリセットの値 | 中身 |
 |---|---|---|
@@ -71,6 +71,20 @@ cmake --build --preset android-arm64
 | `LAMINA_ANDROID_SDL_ARCHIVE` | vcpkg の `downloads` の SDL のアーカイブ | Java のソースの取り出し元 |
 | `LAMINA_ANDROID_KEYSTORE` | （プリセットにはなし） | 署名に使うキーストア。既定はデバッグ用のもの |
 | `LAMINA_ANDROID_PAGE_SIZE_KB` | （プリセットにはなし） | リンクと zipalign のページの大きさ。既定は 16 |
+
+## システムのバー
+
+`Window::set_dark_system_bars(dark)` は、ステータスバーとナビゲーションバーの下でアプリが暗い色かどうかをシステムに伝えます。Android では、JNI で `LaminaActivity.setDarkSystemBars(boolean)` を呼びます。アクティビティはその値を覚えておき、UI のスレッドで次のようにします。アプリが明るいときは `APPEARANCE_LIGHT_STATUS_BARS` と `APPEARANCE_LIGHT_NAVIGATION_BARS`（明るいバーに暗いアイコン）を立て、暗いときは下ろします。どちらの値にもできるように、二つの印をまとめて範囲に指定します（`WindowInsetsController.setSystemBarsAppearance(値, 範囲)`。Android 11 より前は `setSystemUiVisibility` の `SYSTEM_UI_FLAG_LIGHT_*`）。SDL は窓の表示のしかたを変えるときにシステムの表示の印を書き直すので、アクティビティは変わるたびに値をもう一度当てます。アプリが呼ぶまでは、値はシステムのダークモードに従います。ダークモードでは `android/res/values-night/styles.xml` が窓を暗いテーマと明るいアイコンにするので、最初の `update` より前のフレームもそろいます。ほかの OS では `set_dark_system_bars` は何もしません。`Window::system_dark_theme()` は、システムがダークモードかどうかを返します（`SDL_GetSystemTheme`）。
+
+androidx の `6068a9492ba8` を読んで、同じ動きにしました。
+
+- `activity/activity/src/main/java/androidx/activity/EdgeToEdge.kt`：`enableEdgeToEdge`（`:94`）は、`SystemBarStyle` ごとの `detectDarkMode` の結果を設定の処理に渡します。設定の処理は `isAppearanceLightStatusBars = !statusBarIsDark` と `isAppearanceLightNavigationBars = !navigationBarIsDark` にします（`:318-319`、API 29 以降）。`SystemBarStyle.auto`（`:160`）は、ダークモードかどうかを `uiMode & UI_MODE_NIGHT_MASK`、つまりシステムの設定から決めます。
+- `core/core/src/main/java/androidx/core/view/WindowInsetsControllerCompat.java`：`setAppearanceLightStatusBars`（`:222`）と `setAppearanceLightNavigationBars`（`:256`）。API 30 以降の `setAppearanceLight`（`:689`）は、窓を持っていれば `systemUiVisibility` の印を、持っていなければ `setSystemBarsAppearance(印か 0, 印)` で、一つの印を立てるか下ろします。
+- `compose/foundation/foundation/src/androidMain/kotlin/androidx/compose/foundation/DarkTheme.android.kt`：`isSystemInDarkTheme`（`:46`）も同じ `uiMode` の印を読みます。その説明は、システムの設定に従うことと、利用者が切り替えられるようにすることを勧めています。
+
+lamina-ui は、システムの設定ではなくアプリ自身の配色に従います。見本の暗い配色のボタンのように、アプリはテーマを上書きできます。アイコンは、その下に描かれているものに合っていなければなりません。androidx で言えば `SystemBarStyle.auto(..., detectDarkMode = { appIsDark })` にあたります。
+
+見本は、Android ではシステムのダークモードに合わせて起動します（`isSystemInDarkTheme` に従う形です）。暗い配色のボタンでそれを上書きできます。デスクトップでは、これまでどおり明るい配色で起動します。見本は配色が変わるたびに、また起動したときに一度、それをホストに伝えます（`GalleryHost::set_dark_theme`）。`examples/components/main.cpp` がそれを `set_dark_system_bars` に渡します。
 
 ## 入れ方と動かし方
 
@@ -97,6 +111,7 @@ API 37 のエミュレーター（16 KB ページ、GPU は SwiftShader）で確
 - 指でなぞると、ページは上下に、ページのタブと横に送る時刻ピッカーは左右に動きます。素早くなぞるとはじかれて Compose の減速の曲線で止まり、はじいている間に指を置くと止まります。ボタン・チップ・入力欄の上から始めたなぞりは、それらを押したことにも焦点を移すことにもならずにスクロールします。タップはこれまでどおり押したことになり、スライダーはその上から始めたなぞりについてきます。`adb shell input swipe` と `adb shell input tap` で確かめました（[指でのスクロール](design-tokens.ja.md#指でのスクロール)）。
 - 書体「OS fonts」は `/system/fonts` の Noto Sans CJK を読み込みます。
 - 48 dp のタッチの範囲：40 dp のボタンの上（Basics の Send）や下（Groups のボタンの組の Copy）を、縁から 3 dp ほど外れてタップしても押せます。4 dp 以上外れると押せません。2 つのフィルターチップの間の 8 dp のすき間をタップすると、近いほうだけが選ばれます。ボタンの組のオーバーフローのボタンのすぐ左をタップすると、メニューが開き、もう一度タップすると閉じます。`adb shell input tap` で確かめました（[タッチの範囲](design-tokens.ja.md#タッチの範囲)）。
+- ステータスバーとナビゲーションバーのアイコンは、明るい配色では暗く、暗い配色では明るくなり、暗い配色のボタンに合わせて変わります。システムをダークモードにすると（`adb shell cmd uimode night yes`）、見本は暗い配色で起動します。最初のフレームより前の窓も、暗い背景に明るいアイコンです。
 - ホームでアプリを離れて戻ると、見本がもう一度描かれます。
 - エミュレーターでは、動き続ける Progress のページの 1 フレームがおよそ 19 ms（毎秒およそ 52 フレーム）でした。`update` の始めから `present` の終わりまでを測った値です。描画は ThorVG が CPU で 1080 × 2400 のテクスチャに描いています。
 
@@ -104,7 +119,7 @@ API 37 のエミュレーター（16 KB ページ、GPU は SwiftShader）で確
 
 - 指でのスクロールには、端で伸びる動きと入れ子のスクロールがありません。ページの中のリストは、なぞりやはじきの残りをページに渡しません。追うのは一本の指だけです。指の操作は `adb shell input` で確かめたもので、実機の指では確かめていません。
 - 何も開いていないときの戻る操作は何もせず、アプリを離れません。
-- 見本を暗い配色にしても、ステータスバーとナビゲーションバーのアイコンは暗い色のままです。
+- 見本がシステムのダークモードを読むのは起動したときだけです。動いている間に設定を変えても追いません（`SDL_EVENT_SYSTEM_THEME_CHANGED` は読んでいません）。
 - ダイアログとメニューは、安全な領域の中ではなく窓全体を基準に置かれます。
 - 画面の下のほうの欄はソフトウェアキーボードに隠れることがあります。SDL が知らせるのはキーボードが出ているかどうかだけで、高さは分かりません。
 - IME での日本語入力は試していません。SDL は変換中の文字を、変換の途中経過ではなく、確定した文字と削除として渡します。
