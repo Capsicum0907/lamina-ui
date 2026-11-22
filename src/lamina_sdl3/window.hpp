@@ -9,6 +9,8 @@
 #include "lamina/input/caption.hpp"
 #include "lamina/input/clipboard.hpp"
 #include "lamina/input/events.hpp"
+#include "lamina/layout/layout.hpp"
+#include "lamina/layout/safe_area.hpp"
 #include "lamina/layout/window_size_class.hpp"
 #include "lamina/render/canvas.hpp"
 
@@ -34,6 +36,7 @@ struct Frame {
     std::vector<input::TextEvent> text;
     layout::WindowSizeClass size_class = {};
     std::vector<input::ContextClick> context = {};
+    layout::Insets safe_area = {};
 };
 
 bool client_title_bar_supported();

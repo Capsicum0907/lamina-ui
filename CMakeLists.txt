@@ -338,6 +338,7 @@ if(LAMINA_BUILD_TESTS)
         tests/radio_button_test.cpp
         tests/range_slider_test.cpp
         tests/resources_test.cpp
+        tests/safe_area_test.cpp
         tests/scroll_area_test.cpp
         tests/search_bar_test.cpp
         tests/segmented_button_test.cpp

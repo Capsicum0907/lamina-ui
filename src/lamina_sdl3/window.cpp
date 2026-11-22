@@ -172,6 +172,7 @@ struct Window::Impl {
         frame.width_dp = pw / frame.scale;
         frame.height_dp = ph / frame.scale;
         frame.size_class = layout::compute_window_size_class(frame.width_dp, frame.height_dp);
+        frame.safe_area = safe_area();
         const SDL_WindowFlags flags = SDL_GetWindowFlags(window);
         frame.maximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
         frame.active = (flags & SDL_WINDOW_INPUT_FOCUS) != 0;
@@ -203,6 +204,20 @@ struct Window::Impl {
         SDL_GetWindowSize(window, &ww, &wh);
         SDL_GetWindowSizeInPixels(window, &pw, &ph);
         return ww > 0 ? static_cast<double>(pw) / ww : 1.0;
+    }
+
+    layout::Insets safe_area() const {
+        int ww = 0;
+        int wh = 0;
+        SDL_GetWindowSize(window, &ww, &wh);
+        SDL_Rect safe{};
+        if (!SDL_GetWindowSafeArea(window, &safe)) {
+            return {};
+        }
+        return layout::safe_area_insets({0.0, 0.0, static_cast<double>(ww), static_cast<double>(wh)},
+                                        {static_cast<double>(safe.x), static_cast<double>(safe.y), static_cast<double>(safe.w),
+                                         static_cast<double>(safe.h)},
+                                        pixel_density() / scale());
     }
 
     double scale() const {

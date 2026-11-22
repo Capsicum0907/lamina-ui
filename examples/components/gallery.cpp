@@ -18,6 +18,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/layout/layout.hpp"
+#include "lamina/layout/safe_area.hpp"
 #include "lamina/layout/window_size_class.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/tokens/motion.hpp"
@@ -903,7 +904,7 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.title_bar->set_maximized(frame.maximized);
         g.title_bar->set_active(frame.active);
     }
-    layout::run(*g.root, {0.0, 0.0, frame.width_dp, frame.height_dp});
+    layout::run(*g.root, layout::inset_rect({0.0, 0.0, frame.width_dp, frame.height_dp}, frame.safe_area));
     if (g.title_bar) {
         g.host.set_caption_regions(g.title_bar->regions());
     }
