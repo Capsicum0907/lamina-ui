@@ -20,19 +20,35 @@ struct SystemFont {
     unsigned face_index;
 };
 
-inline constexpr FontDirectory font_directories[] = {
+inline constexpr FontDirectory windows_font_directories[] = {
     {"WINDIR", "Fonts"},
     {"SystemRoot", "Fonts"},
     {"LOCALAPPDATA", "Microsoft/Windows/Fonts"},
 };
 
-inline constexpr SystemFont japanese_ui_fonts[] = {
+inline constexpr SystemFont windows_japanese_ui_fonts[] = {
     {"NotoSansJP-VF.ttf", 0},
     {"YuGothM.ttc", 1},
     {"meiryo.ttc", 2},
     {"BIZ-UDGothicR.ttc", 1},
     {"msgothic.ttc", 1},
 };
+
+inline constexpr FontDirectory android_font_directories[] = {
+    {"ANDROID_ROOT", "fonts"},
+};
+
+inline constexpr SystemFont android_japanese_ui_fonts[] = {
+    {"NotoSansCJK-Regular.ttc", 0},
+};
+
+#ifdef __ANDROID__
+inline constexpr auto& font_directories = android_font_directories;
+inline constexpr auto& japanese_ui_fonts = android_japanese_ui_fonts;
+#else
+inline constexpr auto& font_directories = windows_font_directories;
+inline constexpr auto& japanese_ui_fonts = windows_japanese_ui_fonts;
+#endif
 
 std::vector<std::filesystem::path> system_font_directories();
 text::FontStack system_font_stack(std::span<const SystemFont> candidates = japanese_ui_fonts);

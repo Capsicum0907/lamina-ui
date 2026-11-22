@@ -352,6 +352,7 @@ if(LAMINA_BUILD_TESTS)
         tests/support.cpp
         tests/surface_test.cpp
         tests/switch_test.cpp
+        tests/system_font_table_test.cpp
         tests/table_test.cpp
         tests/tabs_test.cpp
         tests/text_field_test.cpp
