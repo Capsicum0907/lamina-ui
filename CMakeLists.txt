@@ -38,6 +38,7 @@ add_library(lamina STATIC
     src/lamina/color/spec_2025.cpp
     src/lamina/icons/icon.cpp
     src/lamina/motion/spring.cpp
+    src/lamina/motion/spline_decay.cpp
     src/lamina/motion/velocity_tracker.cpp
     src/lamina/render/canvas.cpp
     src/lamina/render/geometry.cpp
