@@ -451,6 +451,9 @@ bool TextField::handle(const input::PointerEvent& e) {
     if (!enabled()) {
         return false;
     }
+    if (e.kind == input::PointerKind::touch) {
+        return handle_touch(e);
+    }
     press_.update(e, bounds());
     hover_.animate_to(press_.hovered ? 1.0 : 0.0);
     if (e.action == input::PointerAction::up) {
@@ -473,6 +476,12 @@ bool TextField::handle(const input::PointerEvent& e) {
         set_focused(false);
         return false;
     }
+    press_at(e);
+    dragging_ = e.clicks <= 1 && !buffer_.composing();
+    return true;
+}
+
+void TextField::press_at(const input::PointerEvent& e) {
     set_focused(true);
     if (!buffer_.composing()) {
         const Hit h = hit(e.x_dp, e.y_dp);
@@ -483,12 +492,39 @@ bool TextField::handle(const input::PointerEvent& e) {
         } else {
             buffer_.move_to(h.index, false, h.upstream);
         }
-        dragging_ = e.clicks <= 1;
         buffer_.reset_goal();
         relayout();
     }
     reset_blink();
-    return true;
+}
+
+bool TextField::handle_touch(const input::PointerEvent& e) {
+    const bool tapped = press_.update(e, bounds());
+    hover_.animate_to(press_.hovered ? 1.0 : 0.0);
+    switch (e.action) {
+    case input::PointerAction::down:
+        touch_blur_ = !press_.hovered;
+        return press_.hovered;
+    case input::PointerAction::up:
+        if (tapped) {
+            input::PointerEvent tap = e;
+            tap.clicks = 1;
+            press_at(tap);
+            touch_blur_ = false;
+            return true;
+        }
+        if (touch_blur_) {
+            set_focused(false);
+        }
+        touch_blur_ = false;
+        return false;
+    case input::PointerAction::leave:
+        touch_blur_ = false;
+        return false;
+    case input::PointerAction::move:
+        break;
+    }
+    return false;
 }
 
 bool TextField::handle(const input::KeyEvent& e) {

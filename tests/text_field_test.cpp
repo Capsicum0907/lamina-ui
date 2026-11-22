@@ -730,3 +730,25 @@ TEST_CASE("supporting text sits below the field and an error turns it and the ou
     canvas.finish();
     CHECK(canvas.pixel(150, 0) == scheme()[color::Role::error]);
 }
+
+TEST_CASE("a touch focuses the field on the tap, not on the press, so a scroll that starts on it does not") {
+    widgets::TextField f = field();
+    f.set_origin({0.0, 0.0});
+    const render::Rect b = f.bounds();
+    const double x = b.x + 20.0;
+    const double y = b.y + b.height / 2.0;
+    f.handle(input::PointerEvent{input::PointerAction::down, x, y, 1, input::PointerKind::touch});
+    CHECK_FALSE(f.focused());
+    f.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+    CHECK_FALSE(f.focused());
+    f.handle(input::PointerEvent{input::PointerAction::down, x, y, 1, input::PointerKind::touch});
+    f.handle(input::PointerEvent{input::PointerAction::up, x, y, 0, input::PointerKind::touch});
+    CHECK(f.focused());
+    f.handle(input::PointerEvent{input::PointerAction::down, x, b.y + b.height + 100.0, 1, input::PointerKind::touch});
+    CHECK(f.focused());
+    f.handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+    CHECK(f.focused());
+    f.handle(input::PointerEvent{input::PointerAction::down, x, b.y + b.height + 100.0, 1, input::PointerKind::touch});
+    f.handle(input::PointerEvent{input::PointerAction::up, x, b.y + b.height + 100.0, 0, input::PointerKind::touch});
+    CHECK_FALSE(f.focused());
+}

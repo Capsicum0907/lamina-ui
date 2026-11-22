@@ -108,6 +108,8 @@ public:
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
+    bool handle_touch(const input::PointerEvent& event);
+    void press_at(const input::PointerEvent& event);
     struct Hit {
         std::size_t index;
         bool upstream;
@@ -158,6 +160,7 @@ private:
     std::vector<double> line_tops_;
     double scroll_x_ = 0.0;
     bool dragging_ = false;
+    bool touch_blur_ = false;
 
     text::TextLine label_large_;
     text::TextLine label_small_;
