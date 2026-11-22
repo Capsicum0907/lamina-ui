@@ -12,7 +12,7 @@
 
 ## 読み込み中の表示
 
-`LoadingIndicator`（`lamina/widgets/loading_indicator.hpp`）は、進みが決まっていないあいだ、48 dp の入れ物の中で七つの Material の形を順に変えていきます。新しい変形は 650 ms ごとに始まります。進みが決まっているときは、0 から 1 に進むにつれて円から SoftBurst に変わります（`LoadingIndicatorOptions::progress`・`set_progress`）。`contained` で primary-container の上に置き、`size` で全体の大きさを変えます。値は[読み込み中の表示](../design-tokens.ja.md#読み込み中の表示)にあります。
+`LoadingIndicator`（`lamina/widgets/loading_indicator.hpp`）は、進みが決まっていないあいだ、48 dp の入れ物の中で七つの Material の形を順に変えていきます。新しい変形は 650 ms ごとに始まります。進みが決まっているときは、0 から 1 に進むにつれて円から `SoftBurst` の形に変わります（`LoadingIndicatorOptions::progress`・`set_progress`）。`contained` で `primary-container` の上に置き、`size` で全体の大きさを変えます。値は[読み込み中の表示](../design-tokens.ja.md#読み込み中の表示)にあります。
 
 ## 波のある進み具合の表示
 

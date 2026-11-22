@@ -26,7 +26,7 @@
 
 ## FAB メニュー
 
-`FabMenu`（`lamina/widgets/fab_menu.hpp`）は、切り替えの FAB（`ToggleFabOptions`）と、その上に開くラベルつきの項目（`FabMenuItem`）の列です。列は始まりか終わりにそろえます（`FabMenuAlignment`）。開くとボタンは角 28 dp の 56 dp に縮み、primary-container から primary に変わります。項目はボタンに近いものから順に現れます。`handle` は `toggled` と `chosen` を持つ `FabMenuResponse` を返します。開いたボタンから Tab か下の矢印で項目に入り、Enter で選び、Escape で閉じます。値は [FAB メニュー](../design-tokens.ja.md#fab-メニュー)にあります。
+`FabMenu`（`lamina/widgets/fab_menu.hpp`）は、切り替えの FAB（`ToggleFabOptions`）と、その上に開くラベルつきの項目（`FabMenuItem`）の列です。列は始まりか終わりにそろえます（`FabMenuAlignment`）。開くとボタンは角 28 dp の 56 dp に縮み、色は `primary-container` から `primary` に変わります。項目はボタンに近いものから順に現れます。`handle` は `toggled` と `chosen` を持つ `FabMenuResponse` を返します。開いたボタンから Tab か下の矢印で項目に入り、Enter で選び、Escape で閉じます。値は [FAB メニュー](../design-tokens.ja.md#fab-メニュー)にあります。
 
 ## セグメントボタン
 
@@ -38,7 +38,7 @@
 
 ## 分割ボタン
 
-`SplitButton`（`lamina/widgets/split_button.hpp`）は、前のボタンと後ろの山形の印を 2 dp あけて並べたものです。大きさはボタンの五つ（32・40・56・96・136 dp）、形は filled・tonal・outlined・elevated です。後ろの半分をオンにすると、山形が半回転し、ボタン全体の下に `SplitButtonOptions::menu` を開きます。項目を選ぶかメニューを閉じるとオフに戻ります。`handle` は `leading_clicked`・`trailing_toggled`・`chosen` を持つ `SplitButtonResponse` を返します。値は[分割ボタン](../design-tokens.ja.md#分割ボタン)にあります。
+`SplitButton`（`lamina/widgets/split_button.hpp`）は、前のボタンと後ろの山形の印を 2 dp あけて並べたものです。大きさはボタンの五つ（32・40・56・96・136 dp）、形は `filled`・`tonal`・`outlined`・`elevated` です。後ろの半分をオンにすると、山形が半回転し、ボタン全体の下に `SplitButtonOptions::menu` を開きます。項目を選ぶかメニューを閉じるとオフに戻ります。`handle` は `leading_clicked`・`trailing_toggled`・`chosen` を持つ `SplitButtonResponse` を返します。値は[分割ボタン](../design-tokens.ja.md#分割ボタン)にあります。
 
 ## 出典
 

@@ -11,11 +11,11 @@
 `TabRowOptions::scrollable` を有効にすると、タブは幅を分け合わなくなります。各タブの幅は中身に左右 16 dp ずつ足したもので、少なくとも 90 dp です。列の始まりと終わりには `edge_padding`（既定は 52 dp。Compose の `ScrollableTabRowEdgeStartPadding`）をあけます。タブが入りきるときは始まりに寄せ、引き伸ばしません。入りきらないときは列が横に送られます。
 
 - クリック・キー・`select()` でタブを選ぶと、そのタブが列の中央に来るように、両端で止めつつ、標準の空間のばねで送ります（Compose も同じばねです）。印も同時に自分のばねで動くので、どちらも飛びません。
-- 列の上でホイールを回すと、1 ノッチで 64 dp（`scroll_area_tokens.wheel_step`）送ります。縦のホイールも横に送ります。送ったとき `handle(WheelEvent)` は true を返します。
+- 列の上でホイールを回すと、1 ノッチで 64 dp（`scroll_area_tokens.wheel_step`）送ります。縦のホイールも横に送ります。送ったとき `handle(WheelEvent)` は `true` を返します。
 - 列の外に出たタブはクリックできず、読み上げの範囲は見えている部分だけです（隠れているときは空です）。
 - `scroll_extent()`・`max_scroll()`・`scroll_offset()` で、中身の幅・送れる範囲・今の送り量を得られます。幅が変わっても、送り量は飛ばずに範囲の中に収まります。
 
-指やマウスのドラッグで送ることは、まだできません。部品の一覧は、十五のページを選ぶのに横に送れる secondary のタブを使い、最初のラベルが見出しとそろうように `edge_padding` を決めています。
+指やマウスのドラッグで送ることは、まだできません。部品の一覧は、十五のページを選ぶのに横に送れる `secondary` のタブを使い、最初のラベルが見出しとそろうように `edge_padding` を決めています。
 
 ## ナビゲーションバー
 
@@ -47,7 +47,7 @@
 
 ## 柔軟な下のアプリバー
 
-`FlexibleBottomAppBar`（`lamina/widgets/flexible_bottom_app_bar.hpp`）は、surface-container の上に操作を並べた 64 dp のバーです。並べ方は、あいだを等しく空けるか、32 dp ずつ詰めるかです（`BottomBarArrangement`）。`exit_always` のときは、中身を下へ送るにつれて下の縁から外へ滑り出し、送るのが止まると、速い空間のばねで近い方の端に落ち着きます。値は[柔軟な下のアプリバー](../design-tokens.ja.md#柔軟な下のアプリバー)にあります。
+`FlexibleBottomAppBar`（`lamina/widgets/flexible_bottom_app_bar.hpp`）は、`surface-container` の上に操作を並べた 64 dp のバーです。並べ方は、あいだを等しく空けるか、32 dp ずつ詰めるかです（`BottomBarArrangement`）。`exit_always` のときは、中身を下へ送るにつれて下の縁から外へ滑り出し、送るのが止まると、速い空間のばねで近い方の端に落ち着きます。値は[柔軟な下のアプリバー](../design-tokens.ja.md#柔軟な下のアプリバー)にあります。
 
 ## 出典
 
