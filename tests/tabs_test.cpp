@@ -216,3 +216,59 @@ TEST_CASE("narrowing a scrolled tab row keeps the offset within its range withou
     settle(row);
     CHECK(row.scroll_offset() == 0.0);
 }
+
+namespace {
+
+input::PointerEvent touch_at(input::PointerAction a, double x, double y, double& time) {
+    input::PointerEvent e{a, x, y, a == input::PointerAction::down ? 1 : 0, input::PointerKind::touch, time};
+    time += 0.008;
+    return e;
+}
+
+}
+
+TEST_CASE("a touch drag scrolls scrollable tabs without selecting, a fling carries on, and a tap still selects") {
+    auto row = make_scrollable(10, 300.0);
+    double time = 1.0;
+    const double y = row.tab_rect(1).y + 10.0;
+    const double x = row.tab_rect(1).x + 10.0;
+    row.handle(touch_at(input::PointerAction::down, x, y, time));
+    row.handle(touch_at(input::PointerAction::move, x - (tokens::touch_slop - 1.0), y, time));
+    CHECK(row.scroll_offset() == 0.0);
+    CHECK_FALSE(row.dragging());
+    for (int i = 1; i <= 8; ++i) {
+        row.handle(touch_at(input::PointerAction::move, x - 20.0 * i, y, time));
+    }
+    CHECK(row.dragging());
+    CHECK(row.scroll_offset() == doctest::Approx(160.0 - tokens::touch_slop));
+    CHECK_FALSE(row.handle(touch_at(input::PointerAction::up, x - 160.0, y, time)));
+    CHECK(row.selected() == 0);
+    CHECK(row.flinging());
+    const double lifted = row.scroll_offset();
+    row.step(frame_seconds);
+    CHECK(row.scroll_offset() > lifted);
+    settle(row);
+    CHECK_FALSE(row.flinging());
+    CHECK(row.scroll_offset() == doctest::Approx(row.max_scroll()));
+    const render::Rect r = row.tab_rect(8);
+    row.handle(touch_at(input::PointerAction::down, r.x + 10.0, y, time));
+    CHECK(row.handle(touch_at(input::PointerAction::up, r.x + 10.0, y, time)));
+    CHECK(row.selected() == 8);
+}
+
+TEST_CASE("a touch on scrollable tabs during a fling stops it and does not select") {
+    auto row = make_scrollable(40, 300.0);
+    double time = 1.0;
+    const double y = row.tab_rect(1).y + 10.0;
+    row.handle(touch_at(input::PointerAction::down, 250.0, y, time));
+    for (int i = 1; i <= 6; ++i) {
+        row.handle(touch_at(input::PointerAction::move, 250.0 - 30.0 * i, y, time));
+    }
+    row.handle(touch_at(input::PointerAction::up, 70.0, y, time));
+    row.step(frame_seconds);
+    REQUIRE(row.flinging());
+    row.handle(touch_at(input::PointerAction::down, 150.0, y, time));
+    CHECK_FALSE(row.flinging());
+    CHECK_FALSE(row.handle(touch_at(input::PointerAction::up, 150.0, y, time)));
+    CHECK(row.selected() == 0);
+}

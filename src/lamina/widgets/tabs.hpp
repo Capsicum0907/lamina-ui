@@ -9,6 +9,7 @@
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/motion/spline_decay.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
@@ -17,6 +18,7 @@
 #include "lamina/widgets/enablement.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 #include "lamina/widgets/interaction.hpp"
+#include "lamina/widgets/touch_scroll.hpp"
 
 namespace lamina::widgets {
 
@@ -55,6 +57,8 @@ public:
     double scroll_extent() const;
     double scroll_offset() const { return scroll_.value(); }
     double max_scroll() const;
+    bool dragging() const { return touch_.owns(); }
+    bool flinging() const { return fling_.active(); }
 
     std::size_t count() const { return tabs_.size(); }
     std::size_t selected() const { return options_.selected; }
@@ -99,6 +103,8 @@ private:
     double centred_scroll(std::size_t index) const;
     render::Rect visible_rect(const render::Rect& r) const;
     void clamp_scroll();
+    std::optional<bool> handle_touch(const input::PointerEvent& event);
+    void follow_touch(double dx);
     double indicator_target_width() const;
     void retarget_indicator();
     void retarget_state_layers();
@@ -116,6 +122,8 @@ private:
     motion::Animated indicator_offset_;
     motion::Animated indicator_width_;
     motion::Animated scroll_;
+    TouchScroll touch_;
+    motion::Fling fling_;
     std::vector<double> natural_widths_;
     FocusIndicator focus_;
     bool row_enabled_ = true;

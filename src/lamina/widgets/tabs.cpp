@@ -2,6 +2,7 @@
 #include "lamina/widgets/tabs.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
@@ -26,7 +27,8 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
       fonts_(fonts),
       indicator_offset_(0.0, motion_scheme.default_spatial()),
       indicator_width_(0.0, motion_scheme.default_spatial()),
-      scroll_(0.0, motion_scheme.default_spatial()) {
+      scroll_(0.0, motion_scheme.default_spatial()),
+      fling_(fling_decay()) {
     const auto style = tokens::text_style(tokens::type_style(t.label));
     bool stacked = false;
     for (std::size_t i = 0; i < options_.tabs.size(); ++i) {
@@ -189,6 +191,7 @@ void TabRow::select(std::size_t index) {
     options_.selected = index;
     retarget_indicator();
     if (options_.scrollable) {
+        fling_.stop();
         scroll_.animate_to(centred_scroll(index));
     }
 }
@@ -255,12 +258,66 @@ void TabRow::set_enabled(bool enabled) {
     refresh_tabs();
 }
 
+void TabRow::follow_touch(double dx) {
+    scroll_.snap_to(std::clamp(scroll_.value() - dx, 0.0, max_scroll()));
+}
+
+std::optional<bool> TabRow::handle_touch(const input::PointerEvent& e) {
+    switch (e.action) {
+    case input::PointerAction::down: {
+        const bool inside = options_.scrollable && max_scroll() > 0.0 && contains(bounds(), e.x_dp, e.y_dp);
+        const bool caught = inside && fling_.active();
+        fling_.stop();
+        if (touch_.press(e, {inside, false}, caught).step == TouchScrollStep::caught) {
+            cancel_presses(tabs_);
+            retarget_state_layers();
+            return false;
+        }
+        return std::nullopt;
+    }
+    case input::PointerAction::move:
+        if (touch_.owns()) {
+            follow_touch(touch_.move(e).dx);
+            return false;
+        }
+        return std::nullopt;
+    case input::PointerAction::up:
+        if (touch_.owns()) {
+            const TouchScrollUpdate u = touch_.release(e);
+            follow_touch(u.dx);
+            if (std::abs(u.velocity_x) > touch_.tokens().minimum_fling_velocity) {
+                fling_.start(scroll_.value(), -u.velocity_x);
+            }
+            return false;
+        }
+        touch_.cancel();
+        return std::nullopt;
+    case input::PointerAction::leave:
+        break;
+    }
+    touch_.cancel();
+    return std::nullopt;
+}
+
 bool TabRow::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
+    if (e.kind == input::PointerKind::touch) {
+        if (const std::optional<bool> r = handle_touch(e)) {
+            return *r;
+        }
+    }
     const bool selected = select_on_click(
         tabs_, e, options_.selected, [this](std::size_t i) { return tab_enabled(i) ? visible_rect(tab_rect(i)) : render::Rect{}; },
         [this](std::size_t i) { select(i); });
     retarget_state_layers();
+    if (e.action == input::PointerAction::move && touch_.pending()) {
+        const TouchScrollUpdate u = touch_.move(e);
+        if (u.step == TouchScrollStep::claim) {
+            cancel_presses(tabs_);
+            retarget_state_layers();
+            follow_touch(u.dx);
+        }
+    }
     return selected;
 }
 
@@ -279,6 +336,7 @@ bool TabRow::handle(const input::KeyEvent& e) {
 }
 
 bool TabRow::handle(const input::WheelEvent& e) {
+    fling_.stop();
     if (!options_.scrollable || max_scroll() <= 0.0 || !contains(bounds(), e.x_dp, e.y_dp)) {
         return false;
     }
@@ -291,6 +349,8 @@ bool TabRow::handle(const input::WheelEvent& e) {
 }
 
 void TabRow::cancel_interaction() {
+    touch_.cancel();
+    fling_.stop();
     cancel_presses(tabs_);
     retarget_state_layers();
 }
@@ -298,6 +358,13 @@ void TabRow::cancel_interaction() {
 void TabRow::step(double dt) {
     indicator_offset_.step(dt);
     indicator_width_.step(dt);
+    if (fling_.active()) {
+        const double v = fling_.step(dt);
+        follow_touch(scroll_.value() - v);
+        if (std::abs(v - scroll_.value()) > touch_.tokens().edge_tolerance) {
+            fling_.stop();
+        }
+    }
     scroll_.step(dt);
     focus_.step(dt);
     for (Tab& tab : tabs_) {
@@ -308,7 +375,7 @@ void TabRow::step(double dt) {
 }
 
 bool TabRow::animating() const {
-    if (!indicator_offset_.settled() || !indicator_width_.settled() || !scroll_.settled() || !focus_.settled()) {
+    if (fling_.active() || !indicator_offset_.settled() || !indicator_width_.settled() || !scroll_.settled() || !focus_.settled()) {
         return true;
     }
     return motion::any_unsettled(tabs_, &Tab::state_layer, &Tab::selected, &Tab::enabled);
