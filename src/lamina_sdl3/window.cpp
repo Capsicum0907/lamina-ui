@@ -421,7 +421,8 @@ bool Window::next_frame(Frame& frame, bool animating) {
                 impl_->alt_alone = false;
             }
             if (const auto key = key_of(e.key)) {
-                frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod), e.key.repeat, (e.key.mod & SDL_KMOD_ALT) != 0});
+                frame.keys.push_back({*key, (e.key.mod & SDL_KMOD_SHIFT) != 0, ctrl_held(e.key.mod), e.key.repeat, (e.key.mod & SDL_KMOD_ALT) != 0,
+                                      detail::is_system_back(e.key.key)});
             }
             break;
         case SDL_EVENT_KEY_UP:
@@ -498,6 +499,10 @@ void Window::set_always_on_top(bool on_top) {
 
 void Window::set_dark_system_bars(bool dark) {
     detail::set_dark_system_bars(dark);
+}
+
+void Window::system_back() {
+    detail::system_back();
 }
 
 bool Window::system_dark_theme() const {

@@ -184,6 +184,7 @@ struct KeyEvent {
     bool ctrl = false;
     bool repeat = false;
     bool alt = false;
+    bool back = false;
 };
 
 enum class TextEventKind { commit, compose };

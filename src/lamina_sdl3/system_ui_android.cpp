@@ -41,6 +41,14 @@ bool call_activity(const char* method, const char* signature, bool argument) {
 
 }
 
+bool is_system_back(SDL_Keycode key) {
+    return key == SDLK_AC_BACK;
+}
+
+void system_back() {
+    SDL_SendAndroidBackButton();
+}
+
 void set_dark_system_bars(bool dark) {
     if (!call_activity(dark_system_bars_method, dark_system_bars_signature, dark)) {
         report_error(std::string("lamina: the activity has no ") + dark_system_bars_method + dark_system_bars_signature +

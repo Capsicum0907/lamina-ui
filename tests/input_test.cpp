@@ -50,3 +50,13 @@ TEST_CASE("only a touch is followed by a leave when it lifts, so the mouse and t
     CHECK_FALSE(lamina::input::leaves_after_up(lamina::input::PointerKind::mouse));
     CHECK_FALSE(lamina::input::leaves_after_up(lamina::input::PointerKind::pen));
 }
+
+TEST_CASE("a key event is the system Back only when the window marks it, so a keyboard Escape built the usual way never leaves the app") {
+    const lamina::input::KeyEvent escape{Key::escape, false};
+    CHECK_FALSE(escape.back);
+    const lamina::input::KeyEvent with_modifiers{Key::escape, true, true, true, true};
+    CHECK_FALSE(with_modifiers.back);
+    const lamina::input::KeyEvent back{Key::escape, false, false, false, false, true};
+    CHECK(back.back);
+    CHECK(back.key == Key::escape);
+}

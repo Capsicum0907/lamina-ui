@@ -31,6 +31,7 @@ public:
     virtual void toggle_maximize() {}
     virtual void close() {}
     virtual void set_dark_theme(bool) {}
+    virtual void system_back() {}
 };
 
 struct GalleryStart {

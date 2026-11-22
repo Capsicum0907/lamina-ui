@@ -203,6 +203,7 @@ struct Gallery::Impl {
     input::PointerEvent page_event(const input::PointerEvent& e);
     widgets::ScrollArea& scroll() { return page_box->scroll(); }
     void reveal_focus();
+    bool route(const input::KeyEvent& k);
     widgets::FocusManager& current_focus() { return page == 0 ? focus : pages[page - 1]->focus(); }
     Page* current_page() const { return page == 0 ? nullptr : pages[page - 1].get(); }
 
@@ -428,6 +429,31 @@ void Gallery::Impl::place(const sdl3::Frame& frame) {
     if (title_bar) {
         host.set_caption_regions(title_bar->regions());
     }
+}
+
+bool Gallery::Impl::route(const input::KeyEvent& k) {
+    if (Page* p = current_page()) {
+        return p->handle(k) || header_widgets.handle(k);
+    }
+    if (overlay.handle(k)) {
+        return true;
+    }
+    bool consumed = false;
+    for (auto& t : tooltips) {
+        consumed = t->handle(k).consumed || consumed;
+    }
+    if (consumed || focus.handle(k)) {
+        return true;
+    }
+    bool used = false;
+    if (const auto seed = chips.handle(k)) {
+        options.seed = *seed;
+        retheme();
+        used = true;
+    }
+    used = controls.handle(k) || used;
+    used = chrome.handle(k) || used;
+    return header_widgets.handle(k) || used;
 }
 
 void Gallery::Impl::reveal_focus() {
@@ -999,30 +1025,11 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
     }
     for (const auto& k : frame.keys) {
         g.source = input::InputSource::keyboard;
-        if (Page* p = g.current_page()) {
-            if (!p->handle(k)) {
-                g.header_widgets.handle(k);
-            }
-            continue;
+        const bool typing = caret_area().has_value();
+        const bool consumed = g.route(k) || typing;
+        if (k.back && !k.repeat && !consumed) {
+            g.host.system_back();
         }
-        if (g.overlay.handle(k)) {
-            continue;
-        }
-        bool consumed = false;
-        for (auto& t : g.tooltips) {
-            const widgets::TooltipResponse r = t->handle(k);
-            consumed = consumed || r.consumed;
-        }
-        if (consumed || g.focus.handle(k)) {
-            continue;
-        }
-        if (const auto seed = g.chips.handle(k)) {
-            g.options.seed = *seed;
-            g.retheme();
-        }
-        g.controls.handle(k);
-        g.chrome.handle(k);
-        g.header_widgets.handle(k);
     }
     if (!frame.keys.empty()) {
         g.reveal_focus();

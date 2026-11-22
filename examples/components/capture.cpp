@@ -70,6 +70,8 @@ struct CaptureStyle {
     std::string_view side_scroll_target = "Horizontal time picker";
     int side_focus_tabs = 8;
     std::string_view redraw_target = "Send";
+    std::string_view back_menu = "Menu";
+    std::string_view back_field = "Name";
     int redraw_frame_limit = 600;
     int redraw_tolerance = 2;
     std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
@@ -109,10 +111,13 @@ public:
     input::Clipboard* clipboard() override { return &clipboard_; }
     void set_dark_theme(bool dark) override { dark_theme_ = dark; }
     std::optional<bool> dark_theme() const { return dark_theme_; }
+    void system_back() override { ++system_backs_; }
+    int system_backs() const { return system_backs_; }
 
 private:
     MemoryClipboard clipboard_;
     std::optional<bool> dark_theme_;
+    int system_backs_ = 0;
 };
 
 class Driver {
@@ -212,6 +217,12 @@ public:
         frame();
         wait(0.08);
         pointer_events_.push_back(at(PointerAction::up));
+        frame();
+    }
+
+    void back() {
+        key_events_.push_back({Key::escape, false, false, false, false, true});
+        badge("Back");
         frame();
     }
 
@@ -2979,6 +2990,51 @@ std::optional<std::string> check_dark_theme_host(const examples::components::Gal
     return std::nullopt;
 }
 
+std::optional<std::string> check_back(const examples::components::GalleryFonts& gallery_fonts, const text::FontStack& fonts,
+                                      const icons::IconFont& icon_font, WindowSize window, const CaptureStyle& style) {
+    auto run = [&](std::string_view open, auto setup) -> std::optional<std::string> {
+        HeadlessHost host;
+        examples::components::Gallery gallery(gallery_fonts, icon_font, host);
+        Driver d(gallery, fonts, 1.0, nullptr, window);
+        d.settle();
+        setup(d, gallery);
+        d.settle();
+        const int opened = open.empty() ? 0 : 1;
+        for (int press = 0; press <= opened; ++press) {
+            d.back();
+            d.settle();
+            const int expected = press < opened ? 0 : 1;
+            if (host.system_backs() != expected) {
+                return "back: press " + std::to_string(press + 1) + (open.empty() ? std::string(" with nothing open") : " after opening " + std::string(open)) +
+                       " handed Back to the system " + std::to_string(host.system_backs()) + " times, expected " + std::to_string(expected);
+            }
+        }
+        return std::nullopt;
+    };
+    if (auto p = run("", [](Driver&, examples::components::Gallery&) {})) {
+        return p;
+    }
+    if (auto p = run(style.back_menu, [&](Driver& d, examples::components::Gallery& g) {
+            tab_to(d, g, style.back_menu);
+            d.key(Key::enter);
+        })) {
+        return p;
+    }
+    if (auto p = run(style.back_field, [&](Driver& d, examples::components::Gallery& g) { tab_to(d, g, style.back_field); })) {
+        return p;
+    }
+    HeadlessHost host;
+    examples::components::Gallery gallery(gallery_fonts, icon_font, host);
+    Driver d(gallery, fonts, 1.0, nullptr, window);
+    d.settle();
+    d.key(Key::escape);
+    d.settle();
+    if (host.system_backs() != 0) {
+        return std::string("back: Escape from a keyboard handed Back to the system");
+    }
+    return std::nullopt;
+}
+
 int usage() {
     std::string keys;
     for (const text::TypefaceSpec& t : text::typefaces) {
@@ -3037,6 +3093,10 @@ int main(int argc, char** argv) {
                 Driver driver(gallery, fonts, 1.0, nullptr, window);
                 driver.settle();
                 if (const auto problem = check_dark_theme_host(examples::components::GalleryFonts{load, typeface}, icon_font)) {
+                    std::printf("%s\n", problem->c_str());
+                    ++count;
+                }
+                if (const auto problem = check_back(examples::components::GalleryFonts{load, typeface}, fonts, icon_font, window, style)) {
                     std::printf("%s\n", problem->c_str());
                     ++count;
                 }

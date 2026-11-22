@@ -66,6 +66,7 @@ public:
     void set_minimum_size(double width_dp, double height_dp);
     void set_always_on_top(bool on_top);
     void set_dark_system_bars(bool dark);
+    void system_back();
     bool system_dark_theme() const;
     void* native_handle() const;
     void close();

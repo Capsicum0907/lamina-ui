@@ -28,6 +28,7 @@ public:
     void toggle_maximize() override { window_.toggle_maximize(); }
     void close() override { window_.close(); }
     void set_dark_theme(bool dark) override { window_.set_dark_system_bars(dark); }
+    void system_back() override { window_.system_back(); }
 
 private:
     sdl3::Window& window_;
