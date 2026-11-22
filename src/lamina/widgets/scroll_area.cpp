@@ -1,6 +1,7 @@
 #include "lamina/widgets/scroll_area.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "lamina/color/mix.hpp"
 #include "lamina/motion/lerp.hpp"
@@ -19,7 +20,9 @@ ScrollArea::ScrollArea()
       offset_x_(0.0, t.offset_spring),
       visibility_(0.0, t.bar_spring),
       hover_(0.0, t.bar_spring),
-      hover_x_(0.0, t.bar_spring) {}
+      hover_x_(0.0, t.bar_spring),
+      fling_(fling_decay()),
+      fling_x_(fling_decay()) {}
 
 void ScrollArea::set_viewport(const render::Rect& viewport) {
     viewport_ = viewport;
@@ -72,6 +75,7 @@ void ScrollArea::scroll_by(double dy) {
 }
 
 void ScrollArea::scroll_to(double offset) {
+    fling_.stop();
     const double before = offset_.target();
     retarget(offset);
     if (offset_.target() != before) {
@@ -80,6 +84,7 @@ void ScrollArea::scroll_to(double offset) {
 }
 
 void ScrollArea::jump_to(double offset) {
+    fling_.stop();
     offset_.snap_to(std::clamp(offset, 0.0, max_offset()));
 }
 
@@ -98,6 +103,7 @@ void ScrollArea::scroll_by_x(double dx) {
 }
 
 void ScrollArea::scroll_to_x(double offset) {
+    fling_x_.stop();
     const double before = offset_x_.target();
     retarget_x(offset);
     if (offset_x_.target() != before) {
@@ -106,6 +112,7 @@ void ScrollArea::scroll_to_x(double offset) {
 }
 
 void ScrollArea::jump_to_x(double offset) {
+    fling_x_.stop();
     offset_x_.snap_to(std::clamp(offset, 0.0, max_offset_x()));
 }
 
@@ -188,6 +195,14 @@ bool ScrollArea::press_bar_x(const input::PointerEvent& e) {
 }
 
 bool ScrollArea::handle(const input::PointerEvent& e) {
+    if (e.kind == input::PointerKind::touch && e.action != input::PointerAction::leave && !dragging_) {
+        pointer_.reset();
+        bar_hovered_ = false;
+        bar_x_hovered_ = false;
+        hover_.animate_to(0.0);
+        hover_x_.animate_to(0.0);
+        return false;
+    }
     if (e.action == input::PointerAction::leave) {
         pointer_.reset();
         bar_hovered_ = false;
@@ -265,7 +280,93 @@ bool ScrollArea::handle(const input::KeyEvent& e) {
     return false;
 }
 
+void ScrollArea::stop_fling() {
+    fling_.stop();
+    fling_x_.stop();
+}
+
+input::ScrollAxes ScrollArea::touch_axes() const {
+    return {scrollable_x(), scrollable()};
+}
+
+void ScrollArea::follow_y(double offset) {
+    offset_.snap_to(std::clamp(offset, 0.0, max_offset()));
+}
+
+void ScrollArea::follow_x(double offset) {
+    offset_x_.snap_to(std::clamp(offset, 0.0, max_offset_x()));
+}
+
+void ScrollArea::follow_touch(const TouchScrollUpdate& u) {
+    if (u.dy != 0.0) {
+        follow_y(offset_.value() - u.dy);
+    }
+    if (u.dx != 0.0) {
+        follow_x(offset_x_.value() - u.dx);
+    }
+    reveal();
+}
+
+ScrollArea::TouchRoute ScrollArea::touch_begin(const input::PointerEvent& e) {
+    pointer_.reset();
+    switch (e.action) {
+    case input::PointerAction::down: {
+        const bool inside = contains(viewport_, e.x_dp, e.y_dp);
+        const input::ScrollAxes axes = inside ? touch_axes() : input::ScrollAxes{};
+        const bool caught = axes.any() && flinging();
+        if (caught) {
+            stop_fling();
+        }
+        if (touch_.press(e, axes, caught).step == TouchScrollStep::caught) {
+            return TouchRoute::claimed;
+        }
+        return TouchRoute::deliver_then_check;
+    }
+    case input::PointerAction::move:
+        if (touch_.owns()) {
+            follow_touch(touch_.move(e));
+            return TouchRoute::consumed;
+        }
+        return touch_.pending() ? TouchRoute::deliver_then_check : TouchRoute::deliver;
+    case input::PointerAction::up:
+        if (touch_.owns()) {
+            const TouchScrollUpdate u = touch_.release(e);
+            follow_touch(u);
+            const double floor = touch_.tokens().minimum_fling_velocity;
+            if (std::abs(u.velocity_y) > floor) {
+                fling_.start(offset_.value(), -u.velocity_y);
+            }
+            if (std::abs(u.velocity_x) > floor) {
+                fling_x_.start(offset_x_.value(), -u.velocity_x);
+            }
+            hide_in_ = t.hide_delay_seconds;
+            return TouchRoute::consumed;
+        }
+        touch_.cancel();
+        return TouchRoute::deliver;
+    case input::PointerAction::leave:
+        break;
+    }
+    touch_.cancel();
+    return TouchRoute::deliver;
+}
+
+bool ScrollArea::touch_after_children(const input::PointerEvent& e) {
+    if (e.action != input::PointerAction::move || !touch_.pending()) {
+        return false;
+    }
+    const TouchScrollUpdate u = touch_.move(e);
+    if (u.step != TouchScrollStep::claim) {
+        return false;
+    }
+    stop_fling();
+    follow_touch(u);
+    return true;
+}
+
 void ScrollArea::cancel_interaction() {
+    touch_.cancel();
+    stop_fling();
     dragging_ = false;
     drag_ = Drag::none;
     bar_hovered_ = false;
@@ -275,7 +376,7 @@ void ScrollArea::cancel_interaction() {
 }
 
 input::PointerEvent ScrollArea::to_content(const input::PointerEvent& e) const {
-    if (e.action == input::PointerAction::leave || dragging_ || !contains(viewport_, e.x_dp, e.y_dp) || over_bar(e.x_dp, e.y_dp) ||
+    if (e.action == input::PointerAction::leave || dragging() || !contains(viewport_, e.x_dp, e.y_dp) || over_bar(e.x_dp, e.y_dp) ||
         over_bar_x(e.x_dp, e.y_dp)) {
         return {input::PointerAction::leave, 0.0, 0.0};
     }
@@ -299,6 +400,23 @@ std::optional<input::PointerEvent> ScrollArea::rehover() {
 }
 
 void ScrollArea::step(double dt) {
+    const double edge = touch_.tokens().edge_tolerance;
+    if (fling_.active()) {
+        const double v = fling_.step(dt);
+        follow_y(v);
+        if (std::abs(v - offset_.value()) > edge) {
+            fling_.stop();
+        }
+        reveal();
+    }
+    if (fling_x_.active()) {
+        const double v = fling_x_.step(dt);
+        follow_x(v);
+        if (std::abs(v - offset_x_.value()) > edge) {
+            fling_x_.stop();
+        }
+        reveal();
+    }
     offset_.step(dt);
     offset_x_.step(dt);
     visibility_.step(dt);
@@ -311,7 +429,7 @@ void ScrollArea::step(double dt) {
     if (!scrollable() && !scrollable_x()) {
         hide_in_ = -1.0;
         visibility_.animate_to(0.0);
-    } else if (hide_in_ >= 0.0 && !hovered && !dragging_) {
+    } else if (hide_in_ >= 0.0 && !hovered && !dragging() && !flinging()) {
         hide_in_ -= dt;
         if (hide_in_ < 0.0) {
             visibility_.animate_to(0.0);
@@ -320,11 +438,11 @@ void ScrollArea::step(double dt) {
 }
 
 bool ScrollArea::animating() const {
-    return !offset_.settled() || !offset_x_.settled() || !visibility_.settled() || !hover_.settled() || !hover_x_.settled();
+    return flinging() || !offset_.settled() || !offset_x_.settled() || !visibility_.settled() || !hover_.settled() || !hover_x_.settled();
 }
 
 double ScrollArea::next_wake_seconds() const {
-    if (hide_in_ < 0.0 || bar_hovered_ || bar_x_hovered_ || dragging_) {
+    if (hide_in_ < 0.0 || bar_hovered_ || bar_x_hovered_ || dragging() || flinging()) {
         return -1.0;
     }
     return hide_in_;

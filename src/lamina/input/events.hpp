@@ -11,6 +11,15 @@ enum class InputSource { pointer, keyboard };
 
 enum class PointerKind { mouse, touch, pen };
 
+struct ScrollAxes {
+    bool horizontal = false;
+    bool vertical = false;
+
+    constexpr bool any() const { return horizontal || vertical; }
+    constexpr bool both() const { return horizontal && vertical; }
+    constexpr ScrollAxes operator|(ScrollAxes other) const { return {horizontal || other.horizontal, vertical || other.vertical}; }
+};
+
 struct PointerEvent {
     PointerAction action;
     double x_dp;
@@ -20,6 +29,7 @@ struct PointerEvent {
     double time_seconds = 0.0;
     bool shift = false;
     bool ctrl = false;
+    ScrollAxes waiting_scrollers;
 };
 
 struct ContextClick {
