@@ -84,6 +84,7 @@ public:
     bool item_enabled(std::size_t index) const;
     void set_item_badge(std::size_t index, std::optional<BadgeSpec> badge);
     const ScrollArea& scroll() const { return scroll_; }
+    bool holds_pointer() const { return scroll_.dragging(); }
 
     bool focused() const { return focus_.focused(); }
     void set_focused(bool focused);
@@ -193,6 +194,7 @@ public:
     double scrim_alpha() const { return slide_.fraction(); }
     bool is_open() const { return slide_.shown(); }
     bool visible() const { return slide_.shown(); }
+    bool holds_pointer() const { return is_open() || slide_.dragging() || sheet_.holds_pointer(); }
     void set_gestures_enabled(bool enabled) { options_.gestures = enabled; }
 
     DrawerResponse handle(const input::PointerEvent& event);
@@ -239,6 +241,7 @@ public:
     bool focused() const { return sheet_.focused(); }
     void set_focused(bool focused) { sheet_.set_focused(focused); }
     bool can_focus() const { return slide_.open_or_opening() && sheet_.can_focus(); }
+    bool holds_pointer() const { return slide_.dragging() || sheet_.holds_pointer(); }
     void set_enabled(bool enabled) { sheet_.set_enabled(enabled); }
     bool enabled() const { return sheet_.enabled(); }
 

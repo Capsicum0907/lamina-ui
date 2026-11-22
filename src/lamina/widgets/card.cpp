@@ -105,6 +105,10 @@ void Card::set_enabled(bool enabled) {
     }
 }
 
+bool Card::holds_pointer() const {
+    return options_.widgets && options_.widgets->holds_pointer();
+}
+
 bool Card::handle(const input::PointerEvent& e) {
     if (options_.widgets) {
         options_.widgets->handle(e);

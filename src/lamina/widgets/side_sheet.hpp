@@ -80,6 +80,7 @@ public:
     bool is_open() const { return visible(); }
     bool visible() const;
     bool layout_changing() const { return !modal() && !drag_.idle(); }
+    bool holds_pointer() const { return (modal() && visible()) || drag_.dragging() || content_.holds_pointer(); }
 
     IconButton* close_button() { return close_ ? close_.get() : nullptr; }
     IconButton* back_button() { return back_ ? back_.get() : nullptr; }

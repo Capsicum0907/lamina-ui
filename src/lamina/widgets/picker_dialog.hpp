@@ -96,6 +96,7 @@ public:
     void set_area(const render::Rect& area);
     bool is_open() const { return popup_.is_open(); }
     bool visible() const { return popup_.visible(); }
+    bool holds_pointer() const { return is_open(); }
     render::Rect bounds() const { return surface_; }
     render::Rect confirm_bounds() const { return confirm_.bounds(); }
     render::Rect dismiss_bounds() const { return dismiss_.bounds(); }

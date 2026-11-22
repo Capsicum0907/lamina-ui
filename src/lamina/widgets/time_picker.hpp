@@ -100,6 +100,7 @@ public:
     AccessibleNode accessible() const;
 
     TimePickerResponse handle(const input::PointerEvent& event);
+    bool holds_pointer() const { return dragging_; }
     TimePickerResponse handle(const input::KeyEvent& event);
     void handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent&) { return false; }

@@ -54,6 +54,7 @@ public:
     void set_value(double value);
     double fraction() const;
     bool dragging() const { return dragging_; }
+    bool holds_pointer() const { return dragging_; }
     double handle_width() const;
     double handle_center_x() const;
     render::Point handle_center() const;

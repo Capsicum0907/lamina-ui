@@ -70,6 +70,7 @@ public:
     std::optional<std::size_t> highlighted() const { return highlight_; }
     bool access_keys_shown() const { return access_keys_fade_.target() > 0.0; }
     bool engaged() const { return active_ || open_.has_value(); }
+    bool holds_pointer() const { return open_.has_value(); }
 
     bool enabled() const { return enabled_.enabled(); }
     void set_enabled(bool enabled);

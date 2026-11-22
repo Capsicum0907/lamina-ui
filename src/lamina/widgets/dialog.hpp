@@ -55,6 +55,7 @@ public:
     render::Rect area() const { return area_; }
     bool is_open() const { return popup_.is_open(); }
     bool visible() const { return popup_.visible(); }
+    bool holds_pointer() const { return is_open(); }
     double opacity() const { return popup_.opacity(); }
     double scale() const { return popup_.scale(); }
     render::Rect bounds() const { return surface_; }

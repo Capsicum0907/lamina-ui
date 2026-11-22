@@ -64,6 +64,7 @@ public:
     std::string text() const { return editor_.text(); }
     bool editing() const { return editor_.focused(); }
     bool scrubbing() const { return scrubbing_; }
+    bool holds_pointer() const { return scrubbing_; }
     bool error() const { return error_; }
     std::optional<input::Cursor> cursor() const;
     tokens::Density density() const { return options_.density; }

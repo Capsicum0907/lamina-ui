@@ -48,6 +48,7 @@ public:
     void collapse();
     bool expanded() const { return target_expanded_; }
     bool is_open() const { return showing(); }
+    bool holds_pointer() const { return is_open() || slide_.dragging(); }
     bool showing() const;
     double scrim_alpha() const { return std::clamp(scrim_.value(), 0.0, 1.0); }
     double offset() const { return slide_.offset(); }

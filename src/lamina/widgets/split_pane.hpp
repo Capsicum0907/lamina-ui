@@ -50,6 +50,7 @@ public:
     void set_first_size(double size);
     bool hovered() const { return hovered_; }
     bool dragging() const { return dragging_; }
+    bool holds_pointer() const { return dragging_; }
     std::optional<input::Cursor> cursor() const;
 
     bool focused() const { return focus_.focused(); }

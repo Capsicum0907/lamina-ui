@@ -132,6 +132,7 @@ public:
     void set_enabled(bool enabled);
 
     PaneScaffoldResponse handle(const input::PointerEvent& event);
+    bool holds_pointer() const { return expansion_.dragging(); }
     PaneScaffoldResponse handle(const input::KeyEvent& event);
     void handle(const input::TextEvent& event);
     void cancel_interaction();

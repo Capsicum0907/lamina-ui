@@ -44,6 +44,20 @@ template <typename W>
 concept Cancellable = requires(W& w) { w.cancel_interaction(); };
 
 template <typename W>
+concept HoldsPointer = requires(const W& w) {
+    { w.holds_pointer() } -> std::convertible_to<bool>;
+};
+
+template <typename W>
+bool holds_pointer(const W& w) {
+    if constexpr (HoldsPointer<W>) {
+        return w.holds_pointer();
+    } else {
+        return false;
+    }
+}
+
+template <typename W>
 concept Focusable = requires(W& w, const W& cw, bool focused) {
     { cw.focused() } -> std::convertible_to<bool>;
     w.set_focused(focused);

@@ -57,6 +57,7 @@ public:
     bool dragging() const { return dragging_ || touch_.owns(); }
     bool flinging() const { return fling_.active() || fling_x_.active(); }
     bool scroll_in_progress() const { return dragging() || flinging(); }
+    bool holds_pointer() const { return dragging(); }
     void stop_fling();
     double next_wake_seconds() const;
     double bar_visibility() const { return visibility_.value(); }

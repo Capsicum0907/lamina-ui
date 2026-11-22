@@ -47,6 +47,7 @@ public:
     std::optional<calendar::Date> selected() const { return selected_; }
     void set_selected(std::optional<calendar::Date> date);
     bool is_open() const { return popup_.is_open(); }
+    bool holds_pointer() const { return is_open() || picker_.holds_pointer(); }
     void open(input::InputSource source = input::InputSource::pointer);
     void close();
     void set_locale(const calendar::CalendarLocale& locale);

@@ -7,6 +7,8 @@
 #include "lamina/tokens/drag.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/scroll_area.hpp"
+#include "lamina/widgets/slider.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 #include "support.hpp"
 
@@ -331,4 +333,63 @@ TEST_CASE("the touch angle test follows Compose's bounds") {
     CHECK(widgets::angle_aligned(ts, {false, true}, 31.0));
     CHECK_FALSE(widgets::angle_aligned(ts, {false, true}, 30.0));
     CHECK(widgets::angle_aligned(ts, {true, true}, 45.0));
+}
+
+TEST_CASE("a slider in a widget set holds a press that starts on it, so the page does not scroll") {
+    auto s = vertical();
+    widgets::WidgetSet set;
+    auto& slider = set.emplace<widgets::Slider>(widgets::SliderOptions{.value = 0.5});
+    slider.set_width(200.0);
+    slider.set_origin({20.0, 40.0});
+    const render::Rect b = slider.bounds();
+    const double x = b.x + b.width / 2.0;
+    const double y = b.y + b.height / 2.0;
+    Finger f;
+    auto deliver = [&](const input::PointerEvent& e) {
+        set.handle(e);
+        return set.holds_pointer();
+    };
+    s.route(f.at(PointerAction::down, x, y), deliver);
+    CHECK(set.holds_pointer());
+    for (int i = 1; i <= 10; ++i) {
+        s.route(f.at(PointerAction::move, x + 6.0 * i, y - 6.0 * i), deliver);
+    }
+    CHECK(s.offset() == 0.0);
+    CHECK(slider.value() > 0.5);
+    s.route(f.at(PointerAction::up, x + 60.0, y - 60.0), deliver);
+    CHECK_FALSE(set.holds_pointer());
+    CHECK_FALSE(s.flinging());
+}
+
+TEST_CASE("a vertical drag that starts off the slider scrolls the page") {
+    auto s = vertical();
+    widgets::WidgetSet set;
+    auto& slider = set.emplace<widgets::Slider>(widgets::SliderOptions{.value = 0.5});
+    slider.set_width(200.0);
+    slider.set_origin({20.0, 40.0});
+    Finger f;
+    auto deliver = [&](const input::PointerEvent& e) {
+        set.handle(e);
+        return set.holds_pointer();
+    };
+    swipe(s, f, deliver, 150.0, 300.0, 0.0, -60.0, 6);
+    CHECK(s.offset() > 40.0);
+    CHECK(slider.value() == 0.5);
+}
+
+TEST_CASE("the touch drag keeps the scroll in progress for followers until the fling ends") {
+    auto s = vertical(20000.0);
+    Child child;
+    Finger f;
+    auto deliver = [&](const input::PointerEvent& e) { return child.handle(e); };
+    swipe(s, f, deliver, 150.0, 300.0, 0.0, -100.0, 6, false);
+    CHECK(s.scroll_in_progress());
+    CHECK(s.holds_pointer());
+    s.route(f.at(PointerAction::up, 150.0, 200.0), deliver);
+    CHECK_FALSE(s.holds_pointer());
+    CHECK(s.scroll_in_progress());
+    for (int i = 0; i < 10000 && s.flinging(); ++i) {
+        s.step(frame_seconds);
+    }
+    CHECK_FALSE(s.scroll_in_progress());
 }

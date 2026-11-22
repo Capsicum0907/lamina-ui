@@ -59,6 +59,7 @@ public:
     double max_scroll() const;
     bool dragging() const { return touch_.owns(); }
     bool flinging() const { return fling_.active(); }
+    bool holds_pointer() const { return dragging(); }
 
     std::size_t count() const { return tabs_.size(); }
     std::size_t selected() const { return options_.selected; }

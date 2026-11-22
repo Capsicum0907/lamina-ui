@@ -78,6 +78,7 @@ public:
     void close();
     bool is_open() const { return popup_.is_open(); }
     bool visible() const { return popup_.visible(); }
+    bool holds_pointer() const { return is_open(); }
     double scale() const { return popup_.scale(); }
     double opacity() const { return popup_.opacity(); }
     render::Point transform_origin() const { return pivot_; }

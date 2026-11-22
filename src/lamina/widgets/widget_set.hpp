@@ -117,6 +117,10 @@ public:
         return std::any_of(entries_.begin(), entries_.end(), [](const auto& e) { return !e->removed && e->animating(); });
     }
 
+    bool holds_pointer() const {
+        return std::any_of(entries_.begin(), entries_.end(), [](const auto& e) { return !e->removed && e->holds_pointer(); });
+    }
+
     std::size_t size() const {
         return static_cast<std::size_t>(std::count_if(entries_.begin(), entries_.end(), [](const auto& e) { return !e->removed; }));
     }
@@ -139,6 +143,7 @@ private:
         virtual void step(double dt_seconds) = 0;
         virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
         virtual bool animating() const = 0;
+        virtual bool holds_pointer() const = 0;
         virtual void cancel_interaction() = 0;
         virtual void set_enabled(bool enabled) = 0;
         virtual void set_density(tokens::Density density) = 0;
@@ -172,6 +177,7 @@ private:
                 return false;
             }
         }
+        bool holds_pointer() const override { return widgets::holds_pointer(widget); }
         void cancel_interaction() override {
             if constexpr (Cancellable<Widget>) {
                 widget.cancel_interaction();

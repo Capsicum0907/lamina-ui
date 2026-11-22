@@ -29,6 +29,7 @@ struct CardOptions {
 class Card {
 public:
     explicit Card(CardOptions options);
+    bool holds_pointer() const;
 
     layout::Size measure(const layout::Constraints& c);
     void arrange(const render::Rect& r);

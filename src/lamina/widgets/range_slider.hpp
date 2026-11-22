@@ -75,6 +75,7 @@ public:
     void set_range(double start, double end);
     double value(RangeThumb thumb) const { return values_[index(thumb)]; }
     std::optional<RangeThumb> dragging() const { return dragging_; }
+    bool holds_pointer() const { return dragging_.has_value(); }
     RangeSliderThumb& thumb(RangeThumb which) { return thumbs_[index(which)]; }
     const RangeSliderThumb& thumb(RangeThumb which) const { return thumbs_[index(which)]; }
     render::Rect handle_rect(RangeThumb thumb) const;

@@ -75,6 +75,7 @@ public:
     void collapse();
     bool expanded() const { return progress_.target() == 1.0; }
     bool is_open() const;
+    bool holds_pointer() const { return is_open() || results_.holds_pointer(); }
     double progress() const { return std::clamp(progress_.value(), 0.0, 1.0); }
     double raw_progress() const { return progress_.value(); }
 

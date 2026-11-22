@@ -95,7 +95,7 @@ TouchScrollUpdate TouchScroll::move(const input::PointerEvent& e) {
         travel = std::abs(dy);
         over_y = dy - sign_of(dy) * slop;
     }
-    if (travel <= 0.0 || travel < slop) {
+    if (travel <= slop) {
         return {};
     }
     const double angle = drag_angle(dx, dy);

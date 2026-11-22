@@ -77,6 +77,7 @@ public:
     AccessibleNode accessible() const;
 
     ListViewResponse handle(const input::PointerEvent& event);
+    bool holds_pointer() const { return scroll_.dragging(); }
     ListViewResponse handle(const input::KeyEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
