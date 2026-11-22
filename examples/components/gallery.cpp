@@ -13,10 +13,12 @@
 
 #include "common/caption_cell.hpp"
 #include "components/pages.hpp"
+#include "components/reflow.hpp"
 #include "common/theme.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/layout/layout.hpp"
+#include "lamina/layout/window_size_class.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/button.hpp"
@@ -30,6 +32,7 @@
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/overlay_stack.hpp"
 #include "lamina/widgets/radio_button.hpp"
+#include "lamina/widgets/scroll_area.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/tokens/tabs.hpp"
@@ -63,6 +66,8 @@ struct Layout {
     double slider_width = 240.0;
     double tabs_width = 380.0;
     double field_gap = 8.0;
+    double line_gap = 8.0;
+    double caption_gap = 8.0;
     double type_gap = 24.0;
     color::Role text = color::Role::on_surface;
     color::Role caption = color::Role::on_surface_variant;
@@ -79,8 +84,39 @@ struct Layout {
     double status_gap = 24.0;
     std::string font_name_prefix = "Font, ";
     std::string font_report_prefix = "Font: ";
+    std::string width_report_prefix = "Width: ";
     std::array<const char*, 15> page_names{"Basics", "Chips", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
                                            "Groups", "Progress", "Toolbars", "Adaptive", "Desktop"};
+};
+
+class ScrolledBody final : public layout::Node {
+public:
+    ScrolledBody(layout::NodePtr content, std::vector<widgets::ScrollArea>& scrolls, const std::size_t& current)
+        : content_(std::move(content)), scrolls_(scrolls), current_(current) {}
+
+    widgets::ScrollArea& scroll() const { return scrolls_[current_]; }
+
+protected:
+    layout::Size on_measure(const layout::Constraints& c) override {
+        layout::Size s = content_->measure({0.0, c.max_width, 0.0, layout::unbounded});
+        if (!std::isfinite(s.height)) {
+            s = content_->measure({0.0, c.max_width, 0.0, c.max_height});
+        }
+        content_height_ = s.height;
+        return c.constrain({std::isfinite(c.max_width) ? c.max_width : s.width, std::isfinite(c.max_height) ? c.max_height : s.height});
+    }
+    void on_arrange(const render::Rect& r) override {
+        widgets::ScrollArea& a = scroll();
+        a.set_viewport(r);
+        a.set_content_height(content_height_);
+        content_->arrange({r.x, r.y - a.offset(), r.width, content_height_});
+    }
+
+private:
+    layout::NodePtr content_;
+    std::vector<widgets::ScrollArea>& scrolls_;
+    const std::size_t& current_;
+    double content_height_ = 0.0;
 };
 
 class PageSwitch final : public layout::Node {
@@ -120,6 +156,7 @@ struct GalleryState {
     color::SchemeOptions options = color::default_scheme_options;
     bool enabled = true;
     bool font_focused = false;
+    std::optional<layout::WindowWidthClass> reported_width;
 };
 
 const char* checkbox_name(tokens::CheckboxState s) {
@@ -160,6 +197,10 @@ struct Gallery::Impl {
     void show_pending_page();
     void paint_veil(render::Canvas& canvas, const color::ColorScheme& scheme) const;
     void handle_title_bar(const input::PointerEvent& e);
+    void set_size_class(const layout::WindowSizeClass& c);
+    input::PointerEvent page_event(const input::PointerEvent& e);
+    widgets::ScrollArea& scroll() { return page_box->scroll(); }
+    void reveal_focus();
     widgets::FocusManager& current_focus() { return page == 0 ? focus : pages[page - 1]->focus(); }
     Page* current_page() const { return page == 0 ? nullptr : pages[page - 1].get(); }
 
@@ -189,7 +230,7 @@ struct Gallery::Impl {
     std::size_t page = 0;
     std::optional<std::size_t> pending_page;
     motion::Animated veil{0.0, layout.veil_spring};
-    std::shared_ptr<layout::Linear> page_box;
+    std::shared_ptr<ScrolledBody> page_box;
     widgets::IconButton* dark_toggle = nullptr;
     widgets::Button* menu_button = nullptr;
     widgets::Button* dialog_button = nullptr;
@@ -202,11 +243,16 @@ struct Gallery::Impl {
     std::unique_ptr<widgets::TitleBar> title_bar;
     std::vector<widgets::RadioButton*> radios;
     std::map<std::string, std::function<void(bool)>, std::less<>> enablers;
-    std::size_t symbols_per_line = 1;
-    render::Point symbols_at{0.0, 0.0};
+    std::vector<render::Point> symbol_spots;
     layout::NodePtr root;
     input::InputSource source = input::InputSource::pointer;
     layout::Size window{static_cast<double>(window_width_dp), static_cast<double>(window_height_dp)};
+    layout::WindowSizeClass size_class = layout::compute_window_size_class(window.width, window.height);
+    Reflow reflow{size_class};
+    std::vector<widgets::ScrollArea> scrolls;
+    std::optional<layout::WindowWidthClass> reported_width;
+    bool pointer_held = false;
+    std::string revealed_focus;
 };
 
 Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, const icons::IconFont& i, GalleryHost& h,
@@ -219,7 +265,8 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
       theme(color::spec_2021().build(options)),
       scheme(theme.current()),
       header({"部品", layout.header_type, layout.text, false}, f),
-      status({"—", layout.caption_type, layout.caption, false}, f) {
+      status({"—", layout.caption_type, layout.caption, false}, f),
+      reported_width(state.reported_width) {
     auto& switch_label = header_widgets.emplace<widgets::Label>(widgets::LabelOptions{"Enabled", layout.caption_type, layout.caption, false}, fonts);
     enabled_switch = &header_widgets.emplace_with<widgets::Switch>(
         [this](widgets::Switch& s, bool clicked) {
@@ -256,7 +303,8 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
                         [this](widgets::FocusManager& m) {
                             m.add(*enabled_switch);
                             m.add(*page_tabs);
-                        }};
+                        },
+                        &size_class};
     pages.push_back(make_chips_page(context));
     pages.push_back(make_lists_page(context));
     pages.push_back(make_bars_page(context));
@@ -292,29 +340,25 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
     build_left(left);
     build_right(right);
     build_dialog();
-    auto left_column = layout::column(std::move(left));
-    left_column->spacing(layout.row_gap);
-    auto right_column = layout::column(std::move(right));
-    right_column->spacing(layout.row_gap);
-    auto columns = layout::row({left_column, right_column});
-    columns->spacing(layout.column_space);
+    auto columns = std::make_shared<Columns>(reflow, std::vector<std::vector<layout::NodePtr>>{left, right}, layout.column_space, layout.row_gap);
 
+    symbol_spots.resize(res::all_icons.size());
     const double symbol_pitch = layout.symbol_size + layout.symbol_gap;
-    auto symbols = std::make_shared<layout::Leaf>(
-        [this, symbol_pitch](const layout::Constraints& c) {
-            symbols_per_line = static_cast<std::size_t>(std::max(1.0, std::floor(c.max_width / symbol_pitch)));
-            const std::size_t lines = (res::all_icons.size() + symbols_per_line - 1) / symbols_per_line;
-            return layout::Size{static_cast<double>(symbols_per_line) * symbol_pitch, static_cast<double>(lines) * symbol_pitch};
-        },
-        [this](const render::Rect& r) { symbols_at = {r.x, r.y}; });
+    std::vector<layout::NodePtr> symbol_nodes;
+    for (std::size_t k = 0; k < symbol_spots.size(); ++k) {
+        symbol_nodes.push_back(layout::fixed({symbol_pitch, symbol_pitch}, [this, k](const render::Rect& r) { symbol_spots[k] = {r.x, r.y}; }));
+    }
+    auto symbols = reflow.flow(std::move(symbol_nodes));
     auto basics = layout::column({columns, captioned("Symbols", symbols)});
     basics->spacing(layout.row_gap);
-    std::vector<layout::NodePtr> bodies{basics};
+    std::vector<layout::NodePtr> bodies{reflow.root(basics)};
     for (const auto& p : pages) {
         bodies.push_back(p->body());
     }
-    page_box = layout::column({std::make_shared<PageSwitch>(std::move(bodies), page)});
-    page_box->padding({layout.margin, layout.row_gap, layout.margin, layout.margin}).fill_cross(true);
+    scrolls.resize(bodies.size());
+    auto page_content = layout::column({std::make_shared<PageSwitch>(std::move(bodies), page)});
+    page_content->padding({layout.margin, layout.row_gap, layout.margin, layout.margin}).fill_cross(true);
+    page_box = std::make_shared<ScrolledBody>(page_content, scrolls, page);
     page_box->self_align = layout::CrossAlign::stretch;
     auto content = layout::column({header_row, widgets::full_width_node(*page_tabs), page_box});
     content->padding({0.0, layout.title_top, 0.0, 0.0}).fill_cross(true);
@@ -346,7 +390,54 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
 }
 
 GalleryState Gallery::Impl::state() const {
-    return {page, options, enabled_switch->checked(), font_button && font_button->focused()};
+    return {page, options, enabled_switch->checked(), font_button && font_button->focused(), reported_width};
+}
+
+void Gallery::Impl::set_size_class(const layout::WindowSizeClass& c) {
+    size_class = c;
+    const layout::WindowWidthClass w = c.width_class();
+    if (reported_width != w) {
+        reported_width = w;
+        report(layout.width_report_prefix + std::string(layout::name(w)));
+    }
+}
+
+input::PointerEvent Gallery::Impl::page_event(const input::PointerEvent& e) {
+    const bool inside = e.action != input::PointerAction::leave && widgets::contains(page_box->rect(), e.x_dp, e.y_dp);
+    const bool held = pointer_held;
+    if (e.action == input::PointerAction::down) {
+        pointer_held = inside;
+    } else if (e.action == input::PointerAction::up) {
+        pointer_held = false;
+    }
+    if (inside || held) {
+        return e;
+    }
+    return {input::PointerAction::leave, 0.0, 0.0};
+}
+
+void Gallery::Impl::reveal_focus() {
+    std::vector<widgets::AccessibleNode> nodes;
+    if (Page* p = current_page()) {
+        nodes = p->accessible_nodes();
+    } else {
+        nodes = chrome.accessible_nodes();
+        for (widgets::AccessibleNode& n : controls.accessible_nodes()) {
+            nodes.push_back(std::move(n));
+        }
+    }
+    const auto f = widgets::focused_accessible(nodes);
+    const std::string name = f ? f->name : std::string();
+    if (name == revealed_focus) {
+        return;
+    }
+    revealed_focus = name;
+    if (!f || f->bounds.height <= 0.0) {
+        return;
+    }
+    widgets::ScrollArea& a = scroll();
+    const double top = f->bounds.y - a.viewport().y + a.offset();
+    a.ensure_visible(top, top + f->bounds.height);
 }
 
 template <typename W, typename... Args>
@@ -372,16 +463,16 @@ W& Gallery::Impl::control_with(std::vector<layout::NodePtr>& row, OnResult on_re
 }
 
 layout::NodePtr Gallery::Impl::items(std::vector<layout::NodePtr> nodes) {
-    auto r = layout::row(std::move(nodes));
-    r->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
-    return r;
+    auto f = reflow.flow(std::move(nodes));
+    f->spacing(layout.column_gap).line_spacing(layout.line_gap).cross_align(layout::CrossAlign::center);
+    return f;
 }
 
 layout::NodePtr Gallery::Impl::captioned(const char* caption, layout::NodePtr content) {
     const auto style = tokens::text_style(tokens::type_style(layout.caption_type));
     Row row{std::make_unique<widgets::Label>(widgets::LabelOptions{caption, layout.caption_type, layout.caption, false}, fonts), content};
-    auto r = layout::row({examples::caption_cell(*row.caption, layout.label_width, style.line_height, style.line_height), content});
-    r->cross_align(layout::CrossAlign::center);
+    auto r = std::make_shared<Captioned>(reflow, examples::caption_cell(*row.caption, layout.label_width, style.line_height, style.line_height), content,
+                                         layout.caption_gap);
     rows.push_back(std::move(row));
     return r;
 }
@@ -521,11 +612,11 @@ void Gallery::Impl::build_left(std::vector<layout::NodePtr>& column) {
     auto& continuous = controls.emplace_with<widgets::Slider>(moved, widgets::SliderOptions{.value = 0.4, .accessible_name = "Volume"});
     continuous.set_width(layout.slider_width);
     focus.add(continuous);
-    sliders.push_back(widgets::centered_node(continuous));
+    sliders.push_back(at_most(widgets::full_width_node(continuous), layout.slider_width));
     auto& stepped = controls.emplace_with<widgets::Slider>(moved, widgets::SliderOptions{.value = 0.5, .steps = 3, .accessible_name = "Brightness"});
     stepped.set_width(layout.slider_width);
     focus.add(stepped);
-    sliders.push_back(widgets::centered_node(stepped));
+    sliders.push_back(at_most(widgets::full_width_node(stepped), layout.slider_width));
     column.push_back(captioned("Slider", items(std::move(sliders))));
 }
 
@@ -554,9 +645,8 @@ void Gallery::Impl::build_right(std::vector<layout::NodePtr>& column) {
                                widgets::TabIconPosition::leading,
                                "Travel"},
         fonts);
-    tabs.set_width(layout.tabs_width);
     focus.add(tabs);
-    column.push_back(captioned("Tabs", widgets::centered_node(tabs)));
+    column.push_back(captioned("Tabs", at_most(widgets::full_width_node(tabs), layout.tabs_width)));
 
     std::vector<layout::NodePtr> overlays;
     menu = std::make_unique<widgets::Menu>(
@@ -605,7 +695,7 @@ void Gallery::Impl::build_right(std::vector<layout::NodePtr>& column) {
         auto& plain_label = chrome.emplace<widgets::Label>(widgets::LabelOptions{sample.name, sample.role, layout.text, false}, fonts);
         auto& strong_label =
             chrome.emplace<widgets::Label>(widgets::LabelOptions{sample.name, tokens::emphasized(sample.role), layout.text, false}, fonts);
-        auto pair = layout::row({widgets::node(plain_label), widgets::node(strong_label)});
+        auto pair = reflow.flow({widgets::node(plain_label), widgets::node(strong_label)});
         pair->spacing(layout.type_gap).cross_align(layout::CrossAlign::end);
         samples.push_back(pair);
     }
@@ -648,8 +738,8 @@ void Gallery::Impl::build_right(std::vector<layout::NodePtr>& column) {
         focus.add(*font_button);
         theme_controls.push_back(widgets::node(*font_button));
     }
-    auto chips_row = layout::row(std::move(theme_controls));
-    chips_row->spacing(chips.style().gap).cross_align(layout::CrossAlign::center);
+    auto chips_row = reflow.flow(std::move(theme_controls));
+    chips_row->spacing(chips.style().gap).line_spacing(chips.style().gap).cross_align(layout::CrossAlign::center);
     column.push_back(captioned("Theme", chips_row));
 }
 
@@ -733,6 +823,7 @@ void Gallery::Impl::show_pending_page() {
     }
     const bool tabs_focused = page_tabs->focused();
     current_focus().clear_focus();
+    scroll().cancel_interaction();
     if (page == 0) {
         controls.cancel_interaction();
         for (auto& t : tooltips) {
@@ -742,6 +833,11 @@ void Gallery::Impl::show_pending_page() {
         pages[page - 1]->cancel_interaction();
     }
     page = next;
+    if (Page* p = current_page()) {
+        p->snap_layout();
+    } else {
+        reflow.snap();
+    }
     if (tabs_focused) {
         page_tabs->set_focused(true);
     }
@@ -798,6 +894,7 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
     Impl& g = *impl_;
     g.show_pending_page();
     g.window = {frame.width_dp, frame.height_dp};
+    g.set_size_class(frame.size_class);
     if (g.title_bar) {
         g.title_bar->set_maximized(frame.maximized);
         g.title_bar->set_active(frame.active);
@@ -822,16 +919,25 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.source = input::InputSource::pointer;
         if (current) {
             g.handle_title_bar(e);
-            current->handle(e);
+            if (g.scroll().handle(e)) {
+                current->handle(input::PointerEvent{input::PointerAction::leave, 0.0, 0.0});
+            } else {
+                current->handle(g.page_event(e));
+            }
             g.header_widgets.handle(e);
             continue;
         }
         if (g.overlay.handle(e)) {
             continue;
         }
+        if (g.scroll().handle(e)) {
+            g.header_widgets.handle(e);
+            continue;
+        }
+        const input::PointerEvent pe = g.page_event(e);
         bool consumed = false;
         for (auto& t : g.tooltips) {
-            const widgets::TooltipResponse r = t->handle(e);
+            const widgets::TooltipResponse r = t->handle(pe);
             if (r.action) {
                 g.report("Tooltip: learn more");
             }
@@ -841,12 +947,12 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
             continue;
         }
         g.handle_title_bar(e);
-        if (const auto seed = g.chips.handle(e)) {
+        if (const auto seed = g.chips.handle(pe)) {
             g.options.seed = *seed;
             g.retheme();
         }
-        g.controls.handle(e);
-        g.chrome.handle(e);
+        g.controls.handle(pe);
+        g.chrome.handle(pe);
         g.header_widgets.handle(e);
     }
     for (const auto& c : frame.context) {
@@ -859,11 +965,10 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         if (g.page_tabs->handle(w)) {
             continue;
         }
-        if (g.current_page()) {
-            g.current_page()->handle(w);
-        } else {
-            g.overlay.handle(w);
+        if (g.current_page() ? g.current_page()->handle(w) : g.overlay.handle(w)) {
+            continue;
         }
+        g.scroll().handle(w);
     }
     for (const auto& k : frame.keys) {
         g.source = input::InputSource::keyboard;
@@ -892,6 +997,9 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.chrome.handle(k);
         g.header_widgets.handle(k);
     }
+    if (!frame.keys.empty()) {
+        g.reveal_focus();
+    }
     for (const auto& t : frame.text) {
         if (Page* p = g.current_page()) {
             p->handle(t);
@@ -909,6 +1017,7 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     const double dt = frame.dt_seconds;
     g.theme.step(dt);
     g.veil.step(dt);
+    g.scroll().step(dt);
     Page* current = g.current_page();
     if (current) {
         current->step(dt);
@@ -936,27 +1045,36 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     g.status.paint(canvas, s);
     canvas.pop_clip();
     canvas.restore();
+    const render::Rect viewport = g.page_box->rect();
     if (current) {
         g.header_widgets.paint(canvas, s);
+        canvas.save();
+        canvas.push_clip(viewport);
         current->paint(canvas, s);
+        canvas.pop_clip();
+        canvas.restore();
+        g.scroll().paint(canvas, s);
         current->paint_overlays(canvas, s);
         g.paint_veil(canvas, s);
-        return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.header_widgets.animating() || current->animating() || (g.title_bar && g.title_bar->animating());
+        return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.header_widgets.animating() || current->animating() || g.scroll().animating() ||
+               (g.title_bar && g.title_bar->animating());
     }
+    g.reflow.step(dt);
+    g.header_widgets.paint(canvas, s);
+    canvas.save();
+    canvas.push_clip(viewport);
     for (const Row& row : g.rows) {
         row.caption->paint(canvas, s);
     }
-    const double pitch = g.layout.symbol_size + g.layout.symbol_gap;
     for (std::size_t i = 0; i < res::all_icons.size(); ++i) {
-        const auto col = static_cast<double>(i % g.symbols_per_line);
-        const auto line = static_cast<double>(i / g.symbols_per_line);
-        g.icon_font.draw(canvas, res::all_icons[i], {g.symbols_at.x + col * pitch, g.symbols_at.y + line * pitch}, g.layout.symbol_size,
-                         s[g.layout.caption]);
+        g.icon_font.draw(canvas, res::all_icons[i], g.symbol_spots[i], g.layout.symbol_size, s[g.layout.caption]);
     }
     g.chips.paint(canvas, s);
     g.chrome.paint(canvas, s);
-    g.header_widgets.paint(canvas, s);
     g.controls.paint(canvas, s);
+    canvas.pop_clip();
+    canvas.restore();
+    g.scroll().paint(canvas, s);
     g.menu->paint(canvas, s);
     if (g.font_menu) {
         g.font_menu->paint(canvas, s);
@@ -970,7 +1088,7 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     for (const auto& t : g.tooltips) {
         tooltips_moving = tooltips_moving || t->animating();
     }
-    return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
+    return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.reflow.animating() || g.scroll().animating() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
            (g.font_menu && g.font_menu->animating()) || g.dialog->animating() || tooltips_moving || (g.title_bar && g.title_bar->animating());
 }
 
@@ -985,15 +1103,21 @@ std::optional<render::Rect> Gallery::caret_area() const {
 }
 
 std::optional<double> Gallery::next_wake_seconds() const {
-    if (Page* p = impl_->current_page()) {
-        return p->next_wake_seconds();
-    }
-    std::optional<double> wake = impl_->focus.next_wake_seconds();
+    std::optional<double> wake;
     auto merge = [&wake](std::optional<double> w) {
         if (w) {
             wake = wake ? std::min(*wake, *w) : *w;
         }
     };
+    const double bar = impl_->page_box->scroll().next_wake_seconds();
+    if (bar >= 0.0) {
+        merge(bar);
+    }
+    if (Page* p = impl_->current_page()) {
+        merge(p->next_wake_seconds());
+        return wake;
+    }
+    merge(impl_->focus.next_wake_seconds());
     merge(impl_->dialog->next_wake_seconds());
     for (const auto& t : impl_->tooltips) {
         merge(t->next_wake_seconds());

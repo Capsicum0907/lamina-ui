@@ -254,7 +254,7 @@ private:
         card(row, tokens::CardStyle::filled, "Porto", "Tiled streets, trams and the river at sunset.", true, true, nullptr);
         card(row, tokens::CardStyle::outlined, "Reykjavik", "Hot springs and the northern lights.", true, true, "Open");
         auto r = items(std::move(row));
-        static_cast<layout::Linear&>(*r).cross_align(layout::CrossAlign::start);
+        r->cross_align(layout::CrossAlign::start);
         return captioned("Cards", r);
     }
 
@@ -264,7 +264,7 @@ private:
         card(row, tokens::CardStyle::filled, "Disabled", "A disabled card fades its content.", true, false, nullptr);
         card(row, tokens::CardStyle::outlined, "Outlined off", "Its border fades too.", true, false, nullptr);
         auto r = items(std::move(row));
-        static_cast<layout::Linear&>(*r).cross_align(layout::CrossAlign::start);
+        r->cross_align(layout::CrossAlign::start);
         return captioned("Card states", r);
     }
 

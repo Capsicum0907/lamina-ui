@@ -304,6 +304,7 @@ if(LAMINA_BUILD_TESTS)
         tests/focus_indicator_test.cpp
         tests/focus_manager_test.cpp
         tests/font_ownership_test.cpp
+        tests/gallery_reflow_test.cpp
         tests/grouped_menu_test.cpp
         tests/icon_button_test.cpp
         tests/icon_test.cpp

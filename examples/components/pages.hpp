@@ -11,6 +11,7 @@
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
+#include "lamina/layout/window_size_class.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -23,6 +24,7 @@ struct PageContext {
     icons::IconFont icon_font;
     std::function<void(std::string)> report;
     std::function<void(widgets::FocusManager&)> add_header;
+    const layout::WindowSizeClass* size_class = nullptr;
 };
 
 class Page {
@@ -47,6 +49,7 @@ public:
     virtual std::optional<double> next_wake_seconds() const = 0;
     virtual void set_window(layout::Size window) = 0;
     virtual std::optional<input::Cursor> cursor() const { return std::nullopt; }
+    virtual void snap_layout() {}
 };
 
 std::unique_ptr<Page> make_chips_page(PageContext context);

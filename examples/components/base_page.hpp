@@ -11,6 +11,7 @@
 
 #include "common/caption_cell.hpp"
 #include "components/pages.hpp"
+#include "components/reflow.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/tooltip.hpp"
@@ -26,6 +27,7 @@ struct BasePageLayout {
     tokens::TypeRole heading_type = tokens::TypeRole::title_small;
     color::Role heading = color::Role::on_surface;
     double heading_gap = 8.0;
+    double line_gap = 8.0;
 };
 
 inline const BasePageLayout base_page_layout;
@@ -62,11 +64,27 @@ inline layout::NodePtr sized(layout::NodePtr node, double width, double height) 
         [node](const render::Rect& r) { node->arrange(r); });
 }
 
+class Deferred final : public layout::Node {
+public:
+    explicit Deferred(const layout::NodePtr& target) : target_(target) {}
+
+protected:
+    layout::Size on_measure(const layout::Constraints& c) override { return target_->measure(c); }
+    void on_arrange(const render::Rect& r) override { target_->arrange(r); }
+
+private:
+    const layout::NodePtr& target_;
+};
+
 class BasePage : public Page {
 public:
-    explicit BasePage(PageContext context) : ctx(std::move(context)) { ctx.add_header(focus_); }
+    explicit BasePage(PageContext context)
+        : ctx(std::move(context)), reflow(*ctx.size_class), body_(reflow.root(std::make_shared<Deferred>(root))) {
+        ctx.add_header(focus_);
+    }
 
-    layout::NodePtr body() const override { return root; }
+    layout::NodePtr body() const override { return body_; }
+    void snap_layout() override { reflow.snap(); }
     widgets::FocusManager& focus() override { return focus_; }
 
     bool handle(const input::PointerEvent& e) override {
@@ -91,6 +109,7 @@ public:
     }
     bool handle(const input::WheelEvent&) override { return false; }
     void step(double dt) override {
+        reflow.step(dt);
         controls.step(dt);
         for (auto& t : tooltips) {
             t->step(dt);
@@ -107,7 +126,7 @@ public:
         }
     }
     bool animating() const override {
-        return controls.animating() || std::any_of(tooltips.begin(), tooltips.end(), [](const auto& t) { return t->animating(); }) ||
+        return reflow.animating() || controls.animating() || std::any_of(tooltips.begin(), tooltips.end(), [](const auto& t) { return t->animating(); }) ||
                std::any_of(dialog_tips.begin(), dialog_tips.end(), [](const auto& t) { return t->animating(); });
     }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override {
@@ -178,9 +197,12 @@ protected:
         const auto style = tokens::text_style(tokens::type_style(base_page_layout.caption_type));
         captions.push_back(std::make_unique<widgets::Label>(
             widgets::LabelOptions{caption, base_page_layout.caption_type, base_page_layout.caption, false}, ctx.fonts));
-        auto r = layout::row({examples::caption_cell(*captions.back(), base_page_layout.label_width, style.line_height, style.line_height), content});
-        r->cross_align(layout::CrossAlign::center);
-        return r;
+        return std::make_shared<Captioned>(reflow, examples::caption_cell(*captions.back(), base_page_layout.label_width, style.line_height, style.line_height),
+                                           std::move(content), base_page_layout.heading_gap);
+    }
+
+    layout::NodePtr columns(const std::vector<std::vector<layout::NodePtr>>& sections, double column_gap, double row_gap) {
+        return std::make_shared<Columns>(reflow, sections, column_gap, row_gap);
     }
 
     layout::NodePtr heading(const char* text, layout::NodePtr content) {
@@ -191,10 +213,10 @@ protected:
         return c;
     }
 
-    layout::NodePtr items(std::vector<layout::NodePtr> nodes) {
-        auto r = layout::row(std::move(nodes));
-        r->spacing(base_page_layout.column_gap).cross_align(layout::CrossAlign::center);
-        return r;
+    std::shared_ptr<layout::Flow> items(std::vector<layout::NodePtr> nodes) {
+        auto f = reflow.flow(std::move(nodes));
+        f->spacing(base_page_layout.column_gap).line_spacing(base_page_layout.line_gap).cross_align(layout::CrossAlign::center);
+        return f;
     }
 
     template <typename W>
@@ -258,6 +280,7 @@ protected:
     }
 
     PageContext ctx;
+    Reflow reflow;
     widgets::WidgetSet controls;
     widgets::FocusManager focus_;
     std::vector<std::unique_ptr<widgets::Label>> captions;
@@ -268,6 +291,9 @@ protected:
     std::vector<std::unique_ptr<widgets::WidgetSet>> contents;
     std::map<std::string, std::function<void(bool)>, std::less<>> enablers;
     layout::NodePtr root;
+
+private:
+    layout::NodePtr body_;
 };
 
 }
