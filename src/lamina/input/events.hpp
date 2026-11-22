@@ -29,7 +29,7 @@ struct PointerEvent {
     double time_seconds = 0.0;
     bool shift = false;
     bool ctrl = false;
-    ScrollAxes waiting_scrollers;
+    ScrollAxes waiting_scrollers{};
 };
 
 struct ContextClick {

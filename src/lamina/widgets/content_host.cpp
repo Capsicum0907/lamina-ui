@@ -10,7 +10,6 @@ namespace {
 
 constexpr input::PointerEvent pressed_elsewhere{input::PointerAction::down, -std::numeric_limits<double>::infinity(),
                                                 -std::numeric_limits<double>::infinity()};
-constexpr input::PointerEvent left{input::PointerAction::leave, 0.0, 0.0};
 
 }
 
