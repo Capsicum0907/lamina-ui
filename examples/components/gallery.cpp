@@ -323,7 +323,11 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
     auto toggle_row = layout::row({widgets::node(switch_label), widgets::node(*enabled_switch)});
     toggle_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
     auto status_cell = std::make_shared<layout::Leaf>(
-        [this](const layout::Constraints& c) { return layout::Size{layout.status_width, status.measure(c).height}; },
+        [this, toggle_row](const layout::Constraints& c) {
+            const double toggle = toggle_row->measure({}).width;
+            const double room = std::max(0.0, c.max_width - toggle - layout.status_gap);
+            return layout::Size{std::min(layout.status_width, room), status.measure(c).height};
+        },
         [this](const render::Rect& r) {
             status_box = r;
             status.arrange(r);
@@ -403,7 +407,7 @@ void Gallery::Impl::set_size_class(const layout::WindowSizeClass& c) {
 }
 
 input::PointerEvent Gallery::Impl::page_event(const input::PointerEvent& e) {
-    const bool inside = e.action != input::PointerAction::leave && widgets::contains(page_box->rect(), e.x_dp, e.y_dp);
+    const bool inside = e.action != input::PointerAction::leave && (scroll().offset() <= 0.0 || widgets::contains(page_box->rect(), e.x_dp, e.y_dp));
     const bool held = pointer_held;
     if (e.action == input::PointerAction::down) {
         pointer_held = inside;

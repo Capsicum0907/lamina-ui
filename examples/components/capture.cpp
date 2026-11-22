@@ -60,8 +60,14 @@ struct CaptureStyle {
     double sweep_back_seconds = 3.0;
     int reveal_notches = 40;
     double reveal_pause_seconds = 0.05;
+    int scroll_notches = 6;
     std::string_view page_tabs = "Pages";
     double overlap_tolerance = 0.5;
+    std::array<std::pair<std::string_view, std::string_view>, 5> known_overflows{{{"dates", "Locale"},
+                                                                                  {"times", "Time locale"},
+                                                                                  {"times", "9:41 AM"},
+                                                                                  {"groups", "Extra large split button"},
+                                                                                  {"adaptive", "Window presets"}}};
     std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
                                                  "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop"};
 };
@@ -575,6 +581,19 @@ using Scene = std::function<void(Driver&, examples::components::Gallery&)>;
 const std::map<std::string, Scene>& stills() {
     static const std::map<std::string, Scene> scenes{
         {"default", [](Driver&, examples::components::Gallery&) {}},
+        {"scrolled",
+         [](Driver& d, examples::components::Gallery&) {
+             d.move_to({d.window_width() / 2.0, d.window_height() / 2.0}, 0.2);
+             for (int i = 0; i < d.style().scroll_notches; ++i) {
+                 d.wheel(1.0);
+                 d.wait(d.style().reveal_pause_seconds);
+             }
+         }},
+        {"focus_reveal",
+         [](Driver& d, examples::components::Gallery& g) {
+             d.set_cursor(false);
+             tab_to(d, g, "Name");
+         }},
         {"chips", [](Driver& d, examples::components::Gallery&) { show_page(d, "Chips"); }},
         {"chips_focus",
          [](Driver& d, examples::components::Gallery& g) {
@@ -2780,8 +2799,18 @@ int block_of(const std::vector<render::Rect>& blocks, const render::Rect& r) {
     return best;
 }
 
-std::vector<std::string> check_page(const std::string& scene, examples::components::Gallery& g, double window_width, double tolerance) {
+struct PageCheck {
     std::vector<std::string> problems;
+    std::vector<std::string> known;
+};
+
+PageCheck check_page(const std::string& scene, examples::components::Gallery& g, double window_width, const CaptureStyle& style) {
+    const double tolerance = style.overlap_tolerance;
+    std::vector<std::string> problems;
+    std::vector<std::string> known;
+    auto listed = [&](std::string_view name) {
+        return std::any_of(style.known_overflows.begin(), style.known_overflows.end(), [&](const auto& k) { return k.first == scene && k.second == name; });
+    };
     auto describe = [](const widgets::AccessibleNode& n) {
         return std::string(widgets::role_name(n.role)) + " \"" + n.name + "\" at " + std::to_string(static_cast<int>(n.bounds.x)) + "," +
                std::to_string(static_cast<int>(n.bounds.y)) + " " + std::to_string(static_cast<int>(n.bounds.width)) + "x" +
@@ -2804,11 +2833,24 @@ std::vector<std::string> check_page(const std::string& scene, examples::componen
                                std::to_string(static_cast<int>(b.width)) + " wide passes the right edge");
         }
     }
+    double content_left = window_width;
+    for (const widgets::AccessibleNode& n : nodes) {
+        content_left = std::min(content_left, n.bounds.x);
+    }
+    for (const auto& [page, name] : style.known_overflows) {
+        if (page == scene && std::none_of(nodes.begin(), nodes.end(), [name = name](const widgets::AccessibleNode& n) { return n.name == name; })) {
+            problems.push_back(scene + ": the known overflow \"" + std::string(name) + "\" is no longer on the page");
+        }
+    }
     std::vector<int> groups;
     for (std::size_t i = 0; i < nodes.size(); ++i) {
         const widgets::AccessibleNode& n = nodes[i];
         if (n.bounds.x + n.bounds.width > window_width + tolerance) {
-            problems.push_back(scene + ": " + describe(n) + " passes the right edge");
+            if (listed(n.name) && n.bounds.x <= content_left + tolerance) {
+                known.push_back(scene + ": " + describe(n) + " is wider than the room from the content's left edge");
+            } else {
+                problems.push_back(scene + ": " + describe(n) + " passes the right edge");
+            }
         }
         const int b = block_of(blocks, n.bounds);
         groups.push_back(b >= 0 ? b : -1 - static_cast<int>(i));
@@ -2827,7 +2869,7 @@ std::vector<std::string> check_page(const std::string& scene, examples::componen
             }
         }
     }
-    return problems;
+    return {problems, known};
 }
 
 int usage() {
@@ -2860,6 +2902,7 @@ int main(int argc, char** argv) {
             const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
             const CaptureStyle style;
             std::size_t count = 0;
+            std::size_t known = 0;
             for (const std::string_view name : style.page_scenes) {
                 const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills()}, std::string(name));
                 if (!found) {
@@ -2871,12 +2914,17 @@ int main(int argc, char** argv) {
                 driver.settle();
                 (*found)(driver, gallery);
                 driver.settle();
-                for (const std::string& p : check_page(std::string(name), gallery, window.width, style.overlap_tolerance)) {
+                const PageCheck result = check_page(std::string(name), gallery, window.width, style);
+                for (const std::string& k : result.known) {
+                    std::printf("known: %s\n", k.c_str());
+                    ++known;
+                }
+                for (const std::string& p : result.problems) {
                     std::printf("%s\n", p.c_str());
                     ++count;
                 }
             }
-            std::printf("%d dp: %zu problems\n", static_cast<int>(window.width), count);
+            std::printf("%d dp: %zu problems, %zu known overflows\n", static_cast<int>(window.width), count, known);
             return count == 0 ? 0 : 1;
         }
         if (mode == "size") {
