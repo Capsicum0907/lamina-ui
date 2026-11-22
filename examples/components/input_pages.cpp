@@ -50,13 +50,7 @@ std::string percent_label(double v) {
 class InputsPage final : public BasePage {
 public:
     explicit InputsPage(PageContext context) : BasePage(std::move(context)) {
-        auto left = layout::column({segments()});
-        left->spacing(inputs_layout.row_gap);
-        auto right = layout::column({ranges(), sliders()});
-        right->spacing(inputs_layout.row_gap);
-        auto columns = layout::row({left, right});
-        columns->spacing(inputs_layout.column_space);
-        root = columns;
+        root = columns({{segments()}, {ranges(), sliders()}}, inputs_layout.column_space, inputs_layout.row_gap);
     }
 
 private:
@@ -168,8 +162,8 @@ private:
         auto& centered_up = slider({.value = 0.0, .min = l.balance_min, .max = l.balance_max, .accessible_name = "Vertical balance",
                                     .orientation = widgets::SliderOrientation::vertical, .top_to_bottom = false, .centered = true});
         centered_up.set_length(l.vertical_length);
-        auto verticals = layout::row({widgets::centered_node(down), widgets::centered_node(up), widgets::centered_node(centered_up)});
-        verticals->spacing(l.vertical_gap);
+        auto verticals = items({widgets::centered_node(down), widgets::centered_node(up), widgets::centered_node(centered_up)});
+        verticals->spacing(l.vertical_gap).line_spacing(l.vertical_gap);
         rows.push_back(captioned("Vertical", verticals));
         auto column = layout::column(std::move(rows));
         column->spacing(base_page_layout.heading_gap);

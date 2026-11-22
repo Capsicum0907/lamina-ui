@@ -134,17 +134,13 @@ public:
         gated_tip(dialog_picker_->next_button(), [this] { return dialog_->is_open() && dialog_picker_->navigation_shown(); }, true);
         gated_tip(dialog_range_->mode_toggle(), [this] { return range_dialog_->is_open(); }, true);
 
-        auto left = layout::column({widgets::node(*inline_)});
-        auto middle = layout::column({widgets::node(*range_)});
         auto buttons = layout::column({widgets::node(*open_date_), widgets::node(*open_range_)});
         buttons->spacing(l.row_gap);
-        auto right = layout::column({heading("Docked", widgets::node(*docked_)), heading("Dialogs", buttons)});
-        right->spacing(l.row_gap * 2.0);
-        auto columns = layout::row({heading("Inline (weekdays only)", left), heading("Range", middle), right});
-        columns->spacing(l.column_space).cross_align(layout::CrossAlign::start);
-        auto page = layout::column({captioned("Locale", widgets::node(*locale_row_)), columns});
-        page->spacing(l.row_gap);
-        root = page;
+        auto pickers = columns({{heading("Inline (weekdays only)", widgets::node(*inline_))},
+                                {heading("Range", widgets::node(*range_))},
+                                {heading("Docked", widgets::node(*docked_)), heading("Dialogs", buttons)}},
+                               l.column_space, l.row_gap * 2.0);
+        root = columns({{captioned("Locale", widgets::node(*locale_row_)), pickers}}, l.column_space, l.row_gap);
     }
 
     bool handle(const input::PointerEvent& e) override {

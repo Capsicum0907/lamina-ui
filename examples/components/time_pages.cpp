@@ -101,16 +101,12 @@ public:
         focus_.add(*open_);
 
         gated_tip(*dialog_->leading(), [this] { return dialog_->is_open(); }, true);
-        auto right = layout::column({heading("Horizontal", widgets::node(wide)), heading("Input", widgets::node(typed)),
-                                     heading("Dialog", widgets::node(*open_))});
-        right->spacing(l.row_gap * 2.0);
-        auto columns = layout::row({heading("Dial", widgets::node(dial)), right});
-        columns->spacing(l.column_space).cross_align(layout::CrossAlign::start);
-        auto settings = layout::row({captioned("Locale", widgets::node(locales)), captioned("Clock", widgets::node(*clock_))});
-        settings->spacing(l.column_space);
-        auto page = layout::column({settings, columns});
-        page->spacing(l.row_gap * 1.5);
-        root = page;
+        auto pickers = columns({{heading("Dial", widgets::node(dial))},
+                                {heading("Horizontal", widgets::node(wide)), heading("Input", widgets::node(typed)), heading("Dialog", widgets::node(*open_))}},
+                               l.column_space, l.row_gap * 2.0);
+        auto settings = items({captioned("Locale", widgets::node(locales)), captioned("Clock", widgets::node(*clock_))});
+        settings->spacing(l.column_space).line_spacing(l.row_gap);
+        root = columns({{settings, pickers}}, l.column_space, l.row_gap * 1.5);
     }
 
     bool handle(const input::PointerEvent& e) override {
