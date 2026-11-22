@@ -47,10 +47,8 @@ constexpr std::array<SDL_SystemCursor, 7> system_cursors{SDL_SYSTEM_CURSOR_DEFAU
 constexpr std::size_t cursor_count = system_cursors.size();
 constexpr const char* unavailable_title_bar_message = "lamina: the client-drawn title bar is not available; using the system frame";
 #ifdef __ANDROID__
-constexpr bool leave_after_touch_up = true;
 constexpr int redraws_after_restore = 2;
 #else
-constexpr bool leave_after_touch_up = false;
 constexpr int redraws_after_restore = 0;
 #endif
 
@@ -404,10 +402,8 @@ bool Window::next_frame(Frame& frame, bool animating) {
                 frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which),
                                          static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0,
                                          ctrl_held(mod)});
-                if constexpr (leave_after_touch_up) {
-                    if (pointer_kind(e.button.which) == input::PointerKind::touch) {
-                        frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
-                    }
+                if (input::leaves_after_up(pointer_kind(e.button.which))) {
+                    frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
                 }
             }
             break;

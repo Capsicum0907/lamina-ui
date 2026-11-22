@@ -11,6 +11,10 @@ enum class InputSource { pointer, keyboard };
 
 enum class PointerKind { mouse, touch, pen };
 
+constexpr bool leaves_after_up(PointerKind kind) {
+    return kind == PointerKind::touch;
+}
+
 struct ScrollAxes {
     bool horizontal = false;
     bool vertical = false;

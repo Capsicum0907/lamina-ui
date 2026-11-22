@@ -44,3 +44,9 @@ TEST_CASE("character_for_key is the inverse of key_for_character") {
     CHECK_FALSE(character_for_key(Key::space).has_value());
     CHECK_FALSE(character_for_key(Key::page_down).has_value());
 }
+
+TEST_CASE("only a touch is followed by a leave when it lifts, so the mouse and the pen keep their hover") {
+    CHECK(lamina::input::leaves_after_up(lamina::input::PointerKind::touch));
+    CHECK_FALSE(lamina::input::leaves_after_up(lamina::input::PointerKind::mouse));
+    CHECK_FALSE(lamina::input::leaves_after_up(lamina::input::PointerKind::pen));
+}
