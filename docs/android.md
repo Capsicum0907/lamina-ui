@@ -58,7 +58,7 @@ The presets use the NDK's toolchain through vcpkg's (`VCPKG_CHAINLOAD_TOOLCHAIN_
 4. `cmake/LaminaAndroidAssemble.cmake` adds `classes.dex`, the stripped `libmain.so` and the NDK's `libc++_shared.so` under `lib/<abi>/`, and writes every entry uncompressed. The manifest sets `extractNativeLibs="false"`, so the libraries load from the APK in place.
 5. `zipalign -P 16` aligns the libraries to 16 KB pages, and `apksigner` signs with the debug keystore.
 
-`LaminaActivity` loads `c++_shared` and `main`, and sets light status and navigation bars again each time SDL changes the window style. The activity keeps SDL's `configChanges` list, so turning the device does not restart it, and `enableOnBackInvokedCallback="false"`, so Back reaches the app as a key.
+`LaminaActivity` loads `c++_shared` and `main`, and keeps the status and navigation bar icons readable over the app ([System bars](#system-bars)). The activity keeps SDL's `configChanges` list, so turning the device does not restart it, and `enableOnBackInvokedCallback="false"`, so Back reaches the app as a key.
 
 | Cache variable | Preset value | What |
 |---|---|---|
@@ -71,6 +71,20 @@ The presets use the NDK's toolchain through vcpkg's (`VCPKG_CHAINLOAD_TOOLCHAIN_
 | `LAMINA_ANDROID_SDL_ARCHIVE` | the SDL archive in vcpkg's `downloads` | where the Java sources come from |
 | `LAMINA_ANDROID_KEYSTORE` | (not in the preset) | the signing keystore; defaults to the debug keystore |
 | `LAMINA_ANDROID_PAGE_SIZE_KB` | (not in the preset) | page size for the link and for zipalign, 16 by default |
+
+## System bars
+
+`Window::set_dark_system_bars(dark)` tells the system whether the app is dark behind the status and navigation bars. On Android it calls `LaminaActivity.setDarkSystemBars(boolean)` through JNI. The activity keeps the value and, on the UI thread, sets `APPEARANCE_LIGHT_STATUS_BARS` and `APPEARANCE_LIGHT_NAVIGATION_BARS` (light bars, dark icons) when the app is light and clears them when it is dark, with both flags as the mask so that either value can be set (`WindowInsetsController.setSystemBarsAppearance(value, mask)`; below Android 11 the `SYSTEM_UI_FLAG_LIGHT_*` flags of `setSystemUiVisibility`). SDL rewrites the system UI flags when it changes the window style, so the activity applies the value again after each change. Until the app calls it, the value follows the system dark mode, and `android/res/values-night/styles.xml` gives the window a dark theme with light icons in dark mode, so the frames before the first `update` match. On other platforms `set_dark_system_bars` does nothing. `Window::system_dark_theme()` says whether the system is in dark mode (`SDL_GetSystemTheme`).
+
+This is what androidx does, read at `6068a9492ba8`:
+
+- `activity/activity/src/main/java/androidx/activity/EdgeToEdge.kt`: `enableEdgeToEdge` (`:94`) passes `detectDarkMode` of each `SystemBarStyle` to the setup, which sets `isAppearanceLightStatusBars = !statusBarIsDark` and `isAppearanceLightNavigationBars = !navigationBarIsDark` (`:318-319`, API 29 and later). `SystemBarStyle.auto` (`:160`) detects dark mode from `uiMode & UI_MODE_NIGHT_MASK`, the system setting.
+- `core/core/src/main/java/androidx/core/view/WindowInsetsControllerCompat.java`: `setAppearanceLightStatusBars` (`:222`) and `setAppearanceLightNavigationBars` (`:256`); from API 30 `setAppearanceLight` (`:689`) sets or clears one flag, either in `systemUiVisibility` when it has the window or with `setSystemBarsAppearance(flag or 0, flag)`.
+- `compose/foundation/foundation/src/androidMain/kotlin/androidx/compose/foundation/DarkTheme.android.kt`: `isSystemInDarkTheme` (`:46`) reads the same `uiMode` bit. Its documentation recommends following the system setting and offering a user override.
+
+lamina-ui follows the app's own scheme, not the system setting: an app can override its theme, as the gallery's dark theme button does, and the icons must match what is drawn under them. In androidx terms this is `SystemBarStyle.auto(..., detectDarkMode = { appIsDark })`.
+
+The gallery starts in the system's dark mode on Android, following `isSystemInDarkTheme`, and the dark theme button overrides it. On the desktop it starts light, as before. It tells its host each time its theme changes (`GalleryHost::set_dark_theme`, also once at start), and `examples/components/main.cpp` passes that to `set_dark_system_bars`.
 
 ## Install and run
 
@@ -97,6 +111,7 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 - A finger drag scrolls the pages up and down, and the page tabs and the side-scrolled time picker sideways; a quick swipe flings and slows down on Compose's spline decay, and a touch during a fling stops it. A swipe that starts on a button, a chip or a text field scrolls without clicking or focusing it, a tap still clicks, and the slider follows a drag that starts on it. Checked with `adb shell input swipe` and `adb shell input tap` ([Touch scrolling](design-tokens.md#touch-scrolling)).
 - The "OS fonts" typeface loads Noto Sans CJK from `/system/fonts`.
 - The 48 dp touch target: a tap up to about 3 dp above a 40 dp button (Send on Basics) or below one in a button group (Copy on Groups) clicks it, and a tap 4 dp or more away does not. A tap in the 8 dp gap between two filter chips selects only the nearer one. Taps just left of the overflow button of a button group open its menu and close it again. Checked with `adb shell input tap` ([Touch target](design-tokens.md#touch-target)).
+- The status and navigation bar icons are dark over the light theme and light over the dark theme, and follow the dark theme button. With the system in dark mode (`adb shell cmd uimode night yes`) the gallery starts dark, and the window is dark with light icons before the first frame.
 - Leaving the app with Home and coming back draws the gallery again.
 - On the emulator a frame of the animated Progress page takes about 19 ms (about 52 frames a second), measured from the start of `update` to the end of `present`. Drawing is ThorVG on the CPU into a 1080 × 2400 texture.
 
@@ -104,7 +119,7 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 
 - Touch scrolling has no overscroll stretch at the ends and no nested scrolling: a list inside a page does not hand the rest of a drag or fling to the page. Only one finger is followed. The touch checks were made with `adb shell input`, not with a finger on a device.
 - Back when nothing is open does nothing; it does not leave the app.
-- The status and navigation bar icons stay dark in the gallery's dark theme.
+- The gallery reads the system dark mode only at start; it does not follow a change of the setting while it runs (`SDL_EVENT_SYSTEM_THEME_CHANGED` is not read).
 - Dialogs and menus are placed in the whole window, not inside the safe area.
 - The soft keyboard can cover a field low on the screen; SDL reports only whether the keyboard is shown, not its height.
 - Japanese input through an IME has not been tried; SDL hands composing text over as committed text and deletions, not as composition events.
