@@ -50,6 +50,9 @@ inline Instance instance_of(const TextStyle& style) {
 
 TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style);
 
+TextLine ellipsize_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width,
+                        std::string_view ellipsis);
+
 TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width);
 
 Underline underline(const FontStack& fonts, const TextStyle& style);

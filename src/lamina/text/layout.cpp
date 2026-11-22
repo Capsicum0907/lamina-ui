@@ -99,6 +99,42 @@ TextLine layout_line(const FontStack& fonts, std::string_view utf8, const TextSt
     return shape_range(fonts, text, 0, text.size(), style);
 }
 
+TextLine ellipsize_line(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width,
+                        std::string_view ellipsis) {
+    const std::u32string text = decode_utf8(utf8);
+    TextLine whole = shape_range(fonts, text, 0, text.size(), style);
+    if (whole.width <= max_width) {
+        return whole;
+    }
+    const std::u32string mark = decode_utf8(ellipsis);
+    std::vector<std::size_t> cuts{0};
+    for (const PositionedGlyph& g : whole.glyphs) {
+        if (g.cluster > 0 && g.cluster < text.size()) {
+            cuts.push_back(g.cluster);
+        }
+    }
+    std::sort(cuts.begin(), cuts.end());
+    cuts.erase(std::unique(cuts.begin(), cuts.end()), cuts.end());
+    auto cut_at = [&](std::size_t k) {
+        while (k > 0 && is_space(text[k - 1])) {
+            --k;
+        }
+        const std::u32string s = text.substr(0, k) + mark;
+        return shape_range(fonts, s, 0, s.size(), style);
+    };
+    std::size_t lo = 0;
+    std::size_t hi = cuts.size();
+    while (hi - lo > 1) {
+        const std::size_t mid = (lo + hi) / 2;
+        if (cut_at(cuts[mid]).width <= max_width) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    return cut_at(cuts[lo]);
+}
+
 TextBlock layout_paragraph(const FontStack& fonts, std::string_view utf8, const TextStyle& style, double max_width) {
     TextBlock block;
     const std::u32string text = decode_utf8(utf8);

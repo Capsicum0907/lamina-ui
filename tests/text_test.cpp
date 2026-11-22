@@ -237,3 +237,43 @@ TEST_CASE("the underline sits below the baseline and scales with the size") {
     CHECK(underline(fonts, large).offset == doctest::Approx(2.0 * u.offset));
     CHECK(underline(FontStack{}, body).thickness == 0.0);
 }
+
+TEST_CASE("ellipsize_line keeps text that fits and cuts text that does not") {
+    const FontStack fonts({sans});
+    const TextLine whole = layout_line(fonts, "Segmented label", body);
+    const TextLine same = ellipsize_line(fonts, "Segmented label", body, whole.width, tokens::ellipsis);
+    CHECK(same.width == doctest::Approx(whole.width));
+    CHECK(same.glyphs.size() == whole.glyphs.size());
+
+    const double mark = layout_line(fonts, tokens::ellipsis, body).width;
+    const double room = whole.width / 2.0;
+    const TextLine cut = ellipsize_line(fonts, "Segmented label", body, room, tokens::ellipsis);
+    CHECK(cut.width <= room);
+    CHECK(cut.width > mark);
+    CHECK(cut.glyphs.size() < whole.glyphs.size());
+    const TextLine longer = ellipsize_line(fonts, "Segmented label", body, room + 10.0, tokens::ellipsis);
+    CHECK(longer.width >= cut.width);
+}
+
+TEST_CASE("ellipsize_line drops trailing spaces before the mark and keeps the mark when nothing else fits") {
+    const FontStack fonts({sans});
+    const double mark = layout_line(fonts, tokens::ellipsis, body).width;
+    const double ab = layout_line(fonts, std::string("Ab") + std::string(tokens::ellipsis), body).width;
+    const TextLine spaced = ellipsize_line(fonts, "Ab cdefgh", body, ab + 0.5, tokens::ellipsis);
+    CHECK(spaced.width == doctest::Approx(ab));
+    const TextLine tiny = ellipsize_line(fonts, "Segmented", body, 1.0, tokens::ellipsis);
+    CHECK(tiny.width == doctest::Approx(mark));
+}
+
+TEST_CASE("ellipsize_line cuts Japanese text between characters") {
+    const FontStack fonts({sans});
+    const std::string jp = "\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e\xe6\x97\xa5\xe6\x9c\xac";
+    const TextLine whole = layout_line(fonts, jp, body);
+    const TextLine cut = ellipsize_line(fonts, jp, body, whole.width * 0.6, tokens::ellipsis);
+    CHECK(cut.width <= whole.width * 0.6);
+    const std::size_t kept = cut.glyphs.size() - 1;
+    CHECK(kept >= 1);
+    CHECK(kept < 5);
+    const std::string prefix = jp.substr(0, kept * 3) + std::string(tokens::ellipsis);
+    CHECK(layout_line(fonts, prefix, body).width == doctest::Approx(cut.width));
+}

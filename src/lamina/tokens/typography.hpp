@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <string_view>
 
 #include "lamina/text/style.hpp"
 
@@ -105,6 +106,7 @@ constexpr TypeStyle type_style(TypeRole role, bool emphasized = false) {
 }
 
 inline constexpr double tab_width_spaces = 4.0;
+inline constexpr std::string_view ellipsis = "\xe2\x80\xa6";
 
 constexpr text::TextStyle text_style(const TypeStyle& t) {
     return {t.size_sp, t.line_height_sp, t.weight, t.tracking_sp, tab_width_spaces};
