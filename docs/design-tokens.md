@@ -265,6 +265,18 @@ Shadows follow W `elevation/internal/_elevation.scss`: two box shadows whose off
 
 A CSS blur radius is twice the Gaussian standard deviation.
 
+The ThorVG canvas blurs each shadow shape once and draws it from a cache, at the nearest whole pixel ([Canvas](app-structure.md#canvas)); `lamina/tokens/raster.hpp`:
+
+| Token | Value | Use |
+|---|---|---|
+| `shadow_quality` | 100 | ThorVG's Gaussian blur quality (0–100) |
+| `shadow_margin_sigmas` | 3 | room around the shape in the cached image, and how far a shadow reaches when deciding whether it is outside the canvas, in standard deviations |
+| `shadow_shape_steps` | 4 | the shape is rounded to 1/4 px for the cache key |
+| `shadow_cache_bytes` | 16 MiB | the cached shadow images kept |
+| `cull_glyph_outset_em` | 0.5 | how far a text line or an icon may reach outside its box, in its size |
+| `worker_threads_max` | 3 | ThorVG's worker threads at most |
+| `reserved_cores` | 1 | cores not given to ThorVG's workers |
+
 C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, focus 0.10, pressed 0.10, dragged 0.16.
 
 ### Focus indicator
