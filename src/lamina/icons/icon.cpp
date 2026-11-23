@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "lamina/builtin_resources.hpp"
+#include "lamina/tokens/raster.hpp"
 
 namespace lamina::icons {
 
@@ -43,6 +44,10 @@ render::Path IconFont::path(Symbol symbol, render::Point top_left, double size, 
 
 void IconFont::draw(render::Canvas& canvas, Symbol symbol, render::Point top_left, double size, color::Argb color,
                     const IconStyle& style) const {
+    if (canvas.quick_reject({top_left.x, top_left.y, size, size}, size * tokens::raster.cull_glyph_outset_em)) {
+        canvas.count_rejected(0);
+        return;
+    }
     canvas.fill_path(path(symbol, top_left, size, style), color);
 }
 

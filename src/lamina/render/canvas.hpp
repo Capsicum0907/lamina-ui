@@ -57,6 +57,10 @@ public:
     void pop_clip();
     const Affine& transform() const { return transform_; }
 
+    bool quick_reject(const Rect& local, double outset = 0.0) const;
+    Rect visible_bounds() const;
+    void count_rejected(std::size_t points);
+
     color::Argb pixel(int x, int y);
 
     void set_probe(diagnostics::FrameProbe* probe) { probe_ = probe; }
@@ -73,10 +77,12 @@ protected:
 
 private:
     double covered(std::span<const Point> device_points);
+    void push_clip_bounds(const Rect& device);
 
     Affine transform_{};
     diagnostics::FrameProbe* probe_ = nullptr;
     std::vector<Affine> stack_;
+    std::vector<Rect> clip_bounds_;
 };
 
 }

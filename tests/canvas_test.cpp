@@ -257,3 +257,55 @@ TEST_CASE("a cached shadow is dark under its shape and fades out within its marg
     CHECK(channel(under, 16) < 200);
     CHECK(near(edge, white, 3));
 }
+
+TEST_CASE("quick_reject follows the transform and the clips") {
+    lamina::thorvg::Canvas canvas(100, 100);
+    CHECK_FALSE(canvas.quick_reject({10, 10, 20, 20}));
+    CHECK(canvas.quick_reject({120, 10, 20, 20}));
+    CHECK_FALSE(canvas.quick_reject({120, 10, 20, 20}, 30.0));
+    canvas.save();
+    canvas.scale(2.0);
+    CHECK(canvas.quick_reject({60, 10, 10, 10}));
+    CHECK_FALSE(canvas.quick_reject({40, 10, 10, 10}));
+    canvas.push_clip(Rect{0, 0, 20, 20});
+    CHECK(canvas.quick_reject({25, 5, 10, 10}));
+    CHECK_FALSE(canvas.quick_reject({15, 5, 10, 10}));
+    canvas.push_clip(rounded_rect_path({10, 0, 30, 30}, uniform_radii(4)));
+    CHECK(canvas.quick_reject({0, 0, 8, 8}));
+    canvas.pop_clip();
+    CHECK_FALSE(canvas.quick_reject({0, 0, 8, 8}));
+    canvas.pop_clip();
+    CHECK_FALSE(canvas.quick_reject({25, 5, 10, 10}));
+    canvas.restore();
+}
+
+TEST_CASE("paths outside the canvas or the clip are counted as offscreen and not drawn") {
+    lamina::thorvg::Canvas canvas(100, 100);
+    lamina::diagnostics::FrameProbe probe;
+    probe.set_switches({false, true});
+    canvas.set_probe(&probe);
+    probe.begin_frame(0.0);
+    canvas.clear(white);
+    canvas.fill_rect({150, 10, 20, 20}, red);
+    canvas.push_clip(Rect{0, 0, 50, 50});
+    canvas.fill_rounded_rect({60, 60, 20, 20}, uniform_radii(4), red);
+    canvas.fill_rect({10, 10, 20, 20}, red);
+    canvas.pop_clip();
+    canvas.fill_shadow(rounded_rect_path({110, 40, 20, 20}, uniform_radii(4)), {0.0, 2.0, 2.0, 0xff000000});
+    const lamina::diagnostics::FrameCounts counts = probe.counts();
+    probe.end_frame();
+    canvas.set_probe(nullptr);
+    CHECK(counts.paths == 3);
+    CHECK(counts.offscreen_paths == 2);
+    CHECK(counts.shadows == 1);
+    CHECK(counts.shadow_renders == 0);
+    CHECK(canvas.pixel(20, 20) == red);
+    CHECK(canvas.pixel(70, 70) == white);
+}
+
+TEST_CASE("a shadow just outside the canvas is drawn when its blur reaches in") {
+    lamina::thorvg::Canvas canvas(100, 100);
+    canvas.clear(white);
+    canvas.fill_shadow(rounded_rect_path({102, 30, 40, 40}, uniform_radii(4)), {0.0, 0.0, 4.0, 0xff000000});
+    CHECK(channel(canvas.pixel(99, 50), 16) < 255);
+}

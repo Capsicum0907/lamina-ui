@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "lamina/text/line_break.hpp"
+#include "lamina/tokens/raster.hpp"
 
 namespace lamina::text {
 
@@ -238,6 +239,10 @@ render::Path line_path(const FontStack& fonts, const TextLine& line, render::Poi
 
 void draw_line(render::Canvas& canvas, const FontStack& fonts, const TextLine& line, render::Point top_left,
                color::Argb color) {
+    if (canvas.quick_reject({top_left.x, top_left.y, line.width, line.box_height()}, line.style.size * tokens::raster.cull_glyph_outset_em)) {
+        canvas.count_rejected(0);
+        return;
+    }
     const render::Path path = line_path(fonts, line, top_left);
     if (!path.empty()) {
         canvas.fill_path(path, color);

@@ -5,8 +5,70 @@
 #include <cmath>
 
 #include "lamina/diagnostics/frame_stats.hpp"
+#include "lamina/tokens/raster.hpp"
 
 namespace lamina::render {
+
+namespace {
+
+Rect bounds_of(std::span<const Point> pts) {
+    if (pts.empty()) {
+        return {0.0, 0.0, 0.0, 0.0};
+    }
+    double x0 = pts.front().x;
+    double y0 = pts.front().y;
+    double x1 = x0;
+    double y1 = y0;
+    for (const Point& p : pts) {
+        x0 = std::min(x0, p.x);
+        y0 = std::min(y0, p.y);
+        x1 = std::max(x1, p.x);
+        y1 = std::max(y1, p.y);
+    }
+    return {x0, y0, x1 - x0, y1 - y0};
+}
+
+Rect device_rect(const Affine& m, const Rect& r) {
+    const std::array<Point, 4> corners{m.apply({r.x, r.y}), m.apply({r.x + r.width, r.y}), m.apply({r.x + r.width, r.y + r.height}),
+                                       m.apply({r.x, r.y + r.height})};
+    return bounds_of(corners);
+}
+
+Rect intersect(const Rect& a, const Rect& b) {
+    const double x0 = std::max(a.x, b.x);
+    const double y0 = std::max(a.y, b.y);
+    const double x1 = std::min(a.x + a.width, b.x + b.width);
+    const double y1 = std::min(a.y + a.height, b.y + b.height);
+    return {x0, y0, std::max(0.0, x1 - x0), std::max(0.0, y1 - y0)};
+}
+
+}
+
+Rect Canvas::visible_bounds() const {
+    const Rect all{0.0, 0.0, static_cast<double>(width()), static_cast<double>(height())};
+    return clip_bounds_.empty() ? all : intersect(all, clip_bounds_.back());
+}
+
+bool Canvas::quick_reject(const Rect& local, double outset) const {
+    const Rect grown{local.x - outset, local.y - outset, local.width + 2.0 * outset, local.height + 2.0 * outset};
+    const Rect device = device_rect(transform_, grown);
+    const Rect visible = visible_bounds();
+    return device.x >= visible.x + visible.width || device.y >= visible.y + visible.height || device.x + device.width <= visible.x ||
+           device.y + device.height <= visible.y || visible.width <= 0.0 || visible.height <= 0.0;
+}
+
+void Canvas::count_rejected(std::size_t points) {
+    if (probe_ && probe_->counting()) {
+        diagnostics::FrameCounts& c = probe_->counts();
+        c.paths += 1;
+        c.offscreen_paths += 1;
+        c.path_points += points;
+    }
+}
+
+void Canvas::push_clip_bounds(const Rect& device) {
+    clip_bounds_.push_back(clip_bounds_.empty() ? device : intersect(clip_bounds_.back(), device));
+}
 
 double Canvas::covered(std::span<const Point> pts) {
     if (pts.empty()) {
@@ -28,6 +90,10 @@ double Canvas::covered(std::span<const Point> pts) {
 }
 
 void Canvas::fill_path(const Path& path, color::Argb color, FillRule rule) {
+    if (quick_reject(bounds_of(path.points()))) {
+        count_rejected(path.points().size());
+        return;
+    }
     Path device = path.transformed(transform_);
     if (probe_ && probe_->counting()) {
         diagnostics::FrameCounts& c = probe_->counts();
@@ -41,6 +107,14 @@ void Canvas::fill_path(const Path& path, color::Argb color, FillRule rule) {
 }
 
 void Canvas::fill_shadow(const Path& path, const Shadow& shadow) {
+    const double reach = std::max(std::abs(shadow.offset_x), std::abs(shadow.offset_y)) + shadow.blur_sigma * tokens::raster.shadow_margin_sigmas;
+    if (quick_reject(bounds_of(path.points()), reach)) {
+        if (probe_ && probe_->counting()) {
+            probe_->counts().shadows += 1;
+            probe_->counts().path_points += path.points().size();
+        }
+        return;
+    }
     const double s = std::hypot(transform_.a, transform_.b);
     Shadow device = shadow;
     device.offset_x *= s;
@@ -61,6 +135,10 @@ void Canvas::fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color
 }
 
 void Canvas::fill_rect(const Rect& rect, color::Argb color) {
+    if (quick_reject(rect)) {
+        count_rejected(2);
+        return;
+    }
     const Point from = transform_.apply({rect.x, rect.y});
     const Point to = transform_.apply({rect.x + rect.width, rect.y + rect.height});
     if (probe_ && probe_->counting()) {
@@ -75,6 +153,12 @@ void Canvas::fill_rect(const Rect& rect, color::Argb color) {
 
 void Canvas::draw_image(const Image& image, const Rect& rect, double opacity) {
     if (image.width <= 0 || image.height <= 0 || image.pixels.size() < static_cast<std::size_t>(image.width) * image.height || opacity <= 0.0) {
+        return;
+    }
+    if (quick_reject(rect)) {
+        if (probe_ && probe_->counting()) {
+            probe_->counts().images += 1;
+        }
         return;
     }
     const Affine place{rect.width / image.width, 0.0, 0.0, rect.height / image.height, rect.x, rect.y};
@@ -122,17 +206,24 @@ void Canvas::push_clip(const Rect& rect) {
     }
     const Point a = transform_.apply({rect.x, rect.y});
     const Point b = transform_.apply({rect.x + rect.width, rect.y + rect.height});
-    begin_device_clip({std::min(a.x, b.x), std::min(a.y, b.y), std::abs(b.x - a.x), std::abs(b.y - a.y)});
+    const Rect device{std::min(a.x, b.x), std::min(a.y, b.y), std::abs(b.x - a.x), std::abs(b.y - a.y)};
+    push_clip_bounds(device);
+    begin_device_clip(device);
 }
 
 void Canvas::push_clip(const Path& path) {
     if (probe_ && probe_->counting()) {
         probe_->counts().clips += 1;
     }
-    begin_device_clip(path.transformed(transform_));
+    const Path device = path.transformed(transform_);
+    push_clip_bounds(bounds_of(device.points()));
+    begin_device_clip(device);
 }
 
 void Canvas::pop_clip() {
+    if (!clip_bounds_.empty()) {
+        clip_bounds_.pop_back();
+    }
     end_device_clip();
 }
 
