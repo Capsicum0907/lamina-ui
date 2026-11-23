@@ -276,6 +276,10 @@ The ThorVG canvas blurs each shadow shape once and draws it from a cache, at the
 | `cull_glyph_outset_em` | 0.5 | how far a text line or an icon may reach outside its box, in its size |
 | `worker_threads_max` | 3 | ThorVG's worker threads at most |
 | `reserved_cores` | 1 | cores not given to ThorVG's workers |
+| `layers_max` | 3 | canvas layers in a frame at most; a retained image that would need more is drawn by ThorVG ([Retained images on the GPU](app-structure.md#retained-images-on-the-gpu)) |
+| `retained_min_scale` | 0.5 | a retained image drawn smaller than this in either direction is drawn by ThorVG |
+| `image_texture_bytes` | 256 MiB | the default budget of the textures of retained images (`WindowOptions::image_texture_bytes`) |
+| `image_texture_smooth` | true | bilinear filtering of those textures (false: nearest) |
 
 C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, focus 0.10, pressed 0.10, dragged 0.16.
 
