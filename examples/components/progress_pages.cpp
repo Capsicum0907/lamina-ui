@@ -40,6 +40,8 @@ struct ProgressLayout {
 
 const ProgressLayout progress_layout;
 
+constexpr const char* value_name = "Indicator value";
+
 std::string percent(double v) {
     return std::to_string(static_cast<long long>(std::lround(v * progress_layout.percent))) + " %";
 }
@@ -48,7 +50,7 @@ class ProgressPage final : public BasePage {
 public:
     explicit ProgressPage(PageContext context) : BasePage(std::move(context)) {
         const ProgressLayout& l = progress_layout;
-        root = columns({{loading(), controls_section()}, {wavy()}}, l.column_space, l.section_gap);
+        root = columns({{controls_section(), loading()}, {wavy()}}, l.column_space, l.section_gap);
         set_all(l.start_progress, false);
     }
 
@@ -101,13 +103,13 @@ private:
                 if (changed) {
                     running_ = false;
                     set_all(s.fraction(), false);
-                    ctx.report("Progress: " + percent(s.fraction()));
+                    ctx.report(std::string(value_name) + ": " + percent(s.fraction()));
                 }
             },
-            widgets::SliderOptions{.value = l.start_progress, .accessible_name = "Progress", .value_label = percent}, ctx.fonts);
+            widgets::SliderOptions{.value = l.start_progress, .accessible_name = value_name, .value_label = percent}, ctx.fonts);
         slider_ = &slider;
         focus_.add(slider);
-        enabler("Progress", slider);
+        enabler(value_name, slider);
         auto& run = controls.emplace_with<widgets::Button>(
             [this](widgets::Button&, bool clicked) {
                 if (clicked) {
@@ -137,12 +139,12 @@ private:
         focus_.add(indeterminate);
         enabler("Indeterminate", indeterminate);
         std::vector<layout::NodePtr> rows;
-        rows.push_back(captioned("Progress", width_limited(widgets::node(slider), l.slider_width)));
+        rows.push_back(captioned("Value", width_limited(widgets::node(slider), l.slider_width)));
         rows.push_back(captioned("Run", widgets::centered_node(run)));
         rows.push_back(captioned("Indeterminate", widgets::centered_node(indeterminate)));
         auto column = layout::column(std::move(rows));
         column->spacing(progress_layout.row_gap);
-        return heading("Drive the determinate indicators", column);
+        return heading("Set the value the indicators show", column);
     }
 
     layout::NodePtr wavy() {

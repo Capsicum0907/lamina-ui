@@ -1977,7 +1977,7 @@ const std::map<std::string, Scene>& expressive_videos() {
              d.set_cursor(false);
              d.wait(5.0);
              d.set_cursor(true);
-             d.move_to(centre_by(g, [](const widgets::AccessibleNode& n) { return n.name == "Progress" && n.role == widgets::AccessibleRole::slider; }), 0.8);
+             d.move_to(centre_by(g, [](const widgets::AccessibleNode& n) { return n.name == "Indicator value" && n.role == widgets::AccessibleRole::slider; }), 0.8);
              d.drag_to({d.pointer().x - 250.0, d.pointer().y}, 1.6);
              d.drag_to({d.pointer().x + 300.0, d.pointer().y}, 2.4);
              d.wait(0.8);
