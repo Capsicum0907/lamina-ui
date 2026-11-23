@@ -16,7 +16,9 @@
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL_main.h>
 
+#include "lamina/input/touch_echo.hpp"
 #include "lamina/layout/frame_size.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina_sdl3/caption_frame.hpp"
 #include "lamina_sdl3/report.hpp"
 #include "lamina_sdl3/system_ui.hpp"
@@ -169,6 +171,9 @@ struct Window::Impl {
     bool alt_alone = false;
     int pending_redraws = 0;
     layout::PixelSize last_pixels;
+    input::TouchEchoFilter touch_echo;
+    int origin_x = 0;
+    int origin_y = 0;
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
@@ -244,6 +249,13 @@ struct Window::Impl {
         return window_coord * pixel_density() / scale();
     }
 
+    void push_pointer(Frame& frame, const input::PointerEvent& event) {
+        const input::ScreenOrigin origin{to_dp(static_cast<float>(origin_x)), to_dp(static_cast<float>(origin_y))};
+        if (touch_echo.admit(event, origin, tokens::touch_echo_tolerance_pixels / scale())) {
+            frame.pointer.push_back(event);
+        }
+    }
+
     void drop_texture() {
         if (texture) {
             SDL_DestroyTexture(texture);
@@ -313,6 +325,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
         report_error(std::string("lamina: vsync is not available (") + SDL_GetError() + "); frames are not paced");
     }
     SDL_ShowWindow(impl_->window);
+    SDL_GetWindowPosition(impl_->window, &impl_->origin_x, &impl_->origin_y);
     impl_->last_ns = SDL_GetTicksNS();
 }
 
@@ -383,16 +396,16 @@ bool Window::next_frame(Frame& frame, bool animating) {
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             return false;
         case SDL_EVENT_MOUSE_MOTION:
-            frame.pointer.push_back({PointerAction::move, impl_->to_dp(e.motion.x), impl_->to_dp(e.motion.y), 0, pointer_kind(e.motion.which),
-                                     static_cast<double>(e.motion.timestamp) / nanoseconds_per_second});
+            impl_->push_pointer(frame, {PointerAction::move, impl_->to_dp(e.motion.x), impl_->to_dp(e.motion.y), 0, pointer_kind(e.motion.which),
+                                        static_cast<double>(e.motion.timestamp) / nanoseconds_per_second});
             break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             impl_->alt_alone = false;
             if (e.button.button == SDL_BUTTON_LEFT) {
                 const SDL_Keymod mod = SDL_GetModState();
-                frame.pointer.push_back(
-                    {PointerAction::down, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), e.button.clicks, pointer_kind(e.button.which),
-                     static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0, ctrl_held(mod)});
+                impl_->push_pointer(frame, {PointerAction::down, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), e.button.clicks,
+                                            pointer_kind(e.button.which), static_cast<double>(e.button.timestamp) / nanoseconds_per_second,
+                                            (mod & SDL_KMOD_SHIFT) != 0, ctrl_held(mod)});
             } else if (e.button.button == SDL_BUTTON_RIGHT) {
                 frame.context.push_back({impl_->to_dp(e.button.x), impl_->to_dp(e.button.y)});
             }
@@ -400,9 +413,9 @@ bool Window::next_frame(Frame& frame, bool animating) {
         case SDL_EVENT_MOUSE_BUTTON_UP:
             if (e.button.button == SDL_BUTTON_LEFT) {
                 const SDL_Keymod mod = SDL_GetModState();
-                frame.pointer.push_back({PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which),
-                                         static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0,
-                                         ctrl_held(mod)});
+                impl_->push_pointer(frame, {PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which),
+                                            static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0,
+                                            ctrl_held(mod)});
                 if (input::leaves_after_up(pointer_kind(e.button.which))) {
                     frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
                 }
@@ -442,6 +455,10 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_WINDOW_MOUSE_LEAVE:
             frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
+            break;
+        case SDL_EVENT_WINDOW_MOVED:
+            impl_->origin_x = e.window.data1;
+            impl_->origin_y = e.window.data2;
             break;
         case SDL_EVENT_WINDOW_RESTORED:
             impl_->pending_redraws = redraws_after_restore;

@@ -8,6 +8,8 @@ namespace lamina::tokens {
 
 inline constexpr double minimum_interactive_size = 48.0;
 
+inline constexpr double touch_echo_tolerance_pixels = 1.0;
+
 namespace state_layer_opacity {
 inline constexpr double hover = 0.08;
 inline constexpr double focus = 0.10;
