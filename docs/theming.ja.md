@@ -26,7 +26,7 @@
 
 `lamina/motion/spring.hpp`：減衰するばね。解を式で直接求めます。`advance` は値を目標に向けて好きな時間だけ進めます。時間をどうコマに分けても結果は変わりません。`is_settled` は動きが止まったかを判定します。
 
-`lamina/motion/animated.hpp`・`lamina/motion/animated_radii.hpp`・`lamina/motion/lerp.hpp`・`lamina/color/mix.hpp`：ばねで動く値と、角ごとにばねで動く四つの角の半径（`AnimatedRadii`。ばねが行き過ぎても 0 を下回りません。グループ分けしたメニューのグループと項目は、これで角の形を変えます）と、2つの数の間の線形補間と、色の混ぜ合わせと重ね合わせ。`color::source_over` はある色を別の色の上に重ね、`color::state_layer(container, content, opacity)` は、入れ物の色に状態の重ねを重ねた色を返します。ボタン・アイコンボタン・FAB は状態の重ねが入れ物と同じ形なので、入れ物をこの色で塗ります。状態の重ねが別の形のとき（スイッチの円、メニューの項目、レールの印）は、すでに描いたものの上に `with_alpha(content, opacity)` で塗り、キャンバスが同じ方法で重ねます。`color::faded(scheme, opacity)` は、すべての役割の色の不透明度に `opacity` を掛けます。ダイアログ・メニュー・グループ分けしたメニューは、現れるときと消えるときにこの薄めた配色で描き、ダイアログは中のラベルとボタンにもそれを渡します。
+`lamina/motion/animated.hpp`・`lamina/motion/animated_radii.hpp`・`lamina/motion/lerp.hpp`・`lamina/color/mix.hpp`：ばねで動く値と、角ごとにばねで動く四つの角の半径（`AnimatedRadii`。ばねが行き過ぎても 0 を下回りません。グループ分けしたメニューのグループと項目は、これで角の形を変えます）と、2つの数の間の線形補間と、色の混ぜ合わせと重ね合わせ。`color::source_over` はある色を別の色の上に重ね、`color::state_layer(container, content, opacity)` は、入れ物の色に状態の重ねを重ねた色を返します。ボタン・アイコンボタン・FAB は状態の重ねが入れ物と同じ形なので、入れ物をこの色で塗ります。状態の重ねが別の形のとき（スイッチの円、メニューの項目、レールの印）は、すでに描いたものの上に `with_alpha(content, opacity)` で塗り、キャンバスが同じ方法で重ねます。`color::faded(scheme, opacity)` は、すべての役割の色の不透明度に `opacity` を掛けます。ダイアログ・メニュー・グループ分けしたメニューは、現れるときと消えるときにこの薄めた配色で描き、ダイアログは中のラベルとボタンにもそれを渡します。アイコンボタンは、状態の重ねの不透明度に中身の色の不透明度を掛けます。そのため、押されているか焦点のあるアイコンボタンを薄めた配色で描くと、状態の重ねも元の濃さのままにならず、一緒に薄くなります。
 
 ## ばねの模型
 
