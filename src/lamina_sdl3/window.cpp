@@ -11,7 +11,9 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 #include <SDL3/SDL.h>
 #define SDL_MAIN_HANDLED
@@ -20,6 +22,7 @@
 #include "lamina/input/touch_echo.hpp"
 #include "lamina/input/touch_release.hpp"
 #include "lamina/layout/frame_size.hpp"
+#include "lamina/render/retained_textures.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina_sdl3/caption_frame.hpp"
 #include "lamina_sdl3/report.hpp"
@@ -154,6 +157,23 @@ public:
     }
 };
 
+constexpr std::string_view software_renderer = "software";
+constexpr std::uint32_t alpha_shift = 24;
+constexpr std::uint32_t channel_max = 255;
+constexpr std::uint32_t channel_mask = 0xff;
+constexpr std::uint32_t round_half = 127;
+constexpr int quad_vertices = 4;
+constexpr std::array<int, 6> quad_indices{0, 1, 2, 0, 2, 3};
+
+std::uint32_t premultiplied(std::uint32_t argb) {
+    const std::uint32_t a = argb >> alpha_shift;
+    if (a == channel_max) {
+        return argb;
+    }
+    auto scale = [a](std::uint32_t c) { return (c * a + round_half) / channel_max; };
+    return (a << alpha_shift) | (scale((argb >> 16) & channel_mask) << 16) | (scale((argb >> 8) & channel_mask) << 8) | scale(argb & channel_mask);
+}
+
 [[noreturn]] void fail(const char* what) {
     throw std::runtime_error(std::string(what) + ": " + SDL_GetError());
 }
@@ -161,6 +181,14 @@ public:
 }
 
 struct Window::Impl {
+    struct Sink final : render::RetainedImageSink {
+        explicit Sink(const Impl& owner) : impl(owner) {}
+        bool accepts(const render::Image& image) const override { return impl.accepts(image); }
+        const Impl& impl;
+    };
+
+    using Textures = render::RetainedTextures<SDL_Texture*>;
+
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
     SDL_Texture* texture = nullptr;
@@ -188,6 +216,103 @@ struct Window::Impl {
     int origin_x = 0;
     int origin_y = 0;
     diagnostics::FrameProbe probe;
+    Sink sink{*this};
+    bool gpu_wanted = true;
+    bool gpu_capable = false;
+    std::int64_t max_texture = 0;
+    std::size_t texture_budget = tokens::raster.image_texture_bytes;
+    std::unique_ptr<Textures> textures;
+    std::vector<SDL_Texture*> upper_textures;
+    std::vector<std::uint32_t> staging;
+    std::uint64_t frame_number = 0;
+
+    bool accepts(const render::Image& image) const {
+        return gpu_wanted && gpu_capable && textures && image.width <= max_texture && image.height <= max_texture && !textures->refused(image);
+    }
+
+    std::optional<Textures::Made> make_texture(const render::Image& image) {
+        SDL_Texture* t = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, image.width, image.height);
+        if (!t) {
+            report_error(std::string("lamina: cannot make an image texture (") + SDL_GetError() + "); drawing it on the CPU");
+            return std::nullopt;
+        }
+        const std::size_t n = static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
+        staging.resize(n);
+        for (std::size_t i = 0; i < n; ++i) {
+            staging[i] = premultiplied(image.pixels[i]);
+        }
+        if (!SDL_UpdateTexture(t, nullptr, staging.data(), image.width * static_cast<int>(sizeof(std::uint32_t)))) {
+            report_error(std::string("lamina: cannot upload an image texture (") + SDL_GetError() + "); drawing it on the CPU");
+            SDL_DestroyTexture(t);
+            return std::nullopt;
+        }
+        SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND_PREMULTIPLIED);
+        SDL_SetTextureScaleMode(t, tokens::raster.image_texture_smooth ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+        return Textures::Made{t, n * sizeof(std::uint32_t)};
+    }
+
+    void start_textures() {
+        const char* name = SDL_GetRendererName(renderer);
+        gpu_capable = name && std::string_view(name) != software_renderer;
+        max_texture = SDL_GetNumberProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0);
+        textures = std::make_unique<Textures>(
+            texture_budget, [this](const render::Image& image) { return make_texture(image); }, [](SDL_Texture* t) { SDL_DestroyTexture(t); });
+        route_images();
+    }
+
+    void route_images() {
+        canvas->set_retained_images(gpu_wanted && gpu_capable ? &sink : nullptr);
+    }
+
+    void drop_upper_textures() {
+        for (SDL_Texture*& t : upper_textures) {
+            if (t) {
+                SDL_DestroyTexture(t);
+            }
+            t = nullptr;
+        }
+    }
+
+    SDL_Texture* upper_texture(std::size_t layer) {
+        if (upper_textures.size() < layer) {
+            upper_textures.resize(layer, nullptr);
+        }
+        SDL_Texture*& t = upper_textures[layer - 1];
+        if (t && (t->w != texture_w || t->h != texture_h)) {
+            SDL_DestroyTexture(t);
+            t = nullptr;
+        }
+        if (!t) {
+            t = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, texture_w, texture_h);
+            if (!t) {
+                fail("SDL_CreateTexture");
+            }
+            SDL_SetTextureBlendMode(t, SDL_BLENDMODE_BLEND_PREMULTIPLIED);
+        }
+        return t;
+    }
+
+    void draw_retained(const render::RetainedDraw& d, SDL_Texture* t) {
+        const auto w = static_cast<double>(d.image->width);
+        const auto h = static_cast<double>(d.image->height);
+        const std::array<render::Point, quad_vertices> at{d.to_device.apply({0.0, 0.0}), d.to_device.apply({w, 0.0}), d.to_device.apply({w, h}),
+                                                           d.to_device.apply({0.0, h})};
+        const std::array<SDL_FPoint, quad_vertices> uv{SDL_FPoint{0.0f, 0.0f}, SDL_FPoint{1.0f, 0.0f}, SDL_FPoint{1.0f, 1.0f}, SDL_FPoint{0.0f, 1.0f}};
+        const auto o = static_cast<float>(d.opacity);
+        std::array<SDL_Vertex, quad_vertices> v{};
+        for (std::size_t i = 0; i < v.size(); ++i) {
+            v[i].position = {static_cast<float>(at[i].x), static_cast<float>(at[i].y)};
+            v[i].color = {o, o, o, o};
+            v[i].tex_coord = uv[i];
+        }
+        const auto x0 = std::lround(d.clip.x);
+        const auto y0 = std::lround(d.clip.y);
+        const SDL_Rect clip{static_cast<int>(x0), static_cast<int>(y0), static_cast<int>(std::lround(d.clip.x + d.clip.width) - x0),
+                            static_cast<int>(std::lround(d.clip.y + d.clip.height) - y0)};
+        SDL_SetRenderClipRect(renderer, &clip);
+        SDL_RenderGeometry(renderer, t, v.data(), quad_vertices, quad_indices.data(), static_cast<int>(quad_indices.size()));
+        SDL_SetRenderClipRect(renderer, nullptr);
+    }
 
     void read_display() {
         if (!probe.active()) {
@@ -367,6 +492,8 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
     impl_->canvas = std::move(canvas);
     impl_->canvas->set_probe(&impl_->probe);
     impl_->probe.set_switches(options.frame_stats);
+    impl_->gpu_wanted = options.gpu_images;
+    impl_->texture_budget = options.image_texture_bytes;
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
@@ -400,6 +527,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
     SDL_SetWindowSize(impl_->window, static_cast<int>(std::lround(options.width_dp * factor)),
                       static_cast<int>(std::lround(options.height_dp * factor)));
     SDL_SetWindowPosition(impl_->window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    impl_->start_textures();
     if (!SDL_SetRenderVSync(impl_->renderer, 1)) {
         report_error(std::string("lamina: vsync is not available (") + SDL_GetError() + "); frames are not paced");
     }
@@ -415,6 +543,9 @@ Window::~Window() {
             SDL_DestroyCursor(c);
         }
     }
+    impl_->canvas->set_retained_images(nullptr);
+    impl_->textures.reset();
+    impl_->drop_upper_textures();
     if (impl_->texture) {
         SDL_DestroyTexture(impl_->texture);
     }
@@ -564,6 +695,10 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_RENDER_DEVICE_RESET:
             impl_->drop_texture();
+            impl_->drop_upper_textures();
+            if (impl_->textures) {
+                impl_->textures->clear();
+            }
             break;
         default:
             break;
@@ -689,19 +824,61 @@ render::Canvas& Window::canvas() {
 }
 
 void Window::present() {
-    const render::PixelView view = impl_->canvas->finish();
+    Impl& m = *impl_;
+    const render::PixelView view = m.canvas->finish();
+    const std::vector<render::UpperLayer> uppers = m.canvas->upper_layers();
+    const std::vector<std::vector<render::RetainedDraw>>& batches = m.canvas->retained_draws();
+    std::vector<std::vector<SDL_Texture*>> bound(batches.size());
+    const bool counting = m.probe.counting();
     {
-        const diagnostics::StageScope stage(&impl_->probe, diagnostics::Stage::upload);
-        impl_->ensure_texture(view.width, view.height);
-        SDL_UpdateTexture(impl_->texture, nullptr, view.data, static_cast<int>(view.stride));
+        const diagnostics::StageScope stage(&m.probe, diagnostics::Stage::upload);
+        m.ensure_texture(view.width, view.height);
+        SDL_UpdateTexture(m.texture, nullptr, view.data, static_cast<int>(view.stride));
+        for (const render::UpperLayer& u : uppers) {
+            const SDL_Rect r{u.x, u.y, u.pixels.width, u.pixels.height};
+            SDL_UpdateTexture(m.upper_texture(u.layer), &r, u.pixels.data, static_cast<int>(u.pixels.stride));
+        }
+        for (std::size_t b = 0; b < batches.size(); ++b) {
+            for (const render::RetainedDraw& d : batches[b]) {
+                const Impl::Textures::Lookup found = m.textures->get(*d.image, m.frame_number);
+                bound[b].push_back(found.texture.value_or(nullptr));
+                if (found.made && counting) {
+                    m.probe.counts().gpu_uploads += 1;
+                    m.probe.counts().gpu_upload_bytes += found.bytes;
+                }
+            }
+        }
     }
     {
-        const diagnostics::StageScope stage(&impl_->probe, diagnostics::Stage::present);
-        SDL_RenderClear(impl_->renderer);
-        SDL_RenderTexture(impl_->renderer, impl_->texture, nullptr, nullptr);
-        SDL_RenderPresent(impl_->renderer);
+        const diagnostics::StageScope stage(&m.probe, diagnostics::Stage::present);
+        SDL_RenderClear(m.renderer);
+        SDL_RenderTexture(m.renderer, m.texture, nullptr, nullptr);
+        std::size_t next = 0;
+        const std::size_t last = uppers.empty() ? 0 : uppers.back().layer;
+        for (std::size_t b = 0; b < std::max(batches.size(), last); ++b) {
+            if (b < batches.size()) {
+                for (std::size_t i = 0; i < batches[b].size(); ++i) {
+                    if (bound[b][i]) {
+                        m.draw_retained(batches[b][i], bound[b][i]);
+                    }
+                }
+            }
+            while (next < uppers.size() && uppers[next].layer == b + 1) {
+                const render::UpperLayer& u = uppers[next];
+                const SDL_FRect r{static_cast<float>(u.x), static_cast<float>(u.y), static_cast<float>(u.pixels.width), static_cast<float>(u.pixels.height)};
+                SDL_RenderTexture(m.renderer, m.upper_texture(u.layer), &r, &r);
+                next += 1;
+            }
+        }
+        SDL_RenderPresent(m.renderer);
     }
-    impl_->probe.end_frame();
+    m.textures->collect(m.frame_number);
+    m.frame_number += 1;
+    if (counting) {
+        m.probe.counts().gpu_textures = m.textures->size();
+        m.probe.counts().gpu_texture_bytes = m.textures->bytes();
+    }
+    m.probe.end_frame();
     if (const auto running = impl_->probe.take_running()) {
         impl_->log_summary(*running, "running");
     }
@@ -709,6 +886,25 @@ void Window::present() {
 
 diagnostics::FrameProbe& Window::frame_probe() {
     return impl_->probe;
+}
+
+void Window::set_gpu_images(bool on) {
+    impl_->gpu_wanted = on;
+    impl_->route_images();
+    if (!on && impl_->textures) {
+        impl_->textures->clear();
+    }
+}
+
+bool Window::gpu_images() const {
+    return impl_->gpu_wanted && impl_->gpu_capable;
+}
+
+void Window::set_image_texture_budget(std::size_t bytes) {
+    impl_->texture_budget = bytes;
+    if (impl_->textures) {
+        impl_->textures->set_budget(bytes);
+    }
 }
 
 void Window::set_frame_stats(diagnostics::FrameStatsSwitches switches) {

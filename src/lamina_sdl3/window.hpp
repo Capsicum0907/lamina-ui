@@ -14,6 +14,7 @@
 #include "lamina/layout/safe_area.hpp"
 #include "lamina/layout/window_size_class.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/tokens/raster.hpp"
 
 namespace lamina::sdl3 {
 
@@ -23,6 +24,8 @@ struct WindowOptions {
     int height_dp;
     bool client_title_bar = false;
     diagnostics::FrameStatsSwitches frame_stats = {};
+    bool gpu_images = true;
+    std::size_t image_texture_bytes = tokens::raster.image_texture_bytes;
 };
 
 struct Frame {
@@ -63,6 +66,9 @@ public:
     void present();
     diagnostics::FrameProbe& frame_probe();
     void set_frame_stats(diagnostics::FrameStatsSwitches switches);
+    void set_gpu_images(bool on);
+    bool gpu_images() const;
+    void set_image_texture_budget(std::size_t bytes);
 
     bool client_title_bar() const;
     void set_caption_regions(input::CaptionRegions regions);
