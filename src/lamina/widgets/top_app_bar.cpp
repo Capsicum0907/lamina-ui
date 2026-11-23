@@ -72,6 +72,11 @@ void TopAppBar::set_title(std::string title) {
     layout_titles();
 }
 
+void TopAppBar::set_subtitle(std::string subtitle) {
+    options_.subtitle = std::move(subtitle);
+    layout_titles();
+}
+
 TitleAlignment TopAppBar::alignment() const {
     if (options_.alignment) {
         return *options_.alignment;

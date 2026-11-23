@@ -66,6 +66,7 @@ public:
     TopAppBarState& state() { return state_; }
     void follow(ScrollArea& scroll);
     void set_title(std::string title);
+    void set_subtitle(std::string subtitle);
 
     IconButton* navigation_button() { return navigation_ ? &*navigation_ : nullptr; }
     std::size_t action_count() const { return actions_.size(); }

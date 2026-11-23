@@ -291,3 +291,25 @@ TEST_CASE("an ellipsized title fits between the navigation icon and the actions 
     wide.arrange({0.0, 0.0, 240.0, wide.height()});
     CHECK(wide.title_rect().width > b.title_rect().width);
 }
+
+TEST_CASE("a bar's title and subtitle change in place, keeping its icon buttons") {
+    TopAppBarOptions o{"photo.jpg", TopAppBarKind::small, "1 / 3"};
+    o.navigation = button(res::icons::home, "Back");
+    o.actions = {button(res::icons::search, "Search"), button(res::icons::star, "Star")};
+    o.ellipsize = true;
+    TopAppBar b(o, fonts());
+    b.arrange({0.0, 0.0, 320.0, b.height()});
+    const double height = b.height();
+    const render::Rect star = b.action(1).bounds();
+    b.action(1).set_enabled(false);
+    b.set_title("A much longer file name than the first one, cut to the room.jpg");
+    b.set_subtitle("2 / 3");
+    CHECK(b.height() == height);
+    CHECK(b.action(1).bounds().x == star.x);
+    CHECK_FALSE(b.action(1).enabled());
+    CHECK(b.title_rect().x + b.title_rect().width <= b.action(0).bounds().x);
+    const widgets::AccessibleNode node = b.accessible();
+    REQUIRE(node.children.size() == 4);
+    CHECK(node.children[1].name == "A much longer file name than the first one, cut to the room.jpg");
+    CHECK(node.children[1].description == "2 / 3");
+}
