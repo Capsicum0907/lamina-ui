@@ -100,8 +100,11 @@ public:
         handle_dialog_tips(e);
         for (widgets::SearchBar* s : bars()) {
             if (s->is_open()) {
-                respond(*s, s->handle(e));
-                return true;
+                const widgets::SearchBarResponse r = s->handle(e);
+                respond(*s, r);
+                if (r.consumed) {
+                    return true;
+                }
             }
         }
         if (e.key != input::Key::tab) {

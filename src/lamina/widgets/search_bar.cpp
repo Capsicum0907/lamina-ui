@@ -406,6 +406,9 @@ SearchBarResponse SearchBar::handle(const input::KeyEvent& e) {
         }
         return changed(before, r);
     }
+    if (!focused()) {
+        return r;
+    }
     r.consumed = true;
     if (e.key == input::Key::escape) {
         collapse();

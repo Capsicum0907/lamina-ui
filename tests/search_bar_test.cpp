@@ -308,3 +308,31 @@ TEST_CASE("the full-screen view stays open on a press outside its area and leave
     CHECK_FALSE(s.handle(input::WheelEvent{200.0, y, 0.0, 1.0}));
     CHECK(s.handle(input::WheelEvent{200.0, 400.0, 0.0, 1.0}));
 }
+
+TEST_CASE("of two open views, keys go to the one with the focus and the other leaves them alone") {
+    widgets::SearchBar first(options(), fonts());
+    widgets::SearchBar second(options(), fonts());
+    place(first, phone);
+    place(second, desktop);
+    first.expand();
+    second.expand();
+    settle(first);
+    settle(second);
+    first.set_focused(false);
+    REQUIRE(second.field().focused());
+    second.handle(input::TextEvent{input::TextEventKind::commit, "ky", 0});
+    first.set_query("kyoto");
+    const auto unfocused = first.handle(input::KeyEvent{Key::backspace, false});
+    CHECK_FALSE(unfocused.consumed);
+    CHECK(first.query() == "kyoto");
+    CHECK(first.expanded());
+    const auto focused = second.handle(input::KeyEvent{Key::backspace, false});
+    CHECK(focused.consumed);
+    CHECK(second.query() == "k");
+    CHECK_FALSE(first.handle(input::KeyEvent{Key::escape, false}).consumed);
+    CHECK(first.expanded());
+    CHECK(second.handle(input::KeyEvent{Key::enter, false}).searched == std::optional<std::string>("k"));
+    second.handle(input::KeyEvent{Key::left, false});
+    second.handle(input::TextEvent{input::TextEventKind::commit, "o", 0});
+    CHECK(second.query() == "o" "k");
+}
