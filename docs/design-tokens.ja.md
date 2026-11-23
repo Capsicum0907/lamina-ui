@@ -15,7 +15,7 @@ lamina-ui が Material 3 Expressive から借りる値です。Google が公開�
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
 | A | androidx/androidx の `compose/material3/adaptive/`（adaptive・adaptive-layout・adaptive-navigation）、`compose/material3/material3-adaptive-navigation-suite/`、`window/window-core/` | `6068a9492ba8` | Apache-2.0 |
 | D | [material-components/material-components-web](https://github.com/material-components/material-components-web) の `packages/mdc-density/` と部品ごとの `$density-config` | `6ceadb81df50` | MIT |
-| S | Android Studio が入れた Android SDK：SDK Platform `android-36.1`（リビジョン 1）の `platforms/android-36.1/data/res/values/config.xml` と、Sources for Android `android-36.1`（リビジョン 1）の `sources/android-36.1/android/view/ViewConfiguration.java`。拡大の表示のために、同じフォルダーの `ScaleGestureDetector.java` と `GestureDetector.java` も読みました（2026-11-23） | 2026-11-22 に読みました | Apache-2.0 |
+| S | Android Studio が入れた Android SDK：SDK Platform `android-36.1`（リビジョン 1）の `platforms/android-36.1/data/res/values/config.xml` と、Sources for Android `android-36.1`（リビジョン 1）の `sources/android-36.1/android/view/ViewConfiguration.java`。拡大の表示のために、同じフォルダーの `ScaleGestureDetector.java` と `GestureDetector.java` も、ページ送りのために `sources/android-36.1/com/android/internal/widget/ViewPager.java` も読みました（どれも 2026-11-23） | 2026-11-22 に読みました | Apache-2.0 |
 | J | [JetBrains/compose-multiplatform-core](https://github.com/JetBrains/compose-multiplatform-core) の `compose/foundation/foundation/src/desktopMain/` と `compose/ui/ui/src/desktopMain/`（Compose Multiplatform Desktop） | 2026-11-21 に読んだ `jb-main` ブランチ（コミットは記録していません） | Apache-2.0 |
 
 値を使うときは Apache-2.0 の表示と出典を残します（D は MIT の表示）。
@@ -699,7 +699,7 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 - アプリバー：`ScrollArea::scroll_in_progress()` は指でのドラッグとはじいた動きの間も true で、トップアプリバーとフレキシブルなボトムアプリバーは、それが終わってから止め方を決めます（Compose は `onPostFling` で決めます）。
 - シートの中身：ボトムシートの中身を指でなぞると、なぞり始めにその向きへ中身がスクロールできるときは中身が先に動きます。下向きは中身が一番上にないとき、上向きはシートが Expanded の位置にあって中身が一番下にないときです。そうでなければシートが動きます。Compose は操作の途中でも、入れ子のスクロールで残りの量を中身とシートの間で受け渡しますが、lamina-ui は一回の操作ごとに一度だけ決めます。
 - 入力欄（lamina-ui が決めたこと）：指では、押したときではなく、欄の中で指を離したとき（タップ）に入力欄へ焦点が移ります。そのため欄の上から始めたスクロールで焦点が移ることはなく、ほかの場所のタップは指を離したときに焦点を外します。マウスはこれまでどおり、押したときに焦点を移して選択を始めます。
-- 作っていないもの：端で伸びる動き。入れ子のスクロール（ページの中のリストが端に着いたとき、なぞりやはじきの残りをページに渡すこと）。Android の仕組みの速さの測り方（Compose は `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` のときに使います。その既定値は読んでいません。lamina-ui は Lsq2 のままです）。スクロールの領域での二本目からの指（SDL がマウスに写すのは最初の指だけです。拡大の表示のために窓はすべての指を `Frame::fingers` で知らせるようになりましたが、スクロールの領域はそれを読みません）。Android のはじく速さの下限（S の `config_viewMinFlingVelocity` = 50dp）。Compose のスクロールもこれは使いません。データ表は押したときに行を選ぶので、行の上から始めた指のなぞりはその行を選びます。
+- 作っていないもの：端で伸びる動き。入れ子のスクロール（ページの中のリストが端に着いたとき、なぞりやはじきの残りをページに渡すこと。拡大の表示は、ついていけないなぞりを遊びのところで丸ごとスクロールやページ送りへ渡します。[拡大の表示](#拡大の表示)）。Android の仕組みの速さの測り方（Compose は `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` のときに使います。その既定値は読んでいません。lamina-ui は Lsq2 のままです）。スクロールの領域での二本目からの指（SDL がマウスに写すのは最初の指だけです。拡大の表示のために窓はすべての指を `Frame::fingers` で知らせるようになりましたが、スクロールの領域はそれを読みません）。Android のはじく速さの下限（S の `config_viewMinFlingVelocity` = 50dp）。Compose のスクロールもこれは使いません。データ表は押したときに行を選ぶので、行の上から始めた指のなぞりはその行を選びます。
 
 ### 拡大の表示
 
@@ -728,9 +728,49 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 | 戻る動き | 既定の効果のばね（減衰 1.0）。道のりの 0.0001 以内・毎秒 0.001 以内で止まったとみなします（`settle_spring`・`settle_threshold`）。倍率と位置は同じ割合で進みます。中心を保つ位置は倍率に対して一次なので、これで中心がずれません |
 
 - 収まる大きさとは、表示の中に収まるように縮めて中央にそろえた大きさです。拡大した中身が表示より小さい軸では中央にそろったままで、大きい軸では中身の端が表示の内側に入りません。
-- 倍率 1 のときの一本の指は動かさず、押さえもしません。そのため周りのスクロールがなぞりを受け取れ、あとでページ送りもそれを受け取れます。二本の指は、倍率 1 でもいつも押さえます。
+- 倍率 1 のときの一本の指は動かさず、押さえもしません。そのため周りのスクロールやページ送りがなぞりを受け取れます。二本の指は、倍率 1 でもいつも押さえます。
+- なぞりを渡す：拡大した中身の上の一本の指も、8 dp の遊びを越えるまでは押さえません。遊びを越えたところで、なぞりが水平から 30° 以内（`handoff_angle_degrees`。スクロールが Compose の `Draggable` から取った角度。[指でのスクロール](#指でのスクロール)）か垂直から 30° 以内で、その軸でスクロールが待っていて（`waiting_scrollers`）、中身がその向きに動けない（`can_pan_horizontally`・`can_pan_vertically`。端の許し 0.5 dp 以内）ときは手放します。その間の斜めのなぞりはいつも動かします。lamina-ui の決まりです。Android の `ViewPager` は自分の遊びのところで、指の下のどれかのビューがその向きにスクロールできるかを尋ねて決めます（`canScroll`・`canScrollHorizontally`。S の `ViewPager.java`）。ページ送りの中の拡大の表示では結果は同じです。lamina-ui がページ送りではなく表示に尋ねるのは、ページ送りがページの上の表示を知らないからです。
+- この判断はなぞり一回につき一度です。端に着いてもなぞり続けると、ゴムの手応えの中へ動き続け、次のなぞりがページ送りへ渡ります。Compose は入れ子のスクロールの間で、なぞりの途中に残りの量を渡します（記憶によるもので、ここでは読んでいません）。
+- 指が触れている間の離脱は操作を手放します。ただし、タッチのポインターを離したあとに続く離脱は除き、残りの指は続きます。外側のスクロールの領域やページ送りが、自分のはじきや落ち着く動きを止めたためにすぐ取ったタッチも、これに当たります。指の出来事はポインターの出来事より先に届くので、表示はその指をもう受け入れています。以前は、表示がそのタッチ自身のポインターの押し下げを見たあとの離脱でしか手放さず、そういう中身は外側のスクロールと一緒に動いていました。
+- まだ押さえている指がもう一度下りたときは、先に古いほうを捨てます。Windows では次のタッチに同じ指の番号が戻ってくるので、離した出来事を受け取れなかった表示（ページが渡さなかった場合）は、そうしないと次のタッチを無視します。
 - 二度たたきは、Android の `GestureDetector` と同じく二回目の押し下げで起こります。Android のクイックスケール（二度たたいてなぞる、`ANCHORED_SCALE_MODE_DOUBLE_TAP`）は作っていません。マウスのダブルクリックは、これらの値ではなくシステムのクリックの回数を使います。
 - 作っていないもの：回転、クイックスケール、キーでの拡大、マウスでのドラッグのあとのはじき、端を越えたときの伸び。
+
+### ページ送り
+
+2026-11-23 に S の `com/android/internal/widget/ViewPager.java`（サポートライブラリーの `ViewPager` をプラットフォームが内部に写したもの。`onInterceptTouchEvent`・`onTouchEvent`・`determineTargetPage`・`smoothScrollTo`・`canScroll`）と `ViewConfiguration.java` を読みました。androidx の基盤のソース（`HorizontalPager`・`PagerState`・`PagerDefaults`・スナップのはじきの振る舞い）はこの機械になく（Gradle のメタデータだけで jar はありません）、Compose のページ送りの値は一つも読んでいません。値は `lamina/tokens/pager.hpp`（`pager`）、`lamina/motion/paging.hpp`（`snap_page`・`pages_in_view`・`pages_around`）、`lamina/widgets/pager.hpp`（`Pager`）に入れました。
+
+| 値 | lamina-ui | 出典 |
+|---|---|---|
+| ページ送りの遊び | 16 dp（`touch_slop`） | S の `ViewConfiguration.java` の `PAGING_TOUCH_SLOP = TOUCH_SLOP * 2`。`ViewPager` は `getScaledPagingTouchSlop()` で読みます |
+| 先に縦 | 横より先に上か下へ遊びを越えたなぞりは、その操作の終わりまでページに任せます | `onInterceptTouchEvent` の `else if (yDiff > mTouchSlop)` が `mIsUnableToDrag` を立てます |
+| はじき | 押した所から 25 dp を超え、400 dp/s より速いとき。指が左へ動いていれば最初に見えているページの次へ、右へ動いていれば最初に見えているページへ | `MIN_DISTANCE_FOR_FLING = 25`、`MIN_FLING_VELOCITY = 400`、`determineTargetPage` の `targetPage = currentPage - (velocity < 0 ? mLeftIncr : 0)`。`mLeftIncr` は左から右の並びで −1 |
+| はじかないとき | どちらの向きでもページの 60 %。止まったページ以上にいるときは `floor(position + 0.4)`、手前にいるときは `floor(position + 0.6)`（`snap.positional_threshold` 0.6） | `determineTargetPage` の `truncator = currentPage >= mCurItem ? 0.4f : 0.6f`、`targetPage = (int) (currentPage - mLeftIncr * (pageOffset + truncator))` |
+| 落ち着く動きをつかむ | 向かうページから 2 dp より離れているときに触れると、止めてすぐなぞりに移ります。近いときは落ち着く動きを終わらせ、タッチは中身へ渡します（`catch_distance`） | `CLOSE_ENOUGH = 2`、`onInterceptTouchEvent` の ACTION_DOWN |
+| 表示の周りのページ | 両側に一ページずつ（`beyond_viewport_pages`） | `DEFAULT_OFFSCREEN_PAGES = 1` |
+| 入れ子の中身 | なぞりについていける中身がそれを持ちます | `canScroll`。lamina-ui では中身に先に尋ね、中身が押下を持つか、拡大の表示がなぞりを手放します（[拡大の表示](#拡大の表示)） |
+| 速さ | Lsq2、8000 dp/s で頭打ち。離した点は標本に入れません | [指でのスクロール](#指でのスクロール)と同じ。ViewPager はプラットフォームの速さの計測と `getScaledMaximumFlingVelocity()` を使います |
+
+ViewPager との違い：
+
+- 向きの決め方：ViewPager は `xDiff * 0.5f > yDiff`（約 26.6° 未満）でなぞりを取ります。lamina-ui は、スクロールが Compose の `Draggable` から取った 30°（`horizontal_angle_limit_degrees`）を使います。こうすると、ページ送りを待っている縦のスクロールとページ送りが、どのなぞりを横とみなすかで食い違いません。
+- 落ち着く動き：ViewPager は五次の補間（`sInterpolator`）の `Scroller` で最大 600 ms かけてスクロールします（`MAX_SETTLE_DURATION`・`smoothScrollTo`・`distanceInfluenceForSnapDuration`）。lamina-ui はほかのなぞりと同じくばねで落ち着きます。
+- ViewPager の端の効果、縁からのなぞり（`DEFAULT_GUTTER_SIZE`）、ページの間の描画、ページの幅の割合は作っていません。
+
+lamina-ui の値（出典なし）：
+
+| 値 | lamina-ui |
+|---|---|
+| 落ち着くばね | 減衰 1.0、硬さ 400。離したときの速さ（ページ毎秒）を引き継ぎ、ページに着いたところで止まります（行き過ぎません）。そうでなければ 0.001 ページ・毎秒 0.01 ページ以内で止まったとみなします（`settle_spring`・`settle_threshold`） |
+| `animate_to_page` | 一ページより離れたページへは、まず隣まで飛びます（`animate_jump_pages` 1）。見えるのは二ページまでです。遠いページについての Compose の決まりは読んでいません |
+| ページの間 | 0 dp（`page_spacing`） |
+| フォーカスの輪 | 表示の内側に、角を丸めずに描きます（`focus_ring_corner`） |
+| マウス | 既定では指と同じくページを送ります（`PagerOptions::mouse_drag`）。見本では切ってあります |
+| キー | キーボードのフォーカスがある間、左右の矢印で一ページ、`Home` と `End` で端へ。端で反対側へは戻りません |
+
+- タブ：`TabRow::set_indicator_position` は印を小数のタブの番号に置きます。二つのタブの中心と幅の間を取り、ばねなしで置くので、指に遅れません。なぞっている間、見本はページ送りの `current_page()`（いちばん近いページ。半分のところで変わります）もタブの列で選び、その色はクリックのときと同じく移ります。タブをタップしたときは、タブ自身のばねはそのままで、ページ送りは `animate_to_page` で滑るので、選択が間のタブを通りません。この組み方は lamina-ui のものです。Compose のタブとページ送りの見本は読んでいません。
+- ページを必要になってから作る：`pages_to_build()` は見えているページとその両隣です。Viewer のページはそこで写真ごとに `ZoomView` を作り、ほかを捨てます。ページ送りが止まったとき、止まったページでない写真は収まる大きさに戻します。
+- 作っていないもの：なぞりの途中で渡すこと（なぞりの途中で端に着いた拡大の表示はそのなぞりを持ち続けます）、最初と最後のページで端を越えたときの伸び、ホイールでのページ送り、右から左の並び、縦のページ送り、表示より狭いページ。
 
 ### ボトムシート
 
@@ -1031,4 +1071,5 @@ Material 3 にはデータテーブルがありません。下の値は、MDC We
 - 第 4 段階の画面のパターンで作っていないもの：予測型の戻る操作（シート・ドロワー・レール・検索）、アンカーへはじく動きの減速の段階、シートの中身とシートの間の入れ子のスクロール、`AppBarWithSearch`・`ExpandedFullScreenContainedSearchBar`・`ExpandedDockedSearchBarWithGap`、M3 のデザインのサイトにあるサイドシートの寸法（スクリプトなしでは読めません）。
 - 第 5 段階の Expressive の部品で作っていないもの：縦のボタンの組と項目ごとのそろえ方、キーで押したときのボタンの広がり、スクロールで常に退く浮かぶツールバーと `minimumInteractiveBalancedPadding`、受け渡しの前に直線の波の表示の線を速めて走り切らせる動き、スクロールする FAB メニュー、`Modifier.animateFloatingActionButton`、`AppBarWithSearch` などの Expressive の検索バー、はみ出しを持つ `AppBarRow` と `AppBarColumn`、`CheckableDropdownMenuItem` と `SelectableDropdownMenuItem`、`ScrollField` と `Modifier.nonInteractiveScrollbar`。
 - 第 6 段階の画面の広さとデスクトップ向けの作業で作っていないもの：チェックボックス・ラジオボタン・スイッチの密度、中くらいの短いナビゲーションバーの並び、ナビゲーションスイートの主な操作、浮かせたペイン、ヒンジ、予測型の戻る操作とペインの状態の保存、ペインの止まる位置を選ぶ前の減速。
+- ページ送りで作っていないもの：なぞりの途中で渡すこと、端を越えたときの伸び、ホイールでのページ送り、右から左の並び、縦のページ送り。Compose のページ送りの値は、ソースがこの機械になかったので読んでいません（[ページ送り](#ページ送り)）。
 - 第 7 段階のデスクトップ向けの作業で作っていないもの：メニューの先頭文字での移動、macOS の Command キー、チェックやラジオのメニュー項目、表のセルの省略記号、表の列の並べ替えと中身に合わせる操作、チェックボックスの列、ページ分け、セルの編集。

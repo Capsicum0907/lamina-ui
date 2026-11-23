@@ -23,7 +23,7 @@ ctest --preset release
 build/Release/components.exe
 ```
 
-`components.exe` は、すべての部品を並べた一覧です。見出しの下のタブで十六のページを選びます。詳しくは[はじめに](docs/getting-started.ja.md)と[見本](docs/examples.ja.md)にあります。
+`components.exe` は、すべての部品を並べた一覧です。見出しの下のタブで十六のページを選びます。横になぞっても送れます。詳しくは[はじめに](docs/getting-started.ja.md)と[見本](docs/examples.ja.md)にあります。
 
 ## いちばん小さなプログラム
 
