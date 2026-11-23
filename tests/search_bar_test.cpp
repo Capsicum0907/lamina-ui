@@ -251,3 +251,60 @@ TEST_CASE("a press on the field of the expanded view keeps following the field w
     CHECK_FALSE(r.trailing);
     CHECK(s.field().focused());
 }
+
+TEST_CASE("a press outside the docked view collapses it and is left for what lies under it") {
+    for (const input::PointerKind kind : {input::PointerKind::mouse, input::PointerKind::touch}) {
+        CAPTURE(static_cast<int>(kind));
+        widgets::SearchBar s(options(), fonts());
+        place(s, desktop);
+        REQUIRE_FALSE(s.full_screen());
+        s.expand();
+        settle(s);
+        const render::Rect view = s.surface();
+        const double x = view.x / 2.0;
+        const double y = view.y + view.height / 2.0;
+        const auto down = s.handle(input::PointerEvent{PointerAction::down, x, y, 1, kind});
+        CHECK(down.collapsed);
+        CHECK_FALSE(down.consumed);
+        CHECK_FALSE(s.expanded());
+        CHECK_FALSE(s.focused());
+        CHECK_FALSE(s.holds_pointer());
+        CHECK(s.is_open());
+        CHECK_FALSE(s.handle(input::PointerEvent{PointerAction::move, x, y + 80.0, 0, kind}).consumed);
+        CHECK_FALSE(s.holds_pointer());
+        CHECK_FALSE(s.handle(input::PointerEvent{PointerAction::up, x, y + 80.0, 0, kind}).consumed);
+        settle(s);
+        CHECK_FALSE(s.is_open());
+    }
+}
+
+TEST_CASE("a press inside the docked view is its own until the pointer lifts") {
+    widgets::SearchBar s(options(), fonts());
+    place(s, desktop);
+    s.expand();
+    settle(s);
+    CHECK_FALSE(s.holds_pointer());
+    const render::Rect f = s.field_rect();
+    const auto down = s.handle(input::PointerEvent{PointerAction::down, f.x + f.width / 2.0, f.y + f.height / 2.0, 1, input::PointerKind::touch});
+    CHECK(down.consumed);
+    CHECK(s.holds_pointer());
+    s.handle(input::PointerEvent{PointerAction::up, f.x + f.width / 2.0, f.y + f.height / 2.0, 0, input::PointerKind::touch});
+    CHECK_FALSE(s.holds_pointer());
+    CHECK(s.expanded());
+}
+
+TEST_CASE("the full-screen view stays open on a press outside its area and leaves the press to what lies there") {
+    widgets::SearchBar s(options(), fonts());
+    place(s, phone);
+    s.expand();
+    settle(s);
+    const double y = phone.y + phone.height + 40.0;
+    const auto down = s.handle(input::PointerEvent{PointerAction::down, 200.0, y, 1, input::PointerKind::touch});
+    CHECK_FALSE(down.consumed);
+    CHECK_FALSE(down.collapsed);
+    CHECK_FALSE(s.holds_pointer());
+    CHECK_FALSE(s.handle(input::PointerEvent{PointerAction::up, 200.0, y, 0, input::PointerKind::touch}).consumed);
+    CHECK(s.expanded());
+    CHECK_FALSE(s.handle(input::WheelEvent{200.0, y, 0.0, 1.0}));
+    CHECK(s.handle(input::WheelEvent{200.0, 400.0, 0.0, 1.0}));
+}

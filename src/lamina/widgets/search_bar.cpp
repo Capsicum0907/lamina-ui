@@ -330,10 +330,9 @@ SearchBarResponse SearchBar::handle(const input::PointerEvent& e) {
     }
     if (part == PointerPart::outside && !full_screen()) {
         if (e.action == input::PointerAction::down) {
-            deliver(PointerPart::none, {input::PointerAction::leave, 0.0, 0.0}, r);
+            deliver(PointerPart::none, {input::PointerAction::leave, 0.0, 0.0, 0, e.kind}, r);
             close_from_pointer();
             r.collapsed = true;
-            r.consumed = true;
         }
         return r;
     }
@@ -341,7 +340,7 @@ SearchBarResponse SearchBar::handle(const input::PointerEvent& e) {
     if (e.action == input::PointerAction::down && part == PointerPart::results) {
         field_.set_focused(false);
     }
-    r.consumed = part != PointerPart::outside || full_screen();
+    r.consumed = part != PointerPart::outside && part != PointerPart::none;
     return changed(before, r);
 }
 
@@ -473,7 +472,7 @@ bool SearchBar::handle(const input::WheelEvent& e) {
     if (contains(results_rect(), e.x_dp, e.y_dp)) {
         results_.handle(e);
     }
-    return full_screen() || contains(surface(), e.x_dp, e.y_dp);
+    return contains(full_screen() ? area_ : surface(), e.x_dp, e.y_dp);
 }
 
 void SearchBar::cancel_interaction() {
