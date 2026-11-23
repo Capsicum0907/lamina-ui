@@ -15,6 +15,8 @@ namespace {
 
 constexpr const char* dark_system_bars_method = "setDarkSystemBars";
 constexpr const char* dark_system_bars_signature = "(Z)V";
+constexpr const char* hidden_system_bars_method = "setSystemBarsHidden";
+constexpr const char* hidden_system_bars_signature = "(Z)V";
 constexpr const char* window_insets_method = "getWindowInsets";
 constexpr const char* window_insets_signature = "()[I";
 constexpr jsize inset_edges = 4;
@@ -65,6 +67,13 @@ void set_dark_system_bars(bool dark) {
     if (!call_activity(dark_system_bars_method, dark_system_bars_signature, dark)) {
         report_error(std::string("lamina: the activity has no ") + dark_system_bars_method + dark_system_bars_signature +
                      "; the system bar icons keep their color");
+    }
+}
+
+void set_system_bars_hidden(bool hidden) {
+    if (!call_activity(hidden_system_bars_method, hidden_system_bars_signature, hidden)) {
+        report_error(std::string("lamina: the activity has no ") + hidden_system_bars_method + hidden_system_bars_signature +
+                     "; the system bars stay shown");
     }
 }
 

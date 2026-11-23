@@ -15,6 +15,7 @@ import org.libsdl.app.SDLSurface;
 
 public class LaminaActivity extends SDLActivity {
     private volatile boolean darkSystemBars;
+    private volatile boolean systemBarsHidden;
     private volatile int[] windowInsets;
 
     @Override
@@ -44,7 +45,9 @@ public class LaminaActivity extends SDLActivity {
         @Override
         public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                windowInsets = edges(insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout()),
+                Insets bars = insets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+                Insets cutout = insets.getInsets(WindowInsets.Type.displayCutout());
+                windowInsets = edges(Insets.max(bars, cutout),
                                      insets.getInsets(WindowInsets.Type.systemGestures() | WindowInsets.Type.mandatorySystemGestures()));
             }
             return super.onApplyWindowInsets(v, insets);
@@ -64,10 +67,37 @@ public class LaminaActivity extends SDLActivity {
                 @Override
                 public void run() {
                     applySystemBars();
+                    applySystemBarsHidden();
                 }
             });
         }
         return sent;
+    }
+
+    public void setSystemBarsHidden(boolean hidden) {
+        systemBarsHidden = hidden;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                applySystemBarsHidden();
+            }
+        });
+    }
+
+    private void applySystemBarsHidden() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            return;
+        }
+        WindowInsetsController controller = getWindow().getInsetsController();
+        if (controller == null) {
+            return;
+        }
+        if (systemBarsHidden) {
+            controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            controller.hide(WindowInsets.Type.systemBars());
+        } else {
+            controller.show(WindowInsets.Type.systemBars());
+        }
     }
 
     public void setDarkSystemBars(boolean dark) {

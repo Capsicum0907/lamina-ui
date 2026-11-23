@@ -757,6 +757,10 @@ void Window::set_dark_system_bars(bool dark) {
     detail::set_dark_system_bars(dark);
 }
 
+void Window::set_system_bars_hidden(bool hidden) {
+    detail::set_system_bars_hidden(hidden);
+}
+
 void Window::system_back() {
     detail::system_back();
 }
