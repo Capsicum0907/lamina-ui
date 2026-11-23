@@ -15,7 +15,7 @@ The values lamina-ui takes from Material 3 Expressive, read from Google's open-s
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
 | A | androidx/androidx — `compose/material3/adaptive/` (adaptive, adaptive-layout, adaptive-navigation), `compose/material3/material3-adaptive-navigation-suite/` and `window/window-core/` | `6068a9492ba8` | Apache-2.0 |
 | D | [material-components/material-components-web](https://github.com/material-components/material-components-web) — `packages/mdc-density/` and the components' `$density-config` | `6ceadb81df50` | MIT |
-| S | The Android SDK as installed by Android Studio: SDK Platform `android-36.1` (revision 1), `platforms/android-36.1/data/res/values/config.xml`, and Sources for Android `android-36.1` (revision 1), `sources/android-36.1/android/view/ViewConfiguration.java`; for the zoom view also `ScaleGestureDetector.java` and `GestureDetector.java` in the same folder (read on 2026-11-23) | read on 2026-11-22 | Apache-2.0 |
+| S | The Android SDK as installed by Android Studio: SDK Platform `android-36.1` (revision 1), `platforms/android-36.1/data/res/values/config.xml`, and Sources for Android `android-36.1` (revision 1), `sources/android-36.1/android/view/ViewConfiguration.java`; for the zoom view also `ScaleGestureDetector.java` and `GestureDetector.java` in the same folder, and for the pager `sources/android-36.1/com/android/internal/widget/ViewPager.java` (all read on 2026-11-23) | read on 2026-11-22 | Apache-2.0 |
 | J | [JetBrains/compose-multiplatform-core](https://github.com/JetBrains/compose-multiplatform-core) — `compose/foundation/foundation/src/desktopMain/` and `compose/ui/ui/src/desktopMain/` (Compose Multiplatform Desktop) | the `jb-main` branch as read on 2026-11-21 (no commit was recorded) | Apache-2.0 |
 
 Reusing these values requires keeping the Apache-2.0 notice and attribution (the MIT notice for D).
@@ -699,7 +699,7 @@ Read on 2026-11-22. From androidx at `6068a9492ba8` (C below means that commit i
 - App bars: `ScrollArea::scroll_in_progress()` covers a touch drag and a fling, and the top and flexible bottom app bars settle only once it is over (Compose settles in `onPostFling`).
 - Sheet content: a touch drag on a bottom sheet's content scrolls the content first when it can scroll that way as the drag starts: downward while the content is not at its top, upward while the sheet is at its Expanded anchor and the content is not at its end. Otherwise the sheet moves. Compose passes what is left of each delta between the content and the sheet through nested scroll during the gesture; lamina-ui decides once per gesture.
 - Text fields, lamina-ui's own: a touch focuses a text field on the tap (the up), not on the press, so a scroll that starts on a field does not focus it, and a tap elsewhere takes the focus away on the up. The mouse still focuses and starts a selection on the press.
-- Not implemented: the overscroll stretch; nested scrolling, so a list inside a page does not hand the rest of a drag or fling to the page at its end; Android's framework velocity tracker, which Compose uses when `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` is set (its default was not read; lamina-ui keeps Lsq2); more than one finger in a scroll area (SDL maps only the first finger to the mouse; the window reports every finger in `Frame::fingers` since the zoom view, but scroll areas do not read them); Android's minimum fling velocity (S `config_viewMinFlingVelocity` = 50dp), which Compose's scrollable does not use either. A data table selects a row on the press, so a touch drag that starts on a row selects it.
+- Not implemented: the overscroll stretch; nested scrolling, so a list inside a page does not hand the rest of a drag or fling to the page at its end (a zoom view hands a whole drag it cannot follow to a scroller or pager at its slop, [Zoom view](#zoom-view)); Android's framework velocity tracker, which Compose uses when `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` is set (its default was not read; lamina-ui keeps Lsq2); more than one finger in a scroll area (SDL maps only the first finger to the mouse; the window reports every finger in `Frame::fingers` since the zoom view, but scroll areas do not read them); Android's minimum fling velocity (S `config_viewMinFlingVelocity` = 50dp), which Compose's scrollable does not use either. A data table selects a row on the press, so a touch drag that starts on a row selects it.
 
 ### Zoom view
 
@@ -728,9 +728,49 @@ lamina-ui's own, with no source:
 | Settle | the default effects spring (damping 1.0), settled within 0.0001 of the way and 0.001 per second (`settle_spring`, `settle_threshold`); the scale and the offset move along the same fraction, which keeps the focus fixed because the focus-preserving offset is linear in the scale |
 
 - Fitted means scaled to fit inside the viewport and centred (contain). On an axis where the scaled content is smaller than the viewport it stays centred; on an axis where it is larger, its edges cannot come inside the viewport.
-- One finger on content at scale 1 does not pan and is not held, so a scroller around the view keeps the drag, and a pager can later take it. Two fingers always are held, also at scale 1.
+- One finger on content at scale 1 does not pan and is not held, so a scroller or pager around the view keeps the drag. Two fingers always are held, also at scale 1.
+- Handing a drag on: one finger on zoomed content is not held before the 8 dp slop either. At the slop, a drag within 30° of the horizontal (`handoff_angle_degrees`, the angle of Compose's `Draggable` that the scrollers use, [Touch scrolling](#touch-scrolling)) or within 30° of the vertical is given up when a scroller waits on that axis (`waiting_scrollers`) and the content cannot move that way (`can_pan_horizontally`, `can_pan_vertically`, within the 0.5 dp edge tolerance); a drag between the two always pans. lamina-ui's own rule. Android's `ViewPager` decides at its own slop instead, by asking whether any view under the finger can scroll that way (`canScroll`, `canScrollHorizontally`, S `ViewPager.java`); the outcome is the same for a zoom view inside a pager, and lamina-ui asks the view rather than the pager because the pager does not know the views on its pages.
+- The decision is made once per drag. A pan that reaches the edge and goes on keeps panning into the rubber band; the next drag goes to the pager. Compose passes what is left of each delta between nested scrollables during the drag (recalled, not read here).
+- A leave while fingers are down gives the gesture up, except the leave that follows the lift of the touch pointer, which other fingers outlive. This includes a touch that an outer scroll area or pager takes at once because it stopped that scroller's fling or settle: the fingers reach the view before the pointer events, so the view had already accepted the finger. Before, only a leave after the view had seen the touch's own pointer down gave it up, and such content panned together with the outer scroller.
+- A down for a finger the view still holds drops the old one first. On Windows a finger id comes back for the next touch, so a view that missed an up (its page did not pass it on) would otherwise ignore the next touch.
 - The double tap fires on the second down, as Android's `GestureDetector` does; Android's quick scale (double tap and drag, `ANCHORED_SCALE_MODE_DOUBLE_TAP`) is not implemented. The mouse double click uses the system's click count, not these values.
 - Not implemented: rotation, quick scale, keyboard zoom, a fling after a mouse drag, and the overscroll stretch.
+
+### Pager
+
+Read on 2026-11-23 from S: `com/android/internal/widget/ViewPager.java` (the platform's internal copy of the support library's `ViewPager`; `onInterceptTouchEvent`, `onTouchEvent`, `determineTargetPage`, `smoothScrollTo`, `canScroll`) and `ViewConfiguration.java`. No androidx foundation source (`HorizontalPager`, `PagerState`, `PagerDefaults`, the snap fling behavior) was on this machine (only Gradle metadata, no jars), so none of Compose's pager values were read. Into `lamina/tokens/pager.hpp` (`pager`), `lamina/motion/paging.hpp` (`snap_page`, `pages_in_view`, `pages_around`) and `lamina/widgets/pager.hpp` (`Pager`).
+
+| Value | lamina-ui | Source |
+|---|---|---|
+| Paging slop | 16 dp (`touch_slop`) | S `ViewConfiguration.java` `PAGING_TOUCH_SLOP = TOUCH_SLOP * 2`, which `ViewPager` reads with `getScaledPagingTouchSlop()` |
+| Vertical first | a drag that passes the slop up or down before it passes it sideways is left to the page for the whole gesture | `onInterceptTouchEvent`: `else if (yDiff > mTouchSlop)` sets `mIsUnableToDrag` |
+| Fling | more than 25 dp from the press and faster than 400 dp/s: the page after the first visible one when the finger moves left, the first visible one when it moves right | `MIN_DISTANCE_FOR_FLING = 25`, `MIN_FLING_VELOCITY = 400`, `determineTargetPage`: `targetPage = currentPage - (velocity < 0 ? mLeftIncr : 0)`, `mLeftIncr` −1 left to right |
+| Without a fling | 60 % of a page in either direction: `floor(position + 0.4)` at or ahead of the settled page, `floor(position + 0.6)` behind it (`snap.positional_threshold` 0.6) | `determineTargetPage`: `truncator = currentPage >= mCurItem ? 0.4f : 0.6f`, `targetPage = (int) (currentPage - mLeftIncr * (pageOffset + truncator))` |
+| Catching a settle | a touch more than 2 dp from the page the pager is settling on stops it and drags at once; closer, the settle ends and the touch goes to the content (`catch_distance`) | `CLOSE_ENOUGH = 2`, ACTION_DOWN in `onInterceptTouchEvent` |
+| Pages around the view | one page on each side (`beyond_viewport_pages`) | `DEFAULT_OFFSCREEN_PAGES = 1` |
+| Nested content | content that can follow the drag keeps it | `canScroll`; in lamina-ui the content is asked first and holds the press, or a zoom view gives the drag up ([Zoom view](#zoom-view)) |
+| Velocity | Lsq2, clamped to 8000 dp/s; the up is not a sample | as in [Touch scrolling](#touch-scrolling); ViewPager uses the platform tracker and `getScaledMaximumFlingVelocity()` |
+
+Differences from ViewPager:
+
+- Direction lock: ViewPager takes a drag when `xDiff * 0.5f > yDiff` (below about 26.6°). lamina-ui uses 30° (`horizontal_angle_limit_degrees`), the angle its scrollers take from Compose's `Draggable`, so a vertical scroller that waits on the pager and the pager agree on which drags are sideways.
+- Settle: ViewPager scrolls with a `Scroller` and a quintic interpolator (`sInterpolator`) for up to 600 ms (`MAX_SETTLE_DURATION`, `smoothScrollTo`, `distanceInfluenceForSnapDuration`). lamina-ui settles on a spring, as its other drags do.
+- ViewPager's edge effect, gutter drags (`DEFAULT_GUTTER_SIZE`), page margin drawable and page width factors are not implemented.
+
+lamina-ui's own, with no source:
+
+| Value | lamina-ui |
+|---|---|
+| Settle spring | damping 1.0, stiffness 400, carrying the release velocity in pages per second; it stops when it reaches the page (no swing past it), else when within 0.001 page and 0.01 page per second (`settle_spring`, `settle_threshold`) |
+| `animate_to_page` | a page more than one page away is first jumped to its neighbour (`animate_jump_pages` 1), so only two pages show; Compose's rule for far pages was not read |
+| Page spacing | 0 dp (`page_spacing`) |
+| Focus ring | drawn inside the viewport with square corners (`focus_ring_corner`) |
+| Mouse | drags pages like a finger by default (`PagerOptions::mouse_drag`); the gallery turns it off |
+| Keys | Left and Right one page, Home and End to the ends, no wrapping, while the pager has the keyboard focus |
+
+- Tabs: `TabRow::set_indicator_position` places the indicator at a fractional tab index, interpolating the centre and the width of the two tabs, and snaps it, so it follows the finger without lag; during a swipe the gallery also selects the pager's `current_page()` (the nearest page, which changes halfway), whose colors fade as on a click. A tapped tab keeps its own spring and the pager slides by `animate_to_page`, so the selection does not pass through the tabs in between. lamina-ui's own pairing; Compose's tabs-with-pager sample was not read.
+- Lazy pages: `pages_to_build()` is the pages in view and one on each side. The Viewer page builds a `ZoomView` per photo there and drops the others; a photo that is not the settled one is fitted again when the pager settles.
+- Not implemented: handing a drag over in the middle (a zoom view that reaches its edge during a drag keeps it), the overscroll stretch at the first and last page, wheel paging, right-to-left layouts, a vertical pager, and pages narrower than the viewport.
 
 ### Bottom sheets
 
@@ -1031,4 +1071,5 @@ Material 3 has no data table. The values below come from MDC Web's data table (D
 - Not implemented from the screen patterns of the fourth stage: predictive back (sheets, drawers, rail, search), the decay phase of anchored flings, nested scrolling between sheet content and the sheet, `AppBarWithSearch`, `ExpandedFullScreenContainedSearchBar` and `ExpandedDockedSearchBarWithGap`, and the M3 design site's side sheet measurements (unreadable without script).
 - Not implemented from the Expressive components of the fifth stage: the vertical button group and per-item alignment, a widening button on a key press, the exit-always floating toolbar and `minimumInteractiveBalancedPadding`, the linear wavy indicator's accelerated run-out before a handoff, a scrolling FAB menu, `Modifier.animateFloatingActionButton`, `AppBarWithSearch` and the other Expressive search bars, `AppBarRow` and `AppBarColumn` with their overflow, `CheckableDropdownMenuItem` and `SelectableDropdownMenuItem`, `ScrollField` and `Modifier.nonInteractiveScrollbar`.
 - Not implemented from the adaptive and desktop work of the sixth stage: density for checkboxes, radio buttons and switches, the medium short navigation bar's arrangement, the navigation suite's primary action, levitated panes, hinges, predictive back and saved pane state, and the decay before a pane anchor is chosen.
+- Not implemented for the pager: handing a drag over in the middle of it, the overscroll stretch, wheel paging, right-to-left layouts, a vertical pager, and Compose's own pager values, whose source was not on this machine ([Pager](#pager)).
 - Not implemented from the desktop work of the seventh stage: menu typeahead, the Command key on macOS, checkable and radio menu items, ellipses in table cells, reordering and fitting table columns, a checkbox column, pagination and cell editing.

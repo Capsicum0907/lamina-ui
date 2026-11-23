@@ -9,7 +9,7 @@ The components, grouped as Material 3 groups them. Each page says what a compone
 | [Actions](components/actions.md) | buttons, toggle buttons, icon buttons, FABs, extended FABs, the FAB menu, segmented buttons, button groups, split buttons |
 | [Selection](components/selection.md) | switch, checkbox, radio button, sliders, range slider, chips |
 | [Inputs](components/inputs.md) | text field, numeric field, search bar |
-| [Containers](components/containers.md) | dialog, bottom and side sheets, cards, lists, dividers, scroll area, zoom view |
+| [Containers](components/containers.md) | dialog, bottom and side sheets, cards, lists, dividers, scroll area, zoom view, pager |
 | [Navigation](components/navigation.md) | tabs, navigation bar, navigation rail, side navigation, navigation drawers, modal wide navigation rail, top app bars, floating toolbars, flexible bottom app bar |
 | [Feedback](components/feedback.md) | snackbar, progress indicators, loading indicator, wavy progress indicators, tooltips, badges |
 | [Menus](components/menus.md) | dropdown menu, grouped menu, context menu, menu bar |
