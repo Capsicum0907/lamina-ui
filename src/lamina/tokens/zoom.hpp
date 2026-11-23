@@ -16,6 +16,7 @@ struct ZoomTokens {
     double double_tap_scale;
     double zoomed_epsilon;
     double touch_slop;
+    double handoff_angle_degrees;
     double span_slop;
     double min_span;
     double double_tap_timeout_seconds;
@@ -41,6 +42,7 @@ inline constexpr ZoomTokens zoom{
     .double_tap_scale = 2.5,
     .zoomed_epsilon = 0.001,
     .touch_slop = touch_slop,
+    .handoff_angle_degrees = touch_scroll.horizontal_angle_limit_degrees,
     .span_slop = touch_slop * 2.0,
     .min_span = minimum_scaling_span_millimetres * fling_decay.dp_per_inch / millimetres_per_inch,
     .double_tap_timeout_seconds = 0.300,

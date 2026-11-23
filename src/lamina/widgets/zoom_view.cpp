@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 #include <utility>
 
 #include "lamina/motion/lerp.hpp"
@@ -9,6 +10,13 @@
 #include "lamina/widgets/touch_scroll.hpp"
 
 namespace lamina::widgets {
+
+namespace {
+
+constexpr double degrees_per_half_turn = 180.0;
+constexpr double right_angle_degrees = 90.0;
+
+}
 
 ZoomView::ZoomView(ZoomViewOptions options)
     : tokens_(options.tokens),
@@ -215,6 +223,21 @@ void ZoomView::yield() {
     settle_about(prev_focus_x_, prev_focus_y_);
 }
 
+bool ZoomView::hands_off(double dx, double dy) const {
+    if (fingers_.size() != 1 || scaling_) {
+        return false;
+    }
+    const double angle = std::atan2(std::abs(dy), std::abs(dx)) * degrees_per_half_turn / std::numbers::pi;
+    const double limit = tokens_->handoff_angle_degrees;
+    if (angle <= limit) {
+        return waiting_.horizontal && !can_pan_horizontally(dx);
+    }
+    if (angle >= right_angle_degrees - limit) {
+        return waiting_.vertical && !can_pan_vertically(dy);
+    }
+    return false;
+}
+
 void ZoomView::regroup() {
     const bool was_scaling = scaling_;
     scaling_ = false;
@@ -244,6 +267,7 @@ bool ZoomView::finger_down(const input::FingerEvent& e) {
         }
         catch_motion();
         fingers_.push_back({e.finger, x, y, x, y});
+        waiting_ = {};
         const bool second_tap = last_tap_ && e.time_seconds - last_tap_->up_seconds <= tokens_->double_tap_timeout_seconds &&
                                 e.time_seconds - last_tap_->up_seconds >= tokens_->double_tap_min_seconds &&
                                 std::hypot(x - last_tap_->x, y - last_tap_->y) < tokens_->double_tap_slop;
@@ -307,6 +331,10 @@ bool ZoomView::finger_move(const input::FingerEvent& e) {
         if (scaling_) {
             phase_ = Phase::panning;
         } else if (can_pan && travel > tokens_->touch_slop) {
+            if (hands_off(fx - start_focus_x_, fy - start_focus_y_)) {
+                yield();
+                return false;
+            }
             phase_ = Phase::panning;
             prev_focus_x_ = start_focus_x_ + (fx - start_focus_x_) * tokens_->touch_slop / travel;
             prev_focus_y_ = start_focus_y_ + (fy - start_focus_y_) * tokens_->touch_slop / travel;
@@ -385,6 +413,9 @@ bool ZoomView::handle(const input::PointerEvent& e) {
     }
     after_touch_up_ = e.kind == input::PointerKind::touch && e.action == input::PointerAction::up;
     if (e.kind == input::PointerKind::touch) {
+        if (e.action == input::PointerAction::down || e.action == input::PointerAction::move) {
+            waiting_ = e.waiting_scrollers;
+        }
         return holds_pointer();
     }
     const double x = e.x_dp - bounds_.x;
@@ -444,6 +475,7 @@ void ZoomView::cancel_interaction() {
     scaling_ = false;
     single_tap_ = false;
     after_touch_up_ = false;
+    waiting_ = {};
     last_tap_.reset();
     if (active) {
         settle_about(prev_focus_x_, prev_focus_y_);
@@ -457,7 +489,7 @@ bool ZoomView::holds_pointer() const {
     if (fingers_.empty() || phase_ == Phase::yielded) {
         return false;
     }
-    return phase_ == Phase::double_tap || phase_ == Phase::panning || fingers_.size() >= 2 || zoomed();
+    return phase_ == Phase::double_tap || phase_ == Phase::panning || fingers_.size() >= 2;
 }
 
 void ZoomView::step(double dt) {

@@ -96,6 +96,7 @@ private:
     void release(double time_seconds, bool fling);
     void toggle_zoom(double fx, double fy);
     void yield();
+    bool hands_off(double dx, double dy) const;
     bool finger_down(const input::FingerEvent& e);
     bool finger_move(const input::FingerEvent& e);
     bool finger_up(const input::FingerEvent& e);
@@ -122,6 +123,7 @@ private:
     bool single_tap_ = false;
     std::optional<Tap> last_tap_;
     bool after_touch_up_ = false;
+    input::ScrollAxes waiting_{};
     double mouse_x_ = 0.0;
     double mouse_y_ = 0.0;
     motion::VelocityTracker tracker_x_;

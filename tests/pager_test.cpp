@@ -8,6 +8,7 @@
 #include "lamina/widgets/pager.hpp"
 #include "lamina/widgets/protocol.hpp"
 #include "lamina/widgets/scroll_area.hpp"
+#include "lamina/widgets/zoom_view.hpp"
 #include "support.hpp"
 
 using namespace lamina;
@@ -378,4 +379,112 @@ TEST_CASE("a leave during a drag settles on the nearest page") {
     p.set_enabled(false);
     swipe(p, f, c, 300.0, 300.0, -200.0, 0.0, 10, false);
     CHECK(!p.dragging());
+}
+
+namespace {
+
+struct Photo {
+    Pager pager = make();
+    widgets::ZoomView zoom{{.accessible_name = "Photo", .content_width = 800.0, .content_height = 1200.0}};
+    double time = 1.0;
+
+    Photo() { zoom.set_bounds(pager.page_rect(pager.settled_page())); }
+
+    bool deliver(const input::PointerEvent& e) {
+        zoom.handle(e);
+        return zoom.holds_pointer();
+    }
+    void finger(input::FingerAction a, std::uint64_t id, double x, double y) { zoom.handle(input::FingerEvent{a, id, x, y, time}); }
+    void touch(PointerAction a, double x, double y) {
+        pager.route(input::PointerEvent{a, x, y, a == PointerAction::down ? 1 : 0, PointerKind::touch, time},
+                    [this](const input::PointerEvent& e) { return deliver(e); });
+        time += move_seconds;
+    }
+    void drag(double x, double y, double dx, int steps) {
+        finger(input::FingerAction::down, 1, x, y);
+        touch(PointerAction::down, x, y);
+        for (int i = 1; i <= steps; ++i) {
+            const double at = x + dx * i / steps;
+            finger(input::FingerAction::move, 1, at, y);
+            touch(PointerAction::move, at, y);
+        }
+    }
+    void zoom_at(double scale, double x, double y) {
+        zoom.zoom_to(scale, x, y);
+        settle(zoom);
+    }
+};
+
+}
+
+TEST_CASE("a zoomed photo keeps a drag it can follow and the pager waits") {
+    Photo ph;
+    ph.zoom_at(2.0, 200.0, 300.0);
+    const double x = ph.zoom.transform().x;
+    ph.drag(300.0, 300.0, -120.0, 12);
+    CHECK(ph.zoom.holds_pointer());
+    CHECK(ph.zoom.transform().x < x);
+    CHECK(!ph.pager.dragging());
+    CHECK(ph.pager.position() == 2.0);
+}
+
+TEST_CASE("at the edge of a zoomed photo the pager takes the drag and the photo stays put") {
+    Photo ph;
+    ph.zoom_at(2.0, 400.0, 300.0);
+    REQUIRE(ph.zoom.edges().right);
+    const motion::ZoomTransform before = ph.zoom.transform();
+    ph.drag(300.0, 300.0, -120.0, 12);
+    CHECK(ph.pager.dragging());
+    CHECK(ph.pager.position() > 2.0);
+    CHECK(!ph.zoom.holds_pointer());
+    CHECK(ph.zoom.transform().x == before.x);
+    CHECK(ph.zoom.scale() == doctest::Approx(before.scale));
+}
+
+TEST_CASE("a photo at its fitted scale leaves every sideways drag to the pager") {
+    Photo ph;
+    ph.drag(300.0, 300.0, -120.0, 12);
+    CHECK(ph.pager.dragging());
+    CHECK(ph.zoom.scale() == 1.0);
+}
+
+TEST_CASE("two fingers belong to the zoom view and a finger added after the pager took the drag does not take it back") {
+    Photo ph;
+    ph.finger(input::FingerAction::down, 1, 150.0, 300.0);
+    ph.touch(PointerAction::down, 150.0, 300.0);
+    ph.finger(input::FingerAction::down, 2, 300.0, 300.0);
+    for (int i = 1; i <= 10; ++i) {
+        ph.finger(input::FingerAction::move, 1, 150.0 - 10.0 * i, 300.0);
+        ph.finger(input::FingerAction::move, 2, 300.0 + 6.0 * i, 300.0);
+        ph.touch(PointerAction::move, 150.0 - 10.0 * i, 300.0);
+    }
+    CHECK(ph.zoom.scale() > 1.0);
+    CHECK(!ph.pager.dragging());
+    CHECK(ph.pager.position() == 2.0);
+
+    Photo second;
+    second.drag(300.0, 300.0, -100.0, 10);
+    REQUIRE(second.pager.dragging());
+    second.finger(input::FingerAction::down, 2, 100.0, 300.0);
+    for (int i = 1; i <= 10; ++i) {
+        second.finger(input::FingerAction::move, 1, 200.0 - 5.0 * i, 300.0);
+        second.finger(input::FingerAction::move, 2, 100.0 - 15.0 * i, 300.0);
+        second.touch(PointerAction::move, 200.0 - 5.0 * i, 300.0);
+    }
+    CHECK(second.zoom.scale() == 1.0);
+    CHECK(second.pager.dragging());
+}
+
+TEST_CASE("a touch that catches the pager's settle hands a zoomed photo's finger to the pager") {
+    Photo ph;
+    ph.pager.animate_to_page(3);
+    ph.pager.step(frame_seconds);
+    REQUIRE(ph.pager.settling());
+    ph.zoom_at(2.0, 200.0, 300.0);
+    const motion::ZoomTransform before = ph.zoom.transform();
+    ph.drag(300.0, 300.0, -60.0, 6);
+    CHECK(ph.pager.dragging());
+    CHECK(!ph.zoom.holds_pointer());
+    CHECK(ph.zoom.transform().x == before.x);
+    CHECK(ph.zoom.transform().y == before.y);
 }

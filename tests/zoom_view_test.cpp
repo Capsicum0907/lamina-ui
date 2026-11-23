@@ -178,17 +178,57 @@ TEST_CASE("one finger at the fitted scale leaves the drag to the page") {
     CHECK(z.transform().y == doctest::Approx(50.0));
 }
 
-TEST_CASE("one finger pans a zoomed view after the slop and holds the pointer from the down") {
+TEST_CASE("one finger pans a zoomed view after the slop and holds the pointer from then on") {
     ZoomView z = make();
     Clock c;
     zoom_in(z, 2.0);
     const motion::ZoomTransform start = z.transform();
     z.handle(finger(FingerAction::down, 3, 300.0, 200.0, c.tick()));
-    CHECK(z.holds_pointer());
+    CHECK(!z.holds_pointer());
     z.handle(finger(FingerAction::move, 3, 300.0, 205.0, c.tick()));
     CHECK(z.transform().y == start.y);
+    CHECK(!z.holds_pointer());
     z.handle(finger(FingerAction::move, 3, 300.0, 230.0, c.tick()));
     CHECK(z.transform().y == doctest::Approx(start.y + 30.0 - t.touch_slop));
+    CHECK(z.holds_pointer());
+}
+
+TEST_CASE("at its slop a zoomed view leaves a drag it cannot follow to a waiting scroller on that axis") {
+    struct Case {
+        double dx;
+        double dy;
+        input::ScrollAxes waiting;
+        bool pans;
+    };
+    const Case cases[] = {
+        {30.0, 0.0, {true, false}, false},
+        {-30.0, 0.0, {true, false}, true},
+        {30.0, 0.0, {}, true},
+        {30.0, 0.0, {false, true}, true},
+        {0.0, 30.0, {false, true}, false},
+        {0.0, -30.0, {false, true}, true},
+        {0.0, 30.0, {true, false}, true},
+        {25.0, 25.0, {true, true}, true},
+    };
+    for (const Case& k : cases) {
+        ZoomView z = make();
+        Clock c;
+        z.zoom_to(3.0, area.x, area.y);
+        run(z);
+        REQUIRE(z.edges().left);
+        REQUIRE(z.edges().top);
+        const motion::ZoomTransform start = z.transform();
+        z.handle(finger(FingerAction::down, 3, 300.0, 200.0, c.tick()));
+        input::PointerEvent down{PointerAction::down, 300.0, 200.0, 1, input::PointerKind::touch, c.now};
+        down.waiting_scrollers = k.waiting;
+        z.handle(down);
+        for (int i = 1; i <= 6; ++i) {
+            z.handle(finger(FingerAction::move, 3, 300.0 + k.dx * i / 6.0, 200.0 + k.dy * i / 6.0, c.tick()));
+        }
+        CHECK(z.holds_pointer() == k.pans);
+        const bool moved = z.transform().x != start.x || z.transform().y != start.y;
+        CHECK(moved == k.pans);
+    }
 }
 
 TEST_CASE("a pan past the edge resists and springs back") {
@@ -314,11 +354,12 @@ TEST_CASE("the leave after a lifted finger does not end the pinch of the other")
     z.handle(finger(FingerAction::up, 1, 200.0, 200.0, c.tick()));
     z.handle(input::PointerEvent{PointerAction::up, 200.0, 200.0, 0, input::PointerKind::touch});
     z.handle(input::PointerEvent{PointerAction::leave, 0.0, 0.0});
-    CHECK(z.holds_pointer());
+    CHECK(z.fingers_down() == 1);
     const double x = z.transform().x;
     z.handle(finger(FingerAction::move, 2, 400.0, 200.0, c.tick()));
     z.handle(finger(FingerAction::move, 2, 380.0, 200.0, c.tick()));
     CHECK(z.transform().x < x);
+    CHECK(z.holds_pointer());
 }
 
 TEST_CASE("fingers that start outside the view are not followed") {
