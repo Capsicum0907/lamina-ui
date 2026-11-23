@@ -265,6 +265,18 @@ C の `tokens/ElevationTokens.kt`（`VERSION: v0_210`）：Level0〜5 は 0 / 1 
 
 CSS のぼかしの半径は、ガウス分布の標準偏差の 2 倍です。
 
+ThorVG の描画面は、影の形を一度だけぼかしてキャッシュから描き、いちばん近い整数の画素の位置に置きます（[描画面](app-structure.ja.md#描画面)）。`lamina/tokens/raster.hpp`：
+
+| トークン | 値 | 使い道 |
+|---|---|---|
+| `shadow_quality` | 100 | ThorVG のガウスぼかしの質（0–100） |
+| `shadow_margin_sigmas` | 3 | キャッシュの画像で形の周りに取る余白と、影が描画面の外かを決めるときに影が届く範囲。標準偏差の何倍か |
+| `shadow_shape_steps` | 4 | キャッシュのキーでは形を 1/4 px に丸める |
+| `shadow_cache_bytes` | 16 MiB | 取っておく影の画像 |
+| `cull_glyph_outset_em` | 0.5 | 文字の行やアイコンが箱の外へはみ出しうる幅。大きさの何倍か |
+| `worker_threads_max` | 3 | ThorVG のワーカーのスレッドの上限 |
+| `reserved_cores` | 1 | ThorVG のワーカーに回さないコアの数 |
+
 C の `tokens/StateTokens.kt`（`VERSION: v0_103`）の状態の重ねの不透明度：hover 0.08、focus 0.10、pressed 0.10、dragged 0.16。
 
 ### フォーカスの表示
