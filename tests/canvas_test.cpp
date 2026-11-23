@@ -9,6 +9,7 @@
 
 using namespace lamina::render;
 using lamina::color::Argb;
+using lamina::render::Image;
 
 namespace {
 
@@ -308,4 +309,114 @@ TEST_CASE("a shadow just outside the canvas is drawn when its blur reaches in") 
     canvas.clear(white);
     canvas.fill_shadow(rounded_rect_path({102, 30, 40, 40}, uniform_radii(4)), {0.0, 0.0, 4.0, 0xff000000});
     CHECK(channel(canvas.pixel(99, 50), 16) < 255);
+}
+
+namespace {
+
+class AcceptAll final : public RetainedImageSink {
+public:
+    bool accepts(const Image&) const override { return true; }
+};
+
+Image solid(int w, int h, Argb c) {
+    return Image{w, h, std::vector<Argb>(static_cast<std::size_t>(w * h), c), nullptr};
+}
+
+}
+
+TEST_CASE("a retained image goes to the image layer and what overlaps it to a layer above") {
+    lamina::thorvg::Canvas canvas(100, 100);
+    AcceptAll sink;
+    canvas.set_retained_images(&sink);
+    const Image photo = lamina::render::retained(solid(10, 10, red));
+    canvas.clear(white);
+    canvas.fill_rect({0, 0, 100, 20}, red);
+    canvas.draw_image(photo, {10, 30, 50, 50});
+    canvas.fill_rect({70, 30, 10, 10}, red);
+    canvas.fill_rect({40, 70, 30, 10}, 0xff0000ffu);
+    canvas.finish();
+    REQUIRE(canvas.retained_draws().size() == 1);
+    REQUIRE(canvas.retained_draws()[0].size() == 1);
+    const RetainedDraw& d = canvas.retained_draws()[0][0];
+    CHECK(d.image == &photo);
+    CHECK(d.to_device.apply({10.0, 10.0}).x == doctest::Approx(60.0));
+    CHECK(d.to_device.apply({10.0, 10.0}).y == doctest::Approx(80.0));
+    CHECK(canvas.pixel(30, 50) == white);
+    CHECK(canvas.pixel(75, 35) == red);
+    const auto uppers = canvas.upper_layers();
+    REQUIRE(uppers.size() == 1);
+    CHECK(uppers[0].layer == 1);
+    CHECK(uppers[0].x == 40);
+    CHECK(uppers[0].y == 70);
+    CHECK(uppers[0].pixels.width == 30);
+    CHECK(uppers[0].pixels.height == 10);
+    const auto* row = reinterpret_cast<const std::uint32_t*>(uppers[0].pixels.data + uppers[0].pixels.stride * 5);
+    CHECK(row[5] == 0xff0000ffu);
+    canvas.set_retained_images(nullptr);
+}
+
+TEST_CASE("an image under a path clip, without an identity or shrunk below half is drawn on the CPU") {
+    lamina::thorvg::Canvas canvas(100, 100);
+    AcceptAll sink;
+    canvas.set_retained_images(&sink);
+    const Image photo = lamina::render::retained(solid(10, 10, red));
+    const Image plain = solid(10, 10, red);
+    canvas.clear(white);
+    canvas.push_clip(rounded_rect_path({0, 0, 50, 50}, uniform_radii(8)));
+    canvas.draw_image(photo, {10, 10, 30, 30});
+    canvas.pop_clip();
+    canvas.draw_image(plain, {60, 10, 30, 30});
+    canvas.draw_image(photo, {60, 60, 4, 4});
+    canvas.push_clip(Rect{0, 50, 50, 50});
+    canvas.draw_image(photo, {10, 60, 30, 30});
+    canvas.pop_clip();
+    canvas.finish();
+    CHECK(canvas.pixel(25, 25) == red);
+    CHECK(canvas.pixel(75, 25) == red);
+    CHECK(canvas.pixel(61, 61) == red);
+    CHECK(canvas.pixel(25, 75) == white);
+    REQUIRE(canvas.retained_draws().size() == 1);
+    REQUIRE(canvas.retained_draws()[0].size() == 1);
+    CHECK(canvas.retained_draws()[0][0].clip.y == doctest::Approx(50.0));
+    CHECK(canvas.retained_draws()[0][0].clip.height == doctest::Approx(50.0));
+    canvas.set_retained_images(nullptr);
+}
+
+TEST_CASE("without a sink a retained image is drawn on the CPU and clear forgets the layers") {
+    lamina::thorvg::Canvas canvas(60, 60);
+    const Image photo = lamina::render::retained(solid(10, 10, red));
+    canvas.clear(white);
+    canvas.draw_image(photo, {10, 10, 20, 20});
+    CHECK(canvas.pixel(20, 20) == red);
+    CHECK(canvas.retained_draws().empty());
+    AcceptAll sink;
+    canvas.set_retained_images(&sink);
+    canvas.clear(white);
+    canvas.draw_image(photo, {10, 10, 20, 20});
+    canvas.fill_rect({15, 15, 5, 5}, 0xff0000ffu);
+    canvas.finish();
+    CHECK(canvas.upper_layers().size() == 1);
+    canvas.clear(white);
+    canvas.finish();
+    CHECK(canvas.retained_draws().empty());
+    CHECK(canvas.upper_layers().empty());
+    canvas.set_retained_images(nullptr);
+}
+
+TEST_CASE("clips carry into the layer above") {
+    lamina::thorvg::Canvas canvas(100, 100);
+    AcceptAll sink;
+    canvas.set_retained_images(&sink);
+    const Image photo = lamina::render::retained(solid(10, 10, red));
+    canvas.clear(white);
+    canvas.push_clip(Rect{0, 0, 50, 100});
+    canvas.draw_image(photo, {0, 0, 100, 100});
+    canvas.fill_rect({20, 20, 60, 10}, 0xff0000ffu);
+    canvas.pop_clip();
+    canvas.finish();
+    const auto uppers = canvas.upper_layers();
+    REQUIRE(uppers.size() == 1);
+    CHECK(uppers[0].x == 20);
+    CHECK(uppers[0].pixels.width == 30);
+    canvas.set_retained_images(nullptr);
 }

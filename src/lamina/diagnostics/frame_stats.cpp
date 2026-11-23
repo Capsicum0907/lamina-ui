@@ -10,8 +10,9 @@ namespace {
 
 constexpr std::array<std::string_view, stage_count> stage_names{"wait",          "events",      "update", "layout",  "paint",  "image copy",
                                                                 "raster update", "raster draw", "upload", "present"};
-constexpr std::array<std::string_view, count_field_count> count_names{"paths",     "offscreen", "points",    "shadows", "shadow new", "clips",   "images",
-                                                                      "image MB",  "image Mpx", "loads",   "load MB", "cover Mpx"};
+constexpr std::array<std::string_view, count_field_count> count_names{
+    "paths", "offscreen", "points", "shadows", "shadow new", "clips", "images", "image MB", "image Mpx", "loads", "load MB", "cover Mpx",
+    "layers", "gpu images", "uploads", "upload MB", "textures", "texture MB"};
 
 std::string format(const char* pattern, double value) {
     std::array<char, 32> out{};
@@ -62,6 +63,12 @@ double count_value(const FrameCounts& c, CountField field) {
     case CountField::loads: return static_cast<double>(c.loads);
     case CountField::load_bytes: return static_cast<double>(c.load_bytes);
     case CountField::covered_pixels: return c.covered_pixels;
+    case CountField::layers: return static_cast<double>(c.layers);
+    case CountField::gpu_images: return static_cast<double>(c.gpu_images);
+    case CountField::gpu_uploads: return static_cast<double>(c.gpu_uploads);
+    case CountField::gpu_upload_bytes: return static_cast<double>(c.gpu_upload_bytes);
+    case CountField::gpu_textures: return static_cast<double>(c.gpu_textures);
+    case CountField::gpu_texture_bytes: return static_cast<double>(c.gpu_texture_bytes);
     case CountField::count: break;
     }
     return 0.0;
@@ -175,7 +182,7 @@ std::vector<ReportRow> report_rows(const FrameSummary& s, const DisplayInfo& d, 
                     format("%.2f", static_cast<double>(d.canvas_width) * d.canvas_height / t.pixels_per_megapixel) + " Mpx"});
     rows.push_back({"stage ms", "avg", "worst", "per frame", "avg", "worst"});
     auto count_text = [&](CountField f, double v) {
-        if (f == CountField::image_bytes || f == CountField::load_bytes) {
+        if (f == CountField::image_bytes || f == CountField::load_bytes || f == CountField::gpu_upload_bytes || f == CountField::gpu_texture_bytes) {
             return format("%.1f", v / t.bytes_per_megabyte);
         }
         if (f == CountField::image_pixels || f == CountField::covered_pixels) {

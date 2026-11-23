@@ -182,12 +182,28 @@ Path quantized_path(const ShadowKey& key, double steps, double margin) {
 }
 
 struct Canvas::Impl {
+    struct ClipLevel {
+        tvg::Shape* clipper = nullptr;
+        bool clipper_used = false;
+        std::vector<tvg::Scene*> scenes;
+    };
+
+    struct Upper {
+        tvg::Scene* root = nullptr;
+        bool attached = false;
+        tvg::SwCanvas* canvas = nullptr;
+        std::vector<std::uint32_t> buffer;
+    };
+
     int width = 0;
     int height = 0;
     std::vector<std::uint32_t> buffer;
     tvg::SwCanvas* canvas = nullptr;
     bool dirty = false;
-    std::vector<std::pair<tvg::Scene*, tvg::Shape*>> clips;
+    std::vector<ClipLevel> clips;
+    std::vector<Upper> uppers;
+    std::vector<render::UpperLayer> drawn;
+    std::size_t layer = 0;
     ShadowCache shadows;
     tvg::SwCanvas* shadow_canvas = nullptr;
     std::uint64_t frame = 0;
@@ -210,26 +226,117 @@ struct Canvas::Impl {
 
     ~Impl() {
         drop_clips();
+        drop_uppers();
         delete canvas;
+        for (Upper& u : uppers) {
+            delete u.canvas;
+        }
         delete shadow_canvas;
         tvg::Initializer::term();
     }
 
-    void add(tvg::Paint* paint) {
-        if (clips.empty()) {
+    Upper& upper(std::size_t l) {
+        if (uppers.size() < l) {
+            uppers.resize(l);
+        }
+        Upper& u = uppers[l - 1];
+        if (!u.canvas) {
+            u.canvas = tvg::SwCanvas::gen();
+        }
+        if (!u.root) {
+            u.root = tvg::Scene::gen();
+        }
+        return u;
+    }
+
+    void add_to_root(std::size_t l, tvg::Paint* paint) {
+        if (l == 0) {
             canvas->add(paint);
         } else {
-            clips.back().first->add(paint);
+            upper(l).root->add(paint);
+        }
+    }
+
+    tvg::Scene* clip_scene(std::size_t depth, std::size_t l) {
+        ClipLevel& c = clips[depth];
+        if (c.scenes.size() <= l) {
+            c.scenes.resize(l + 1, nullptr);
+        }
+        if (!c.scenes[l]) {
+            auto* scene = tvg::Scene::gen();
+            auto* clipper = c.clipper_used ? static_cast<tvg::Shape*>(c.clipper->duplicate()) : c.clipper;
+            c.clipper_used = true;
+            scene->clip(clipper);
+            if (depth == 0) {
+                add_to_root(l, scene);
+            } else {
+                clip_scene(depth - 1, l)->add(scene);
+            }
+            c.scenes[l] = scene;
+        }
+        return c.scenes[l];
+    }
+
+    void add(tvg::Paint* paint) {
+        if (clips.empty()) {
+            add_to_root(layer, paint);
+        } else {
+            clip_scene(clips.size() - 1, layer)->add(paint);
         }
         dirty = true;
     }
 
-    void drop_clips() {
-        for (auto& [scene, clipper] : clips) {
-            tvg::Paint::rel(scene);
-            tvg::Paint::rel(clipper);
+    void pop_clip() {
+        ClipLevel& c = clips.back();
+        if (!c.clipper_used) {
+            tvg::Paint::rel(c.clipper);
         }
-        clips.clear();
+        clips.pop_back();
+    }
+
+    void drop_clips() {
+        while (!clips.empty()) {
+            pop_clip();
+        }
+    }
+
+    void drop_uppers() {
+        for (Upper& u : uppers) {
+            if (u.attached) {
+                u.canvas->sync();
+                u.canvas->remove();
+            } else if (u.root) {
+                tvg::Paint::rel(u.root);
+            }
+            u.root = nullptr;
+            u.attached = false;
+        }
+        drawn.clear();
+    }
+
+    std::vector<std::size_t> attach_uppers(const std::vector<std::pair<std::size_t, Rect>>& bounds) {
+        std::vector<std::size_t> out;
+        for (const auto& [l, b] : bounds) {
+            Upper& u = uppers[l - 1];
+            const int x0 = std::clamp(static_cast<int>(std::floor(b.x)), 0, width);
+            const int y0 = std::clamp(static_cast<int>(std::floor(b.y)), 0, height);
+            const int x1 = std::clamp(static_cast<int>(std::ceil(b.x + b.width)), 0, width);
+            const int y1 = std::clamp(static_cast<int>(std::ceil(b.y + b.height)), 0, height);
+            if (x1 <= x0 || y1 <= y0) {
+                continue;
+            }
+            const int w = x1 - x0;
+            const int h = y1 - y0;
+            u.buffer.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
+            u.canvas->target(u.buffer.data(), static_cast<std::uint32_t>(w), static_cast<std::uint32_t>(w), static_cast<std::uint32_t>(h),
+                             tvg::ColorSpace::ARGB8888);
+            u.root->translate(static_cast<float>(-x0), static_cast<float>(-y0));
+            u.canvas->add(u.root);
+            u.attached = true;
+            drawn.push_back({{reinterpret_cast<const std::uint8_t*>(u.buffer.data()), w, h, static_cast<std::intptr_t>(w) * 4}, x0, y0, l});
+            out.push_back(l);
+        }
+        return out;
     }
 };
 
@@ -245,10 +352,12 @@ int Canvas::height() const {
     return impl_->height;
 }
 
-void Canvas::clear(color::Argb color) {
+void Canvas::clear_device(color::Argb color) {
     impl_->drop_clips();
     impl_->canvas->sync();
     impl_->canvas->remove();
+    impl_->drop_uppers();
+    impl_->layer = 0;
     impl_->frame += 1;
     impl_->shadows.trim(rt.shadow_cache_bytes, impl_->frame);
     auto* bg = tvg::Shape::gen();
@@ -258,19 +367,46 @@ void Canvas::clear(color::Argb color) {
     impl_->add(bg);
 }
 
+void Canvas::select_device_layer(std::size_t layer) {
+    impl_->layer = layer;
+}
+
 PixelView Canvas::finish() {
     if (impl_->dirty) {
+        std::vector<std::pair<std::size_t, Rect>> bounds;
+        for (std::size_t l = 1; l < layer_count() && l <= impl_->uppers.size(); ++l) {
+            if (const std::optional<Rect> b = layer_bounds(l); b && impl_->uppers[l - 1].root && !impl_->uppers[l - 1].attached) {
+                bounds.emplace_back(l, *b);
+            }
+        }
+        const std::vector<std::size_t> attached = impl_->attach_uppers(bounds);
         {
             const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_update);
             impl_->canvas->update();
+            for (const std::size_t l : attached) {
+                impl_->uppers[l - 1].canvas->update();
+            }
         }
         const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_draw);
         impl_->canvas->draw(true);
+        for (const std::size_t l : attached) {
+            impl_->uppers[l - 1].canvas->draw(true);
+        }
         impl_->canvas->sync();
+        for (const std::size_t l : attached) {
+            impl_->uppers[l - 1].canvas->sync();
+        }
         impl_->dirty = false;
+        if (probe() && probe()->counting()) {
+            probe()->counts().layers = 1 + attached.size();
+        }
     }
     return {reinterpret_cast<const std::uint8_t*>(impl_->buffer.data()), impl_->width, impl_->height,
             static_cast<std::intptr_t>(impl_->width) * 4};
+}
+
+std::vector<render::UpperLayer> Canvas::upper_layers() const {
+    return impl_->drawn;
 }
 
 void Canvas::resize(int width, int height) {
@@ -399,21 +535,17 @@ void Canvas::begin_device_clip(const Rect& rect) {
     auto* clipper = tvg::Shape::gen();
     clipper->appendRect(static_cast<float>(rect.x), static_cast<float>(rect.y), static_cast<float>(rect.width),
                         static_cast<float>(rect.height));
-    impl_->clips.emplace_back(tvg::Scene::gen(), clipper);
+    impl_->clips.push_back({clipper, false, {}});
 }
 
 void Canvas::begin_device_clip(const Path& path) {
-    impl_->clips.emplace_back(tvg::Scene::gen(), to_shape(path, 0xff000000));
+    impl_->clips.push_back({to_shape(path, 0xff000000), false, {}});
 }
 
 void Canvas::end_device_clip() {
-    if (impl_->clips.empty()) {
-        return;
+    if (!impl_->clips.empty()) {
+        impl_->pop_clip();
     }
-    auto [scene, clipper] = impl_->clips.back();
-    impl_->clips.pop_back();
-    scene->clip(clipper);
-    impl_->add(scene);
 }
 
 }

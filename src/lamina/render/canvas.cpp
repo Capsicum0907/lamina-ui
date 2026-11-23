@@ -44,6 +44,41 @@ Rect intersect(const Rect& a, const Rect& b) {
 
 }
 
+void Canvas::clear(color::Argb color) {
+    plan_.reset();
+    batches_.clear();
+    clip_bounds_.clear();
+    clip_is_path_.clear();
+    path_clips_ = 0;
+    clear_device(color);
+}
+
+void Canvas::place_paint(const Rect& device) {
+    if (sink_) {
+        select_device_layer(plan_.place_paint(intersect(device, visible_bounds())));
+    }
+}
+
+bool Canvas::retain(const Image& image, const Affine& m, double opacity, std::span<const Point> corners) {
+    if (!sink_ || !image.identity || path_clips_ > 0) {
+        return false;
+    }
+    const double min_scale = tokens::raster.retained_min_scale;
+    if (std::hypot(m.a, m.b) < min_scale || std::hypot(m.c, m.d) < min_scale || !sink_->accepts(image)) {
+        return false;
+    }
+    const Rect visible = visible_bounds();
+    const std::optional<std::size_t> batch = plan_.place_image(intersect(bounds_of(corners), visible));
+    if (!batch) {
+        return false;
+    }
+    if (batches_.size() <= *batch) {
+        batches_.resize(*batch + 1);
+    }
+    batches_[*batch].push_back({&image, m, opacity, visible});
+    return true;
+}
+
 Rect Canvas::visible_bounds() const {
     const Rect all{0.0, 0.0, static_cast<double>(width()), static_cast<double>(height())};
     return clip_bounds_.empty() ? all : intersect(all, clip_bounds_.back());
@@ -103,6 +138,9 @@ void Canvas::fill_path(const Path& path, color::Argb color, FillRule rule) {
         c.path_points += device.points().size();
         c.covered_pixels += area;
     }
+    if (sink_) {
+        place_paint(bounds_of(device.points()));
+    }
     fill_device_path(device, color, rule);
 }
 
@@ -127,6 +165,11 @@ void Canvas::fill_shadow(const Path& path, const Shadow& shadow) {
         c.path_points += outline.points().size();
         c.covered_pixels += covered(outline.points());
     }
+    if (sink_) {
+        const double grown = std::max(std::abs(device.offset_x), std::abs(device.offset_y)) + device.blur_sigma * tokens::raster.shadow_margin_sigmas;
+        const Rect b = bounds_of(outline.points());
+        place_paint({b.x - grown, b.y - grown, b.width + 2.0 * grown, b.height + 2.0 * grown});
+    }
     fill_device_shadow(outline, device);
 }
 
@@ -148,6 +191,10 @@ void Canvas::fill_rect(const Rect& rect, color::Argb color) {
         c.path_points += corners.size();
         c.covered_pixels += covered(corners);
     }
+    if (sink_) {
+        const std::array<Point, 2> corners{from, to};
+        place_paint(bounds_of(corners));
+    }
     fill_device_rect(from, to, color);
 }
 
@@ -163,14 +210,22 @@ void Canvas::draw_image(const Image& image, const Rect& rect, double opacity) {
     }
     const Affine place{rect.width / image.width, 0.0, 0.0, rect.height / image.height, rect.x, rect.y};
     const Affine m = transform_.then_local(place);
+    const auto w = static_cast<double>(image.width);
+    const auto h = static_cast<double>(image.height);
+    const std::array<Point, 4> corners{m.apply({0.0, 0.0}), m.apply({w, 0.0}), m.apply({w, h}), m.apply({0.0, h})};
+    const bool kept = retain(image, m, std::min(opacity, 1.0), corners);
     if (probe_ && probe_->counting()) {
         diagnostics::FrameCounts& c = probe_->counts();
-        const auto w = static_cast<double>(image.width);
-        const auto h = static_cast<double>(image.height);
-        const std::array<Point, 4> corners{m.apply({0.0, 0.0}), m.apply({w, 0.0}), m.apply({w, h}), m.apply({0.0, h})};
         c.images += 1;
+        c.gpu_images += kept ? 1 : 0;
         c.image_pixels += static_cast<std::uint64_t>(image.width) * static_cast<std::uint64_t>(image.height);
         c.covered_pixels += covered(corners);
+    }
+    if (kept) {
+        return;
+    }
+    if (sink_) {
+        place_paint(bounds_of(corners));
     }
     draw_device_image(image, m, std::min(opacity, 1.0));
 }
@@ -208,6 +263,7 @@ void Canvas::push_clip(const Rect& rect) {
     const Point b = transform_.apply({rect.x + rect.width, rect.y + rect.height});
     const Rect device{std::min(a.x, b.x), std::min(a.y, b.y), std::abs(b.x - a.x), std::abs(b.y - a.y)};
     push_clip_bounds(device);
+    clip_is_path_.push_back(false);
     begin_device_clip(device);
 }
 
@@ -217,12 +273,18 @@ void Canvas::push_clip(const Path& path) {
     }
     const Path device = path.transformed(transform_);
     push_clip_bounds(bounds_of(device.points()));
+    clip_is_path_.push_back(true);
+    path_clips_ += 1;
     begin_device_clip(device);
 }
 
 void Canvas::pop_clip() {
     if (!clip_bounds_.empty()) {
         clip_bounds_.pop_back();
+    }
+    if (!clip_is_path_.empty()) {
+        path_clips_ -= clip_is_path_.back() ? 1 : 0;
+        clip_is_path_.pop_back();
     }
     end_device_clip();
 }

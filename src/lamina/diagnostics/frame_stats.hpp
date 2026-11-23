@@ -34,6 +34,12 @@ struct FrameCounts {
     std::uint64_t loads = 0;
     std::uint64_t load_bytes = 0;
     double covered_pixels = 0.0;
+    std::uint64_t layers = 0;
+    std::uint64_t gpu_images = 0;
+    std::uint64_t gpu_uploads = 0;
+    std::uint64_t gpu_upload_bytes = 0;
+    std::uint64_t gpu_textures = 0;
+    std::uint64_t gpu_texture_bytes = 0;
 };
 
 struct FrameSample {
@@ -52,7 +58,8 @@ struct DisplayInfo {
     int canvas_height = 0;
 };
 
-enum class CountField : std::size_t { paths, offscreen_paths, path_points, shadows, shadow_renders, clips, images, image_bytes, image_pixels, loads, load_bytes, covered_pixels, count };
+enum class CountField : std::size_t { paths, offscreen_paths, path_points, shadows, shadow_renders, clips, images, image_bytes, image_pixels, loads, load_bytes, covered_pixels,
+                                     layers, gpu_images, gpu_uploads, gpu_upload_bytes, gpu_textures, gpu_texture_bytes, count };
 
 inline constexpr std::size_t count_field_count = static_cast<std::size_t>(CountField::count);
 

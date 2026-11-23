@@ -31,12 +31,12 @@ public:
     int width() const override { return width_; }
     int height() const override { return height_; }
     void resize(int width, int height) override;
-    void clear(color::Argb) override { fills.clear(); }
     render::PixelView finish() override { return {nullptr, width_, height_, 0}; }
 
     std::vector<RecordedFill> fills;
 
 protected:
+    void clear_device(color::Argb) override { fills.clear(); }
     void fill_device_path(const render::Path& path, color::Argb color, render::FillRule rule) override;
     void fill_device_shadow(const render::Path&, const render::Shadow&) override {}
     void fill_device_rect(render::Point from, render::Point to, color::Argb color) override;
