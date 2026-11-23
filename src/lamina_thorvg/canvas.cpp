@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <list>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -25,6 +26,12 @@ using render::Shadow;
 namespace {
 
 constexpr const tokens::RasterTokens& rt = tokens::raster;
+
+std::uint32_t worker_threads() {
+    const unsigned cores = std::thread::hardware_concurrency();
+    const unsigned spare = cores > rt.reserved_cores ? cores - rt.reserved_cores : 0u;
+    return static_cast<std::uint32_t>(std::min(spare, rt.worker_threads_max));
+}
 
 struct Rgba {
     std::uint8_t r;
@@ -186,7 +193,7 @@ struct Canvas::Impl {
     std::uint64_t frame = 0;
 
     Impl(int w, int h) {
-        tvg::Initializer::init(0);
+        tvg::Initializer::init(worker_threads());
         canvas = tvg::SwCanvas::gen();
         shadow_canvas = tvg::SwCanvas::gen();
         retarget(w, h);
