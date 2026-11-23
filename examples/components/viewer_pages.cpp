@@ -132,7 +132,7 @@ public:
 
     bool handle(const input::FingerEvent& e) override {
         bool used = zoom_.handle(e);
-        if (widgets::ZoomView* p = photo(photos_.settled_page()); p && !photos_.dragging()) {
+        if (widgets::ZoomView* p = photo(photos_.settled_page())) {
             used = p->handle(e) || used;
         }
         return used;
