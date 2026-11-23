@@ -50,7 +50,7 @@ The presets use the NDK's toolchain through vcpkg's (`VCPKG_CHAINLOAD_TOOLCHAIN_
 
 ## How the APK is put together
 
-`cmake/LaminaAndroid.cmake`, `lamina_android_apk(target PACKAGE ... LABEL ... OUTPUT_NAME ...)`:
+`cmake/LaminaAndroid.cmake`, `lamina_android_apk(target PACKAGE ... LABEL ... OUTPUT_NAME ... [MANIFEST ...] [RES ...])`:
 
 1. On Android, `lamina_add_example` builds the gallery as a shared library, `libmain.so`. `examples/components/main.cpp` includes `SDL_main.h` there, so its `main` becomes `SDL_main`, which SDL's activity calls. SDL is a static library, so the link keeps `JNI_OnLoad` (`-u JNI_OnLoad`); SDL registers its Java natives from it. The library is linked with 16 KB pages (`-z max-page-size=16384`).
 2. The SDL Java sources are extracted from the archive at configure time. `javac` compiles them with `LaminaActivity` (`android/LaminaActivity.java.in`) against the platform's `android.jar`, and `d8` turns the classes into `classes.dex`.
@@ -71,6 +71,12 @@ The presets use the NDK's toolchain through vcpkg's (`VCPKG_CHAINLOAD_TOOLCHAIN_
 | `LAMINA_ANDROID_SDL_ARCHIVE` | the SDL archive in vcpkg's `downloads` | where the Java sources come from |
 | `LAMINA_ANDROID_KEYSTORE` | (not in the preset) | the signing keystore; defaults to the debug keystore |
 | `LAMINA_ANDROID_PAGE_SIZE_KB` | (not in the preset) | page size for the link and for zipalign, 16 by default |
+
+## An APK of another project
+
+A project that adds lamina-ui with `add_subdirectory` builds its own APK with the same function. `lamina_android_apk` finds lamina's activity template, resources and assembly script from its own file, not from the calling project, and the paths it computes at configure time (`LAMINA_ANDROID_JAR`, `LAMINA_ANDROID_SDL_JAVA_FILES`, and the page size in bytes, `LAMINA_ANDROID_PAGE_SIZE`) are internal cache variables, so they are seen from any directory. `MANIFEST` takes a manifest template of the app's own, for permissions and other entries the default one does not have; it is configured with the same `@LAMINA_APK_PACKAGE@` and `@LAMINA_APK_LABEL@`, and must keep the `.LaminaActivity` entry. `RES` takes a resource directory instead of lamina's `android/res`, which must then define the `LaminaTheme` style the manifest names. Both default to lamina's own.
+
+The app's native library is built as the gallery's is: a shared library named `main` that includes `SDL_main.h`, links `SDL3::SDL3`, keeps `JNI_OnLoad` (`-Wl,-u,JNI_OnLoad`) and links with `-Wl,-z,max-page-size=${LAMINA_ANDROID_PAGE_SIZE}`.
 
 ## System bars
 

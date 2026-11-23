@@ -50,7 +50,7 @@ cmake --build --preset android-arm64
 
 ## APK の組み立て
 
-`cmake/LaminaAndroid.cmake` の `lamina_android_apk(target PACKAGE ... LABEL ... OUTPUT_NAME ...)` が次の順に組み立てます。
+`cmake/LaminaAndroid.cmake` の `lamina_android_apk(target PACKAGE ... LABEL ... OUTPUT_NAME ... [MANIFEST ...] [RES ...])` が次の順に組み立てます。
 
 1. Android では `lamina_add_example` が見本を共有ライブラリ `libmain.so` として作ります。`examples/components/main.cpp` はそこで `SDL_main.h` を読み込むので、`main` が `SDL_main` になり、SDL のアクティビティがそれを呼びます。SDL は静的ライブラリなので、`JNI_OnLoad` がリンクで落ちないようにしています（`-u JNI_OnLoad`）。SDL はここから Java のネイティブ関数を登録します。ライブラリは 16 KB のページでリンクします（`-z max-page-size=16384`）。
 2. SDL の Java のソースは構成の段階でアーカイブから取り出します。`javac` がそれを `LaminaActivity`（`android/LaminaActivity.java.in`）と一緒にプラットフォームの `android.jar` に対してコンパイルし、`d8` がクラスを `classes.dex` にします。
@@ -71,6 +71,12 @@ cmake --build --preset android-arm64
 | `LAMINA_ANDROID_SDL_ARCHIVE` | vcpkg の `downloads` の SDL のアーカイブ | Java のソースの取り出し元 |
 | `LAMINA_ANDROID_KEYSTORE` | （プリセットにはなし） | 署名に使うキーストア。既定はデバッグ用のもの |
 | `LAMINA_ANDROID_PAGE_SIZE_KB` | （プリセットにはなし） | リンクと zipalign のページの大きさ。既定は 16 |
+
+## ほかのプロジェクトの APK
+
+lamina-ui を `add_subdirectory` で取り込んだプロジェクトも、同じ関数で自分の APK を作れます。`lamina_android_apk` は、lamina のアクティビティのひな形、リソース、組み立てのスクリプトを、呼び出したプロジェクトからではなく自分のファイルの位置から探します。構成のときに求めるパス（`LAMINA_ANDROID_JAR`、`LAMINA_ANDROID_SDL_JAVA_FILES`、バイト単位のページの大きさ `LAMINA_ANDROID_PAGE_SIZE`）は内部用のキャッシュ変数なので、どのディレクトリからも見えます。`MANIFEST` にはアプリ自身のマニフェストのひな形を渡せます。既定のひな形にない権限などを足すためのもので、同じ `@LAMINA_APK_PACKAGE@` と `@LAMINA_APK_LABEL@` で埋められ、`.LaminaActivity` の項目は残す必要があります。`RES` には lamina の `android/res` の代わりのリソースのディレクトリを渡せます。その場合、マニフェストが名指しする `LaminaTheme` のスタイルを定義する必要があります。どちらも既定は lamina 自身のものです。
+
+アプリのネイティブのライブラリは、ギャラリーと同じ形で作ります。`SDL_main.h` を取り込む `main` という名前の共有ライブラリにし、`SDL3::SDL3` をリンクし、`JNI_OnLoad` を残し（`-Wl,-u,JNI_OnLoad`）、`-Wl,-z,max-page-size=${LAMINA_ANDROID_PAGE_SIZE}` でリンクします。
 
 ## システムのバー
 

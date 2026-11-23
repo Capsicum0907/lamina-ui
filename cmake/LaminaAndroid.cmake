@@ -6,7 +6,8 @@ set(LAMINA_ANDROID_MIN_SDK "" CACHE STRING "minSdkVersion of the APK")
 set(LAMINA_ANDROID_TARGET_SDK "" CACHE STRING "targetSdkVersion of the APK")
 set(LAMINA_ANDROID_SDL_ARCHIVE "" CACHE FILEPATH "SDL source archive of the same version as the linked SDL; its Java sources go into the APK")
 set(LAMINA_ANDROID_PAGE_SIZE_KB 16 CACHE STRING "Page size in KiB: ELF page size of libmain.so and zipalign alignment of the stored libraries")
-math(EXPR LAMINA_ANDROID_PAGE_SIZE "${LAMINA_ANDROID_PAGE_SIZE_KB} * 1024")
+math(EXPR lamina_android_page_size "${LAMINA_ANDROID_PAGE_SIZE_KB} * 1024")
+set(LAMINA_ANDROID_PAGE_SIZE "${lamina_android_page_size}" CACHE INTERNAL "Page size in bytes, from LAMINA_ANDROID_PAGE_SIZE_KB")
 set(LAMINA_ANDROID_JAVA_RELEASE 8 CACHE STRING "Java source and target level of the Java side")
 set(LAMINA_ANDROID_VERSION_CODE 1 CACHE STRING "versionCode of the APK")
 set(LAMINA_ANDROID_KEY_ALIAS androiddebugkey CACHE STRING "Key alias in the signing keystore")
@@ -38,7 +39,7 @@ if(NOT EXISTS "${LAMINA_ANDROID_KEYSTORE}")
 endif()
 
 set(lamina_android_build_tools_dir "${LAMINA_ANDROID_SDK}/build-tools/${LAMINA_ANDROID_BUILD_TOOLS}")
-set(LAMINA_ANDROID_JAR "${LAMINA_ANDROID_SDK}/platforms/${LAMINA_ANDROID_PLATFORM}/android.jar")
+set(LAMINA_ANDROID_JAR "${LAMINA_ANDROID_SDK}/platforms/${LAMINA_ANDROID_PLATFORM}/android.jar" CACHE INTERNAL "android.jar of LAMINA_ANDROID_PLATFORM")
 if(NOT EXISTS "${LAMINA_ANDROID_JAR}")
     message(FATAL_ERROR "No android.jar at ${LAMINA_ANDROID_JAR}")
 endif()
@@ -83,16 +84,24 @@ list(JOIN lamina_sdl_java_version "." lamina_sdl_java_version)
 if(NOT lamina_sdl_java_version VERSION_EQUAL SDL3_VERSION)
     message(FATAL_ERROR "The SDL Java sources in ${LAMINA_ANDROID_SDL_ARCHIVE} are ${lamina_sdl_java_version}, but the linked SDL is ${SDL3_VERSION}; they must match")
 endif()
-file(GLOB LAMINA_ANDROID_SDL_JAVA_FILES "${lamina_android_sdl_java_dir}/*.java")
+file(GLOB lamina_android_sdl_java_files "${lamina_android_sdl_java_dir}/*.java")
+set(LAMINA_ANDROID_SDL_JAVA_FILES "${lamina_android_sdl_java_files}" CACHE INTERNAL "SDL Java sources that go into every APK")
 
 function(lamina_android_apk target)
-    cmake_parse_arguments(PARSE_ARGV 1 arg "" "PACKAGE;LABEL;OUTPUT_NAME" "")
+    cmake_parse_arguments(PARSE_ARGV 1 arg "" "PACKAGE;LABEL;OUTPUT_NAME;MANIFEST;RES" "")
+    set(root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/..")
+    if(NOT arg_MANIFEST)
+        set(arg_MANIFEST "${root}/android/AndroidManifest.xml.in")
+    endif()
+    if(NOT arg_RES)
+        set(arg_RES "${root}/android/res")
+    endif()
     set(dir "${CMAKE_CURRENT_BINARY_DIR}/android/${target}")
     set(LAMINA_APK_PACKAGE "${arg_PACKAGE}")
     set(LAMINA_APK_LABEL "${arg_LABEL}")
     set(LAMINA_APK_LIBRARY "$<TARGET_FILE_BASE_NAME:${target}>")
-    configure_file("${PROJECT_SOURCE_DIR}/android/AndroidManifest.xml.in" "${dir}/AndroidManifest.xml" @ONLY)
-    configure_file("${PROJECT_SOURCE_DIR}/android/LaminaActivity.java.in" "${dir}/LaminaActivity.java.in" @ONLY)
+    configure_file("${arg_MANIFEST}" "${dir}/AndroidManifest.xml" @ONLY)
+    configure_file("${root}/android/LaminaActivity.java.in" "${dir}/LaminaActivity.java.in" @ONLY)
     file(GENERATE OUTPUT "${dir}/java/LaminaActivity.java" INPUT "${dir}/LaminaActivity.java.in")
 
     set(java ${LAMINA_ANDROID_SDL_JAVA_FILES} "${dir}/java/LaminaActivity.java")
@@ -108,9 +117,9 @@ function(lamina_android_apk target)
         DEPENDS ${java}
         VERBATIM)
 
-    file(GLOB_RECURSE resources CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/android/res/*")
+    file(GLOB_RECURSE resources CONFIGURE_DEPENDS "${arg_RES}/*")
     add_custom_command(OUTPUT "${dir}/resources.zip"
-        COMMAND "${LAMINA_AAPT2}" compile --dir "${PROJECT_SOURCE_DIR}/android/res" -o "${dir}/resources.zip"
+        COMMAND "${LAMINA_AAPT2}" compile --dir "${arg_RES}" -o "${dir}/resources.zip"
         DEPENDS ${resources}
         VERBATIM)
     add_custom_command(OUTPUT "${dir}/base.apk"
@@ -126,8 +135,8 @@ function(lamina_android_apk target)
     add_custom_command(OUTPUT "${unaligned}"
         COMMAND "${CMAKE_COMMAND}" "-DBASE_APK=${dir}/base.apk" "-DDEX=${dir}/classes.dex" "-DABI=${ANDROID_ABI}"
             "-DLIBRARIES=$<TARGET_FILE:${target}>;${LAMINA_ANDROID_CXX_SHARED}" "-DSTRIP=${CMAKE_STRIP}"
-            "-DSTAGING=${dir}/staging" "-DOUTPUT=${unaligned}" -P "${PROJECT_SOURCE_DIR}/cmake/LaminaAndroidAssemble.cmake"
-        DEPENDS "${dir}/base.apk" "${dir}/classes.dex" ${target} "${PROJECT_SOURCE_DIR}/cmake/LaminaAndroidAssemble.cmake"
+            "-DSTAGING=${dir}/staging" "-DOUTPUT=${unaligned}" -P "${root}/cmake/LaminaAndroidAssemble.cmake"
+        DEPENDS "${dir}/base.apk" "${dir}/classes.dex" ${target} "${root}/cmake/LaminaAndroidAssemble.cmake"
         VERBATIM)
     add_custom_command(OUTPUT "${apk}"
         COMMAND "${LAMINA_ZIPALIGN}" -P ${LAMINA_ANDROID_PAGE_SIZE_KB} -f 4 "${unaligned}" "${aligned}"
