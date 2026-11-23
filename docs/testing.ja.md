@@ -25,6 +25,15 @@ components_capture video gallery_resize dark 1 | ffmpeg -f rawvideo -pix_fmt bgr
 
 `components_capture size <scale>` は、同じオプションでの一コマの画素の大きさを書き出します。
 
+`components_capture bench <scene> <light|dark> <scale> <start dp> <distance dp> <seconds> [repeats] [out.bgra]` は、窓なしでページを描く時間を測ります。場面の後、ページを指で `<start dp>` だけ上へ送り（窓の高さの `bench_from` から `bench_to` まで、幅の `bench_x` の位置でなぞる。はじかないように毎回指を止めてから離し、落ち着くのを待つ）、それから `<seconds>` 秒で `<distance dp>` 上へなぞって指をそこに止めます。これを `repeats` 回、上と下へ交互にくり返し、なぞるたびに[フレームの計時](app-structure.ja.md#フレームの計時)の 1 行を書き出します。測るのは指が動いている間のフレームだけです。`update`・`paint`・`raster update`・`raster draw` はアプリと同じように測り、`upload` と `present` は 0 です。表示を待たないので、間隔は前のフレームの終わりから次のフレームの終わりまでです。`out.bgra` を渡すと最後のフレームを書き出します。スマホの大きさ（1080 × 2400 px、倍率 2.625）では次のとおりです。
+
+```
+components_capture --window 412x915 bench default light 2.625 0 300 1 4
+components_capture --window 412x915 bench default light 2.625 1200 300 1 4
+```
+
+一つ目は Basics の上のほう（FAB が見える）、二つ目は Type と Theme の節をなぞります。描くのはデスクトップの CPU なので、時間は変更どうしを比べるためのもので、スマホでの時間ではありません。
+
 ### 配置の確認
 
 `components_capture [--window <幅>x<高さ>] check` は、十六のページを順に開いて動きが落ち着くのを待ち、窓の右端をはみ出す部品、どちらかの向きに押しつぶされて大きさがなくなった部品、別の塊の部品と重なる部品をすべて書き出します。塊とは、ページが置く区画・見出し・項目のことです（`Gallery::layout_blocks`）。枠の中の部品どうしのように、一つの塊の中の部品は比べません。問題が一つでもあれば 1 で終わります。窓に収まりようのない部品は `CaptureStyle::known_overflows` に載せられます。載せた部品は、中身の左端から始まっている間は、分かっているはみ出しとして書き出すだけで数えません。ページから消えたときは確認が失敗します。今この一覧は空です。412 dp では、セグメントボタンの行と分割ボタンが使える幅を分け合い、横向きの時刻ピッカーはカードの中で横にスクロールします。ページのあとで、`CaptureStyle::redraw_target`（Basics の Send）を、押す・離す・外へ出るの三つが一つのフレームに届くタッチでタップします。ギャラリーが動いている間フレームを進め、止まったフレームと、入力のないもう一つのフレームを比べます。差が `CaptureStyle::redraw_tolerance` の段階より大きければ問題として書き出します。フレームの繰り返しは、止まったフレームを次のイベントまで出したままにするからです（[アプリの組み立て](app-structure.ja.md)）。続けて、タッチでページを上にはじく操作を `CaptureStyle::fling_redraw_flings` 回行います（窓の高さの `fling_redraw_from` から `fling_redraw_to` まで、`fling_redraw_seconds` 秒で）。はじくたびに止まるまで待ち、同じように止まったフレームと次のフレームを比べます。見本が進めたあとにもう一度配置するようになる前は、はじく動きの最後の一歩が、そのフレームの配置のあとでスクロール位置を動かしていました。そのため止まったフレームには、その一歩の始まりの位置のページが描かれていました（412 dp で 253 段階の差）。実機では、スクロールバーを隠すタイマーが窓を起こすまで、ページが終わりの手前に描かれたままでした。戻る操作も、新しく作った見本で三通り確かめます。何も開いていなければ、一回目の戻る操作がホストに渡ります（`GalleryHost::system_back`）。`CaptureStyle::back_menu` に Tab で移って Enter で開いたあとは、一回目でメニューが閉じ、二回目だけが渡ります。`CaptureStyle::back_field` に Tab で移ったあとは、一回目で欄のフォーカスが外れ、二回目だけが渡ります。確かめで開くどのページでも、何も開いていなければ一回目が渡ります。`CaptureStyle::back_dialog` に Tab で移って Enter で開いたあとと、`CaptureStyle::back_sheet_scene` の場面（モーダルのボトムシート）のあとは、一回目は渡らず、`CaptureStyle::back_press_limit` 回までのどこかで渡ります。`KeyEvent::back` の立っていない Escape は渡りません。また、見本が暗い配色かどうかを、起動したときに一度と、配色を切り替えたときにホストへ伝えることも確かめます（`GalleryHost::set_dark_theme`。窓はそれをシステムのバーに渡します。[Android](android.ja.md#システムのバー)）。CTest は、これを 412・800・1440 dp で走らせます。
