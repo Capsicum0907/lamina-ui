@@ -1,0 +1,78 @@
+[[step]]
+action = "activate"
+
+[[step]]
+action = "info"
+
+[[step]]
+action = "tap"
+x = 1404
+y = 74
+
+[[step]]
+action = "capture"
+name = "viewer_before"
+
+[[step]]
+action = "drag"
+from = [[384, 367], [624, 367]]
+to = [[284, 367], [724, 367]]
+duration = 0.5
+hold_end = 0.1
+snapshot = [{ at = 0.35, name = "viewer_pinching" }]
+
+[[step]]
+action = "capture"
+name = "viewer_pinched"
+
+[[step]]
+action = "drag"
+from = [504, 367]
+to = [304, 367]
+duration = 0.1
+
+[[step]]
+action = "capture"
+name = "viewer_flung"
+
+[[step]]
+action = "drag"
+from = [[284, 367], [724, 367]]
+to = [[444, 367], [564, 367]]
+duration = 0.5
+hold_end = 0.1
+snapshot = [{ at = 0.45, name = "viewer_pinching_in" }]
+
+[[step]]
+action = "capture"
+name = "viewer_pinched_in"
+
+[[step]]
+action = "tap"
+x = 300
+y = 250
+gap = 0.12
+
+[[step]]
+action = "tap"
+x = 300
+y = 250
+
+[[step]]
+action = "capture"
+name = "viewer_double_tapped"
+
+[[step]]
+action = "tap"
+x = 300
+y = 250
+gap = 0.12
+
+[[step]]
+action = "tap"
+x = 300
+y = 250
+
+[[step]]
+action = "capture"
+name = "viewer_fitted"
