@@ -17,6 +17,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "lamina/input/touch_echo.hpp"
+#include "lamina/input/touch_release.hpp"
 #include "lamina/layout/frame_size.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina_sdl3/caption_frame.hpp"
@@ -182,6 +183,7 @@ struct Window::Impl {
     int pending_redraws = 0;
     layout::PixelSize last_pixels;
     input::TouchEchoFilter touch_echo;
+    input::TouchReleaseGate touch_release;
     int origin_x = 0;
     int origin_y = 0;
 
@@ -265,11 +267,21 @@ struct Window::Impl {
         return window_coord * pixel_density() / scale();
     }
 
-    void push_pointer(Frame& frame, const input::PointerEvent& event) {
+    void admit_pointer(Frame& frame, const input::PointerEvent& event) {
         const input::ScreenOrigin origin{to_dp(static_cast<float>(origin_x)), to_dp(static_cast<float>(origin_y))};
         if (touch_echo.admit(event, origin, tokens::touch_echo_tolerance_pixels / scale())) {
             frame.pointer.push_back(event);
         }
+    }
+
+    void admit_all(Frame& frame, const std::vector<input::PointerEvent>& events) {
+        for (const input::PointerEvent& event : events) {
+            admit_pointer(frame, event);
+        }
+    }
+
+    void push_pointer(Frame& frame, const input::PointerEvent& event) {
+        admit_all(frame, touch_release.pointer(event));
     }
 
     void push_finger(Frame& frame, const SDL_TouchFingerEvent& e, input::FingerAction action) {
@@ -279,8 +291,10 @@ struct Window::Impl {
         int ww = 0;
         int wh = 0;
         SDL_GetWindowSize(window, &ww, &wh);
-        frame.fingers.push_back({action, static_cast<std::uint64_t>(e.fingerID), to_dp(e.x * static_cast<float>(ww)), to_dp(e.y * static_cast<float>(wh)),
-                                 static_cast<double>(e.timestamp) / nanoseconds_per_second});
+        const input::FingerEvent finger{action, static_cast<std::uint64_t>(e.fingerID), to_dp(e.x * static_cast<float>(ww)),
+                                        to_dp(e.y * static_cast<float>(wh)), static_cast<double>(e.timestamp) / nanoseconds_per_second};
+        frame.fingers.push_back(finger);
+        admit_all(frame, touch_release.finger(finger));
     }
 
     void drop_texture() {
@@ -444,9 +458,6 @@ bool Window::next_frame(Frame& frame, bool animating) {
                 impl_->push_pointer(frame, {PointerAction::up, impl_->to_dp(e.button.x), impl_->to_dp(e.button.y), 0, pointer_kind(e.button.which),
                                             static_cast<double>(e.button.timestamp) / nanoseconds_per_second, (mod & SDL_KMOD_SHIFT) != 0,
                                             ctrl_held(mod)});
-                if (input::leaves_after_up(pointer_kind(e.button.which))) {
-                    frame.pointer.push_back({PointerAction::leave, 0.0, 0.0});
-                }
             }
             break;
         case SDL_EVENT_MOUSE_WHEEL: {
@@ -506,6 +517,10 @@ bool Window::next_frame(Frame& frame, bool animating) {
         }
     }
 
+    impl_->admit_all(frame, impl_->touch_release.end_frame());
+    if (impl_->touch_release.holding()) {
+        impl_->pending_redraws = std::max(impl_->pending_redraws, 1);
+    }
     impl_->measure(frame);
     return true;
 }

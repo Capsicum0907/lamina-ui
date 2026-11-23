@@ -96,3 +96,11 @@ TEST_CASE("pen moves keep their hover, also at the touch point") {
     filter.admit(touch(PointerAction::down, 296.0, 182.0), window, tolerance);
     CHECK(filter.admit({PointerAction::move, 100.0, 100.0, 0, PointerKind::pen}, window, tolerance));
 }
+
+TEST_CASE("a touch that leaves without an up, as a cancelled one does, ends the finger") {
+    TouchEchoFilter filter;
+    filter.admit(touch(PointerAction::down, 296.0, 182.0), window, tolerance);
+    CHECK_FALSE(filter.admit(mouse(PointerAction::move, 500.0, 400.0), window, tolerance));
+    CHECK(filter.admit(touch(PointerAction::leave, 296.0, 182.0), window, tolerance));
+    CHECK(filter.admit(mouse(PointerAction::move, 500.0, 400.0), window, tolerance));
+}

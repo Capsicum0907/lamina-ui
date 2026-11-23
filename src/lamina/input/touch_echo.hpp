@@ -19,7 +19,7 @@ public:
         if (event.kind == PointerKind::touch) {
             if (event.action == PointerAction::down) {
                 finger_down_ = true;
-            } else if (event.action == PointerAction::up) {
+            } else if (event.action == PointerAction::up || event.action == PointerAction::leave) {
                 finger_down_ = false;
             }
             touched_ = true;
