@@ -72,14 +72,16 @@ public:
         if (handle_dialog_tips(e)) {
             return true;
         }
+        bool used = false;
         for (widgets::SearchBar* s : bars()) {
             if (s->is_open()) {
                 const widgets::SearchBarResponse r = s->handle(e);
                 respond(*s, r);
-                if (r.consumed) {
-                    return true;
-                }
+                used = used || r.consumed;
             }
+        }
+        if (used) {
+            return true;
         }
         for (widgets::SearchBar* s : bars()) {
             if (!s->is_open()) {
