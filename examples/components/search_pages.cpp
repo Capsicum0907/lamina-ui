@@ -48,8 +48,8 @@ class SearchPage final : public BasePage {
 public:
     explicit SearchPage(PageContext context)
         : BasePage(std::move(context)), compact_frame_(search_layout.phone), wide_frame_(search_layout.desktop) {
-        compact_ = make_bar();
-        wide_ = make_bar();
+        compact_ = make_bar(widgets::SearchViewMode::automatic);
+        wide_ = make_bar(widgets::SearchViewMode::docked);
         compact_frame_.on_arrange([this](const render::Rect& r) { compact_->set_area(r); });
         wide_frame_.on_arrange([this](const render::Rect& r) { wide_->set_area(r); });
         auto compact_screen = screen(*compact_, "Trips", "Search for a city. On a compact window the search view fills the screen.");
@@ -225,12 +225,13 @@ public:
 private:
     std::array<widgets::SearchBar*, 2> bars() const { return {compact_.get(), wide_.get()}; }
 
-    std::unique_ptr<widgets::SearchBar> make_bar() const {
+    std::unique_ptr<widgets::SearchBar> make_bar(widgets::SearchViewMode mode) const {
         return std::make_unique<widgets::SearchBar>(widgets::SearchBarOptions{.placeholder = "Search cities",
                                                                               .search_icon = icon(res::icons::search),
                                                                               .back = {icon(res::icons::arrow_back), "Back"},
                                                                               .trailing = widgets::SearchBarIcon{icon(res::icons::mic), "Mic"},
-                                                                              .results = results_for("")},
+                                                                              .results = results_for(""),
+                                                                              .mode = mode},
                                                     ctx.fonts);
     }
 
