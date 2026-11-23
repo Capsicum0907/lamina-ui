@@ -110,7 +110,12 @@ public:
     std::optional<AccessibleNode> accessible() const;
 
 private:
+    enum class PointerPart { none, back, trailing, field, results, outside };
+
     bool showing_view() const;
+    PointerPart part_at(const input::PointerEvent& event) const;
+    void deliver(PointerPart part, const input::PointerEvent& event, SearchBarResponse& r);
+    void close_from_pointer();
     void place();
     void paint_field(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& field, bool expanded_view) const;
     void tab(bool backward);
@@ -130,6 +135,7 @@ private:
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     bool field_pressed_ = false;
     bool claim_focus_ = false;
+    PointerPart pressed_ = PointerPart::none;
 };
 
 }

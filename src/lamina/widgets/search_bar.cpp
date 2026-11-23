@@ -298,6 +298,7 @@ SearchBarResponse SearchBar::handle(const input::PointerEvent& e) {
     SearchBarResponse r;
     const std::string before = field_.text();
     if (!showing_view()) {
+        pressed_ = PointerPart::none;
         const bool inside = e.action != input::PointerAction::leave && contains(collapsed_, e.x_dp, e.y_dp);
         const bool on_trailing = trailing_ && inside && contains(trailing_->bounds(), e.x_dp, e.y_dp);
         if (trailing_ && trailing_->handle(e)) {
@@ -320,32 +321,70 @@ SearchBarResponse SearchBar::handle(const input::PointerEvent& e) {
         r.consumed = inside;
         return changed(before, r);
     }
-    const render::Rect s = surface();
-    const bool in_surface = e.action != input::PointerAction::leave && contains(s, e.x_dp, e.y_dp);
-    if (e.action == input::PointerAction::down && !in_surface && !full_screen()) {
-        field_.handle({input::PointerAction::leave, 0.0, 0.0});
-        collapse();
-        r.collapsed = true;
-        r.consumed = true;
+    if (e.action == input::PointerAction::down) {
+        pressed_ = part_at(e);
+    }
+    const PointerPart part = pressed_ == PointerPart::none ? part_at(e) : pressed_;
+    if (e.action == input::PointerAction::up || e.action == input::PointerAction::leave) {
+        pressed_ = PointerPart::none;
+    }
+    if (part == PointerPart::outside && !full_screen()) {
+        if (e.action == input::PointerAction::down) {
+            deliver(PointerPart::none, {input::PointerAction::leave, 0.0, 0.0}, r);
+            close_from_pointer();
+            r.collapsed = true;
+            r.consumed = true;
+        }
         return r;
     }
-    if (back_->handle(e)) {
-        collapse();
+    deliver(part == PointerPart::outside ? PointerPart::field : part, e, r);
+    if (e.action == input::PointerAction::down && part == PointerPart::results) {
+        field_.set_focused(false);
+    }
+    r.consumed = part != PointerPart::outside || full_screen();
+    return changed(before, r);
+}
+
+SearchBar::PointerPart SearchBar::part_at(const input::PointerEvent& e) const {
+    if (e.action == input::PointerAction::leave) {
+        return PointerPart::none;
+    }
+    const render::Rect view = full_screen() ? area_ : surface();
+    if (!contains(view, e.x_dp, e.y_dp)) {
+        return PointerPart::outside;
+    }
+    if (back_->hits(e)) {
+        return PointerPart::back;
+    }
+    if (trailing_ && trailing_->hits(e)) {
+        return PointerPart::trailing;
+    }
+    if (contains(results_rect(), e.x_dp, e.y_dp)) {
+        return PointerPart::results;
+    }
+    return PointerPart::field;
+}
+
+void SearchBar::deliver(PointerPart part, const input::PointerEvent& e, SearchBarResponse& r) {
+    const input::PointerEvent leave{input::PointerAction::leave, 0.0, 0.0, 0, e.kind};
+    const auto to = [&](PointerPart p) -> const input::PointerEvent& { return p == part ? e : leave; };
+    if (back_->handle(to(PointerPart::back))) {
+        close_from_pointer();
         r.collapsed = true;
     }
-    if (trailing_ && trailing_->handle(e)) {
+    if (trailing_ && trailing_->handle(to(PointerPart::trailing))) {
         r.trailing = true;
     }
-    field_.handle(e);
-    const ListViewResponse lr = results_.handle(e);
+    field_.handle(to(PointerPart::field));
+    const ListViewResponse lr = results_.handle(to(PointerPart::results));
     if (lr.clicked) {
         r.chosen = lr.clicked;
     }
-    if (e.action == input::PointerAction::down && in_surface && contains(results_rect(), e.x_dp, e.y_dp)) {
-        field_.set_focused(false);
-    }
-    r.consumed = in_surface || full_screen();
-    return changed(before, r);
+}
+
+void SearchBar::close_from_pointer() {
+    collapse();
+    set_focused(false);
 }
 
 SearchBarResponse SearchBar::handle(const input::KeyEvent& e) {
@@ -445,6 +484,7 @@ void SearchBar::cancel_interaction() {
     }
     results_.cancel_interaction();
     field_pressed_ = false;
+    pressed_ = PointerPart::none;
 }
 
 void SearchBar::step(double dt) {

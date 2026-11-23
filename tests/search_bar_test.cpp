@@ -181,3 +181,73 @@ TEST_CASE("the search field is named Search and says suggestions are below while
     REQUIRE(field);
     CHECK(field->description == "Suggestions below");
 }
+
+namespace {
+
+void tap(widgets::SearchBar& s, double x, double y, input::PointerKind kind) {
+    s.handle(input::PointerEvent{PointerAction::down, x, y, 1, kind});
+    s.handle(input::PointerEvent{PointerAction::up, x, y, 0, kind});
+}
+
+render::Point centre(const render::Rect& r) {
+    return {r.x + r.width / 2.0, r.y + r.height / 2.0};
+}
+
+}
+
+TEST_CASE("the back and trailing buttons of the expanded view never put the focus in the field") {
+    for (const input::PointerKind kind : {input::PointerKind::mouse, input::PointerKind::touch}) {
+        CAPTURE(static_cast<int>(kind));
+        widgets::SearchBar s(options(), fonts());
+        place(s, phone);
+        s.expand();
+        settle(s);
+        REQUIRE(s.field().focused());
+        tap(s, 200.0, phone.y + phone.height + 40.0, kind);
+        CHECK_FALSE(s.field().focused());
+        CHECK(s.expanded());
+        const render::Point mic = centre(s.trailing_button()->bounds());
+        s.handle(input::PointerEvent{PointerAction::down, mic.x, mic.y, 1, kind});
+        const auto m = s.handle(input::PointerEvent{PointerAction::up, mic.x, mic.y, 0, kind});
+        CHECK(m.trailing);
+        CHECK_FALSE(s.field().focused());
+        CHECK(s.expanded());
+        const render::Point back = centre(s.back_button().bounds());
+        s.handle(input::PointerEvent{PointerAction::down, back.x, back.y, 1, kind});
+        const auto b = s.handle(input::PointerEvent{PointerAction::up, back.x, back.y, 0, kind});
+        CHECK(b.collapsed);
+        CHECK_FALSE(s.expanded());
+        CHECK_FALSE(s.focused());
+        settle(s);
+        CHECK_FALSE(s.caret_area());
+    }
+}
+
+TEST_CASE("the back button collapses a view whose field has the focus and takes the focus away") {
+    for (const input::PointerKind kind : {input::PointerKind::mouse, input::PointerKind::touch}) {
+        CAPTURE(static_cast<int>(kind));
+        widgets::SearchBar s(options(), fonts());
+        place(s, phone);
+        s.expand();
+        settle(s);
+        REQUIRE(s.field().focused());
+        const render::Point back = centre(s.back_button().bounds());
+        tap(s, back.x, back.y, kind);
+        CHECK_FALSE(s.expanded());
+        CHECK_FALSE(s.focused());
+    }
+}
+
+TEST_CASE("a press on the field of the expanded view keeps following the field when it moves over an icon") {
+    widgets::SearchBar s(options(), fonts());
+    place(s, phone);
+    s.expand();
+    settle(s);
+    const render::Rect f = s.field_rect();
+    const render::Point mic = centre(s.trailing_button()->bounds());
+    s.handle(input::PointerEvent{PointerAction::down, f.x + f.width / 2.0, f.y + f.height / 2.0, 1});
+    s.handle(input::PointerEvent{PointerAction::move, mic.x, mic.y});
+    const auto r = s.handle(input::PointerEvent{PointerAction::up, mic.x, mic.y});
+    CHECK_FALSE(r.trailing);
+    CHECK(s.field().focused());
+}
