@@ -730,6 +730,7 @@ Read on 2026-11-23 from S: `ScaleGestureDetector.java` (`onTouchEvent`, the cons
 | Scale step | each move multiplies the scale by the span over the previous span | S `getScaleFactor()` = `mCurrSpan / mPrevSpan` |
 | Double tap | the second down 40 ms to 300 ms after the first up, less than 100 dp from the first down, and the first tap moved no more than 8 dp; a second finger cancels it; the zoom starts on the second down, about the first tap | S `config_doubleTapTimeoutMillis` = 300, `config_doubleTapMinTimeMillis` = 40, `ViewConfiguration.DOUBLE_TAP_SLOP = 100`, `DOUBLE_TAP_TOUCH_SLOP = TOUCH_SLOP`; `GestureDetector.isConsideredDoubleTap`, `mAlwaysInBiggerTapRegion`, `cancelTaps` on `ACTION_POINTER_DOWN`, `onDoubleTap(mCurrentDownEvent)` on the second `ACTION_DOWN` |
 | Pan slop, fling, edge | 8 dp; Lsq2 velocity clamped to 8000 dp/s, spline decay, a fling above 1 dp/s, stop more than 0.5 dp past an edge | as in [Touch scrolling](#touch-scrolling) |
+| Single tap | a tap that could be the first of a double tap is confirmed only when no second down came within the double tap timeout, 300 ms; lamina-ui counts the timeout from the up, as its double tap does, where Android counts it from the first down and confirms at the up if the finger is still down then | S `GestureDetector.onTouchEvent`: on `ACTION_DOWN` a first tap posts `TAP` delayed by `mDoubleTapTimeout` (`:666`), a second down removes it (`:651-652`); `TAP` calls `onSingleTapConfirmed`, or defers it to the up while the finger is down (`:333-341`, `:796-797`). Read on 2026-11-24 |
 
 lamina-ui's own, with no source:
 
@@ -739,6 +740,7 @@ lamina-ui's own, with no source:
 | Double tap scale | 2.5 (`double_tap_scale`); a double tap on zoomed content fits it again |
 | Zoomed | more than 0.001 above the minimum scale (`zoomed_epsilon`) |
 | Ctrl and the wheel | 1.25 per notch about the cursor (`wheel_zoom_factor`) |
+| Double click timeout | 500 ms (`double_click_timeout_seconds`), how long a single mouse click waits before it is confirmed; it is the default double click time of Windows, remembered and not read, because SDL counts a double click by the system's time and a click confirmed sooner could still become one |
 | Pan rubber band | `extent × (1 − 1 / (overshoot × 0.55 / extent + 1))`, extent half the viewport (`pan_band_coefficient`, `pan_band_extent`); the form is the one UIKit is commonly described as using, remembered and not read |
 | Scale rubber band | the same curve on the logarithm of the scale, at most ×1.5 past a limit (`scale_band_coefficient`, `scale_band_ratio`) |
 | Settle | the default effects spring (damping 1.0), settled within 0.0001 of the way and 0.001 per second (`settle_spring`, `settle_threshold`); the scale and the offset move along the same fraction, which keeps the focus fixed because the focus-preserving offset is linear in the scale |
@@ -750,6 +752,7 @@ lamina-ui's own, with no source:
 - A leave while fingers are down gives the gesture up, except the leave that follows the lift of the touch pointer, which other fingers outlive. This includes a touch that an outer scroll area or pager takes at once because it stopped that scroller's fling or settle: the fingers reach the view before the pointer events, so the view had already accepted the finger. Before, only a leave after the view had seen the touch's own pointer down gave it up, and such content panned together with the outer scroller.
 - A down for a finger the view still holds drops the old one first. On Windows a finger id comes back for the next touch, so a view that missed an up (its page did not pass it on) would otherwise ignore the next touch.
 - The double tap fires on the second down, as Android's `GestureDetector` does; Android's quick scale (double tap and drag, `ANCHORED_SCALE_MODE_DOUBLE_TAP`) is not implemented. The mouse double click uses the system's click count, not these values.
+- A single tap is confirmed in `step` once the timeout has passed, counting only the frames after the one that brought the up (that frame's time began before the tap), or at the next down if the event times show it came later than the timeout. A confirmed tap clears the double tap's first tap, so the two can never both happen.
 - Not implemented: rotation, quick scale, keyboard zoom, a fling after a mouse drag, and the overscroll stretch.
 
 ### Pager
