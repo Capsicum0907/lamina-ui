@@ -88,7 +88,7 @@ file(GLOB lamina_android_sdl_java_files "${lamina_android_sdl_java_dir}/*.java")
 set(LAMINA_ANDROID_SDL_JAVA_FILES "${lamina_android_sdl_java_files}" CACHE INTERNAL "SDL Java sources that go into every APK")
 
 function(lamina_android_apk target)
-    cmake_parse_arguments(PARSE_ARGV 1 arg "" "PACKAGE;LABEL;OUTPUT_NAME;MANIFEST;RES" "")
+    cmake_parse_arguments(PARSE_ARGV 1 arg "" "PACKAGE;LABEL;OUTPUT_NAME;MANIFEST;RES" "EXTRA_RES")
     set(root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/..")
     if(NOT arg_MANIFEST)
         set(arg_MANIFEST "${root}/android/AndroidManifest.xml.in")
@@ -117,16 +117,24 @@ function(lamina_android_apk target)
         DEPENDS ${java}
         VERBATIM)
 
-    file(GLOB_RECURSE resources CONFIGURE_DEPENDS "${arg_RES}/*")
-    add_custom_command(OUTPUT "${dir}/resources.zip"
-        COMMAND "${LAMINA_AAPT2}" compile --dir "${arg_RES}" -o "${dir}/resources.zip"
-        DEPENDS ${resources}
-        VERBATIM)
+    set(compiled "")
+    set(index 0)
+    foreach(res_dir IN LISTS arg_RES arg_EXTRA_RES)
+        get_filename_component(res_dir "${res_dir}" ABSOLUTE)
+        file(GLOB_RECURSE resources CONFIGURE_DEPENDS "${res_dir}/*")
+        set(zip "${dir}/resources-${index}.zip")
+        add_custom_command(OUTPUT "${zip}"
+            COMMAND "${LAMINA_AAPT2}" compile --dir "${res_dir}" -o "${zip}"
+            DEPENDS ${resources}
+            VERBATIM)
+        list(APPEND compiled "${zip}")
+        math(EXPR index "${index} + 1")
+    endforeach()
     add_custom_command(OUTPUT "${dir}/base.apk"
         COMMAND "${LAMINA_AAPT2}" link -o "${dir}/base.apk" --manifest "${dir}/AndroidManifest.xml" -I "${LAMINA_ANDROID_JAR}"
             --min-sdk-version ${LAMINA_ANDROID_MIN_SDK} --target-sdk-version ${LAMINA_ANDROID_TARGET_SDK}
-            --version-code ${LAMINA_ANDROID_VERSION_CODE} --version-name ${PROJECT_VERSION} --debug-mode "${dir}/resources.zip"
-        DEPENDS "${dir}/AndroidManifest.xml" "${dir}/resources.zip"
+            --version-code ${LAMINA_ANDROID_VERSION_CODE} --version-name ${PROJECT_VERSION} --debug-mode ${compiled}
+        DEPENDS "${dir}/AndroidManifest.xml" ${compiled}
         VERBATIM)
 
     set(unaligned "${dir}/unaligned.apk")
