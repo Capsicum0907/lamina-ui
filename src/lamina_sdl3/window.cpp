@@ -42,6 +42,16 @@ input::PointerKind pointer_kind(SDL_MouseID which) {
     return input::PointerKind::mouse;
 }
 
+std::optional<input::FingerAction> finger_action(Uint32 type) {
+    switch (type) {
+    case SDL_EVENT_FINGER_DOWN: return input::FingerAction::down;
+    case SDL_EVENT_FINGER_MOTION: return input::FingerAction::move;
+    case SDL_EVENT_FINGER_UP: return input::FingerAction::up;
+    case SDL_EVENT_FINGER_CANCELED: return input::FingerAction::cancel;
+    default: return std::nullopt;
+    }
+}
+
 constexpr double nanoseconds_per_second = 1e9;
 constexpr double max_frame_seconds = 0.1;
 constexpr double milliseconds_per_second = 1000.0;
@@ -262,6 +272,17 @@ struct Window::Impl {
         }
     }
 
+    void push_finger(Frame& frame, const SDL_TouchFingerEvent& e, input::FingerAction action) {
+        if (e.touchID == SDL_MOUSE_TOUCHID || e.touchID == SDL_PEN_TOUCHID) {
+            return;
+        }
+        int ww = 0;
+        int wh = 0;
+        SDL_GetWindowSize(window, &ww, &wh);
+        frame.fingers.push_back({action, static_cast<std::uint64_t>(e.fingerID), to_dp(e.x * static_cast<float>(ww)), to_dp(e.y * static_cast<float>(wh)),
+                                 static_cast<double>(e.timestamp) / nanoseconds_per_second});
+    }
+
     void drop_texture() {
         if (texture) {
             SDL_DestroyTexture(texture);
@@ -376,6 +397,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
     frame.keys.clear();
     frame.text.clear();
     frame.context.clear();
+    frame.fingers.clear();
     const bool redraw = impl_->pending_redraws > 0;
     impl_->pending_redraws = std::max(0, impl_->pending_redraws - 1);
     if (!animating && !redraw) {
@@ -429,10 +451,17 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_MOUSE_WHEEL: {
             const float flip = e.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f;
+            const SDL_Keymod mod = SDL_GetModState();
             frame.wheel.push_back({impl_->to_dp(e.wheel.mouse_x), impl_->to_dp(e.wheel.mouse_y), flip * e.wheel.x, -flip * e.wheel.y,
-                                   (SDL_GetModState() & SDL_KMOD_SHIFT) != 0});
+                                   (mod & SDL_KMOD_SHIFT) != 0, ctrl_held(mod)});
             break;
         }
+        case SDL_EVENT_FINGER_DOWN:
+        case SDL_EVENT_FINGER_MOTION:
+        case SDL_EVENT_FINGER_UP:
+        case SDL_EVENT_FINGER_CANCELED:
+            impl_->push_finger(frame, e.tfinger, *finger_action(e.type));
+            break;
         case SDL_EVENT_KEY_DOWN:
             if (e.key.key == SDLK_LALT || e.key.key == SDLK_RALT) {
                 impl_->alt_alone = e.key.repeat ? impl_->alt_alone : (e.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_SHIFT | SDL_KMOD_GUI)) == 0;

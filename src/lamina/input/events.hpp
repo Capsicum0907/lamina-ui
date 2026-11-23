@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -35,6 +36,16 @@ struct PointerEvent {
     bool ctrl = false;
     ScrollAxes waiting_scrollers{};
     bool margin_claimed = false;
+};
+
+enum class FingerAction { down, move, up, cancel };
+
+struct FingerEvent {
+    FingerAction action;
+    std::uint64_t finger;
+    double x_dp;
+    double y_dp;
+    double time_seconds = 0.0;
 };
 
 struct ContextClick {
@@ -174,6 +185,7 @@ struct WheelEvent {
     double dx;
     double dy;
     bool shift = false;
+    bool ctrl = false;
 };
 
 enum class Cursor { arrow, text, pointer, resize_horizontal, resize_vertical, move, not_allowed };

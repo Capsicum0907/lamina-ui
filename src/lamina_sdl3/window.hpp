@@ -38,6 +38,7 @@ struct Frame {
     std::vector<input::ContextClick> context = {};
     layout::Insets safe_area = {};
     layout::Insets gesture_insets = {};
+    std::vector<input::FingerEvent> fingers = {};
 };
 
 bool client_title_bar_supported();
