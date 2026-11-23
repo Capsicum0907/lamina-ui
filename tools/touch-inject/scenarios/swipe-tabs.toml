@@ -1,0 +1,56 @@
+[[step]]
+action = "activate"
+
+[[step]]
+action = "capture"
+name = "tabs_basics"
+
+[[step]]
+action = "drag"
+from = [1100, 790]
+to = [700, 790]
+duration = 0.25
+hold_end = 0
+
+[[step]]
+action = "capture"
+name = "tabs_chips_by_fling"
+
+[[step]]
+action = "drag"
+from = [500, 790]
+to = [900, 790]
+duration = 0.6
+hold_end = 0.3
+snapshot = [{ at = 0.7, name = "tabs_partial_held" }]
+
+[[step]]
+action = "capture"
+name = "tabs_partial_back_to_chips"
+
+[[step]]
+action = "drag"
+from = [300, 790]
+to = [1300, 790]
+duration = 0.8
+hold_end = 0.3
+snapshot = [{ at = 0.9, name = "tabs_past_threshold_held" }]
+
+[[step]]
+action = "capture"
+name = "tabs_past_threshold_basics"
+
+[[step]]
+action = "tap"
+x = 1404
+y = 74
+gap = 0
+
+[[step]]
+action = "capture"
+name = "tabs_tapped_sliding"
+settle = 0.08
+
+[[step]]
+action = "capture"
+name = "tabs_tapped_viewer"

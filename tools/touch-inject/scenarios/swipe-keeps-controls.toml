@@ -1,0 +1,38 @@
+[[step]]
+action = "activate"
+
+[[step]]
+action = "tap"
+x = 53
+y = 74
+gap = 0.8
+
+[[step]]
+action = "drag"
+from = [190, 688]
+to = [330, 688]
+duration = 0.4
+hold_end = 0.2
+
+[[step]]
+action = "capture"
+name = "basics_slider_dragged"
+settle = 0.6
+
+[[step]]
+action = "tap"
+x = 597
+y = 74
+gap = 0.8
+
+[[step]]
+action = "drag"
+from = [640, 334]
+to = [820, 334]
+duration = 0.4
+hold_end = 0.2
+
+[[step]]
+action = "capture"
+name = "times_dial_dragged"
+settle = 0.6

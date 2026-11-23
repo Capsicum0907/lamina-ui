@@ -1,0 +1,142 @@
+[[step]]
+action = "activate"
+
+[[step]]
+action = "tap"
+x = 1404
+y = 74
+
+[[step]]
+action = "capture"
+name = "viewer_top"
+settle = 0.6
+
+[[step]]
+action = "drag"
+from = [720, 700]
+to = [720, 300]
+duration = 0.6
+hold_end = 0.3
+snapshot = [{ at = 0.5, name = "page_scrolling_on_photos" }]
+
+[[step]]
+action = "capture"
+name = "page_scrolled"
+
+[[step]]
+action = "drag"
+from = [700, 566]
+to = [350, 566]
+duration = 0.2
+hold_end = 0
+
+[[step]]
+action = "capture"
+name = "photo_2_by_fling"
+
+[[step]]
+action = "drag"
+from = [300, 566]
+to = [500, 566]
+duration = 0.6
+hold_end = 0.3
+snapshot = [{ at = 0.7, name = "photo_partial_held" }]
+
+[[step]]
+action = "capture"
+name = "photo_2_kept"
+
+[[step]]
+action = "tap"
+x = 504
+y = 566
+gap = 0.12
+
+[[step]]
+action = "tap"
+x = 504
+y = 566
+
+[[step]]
+action = "capture"
+name = "photo_2_zoomed"
+
+[[step]]
+action = "drag"
+from = [700, 566]
+to = [300, 566]
+duration = 0.5
+hold_end = 0.2
+snapshot = [{ at = 0.45, name = "photo_2_panning_into_band" }]
+
+[[step]]
+action = "capture"
+name = "photo_2_at_right_edge"
+
+[[step]]
+action = "drag"
+from = [700, 566]
+to = [150, 566]
+duration = 0.8
+hold_end = 0.3
+snapshot = [{ at = 0.6, name = "photo_2_handing_off" }]
+
+[[step]]
+action = "capture"
+name = "photo_3_after_handoff"
+
+[[step]]
+action = "drag"
+from = [[400, 566], [610, 566]]
+to = [[300, 566], [710, 566]]
+duration = 0.5
+hold_end = 0.1
+snapshot = [{ at = 0.4, name = "photo_3_pinching" }]
+
+[[step]]
+action = "capture"
+name = "photo_3_pinched"
+
+[[step]]
+action = "tap"
+x = 504
+y = 566
+gap = 0.12
+
+[[step]]
+action = "tap"
+x = 504
+y = 566
+
+[[step]]
+action = "capture"
+name = "photo_3_fitted"
+
+[[step]]
+action = "drag"
+from = [300, 566]
+to = [650, 566]
+duration = 0.2
+hold_end = 0
+
+[[step]]
+action = "drag"
+from = [300, 566]
+to = [650, 566]
+duration = 0.2
+hold_end = 0
+
+[[step]]
+action = "capture"
+name = "photo_1_again"
+
+[[step]]
+action = "drag"
+from = [300, 566]
+to = [650, 566]
+duration = 0.2
+hold_end = 0
+
+[[step]]
+action = "capture"
+name = "first_photo_hands_off_to_gallery"
