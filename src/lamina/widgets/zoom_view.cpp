@@ -300,6 +300,10 @@ bool ZoomView::finger_down(const input::FingerEvent& e) {
     if (phase_ == Phase::yielded || phase_ == Phase::double_tap) {
         return false;
     }
+    if (phase_ == Phase::handed) {
+        catch_motion();
+        phase_ = Phase::pending;
+    }
     regroup();
     return true;
 }
@@ -311,7 +315,7 @@ bool ZoomView::finger_move(const input::FingerEvent& e) {
     }
     it->x = e.x_dp - bounds_.x;
     it->y = e.y_dp - bounds_.y;
-    if (phase_ == Phase::yielded || phase_ == Phase::double_tap) {
+    if (phase_ == Phase::yielded || phase_ == Phase::double_tap || phase_ == Phase::handed) {
         return phase_ == Phase::double_tap;
     }
     if (single_tap_ && std::hypot(it->x - it->down_x, it->y - it->down_y) > tokens_->double_tap_touch_slop) {
@@ -336,7 +340,8 @@ bool ZoomView::finger_move(const input::FingerEvent& e) {
             phase_ = Phase::panning;
         } else if (can_pan && travel > tokens_->touch_slop) {
             if (hands_off(fx - start_focus_x_, fy - start_focus_y_)) {
-                yield();
+                phase_ = Phase::handed;
+                last_tap_.reset();
                 return false;
             }
             phase_ = Phase::panning;
@@ -367,7 +372,7 @@ bool ZoomView::finger_up(const input::FingerEvent& e) {
     const Finger lifted = *it;
     fingers_.erase(it);
     if (!fingers_.empty()) {
-        if (phase_ != Phase::yielded && phase_ != Phase::double_tap) {
+        if (phase_ != Phase::yielded && phase_ != Phase::double_tap && phase_ != Phase::handed) {
             regroup();
         }
         return true;
@@ -375,7 +380,7 @@ bool ZoomView::finger_up(const input::FingerEvent& e) {
     const Phase was = phase_;
     phase_ = Phase::idle;
     scaling_ = false;
-    if (was == Phase::double_tap || was == Phase::yielded) {
+    if (was == Phase::double_tap || was == Phase::yielded || was == Phase::handed) {
         return was == Phase::double_tap;
     }
     const bool cancelled = e.action == input::FingerAction::cancel;
@@ -490,7 +495,7 @@ bool ZoomView::holds_pointer() const {
     if (phase_ == Phase::mouse) {
         return true;
     }
-    if (fingers_.empty() || phase_ == Phase::yielded) {
+    if (fingers_.empty() || phase_ == Phase::yielded || phase_ == Phase::handed) {
         return false;
     }
     return phase_ == Phase::double_tap || phase_ == Phase::panning || fingers_.size() >= 2;

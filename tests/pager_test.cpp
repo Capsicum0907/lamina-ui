@@ -498,3 +498,26 @@ TEST_CASE("the up at the last position of a quick swipe is not a velocity sample
     p.route(f.at(PointerAction::up, 180.0, 300.0), c);
     CHECK(p.target_page() == 3);
 }
+
+TEST_CASE("a second finger after the zoom view let a drag go at its slop takes the gesture back before the pager takes it") {
+    Photo ph;
+    ph.zoom_at(2.0, 400.0, 300.0);
+    REQUIRE(ph.zoom.edges().right);
+    ph.finger(input::FingerAction::down, 1, 300.0, 300.0);
+    ph.touch(PointerAction::down, 300.0, 300.0);
+    for (int i = 1; i <= 2; ++i) {
+        ph.finger(input::FingerAction::move, 1, 300.0 - 5.0 * i, 300.0);
+        ph.touch(PointerAction::move, 300.0 - 5.0 * i, 300.0);
+    }
+    REQUIRE(!ph.pager.dragging());
+    const double scale = ph.zoom.scale();
+    ph.finger(input::FingerAction::down, 2, 100.0, 300.0);
+    for (int i = 1; i <= 10; ++i) {
+        ph.finger(input::FingerAction::move, 1, 290.0 + 10.0 * i, 300.0);
+        ph.finger(input::FingerAction::move, 2, 100.0 - 6.0 * i, 300.0);
+        ph.touch(PointerAction::move, 290.0 + 10.0 * i, 300.0);
+    }
+    CHECK(ph.zoom.scale() > scale);
+    CHECK(!ph.pager.dragging());
+    CHECK(ph.pager.position() == 2.0);
+}

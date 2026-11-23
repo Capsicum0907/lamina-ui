@@ -66,7 +66,7 @@ public:
     void end_content(render::Canvas& canvas) const;
 
 private:
-    enum class Phase { idle, pending, panning, double_tap, yielded, mouse };
+    enum class Phase { idle, pending, panning, double_tap, handed, yielded, mouse };
 
     struct Finger {
         std::uint64_t id;
