@@ -114,7 +114,7 @@ adb shell am start -n io.github.capsicum0907.lamina.components/.LaminaActivity
 adb logcat -s SDL SDL/APP AndroidRuntime
 ```
 
-On Android, the errors that go to stderr on the desktop go to logcat as errors under the tag `SDL/APP` (`lamina_sdl3/report.hpp`), so an exception during startup shows there.
+On Android, the errors that go to stderr on the desktop go to logcat as errors under the tag `SDL/APP` (`lamina_sdl3/report.hpp`), so an exception during startup shows there. The frame timing log ([Frame timing](app-structure.md#frame-timing)) goes to logcat at info level under its own tag, `adb logcat -s lamina.frames`; in the gallery, the Frame timing toggle under Theme on Basics turns it and the overlay on.
 
 An emulator for the x86_64 APK: an AVD of the system image `android-37.0/google_apis_playstore_ps16k/x86_64` at 1080 × 2400 and 420 dpi (about 411 dp wide, the gallery's compact layout), started with `emulator -avd <name> -no-metrics`. For a phone, enable USB or wireless debugging and install the arm64-v8a APK.
 
