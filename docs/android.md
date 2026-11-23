@@ -2,7 +2,7 @@
 
 [日本語](android.ja.md) · [README](../README.md#documentation)
 
-The components gallery builds as an Android APK. The build uses CMake, the NDK and the command-line tools of the Android SDK; there is no Gradle project. It has been run on the API 37 x86_64 emulator; the arm64-v8a APK builds the same way but has not been run on a device yet.
+The components gallery builds as an Android APK. The build uses CMake, the NDK and the command-line tools of the Android SDK; there is no Gradle project. It has been run on the API 37 x86_64 emulator, and the arm64-v8a APK on a phone.
 
 ## Requirements
 
@@ -86,6 +86,12 @@ lamina-ui follows the app's own scheme, not the system setting: an app can overr
 
 The gallery starts in the system's dark mode on Android, following `isSystemInDarkTheme`, and the dark theme button overrides it. On the desktop it starts light, as before. It tells its host each time its theme changes (`GalleryHost::set_dark_theme`, also once at start), and `examples/components/main.cpp` passes that to `set_dark_system_bars`.
 
+## Insets
+
+SDL 3.4.10 reports as its safe area (`SDL_GetWindowSafeArea`) the union of `systemBars`, `systemGestures`, `mandatorySystemGestures`, `tappableElement` and `displayCutout` (`SDLSurface.onApplyWindowInsets` in SDL's Java sources, `android-project/app/src/main/java/org/libsdl/app/SDLSurface.java:205-213`). With gesture navigation the system gesture insets reach about 30 dp in from the left and right edges, where a swipe means Back, so a layout inside SDL's safe area lost about 30 dp on each side: on the emulator and on a phone the gallery's content started 54 dp from the left edge instead of its own 24 dp. The gesture insets say where an app should not put drags of its own, not where its content must stop; content may lie under them. Compose's `WindowInsets.safeDrawing` is the system bars, the display cutout and the IME (recalled, not read here).
+
+`LaminaActivity` makes its own `SDLSurface` (`createSDLSurface`). Its `onApplyWindowInsets` keeps two sets of insets in pixels, `systemBars | displayCutout` and `systemGestures | mandatorySystemGestures`, and then passes the insets on to SDL's handler unchanged. `getWindowInsets()` returns them as eight ints, left, top, right and bottom of each set. `Window` reads them through JNI every frame and divides them by the display scale (`layout::insets_in_dp`): the first set is `Frame::safe_area`, the second `Frame::gesture_insets`, which lamina does not use for layout; it is there for an app that wants to keep edge drags away from the system gestures. Turning the device or showing and hiding the bars changes the insets, and the next frame has the new values. Below Android 11 (API 30), which has no typed insets, the activity returns nothing and `Frame::safe_area` stays SDL's safe area, with no gesture insets. If the activity has no `getWindowInsets`, the window says so once in logcat and uses SDL's safe area as well. The soft keyboard's inset is not read.
+
 ## Back
 
 lamina sets `SDL_HINT_ANDROID_TRAP_BACK_BUTTON`, so SDL keeps Back from the activity and reports it as the key `SDLK_AC_BACK`. `Window` hands it over as `Key::escape` with `KeyEvent::back` set, so whatever closes on Escape closes on Back. The app decides whether it used the key; when nothing did, it calls `Window::system_back()`. On Android that calls `SDL_SendAndroidBackButton()`, and SDL's Java side runs the platform's `Activity.onBackPressed()` on the UI thread (`SDLActivity.pressBackButton` and `superOnBackPressed`), past its own trap. On other platforms `system_back` does nothing and `KeyEvent::back` stays false, so Escape from a keyboard never leaves an app.
@@ -112,7 +118,7 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 
 - The gallery starts and draws at about 411 dp wide, in the compact layout. Turning the screen to landscape switches it to the expanded layout.
 - Tapping works: the page tabs, a filter chip, a switch, the typeface menu and its items, the Menu and Dialog buttons and a text field. After a tap the button keeps no hover tint.
-- The layout stays out of the status bar and the gesture bar (`Frame::safe_area`).
+- The layout stays out of the status bar, the navigation bar and display cutouts and runs under the side gesture areas ([Insets](#insets)): with gesture navigation the gallery's content starts 24 dp from the left edge, its own margin, where it started at 54 dp inside SDL's safe area. Turning to landscape and back updates the insets.
 - Back closes an open menu or dialog and takes the focus from a text field (it reaches the gallery as Escape). With nothing open it sends the app to the back when it was opened from the launcher: the launcher shows, and opening the app again shows the same page and theme in the same process ([Back](#back)).
 - Text fields show the soft keyboard; keys typed on Gboard and `adb shell input text` arrive.
 - The mouse wheel scrolls the pages and the tabs (on the emulator, `adb shell input mouse scroll`).
@@ -129,7 +135,6 @@ Checked on the API 37 emulator (16 KB pages, SwiftShader GPU):
 - Predictive back is not done. The manifest keeps `enableOnBackInvokedCallback="false"`, so Back arrives as a key, there is no `OnBackInvokedCallback` and no preview animation of the sheets, drawers or the app leaving.
 - The gallery reads the system dark mode only at start; it does not follow a change of the setting while it runs (`SDL_EVENT_SYSTEM_THEME_CHANGED` is not read).
 - Dialogs and menus are placed in the whole window, not inside the safe area.
-- The soft keyboard can cover a field low on the screen; SDL reports only whether the keyboard is shown, not its height.
+- The soft keyboard can cover a field low on the screen; SDL reports only whether the keyboard is shown, not its height, and the activity does not read the IME inset.
 - Japanese input through an IME has not been tried; SDL hands composing text over as committed text and deletions, not as composition events.
 - The APK has no icon, and only the gallery is built; the other examples are skipped on Android.
-- The arm64-v8a APK has not been run on a device.
