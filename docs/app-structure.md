@@ -42,7 +42,7 @@ The image is drawn by ThorVG instead when:
 
 - the window has no GPU renderer (SDL's `software` renderer) or `Window::set_gpu_images(false)` / `WindowOptions::gpu_images = false` turned it off; a canvas without a window, as in the capture tool and the tests, always draws on the CPU;
 - a path clip is active (a rounded rectangle, a Material shape): the GPU cuts only to a rectangle. A rectangle clip under rotation is cut to its bounding box, as ThorVG does;
-- it is drawn at less than `retained_min_scale` of its size in either direction: SDL's renderer has no mipmaps, so a texture shrunk below half would alias where ThorVG averages;
+- it is drawn at less than `retained_min_scale` of its size in either direction: SDL's renderer has no mipmaps, so a texture shrunk below half would alias where ThorVG averages. `Canvas::allow_minified_images()` lifts this limit until the next `restore()`, for pictures in motion such as a photo grid being pinched, where a few frames of aliasing cost less than drawing every picture with ThorVG (on the emulator, frames of over 100 ms);
 - it is larger than the renderer's largest texture (`SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER`), or making its texture failed once;
 - it would need more than `layers_max` layers.
 

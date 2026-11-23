@@ -438,3 +438,30 @@ TEST_CASE("prefetched images are listed for the window only while it takes retai
     CHECK(canvas.prefetched_images().empty());
     canvas.set_retained_images(nullptr);
 }
+
+TEST_CASE("an image drawn at under half its size stays on the CPU, unless the drawing allows minified images until its restore") {
+    lamina::thorvg::Canvas canvas(100, 100);
+    AcceptAll sink;
+    canvas.set_retained_images(&sink);
+    const Image photo = lamina::render::retained(solid(100, 100, red));
+    const auto retained = [&canvas] {
+        std::size_t n = 0;
+        for (const auto& batch : canvas.retained_draws()) {
+            n += batch.size();
+        }
+        return n;
+    };
+    canvas.clear(white);
+    canvas.draw_image(photo, {0, 0, 30, 30});
+    CHECK(retained() == 0);
+    canvas.save();
+    canvas.allow_minified_images();
+    CHECK(canvas.minified_images_allowed());
+    canvas.draw_image(photo, {40, 0, 30, 30});
+    canvas.restore();
+    CHECK_FALSE(canvas.minified_images_allowed());
+    CHECK(retained() == 1);
+    canvas.draw_image(photo, {0, 40, 30, 30});
+    CHECK(retained() == 1);
+    canvas.finish();
+}

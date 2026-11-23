@@ -42,7 +42,7 @@ ThorVG で描く写真は、毎フレーム CPU で拡大縮小されます。�
 
 - 窓に GPU のレンダラーがない（SDL の `software`）か、`Window::set_gpu_images(false)` や `WindowOptions::gpu_images = false` で切ってあるとき。窓のない描画面（キャプチャーの道具や試験）は、いつも CPU で描きます。
 - 曲線の切り抜き（角丸の四角、Material の形）の中のとき。GPU が切れるのは四角だけです。回転した四角の切り抜きは、ThorVG と同じく外接する長方形で切ります。
-- どちらかの向きに `retained_min_scale` より小さく描くとき。SDL のレンダラーにはミップマップがないので、半分より縮めたテクスチャは、ThorVG が平均を取るところでちらつきます。
+- どちらかの向きに `retained_min_scale` より小さく描くとき。SDL のレンダラーにはミップマップがないので、半分より縮めたテクスチャは、ThorVG が平均を取るところでちらつきます。`Canvas::allow_minified_images()` を呼ぶと、次の `restore()` までこの制限を外します。ピンチしている途中の写真の一覧のように動いている絵では、数フレームのちらつきのほうが、すべての絵を ThorVG で描くより安くつくからです（エミュレーターでは 100 ms を超えるフレームが出ました）。
 - レンダラーの最大のテクスチャ（`SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER`）より大きいときと、テクスチャを作るのに一度失敗したとき。
 - `layers_max` より多くの層が要るとき。
 

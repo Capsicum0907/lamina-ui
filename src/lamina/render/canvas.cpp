@@ -71,7 +71,7 @@ bool Canvas::retain(const Image& image, const Affine& m, double opacity, std::sp
     if (!sink_ || !image.identity || path_clips_ > 0) {
         return false;
     }
-    const double min_scale = tokens::raster.retained_min_scale;
+    const double min_scale = minified_ ? 0.0 : tokens::raster.retained_min_scale;
     if (std::hypot(m.a, m.b) < min_scale || std::hypot(m.c, m.d) < min_scale || !sink_->accepts(image)) {
         return false;
     }
@@ -239,14 +239,19 @@ void Canvas::draw_image(const Image& image, const Rect& rect, double opacity) {
 }
 
 void Canvas::save() {
-    stack_.push_back(transform_);
+    stack_.push_back({transform_, minified_});
 }
 
 void Canvas::restore() {
     if (!stack_.empty()) {
-        transform_ = stack_.back();
+        transform_ = stack_.back().transform;
+        minified_ = stack_.back().minified;
         stack_.pop_back();
     }
+}
+
+void Canvas::allow_minified_images() {
+    minified_ = true;
 }
 
 void Canvas::translate(double dx, double dy) {

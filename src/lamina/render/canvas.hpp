@@ -87,6 +87,8 @@ public:
     void push_clip(const Path& path);
     void pop_clip();
     const Affine& transform() const { return transform_; }
+    void allow_minified_images();
+    bool minified_images_allowed() const { return minified_; }
 
     bool quick_reject(const Rect& local, double outset = 0.0) const;
     Rect visible_bounds() const;
@@ -116,9 +118,15 @@ private:
     void place_paint(const Rect& device);
     bool retain(const Image& image, const Affine& m, double opacity, std::span<const Point> corners);
 
+    struct Saved {
+        Affine transform;
+        bool minified;
+    };
+
     Affine transform_{};
+    bool minified_ = false;
     diagnostics::FrameProbe* probe_ = nullptr;
-    std::vector<Affine> stack_;
+    std::vector<Saved> stack_;
     std::vector<Rect> clip_bounds_;
     std::vector<bool> clip_is_path_;
     std::size_t path_clips_ = 0;
