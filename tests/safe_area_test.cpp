@@ -45,3 +45,19 @@ TEST_CASE("inset_rect shrinks a rectangle by the insets and clamps at zero size"
     CHECK(tiny.width == 0.0);
     CHECK(tiny.height == 0.0);
 }
+
+TEST_CASE("system insets in pixels become dp, and the gesture insets are wider than the bars they cover") {
+    const double dp_per_pixel = 1.0 / 2.625;
+    const layout::Insets bars = layout::insets_in_dp({0.0, 63.0, 0.0, 63.0}, dp_per_pixel);
+    CHECK(bars.left == doctest::Approx(0.0));
+    CHECK(bars.top == doctest::Approx(24.0));
+    CHECK(bars.right == doctest::Approx(0.0));
+    CHECK(bars.bottom == doctest::Approx(24.0));
+    const layout::Insets gestures = layout::insets_in_dp({79.0, 63.0, 79.0, 63.0}, dp_per_pixel);
+    CHECK(gestures.left > bars.left);
+    CHECK(gestures.right > bars.right);
+    CHECK(gestures.left == doctest::Approx(79.0 * dp_per_pixel));
+    const layout::Insets clamped = layout::insets_in_dp({-5.0, 0.0, 0.0, -1.0}, dp_per_pixel);
+    CHECK(clamped.left == 0.0);
+    CHECK(clamped.bottom == 0.0);
+}

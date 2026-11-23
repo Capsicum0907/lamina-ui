@@ -1,21 +1,54 @@
 package @LAMINA_APK_PACKAGE@;
 
+import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 
 import org.libsdl.app.SDLActivity;
+import org.libsdl.app.SDLSurface;
 
 public class LaminaActivity extends SDLActivity {
     private volatile boolean darkSystemBars;
+    private volatile int[] windowInsets;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         darkSystemBars = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    protected SDLSurface createSDLSurface(Context context) {
+        return new LaminaSurface(context);
+    }
+
+    public int[] getWindowInsets() {
+        return windowInsets;
+    }
+
+    private static int[] edges(Insets content, Insets gestures) {
+        return new int[] {content.left, content.top, content.right, content.bottom, gestures.left, gestures.top, gestures.right, gestures.bottom};
+    }
+
+    private class LaminaSurface extends SDLSurface {
+        LaminaSurface(Context context) {
+            super(context);
+        }
+
+        @Override
+        public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                windowInsets = edges(insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout()),
+                                     insets.getInsets(WindowInsets.Type.systemGestures() | WindowInsets.Type.mandatorySystemGestures()));
+            }
+            return super.onApplyWindowInsets(v, insets);
+        }
     }
 
     @Override

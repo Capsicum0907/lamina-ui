@@ -10,4 +10,8 @@ bool is_system_back(SDL_Keycode) {
 
 void system_back() {}
 
+std::optional<SystemInsets> system_insets_pixels() {
+    return std::nullopt;
+}
+
 }

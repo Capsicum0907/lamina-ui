@@ -189,7 +189,13 @@ struct Window::Impl {
         frame.width_dp = last_pixels.width / frame.scale;
         frame.height_dp = last_pixels.height / frame.scale;
         frame.size_class = layout::compute_window_size_class(frame.width_dp, frame.height_dp);
-        frame.safe_area = safe_area();
+        if (const auto system = detail::system_insets_pixels()) {
+            frame.safe_area = layout::insets_in_dp(system->content, 1.0 / frame.scale);
+            frame.gesture_insets = layout::insets_in_dp(system->gestures, 1.0 / frame.scale);
+        } else {
+            frame.safe_area = safe_area();
+            frame.gesture_insets = {};
+        }
         frame.maximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
         frame.active = (flags & SDL_WINDOW_INPUT_FOCUS) != 0;
     }

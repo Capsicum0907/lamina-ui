@@ -37,6 +37,7 @@ struct Frame {
     layout::WindowSizeClass size_class = {};
     std::vector<input::ContextClick> context = {};
     layout::Insets safe_area = {};
+    layout::Insets gesture_insets = {};
 };
 
 bool client_title_bar_supported();
