@@ -488,3 +488,13 @@ TEST_CASE("a touch that catches the pager's settle hands a zoomed photo's finger
     CHECK(ph.zoom.transform().x == before.x);
     CHECK(ph.zoom.transform().y == before.y);
 }
+
+TEST_CASE("the up at the last position of a quick swipe is not a velocity sample") {
+    Pager p = make();
+    Finger f;
+    Child c;
+    swipe(p, f, c, 300.0, 300.0, -120.0, 0.0, 15, false);
+    f.time += 0.016;
+    p.route(f.at(PointerAction::up, 180.0, 300.0), c);
+    CHECK(p.target_page() == 3);
+}

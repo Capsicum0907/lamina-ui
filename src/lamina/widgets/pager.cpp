@@ -106,7 +106,6 @@ void Pager::follow(double finger_dx) {
 
 void Pager::release(const input::PointerEvent& e) {
     follow(e.x_dp - last_x_);
-    tracker_.add(e.time_seconds, e.x_dp);
     tracker_.release(e.time_seconds);
     const double velocity = tracker_.velocity(tokens_->maximum_velocity);
     gesture_ = Gesture::idle;
