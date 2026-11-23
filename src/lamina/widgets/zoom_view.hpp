@@ -39,6 +39,9 @@ public:
     void cancel_interaction();
     bool holds_pointer() const;
 
+    std::optional<render::Point> take_tap();
+    std::optional<double> next_wake_seconds() const;
+
     void step(double dt_seconds);
     bool animating() const;
 
@@ -82,6 +85,14 @@ private:
         double up_seconds;
     };
 
+    struct PendingTap {
+        render::Point at;
+        double up_seconds;
+        double timeout_seconds;
+        double waited_seconds = 0.0;
+        bool fresh = true;
+    };
+
     motion::ZoomLimits scale_limits() const { return {tokens_->min_scale, tokens_->max_scale}; }
     double focus_x() const;
     double focus_y() const;
@@ -95,6 +106,9 @@ private:
     void settle_about(double fx, double fy);
     void release(double time_seconds, bool fling);
     void toggle_zoom(double fx, double fy);
+    void hold_tap(double x, double y, double up_seconds, double timeout_seconds);
+    void end_tap_wait(double time_seconds);
+    void drop_taps();
     void yield();
     bool hands_off(double dx, double dy) const;
     bool finger_down(const input::FingerEvent& e);
@@ -122,6 +136,9 @@ private:
     double initial_span_ = 0.0;
     bool single_tap_ = false;
     std::optional<Tap> last_tap_;
+    std::optional<PendingTap> pending_tap_;
+    std::optional<render::Point> confirmed_tap_;
+    std::optional<render::Point> click_;
     bool after_touch_up_ = false;
     input::ScrollAxes waiting_{};
     double mouse_x_ = 0.0;

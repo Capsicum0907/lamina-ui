@@ -312,6 +312,142 @@ TEST_CASE("taps too slow, too quick, too far apart or with a moving first tap ar
     CHECK(z.scale() == 1.0);
 }
 
+TEST_CASE("a single tap is confirmed once the double tap timeout has passed after it") {
+    ZoomView z = make();
+    tap(z, 200.0, 150.0, 1.0, 1.05);
+    CHECK_FALSE(z.take_tap());
+    REQUIRE(z.next_wake_seconds());
+    CHECK(*z.next_wake_seconds() == doctest::Approx(t.double_tap_timeout_seconds));
+    z.step(0.5);
+    CHECK_FALSE(z.take_tap());
+    z.step(t.double_tap_timeout_seconds / 2.0);
+    CHECK_FALSE(z.take_tap());
+    CHECK(*z.next_wake_seconds() == doctest::Approx(t.double_tap_timeout_seconds / 2.0));
+    z.step(t.double_tap_timeout_seconds / 2.0);
+    const auto at = z.take_tap();
+    REQUIRE(at);
+    CHECK(at->x == 200.0);
+    CHECK(at->y == 150.0);
+    CHECK_FALSE(z.take_tap());
+    CHECK_FALSE(z.next_wake_seconds());
+    CHECK(z.scale() == 1.0);
+}
+
+TEST_CASE("a confirmed single tap cannot become the first tap of a double tap") {
+    ZoomView z = make();
+    tap(z, 200.0, 150.0, 1.0, 1.05);
+    z.step(frame_seconds);
+    z.step(t.double_tap_timeout_seconds);
+    CHECK(z.take_tap());
+    tap(z, 200.0, 150.0, 1.05 + t.double_tap_timeout_seconds / 2.0, 1.3);
+    run(z);
+    CHECK(z.scale() == 1.0);
+}
+
+TEST_CASE("a double tap gives no single tap") {
+    ZoomView z = make();
+    tap(z, 200.0, 150.0, 1.0, 1.05);
+    z.step(frame_seconds);
+    tap(z, 205.0, 150.0, 1.2, 1.25);
+    run(z);
+    CHECK(z.scale() == doctest::Approx(t.double_tap_scale));
+    CHECK_FALSE(z.take_tap());
+    CHECK_FALSE(z.next_wake_seconds());
+}
+
+TEST_CASE("a late second down still confirms the first tap from the event times") {
+    ZoomView z = make();
+    tap(z, 200.0, 150.0, 1.0, 1.05);
+    z.handle(finger(FingerAction::down, 7, 200.0, 150.0, 1.05 + t.double_tap_timeout_seconds + 0.01));
+    const auto at = z.take_tap();
+    REQUIRE(at);
+    CHECK(at->x == 200.0);
+    z.handle(finger(FingerAction::up, 7, 200.0, 150.0, 1.5));
+    z.step(frame_seconds);
+    z.step(t.double_tap_timeout_seconds);
+    CHECK(z.take_tap());
+    CHECK(z.scale() == 1.0);
+}
+
+TEST_CASE("a drag, a pinch or a drag handed to the pager is not a single tap") {
+    ZoomView z = make();
+    z.handle(finger(FingerAction::down, 7, 200.0, 150.0, 1.0));
+    z.handle(finger(FingerAction::move, 7, 200.0 + t.double_tap_touch_slop + 1.0, 150.0, 1.02));
+    z.handle(finger(FingerAction::up, 7, 200.0 + t.double_tap_touch_slop + 1.0, 150.0, 1.05));
+    run(z);
+    CHECK_FALSE(z.take_tap());
+
+    Clock c;
+    c.now = 3.0;
+    pinch(z, c, 300.0, 200.0, 100.0, 101.0, 2);
+    lift(z, c, 300.0, 200.0, 101.0);
+    run(z);
+    CHECK_FALSE(z.take_tap());
+
+    ZoomView handed = make();
+    handed.zoom_to(3.0, area.x, area.y);
+    run(handed);
+    handed.handle(finger(FingerAction::down, 3, 300.0, 200.0, 5.0));
+    input::PointerEvent down{PointerAction::down, 300.0, 200.0, 1, input::PointerKind::touch, 5.0};
+    down.waiting_scrollers = {true, false};
+    handed.handle(down);
+    handed.handle(finger(FingerAction::move, 3, 330.0, 200.0, 5.05));
+    handed.handle(finger(FingerAction::up, 3, 330.0, 200.0, 5.1));
+    run(handed);
+    CHECK_FALSE(handed.take_tap());
+}
+
+TEST_CASE("the frame that brings the tap does not count towards its timeout") {
+    ZoomView z = make();
+    tap(z, 200.0, 150.0, 1.0, 1.05);
+    z.step(t.double_tap_timeout_seconds);
+    CHECK_FALSE(z.take_tap());
+    z.step(t.double_tap_timeout_seconds);
+    CHECK(z.take_tap());
+}
+
+TEST_CASE("a cancelled touch and a reset drop the waiting tap") {
+    ZoomView z = make();
+    z.handle(finger(FingerAction::down, 7, 200.0, 150.0, 1.0));
+    z.handle(finger(FingerAction::cancel, 7, 200.0, 150.0, 1.05));
+    run(z);
+    CHECK_FALSE(z.take_tap());
+    tap(z, 200.0, 150.0, 2.0, 2.05);
+    z.cancel_interaction();
+    run(z);
+    CHECK_FALSE(z.take_tap());
+    tap(z, 200.0, 150.0, 3.0, 3.05);
+    z.snap_to_fit();
+    run(z);
+    CHECK_FALSE(z.take_tap());
+}
+
+TEST_CASE("a mouse click is a single tap after the double click timeout, and a double click zooms without one") {
+    ZoomView z = make();
+    z.handle(input::PointerEvent{PointerAction::down, 200.0, 150.0, 1, input::PointerKind::mouse, 1.0});
+    z.handle(input::PointerEvent{PointerAction::up, 200.0, 150.0, 1, input::PointerKind::mouse, 1.05});
+    z.step(frame_seconds);
+    z.step(t.double_tap_timeout_seconds);
+    CHECK_FALSE(z.take_tap());
+    z.step(t.double_click_timeout_seconds);
+    CHECK(z.take_tap());
+
+    z.handle(input::PointerEvent{PointerAction::down, 200.0, 150.0, 1, input::PointerKind::mouse, 3.0});
+    z.handle(input::PointerEvent{PointerAction::up, 200.0, 150.0, 1, input::PointerKind::mouse, 3.05});
+    z.step(frame_seconds);
+    z.handle(input::PointerEvent{PointerAction::down, 200.0, 150.0, 2, input::PointerKind::mouse, 3.2});
+    z.handle(input::PointerEvent{PointerAction::up, 200.0, 150.0, 2, input::PointerKind::mouse, 3.25});
+    run(z);
+    CHECK(z.scale() == doctest::Approx(t.double_tap_scale));
+    CHECK_FALSE(z.take_tap());
+
+    z.handle(input::PointerEvent{PointerAction::down, 200.0, 150.0, 1, input::PointerKind::mouse, 6.0});
+    z.handle(input::PointerEvent{PointerAction::move, 260.0, 150.0, 1, input::PointerKind::mouse, 6.05});
+    z.handle(input::PointerEvent{PointerAction::up, 260.0, 150.0, 1, input::PointerKind::mouse, 6.1});
+    run(z);
+    CHECK_FALSE(z.take_tap());
+}
+
 TEST_CASE("lifting one finger of a pinch goes on panning with the other") {
     ZoomView z = make();
     Clock c;

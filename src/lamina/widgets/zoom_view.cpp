@@ -63,7 +63,36 @@ void ZoomView::snap_to_fit() {
     phase_ = Phase::idle;
     scaling_ = false;
     last_tap_.reset();
+    drop_taps();
     shown_ = raw_ = motion::fitted(geometry(), tokens_->min_scale);
+}
+
+void ZoomView::hold_tap(double x, double y, double up_seconds, double timeout_seconds) {
+    pending_tap_ = PendingTap{{bounds_.x + x, bounds_.y + y}, up_seconds, timeout_seconds};
+}
+
+void ZoomView::end_tap_wait(double time_seconds) {
+    if (pending_tap_ && time_seconds - pending_tap_->up_seconds > pending_tap_->timeout_seconds) {
+        confirmed_tap_ = pending_tap_->at;
+    }
+    pending_tap_.reset();
+}
+
+void ZoomView::drop_taps() {
+    pending_tap_.reset();
+    confirmed_tap_.reset();
+    click_.reset();
+}
+
+std::optional<render::Point> ZoomView::take_tap() {
+    return std::exchange(confirmed_tap_, std::nullopt);
+}
+
+std::optional<double> ZoomView::next_wake_seconds() const {
+    if (!pending_tap_) {
+        return std::nullopt;
+    }
+    return std::max(0.0, pending_tap_->timeout_seconds - pending_tap_->waited_seconds);
 }
 
 void ZoomView::reset() {
@@ -220,6 +249,7 @@ void ZoomView::yield() {
     phase_ = Phase::yielded;
     scaling_ = false;
     last_tap_.reset();
+    pending_tap_.reset();
     settle_about(prev_focus_x_, prev_focus_y_);
 }
 
@@ -269,6 +299,7 @@ bool ZoomView::finger_down(const input::FingerEvent& e) {
         }
     }
     if (fingers_.empty()) {
+        end_tap_wait(e.time_seconds);
         if (!contains(bounds_, e.x_dp, e.y_dp)) {
             return false;
         }
@@ -386,6 +417,7 @@ bool ZoomView::finger_up(const input::FingerEvent& e) {
     const bool cancelled = e.action == input::FingerAction::cancel;
     if (was == Phase::pending && single_tap_ && !cancelled) {
         last_tap_ = Tap{lifted.down_x, lifted.down_y, e.time_seconds};
+        hold_tap(lifted.down_x, lifted.down_y, e.time_seconds, tokens_->double_tap_timeout_seconds);
     }
     single_tap_ = false;
     release(e.time_seconds, was == Phase::panning && !cancelled);
@@ -410,6 +442,7 @@ bool ZoomView::handle(const input::PointerEvent& e) {
         return false;
     }
     if (e.action == input::PointerAction::leave) {
+        click_.reset();
         if (phase_ == Phase::mouse) {
             phase_ = Phase::idle;
             settle_about(mouse_x_, mouse_y_);
@@ -431,13 +464,18 @@ bool ZoomView::handle(const input::PointerEvent& e) {
     const double y = e.y_dp - bounds_.y;
     switch (e.action) {
     case input::PointerAction::down:
+        click_.reset();
         if (!contains(bounds_, e.x_dp, e.y_dp) || !fingers_.empty()) {
+            end_tap_wait(e.time_seconds);
             return false;
         }
         if (e.clicks >= 2) {
+            pending_tap_.reset();
             toggle_zoom(x, y);
             return true;
         }
+        end_tap_wait(e.time_seconds);
+        click_ = render::Point{x, y};
         if (!zoomed()) {
             return false;
         }
@@ -448,6 +486,9 @@ bool ZoomView::handle(const input::PointerEvent& e) {
         mouse_y_ = y;
         return true;
     case input::PointerAction::move:
+        if (click_ && std::hypot(x - click_->x, y - click_->y) > tokens_->double_tap_touch_slop) {
+            click_.reset();
+        }
         if (phase_ != Phase::mouse) {
             return false;
         }
@@ -457,6 +498,10 @@ bool ZoomView::handle(const input::PointerEvent& e) {
         mouse_y_ = y;
         return true;
     case input::PointerAction::up:
+        if (click_) {
+            hold_tap(click_->x, click_->y, e.time_seconds, tokens_->double_click_timeout_seconds);
+            click_.reset();
+        }
         if (phase_ != Phase::mouse) {
             return false;
         }
@@ -486,6 +531,7 @@ void ZoomView::cancel_interaction() {
     after_touch_up_ = false;
     waiting_ = {};
     last_tap_.reset();
+    drop_taps();
     if (active) {
         settle_about(prev_focus_x_, prev_focus_y_);
     }
@@ -502,6 +548,18 @@ bool ZoomView::holds_pointer() const {
 }
 
 void ZoomView::step(double dt) {
+    if (pending_tap_) {
+        if (pending_tap_->fresh) {
+            pending_tap_->fresh = false;
+        } else {
+            pending_tap_->waited_seconds += dt;
+        }
+        if (pending_tap_->waited_seconds >= pending_tap_->timeout_seconds) {
+            confirmed_tap_ = pending_tap_->at;
+            pending_tap_.reset();
+            last_tap_.reset();
+        }
+    }
     const motion::ZoomGeometry g = geometry();
     if (fling_x_.active() || fling_y_.active()) {
         const motion::ZoomLimits lx = motion::pan_limits_x(g, shown_.scale);

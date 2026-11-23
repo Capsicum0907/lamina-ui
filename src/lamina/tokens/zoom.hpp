@@ -23,6 +23,7 @@ struct ZoomTokens {
     double double_tap_min_seconds;
     double double_tap_slop;
     double double_tap_touch_slop;
+    double double_click_timeout_seconds;
     double wheel_zoom_factor;
     double pan_band_coefficient;
     double pan_band_extent;
@@ -49,6 +50,7 @@ inline constexpr ZoomTokens zoom{
     .double_tap_min_seconds = 0.040,
     .double_tap_slop = 100.0,
     .double_tap_touch_slop = touch_slop,
+    .double_click_timeout_seconds = 0.500,
     .wheel_zoom_factor = 1.25,
     .pan_band_coefficient = 0.55,
     .pan_band_extent = 0.5,
