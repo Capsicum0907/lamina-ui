@@ -77,6 +77,10 @@ struct CaptureStyle {
     int back_press_limit = 4;
     int redraw_frame_limit = 600;
     int redraw_tolerance = 2;
+    int fling_redraw_flings = 6;
+    double fling_redraw_from = 0.8;
+    double fling_redraw_to = 0.3;
+    double fling_redraw_seconds = 0.08;
     std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
                                                  "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop"};
 };
@@ -242,6 +246,24 @@ public:
         frame();
     }
 
+    void touch_fling_to(render::Point to, double seconds) {
+        pointer_events_.push_back(touch(at(PointerAction::down, 1)));
+        frame();
+        const render::Point from = pointer_;
+        const int n = std::max(1, static_cast<int>(std::lround(seconds * style_.fps)));
+        for (int i = 1; i <= n; ++i) {
+            const double t = static_cast<double>(i) / n;
+            pointer_ = {from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t};
+            pointer_events_.push_back(touch(at(PointerAction::move)));
+            frame();
+        }
+        pointer_events_.push_back(touch(at(PointerAction::up)));
+        if (input::leaves_after_up(input::PointerKind::touch)) {
+            pointer_events_.push_back(at(PointerAction::leave));
+        }
+        frame();
+    }
+
     std::vector<std::uint8_t> pixels() {
         const render::PixelView px = canvas_.finish();
         std::vector<std::uint8_t> out;
@@ -370,6 +392,11 @@ public:
     int height() const { return canvas_.height(); }
 
 private:
+    static input::PointerEvent touch(input::PointerEvent e) {
+        e.kind = input::PointerKind::touch;
+        return e;
+    }
+
     input::PointerEvent at(PointerAction action, int clicks = 0) const {
         return {action, pointer_.x, pointer_.y, clicks, input::PointerKind::mouse, clock_};
     }
@@ -2978,6 +3005,40 @@ std::optional<std::string> check_tap_redraw(Driver& d, const CaptureStyle& style
     return std::nullopt;
 }
 
+int settled_frame_change(Driver& d, const CaptureStyle& style) {
+    int frames = 0;
+    while (d.animating() && frames < style.redraw_frame_limit) {
+        d.frame();
+        ++frames;
+    }
+    const std::vector<std::uint8_t> idle = d.pixels();
+    d.frame();
+    const std::vector<std::uint8_t> next = d.pixels();
+    int worst = 0;
+    for (std::size_t i = 0; i < idle.size() && i < next.size(); ++i) {
+        worst = std::max(worst, std::abs(static_cast<int>(idle[i]) - static_cast<int>(next[i])));
+    }
+    return worst;
+}
+
+std::optional<std::string> check_fling_redraw(Driver& d, const CaptureStyle& style) {
+    d.set_cursor(false);
+    const double x = d.window_width() / 2.0;
+    for (int i = 0; i < style.fling_redraw_flings; ++i) {
+        d.set_pointer({x, d.window_height() * style.fling_redraw_from});
+        d.touch_fling_to({x, d.window_height() * style.fling_redraw_to}, style.fling_redraw_seconds);
+        const int worst = settled_frame_change(d, style);
+        if (d.animating()) {
+            return "fling redraw: still animating after fling " + std::to_string(i + 1);
+        }
+        if (worst > style.redraw_tolerance) {
+            return "fling redraw: fling " + std::to_string(i + 1) + " left the frame idle, but the next frame differs by " + std::to_string(worst) +
+                   " levels, so the page stays drawn where the fling's last step began until the next input";
+        }
+    }
+    return std::nullopt;
+}
+
 std::optional<std::string> check_dark_theme_host(const examples::components::GalleryFonts& fonts, const icons::IconFont& icon_font) {
     for (const bool start : {false, true}) {
         HeadlessHost host;
@@ -3149,6 +3210,10 @@ int main(int argc, char** argv) {
                     ++count;
                 }
                 if (const auto problem = check_tap_redraw(driver, style)) {
+                    std::printf("%s\n", problem->c_str());
+                    ++count;
+                }
+                if (const auto problem = check_fling_redraw(driver, style)) {
                     std::printf("%s\n", problem->c_str());
                     ++count;
                 }

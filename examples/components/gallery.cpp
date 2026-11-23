@@ -1071,6 +1071,10 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     for (auto& t : g.tooltips) {
         t->step(dt);
     }
+    if (!current) {
+        g.reflow.step(dt);
+    }
+    g.place(frame);
     if (g.title_bar) {
         g.title_bar->step(dt);
         g.title_bar->paint(canvas, g.scheme);
@@ -1096,7 +1100,6 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
         return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.header_widgets.animating() || current->animating() || g.scroll().animating() ||
                (g.title_bar && g.title_bar->animating());
     }
-    g.reflow.step(dt);
     g.header_widgets.paint(canvas, s);
     canvas.save();
     canvas.push_clip(viewport);
