@@ -171,7 +171,7 @@ void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     const color::Argb outline =
         enabled_.mix(color::scale_alpha(resolve(scheme, style.disabled.outline), outline_presence), enabled_outline);
     const color::Argb fill = enabled_.mix(resolve(scheme, style.disabled.container),
-                                          color::state_layer(enabled_container, enabled_content, state_layer_.value()));
+                                          color::state_layer(enabled_container, enabled_content, state_layer_.value() * color::alpha(enabled_content) / 255.0));
     if (color::alpha(fill) != 0) {
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), fill);
     }

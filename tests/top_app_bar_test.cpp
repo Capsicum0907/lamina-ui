@@ -247,3 +247,47 @@ TEST_CASE("a flexible bar takes a subtitle and is taller with it") {
     CHECK(medium.expanded_height() == 112.0);
     CHECK(medium.accessible().children[0].description.empty());
 }
+
+TEST_CASE("a bar without its container paints only its content over what is under it") {
+    TopAppBarOptions o{"Inbox", TopAppBarKind::small};
+    o.container = false;
+    TopAppBar b(o, fonts());
+    b.arrange({0.0, 0.0, 400.0, b.height()});
+    thorvg::Canvas canvas(400, 64);
+    canvas.clear(0xff336699);
+    b.paint(canvas, scheme());
+    CHECK(canvas.pixel(200, 2) == 0xff336699);
+    CHECK(canvas.pixel(399, 63) == 0xff336699);
+}
+
+TEST_CASE("a bar takes its own type roles for the title and the subtitle") {
+    TopAppBarOptions o{"Inbox", TopAppBarKind::small, "3 / 5"};
+    TopAppBar standard(o, fonts());
+    o.title_type = tokens::TypeRole::title_medium;
+    o.subtitle_type = tokens::TypeRole::body_small;
+    TopAppBar smaller(o, fonts());
+    standard.arrange({0.0, 0.0, 400.0, standard.height()});
+    smaller.arrange({0.0, 0.0, 400.0, smaller.height()});
+    CHECK(smaller.height() == standard.height());
+    CHECK(smaller.title_rect().height < standard.title_rect().height);
+    CHECK(smaller.title_rect().width < standard.title_rect().width);
+}
+
+TEST_CASE("an ellipsized title fits between the navigation icon and the actions at any width") {
+    TopAppBarOptions o{"A very long file name that does not fit in a narrow bar.jpg", TopAppBarKind::small, "12 / 345"};
+    o.navigation = button(res::icons::home, "Back");
+    o.actions = {button(res::icons::search, "Search"), button(res::icons::star, "Star"), button(res::icons::home, "Home")};
+    o.ellipsize = true;
+    TopAppBar b(o, fonts());
+    for (const double width : {400.0, 320.0, 240.0}) {
+        b.arrange({0.0, 0.0, width, b.height()});
+        const render::Rect title = b.title_rect();
+        CHECK(title.x + title.width <= b.action(0).bounds().x);
+        CHECK(title.width > 0.0);
+    }
+    TopAppBarOptions clipped = o;
+    clipped.ellipsize = false;
+    TopAppBar wide(clipped, fonts());
+    wide.arrange({0.0, 0.0, 240.0, wide.height()});
+    CHECK(wide.title_rect().width > b.title_rect().width);
+}

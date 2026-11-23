@@ -32,6 +32,10 @@ struct TopAppBarOptions {
     std::optional<TitleAlignment> alignment = std::nullopt;
     std::string accessible_name = {};
     tokens::Density density = {};
+    bool container = true;
+    std::optional<tokens::TypeRole> title_type = std::nullopt;
+    std::optional<tokens::TypeRole> subtitle_type = std::nullopt;
+    bool ellipsize = false;
 };
 
 struct TopAppBarResponse {
@@ -93,6 +97,8 @@ private:
     void place_buttons();
     void layout_titles();
     double block_height(const text::TextLine& title, const std::optional<text::TextLine>& subtitle) const;
+    double text_room() const;
+    text::TextLine title_line(const std::string& s, tokens::TypeRole role) const;
     void paint_title(render::Canvas& canvas, const text::TextLine& title, const std::optional<text::TextLine>& subtitle, render::Point at,
                      const color::ColorScheme& scheme, double opacity) const;
 

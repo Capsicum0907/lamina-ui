@@ -32,8 +32,8 @@ IconButtonOptions with_content(IconButtonOptions o, color::Role role) {
 TopAppBar::TopAppBar(TopAppBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      title_(text::layout_line(fonts_, options_.title, style_of(kind().title))),
-      small_title_(text::layout_line(fonts_, options_.title, style_of(t.collapsed_title))),
+      title_(text::layout_line(fonts_, options_.title, style_of(options_.title_type.value_or(kind().title)))),
+      small_title_(text::layout_line(fonts_, options_.title, style_of(options_.title_type.value_or(t.collapsed_title)))),
       state_(options_.scroll),
       container_(0.0, t.container_spring) {
     if (!takes_subtitle(options_.kind)) {
@@ -49,14 +49,21 @@ TopAppBar::TopAppBar(TopAppBarOptions options, const text::FontStack& fonts)
     state_.set_height_offset_limit(two_rows() ? collapsed_height() - expanded_height() : -collapsed_height());
 }
 
+text::TextLine TopAppBar::title_line(const std::string& s, tokens::TypeRole role) const {
+    if (options_.ellipsize && width_ > 0.0) {
+        return text::ellipsize_line(fonts_, s, style_of(role), text_room(), tokens::ellipsis);
+    }
+    return text::layout_line(fonts_, s, style_of(role));
+}
+
 void TopAppBar::layout_titles() {
-    title_ = text::layout_line(fonts_, options_.title, style_of(kind().title));
-    small_title_ = text::layout_line(fonts_, options_.title, style_of(t.collapsed_title));
+    title_ = title_line(options_.title, options_.title_type.value_or(kind().title));
+    small_title_ = title_line(options_.title, options_.title_type.value_or(t.collapsed_title));
     subtitle_.reset();
     small_subtitle_.reset();
     if (has_subtitle()) {
-        subtitle_ = text::layout_line(fonts_, options_.subtitle, style_of(kind().subtitle));
-        small_subtitle_ = text::layout_line(fonts_, options_.subtitle, style_of(t.collapsed_subtitle));
+        subtitle_ = title_line(options_.subtitle, options_.subtitle_type.value_or(kind().subtitle));
+        small_subtitle_ = title_line(options_.subtitle, options_.subtitle_type.value_or(t.collapsed_subtitle));
     }
 }
 
@@ -97,8 +104,16 @@ layout::Size TopAppBar::measure(const layout::Constraints& c) const {
 
 void TopAppBar::arrange(const render::Rect& r) {
     origin_ = {r.x, r.y};
+    const bool resized = r.width != width_;
     width_ = r.width;
+    if (resized && options_.ellipsize) {
+        layout_titles();
+    }
     place_buttons();
+}
+
+double TopAppBar::text_room() const {
+    return std::max(0.0, width_ - title_start() - actions_width() - 2.0 * t.horizontal_padding);
 }
 
 double TopAppBar::title_start() const {
@@ -317,18 +332,20 @@ void TopAppBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         return;
     }
     canvas.push_clip(r);
-    canvas.fill_rect(r, color::mix(scheme[t.container], scheme[t.scrolled_container], container_amount()));
+    if (options_.container) {
+        canvas.fill_rect(r, color::mix(scheme[t.container], scheme[t.scrolled_container], container_amount()));
+    }
     const double pad = t.horizontal_padding;
     const double start = title_start();
     const double end = actions_width();
-    const double text_room = std::max(0.0, width_ - start - end - 2.0 * pad);
+    const double room = text_room();
     if (two_rows()) {
         const double top = collapsed_title_opacity();
         if (top > 0.0) {
-            const double w = std::min(text_room, std::max(small_title_.width, small_subtitle_ ? small_subtitle_->width : 0.0));
+            const double w = std::min(room, std::max(small_title_.width, small_subtitle_ ? small_subtitle_->width : 0.0));
             const double h = block_height(small_title_, small_subtitle_);
             const double x = title_x(w + 2.0 * pad, start, end) + pad;
-            canvas.push_clip(render::Rect{x, r.y, text_room, collapsed_height()});
+            canvas.push_clip(render::Rect{x, r.y, room, collapsed_height()});
             paint_title(canvas, small_title_, small_subtitle_, {x, r.y + (collapsed_height() - h) / 2.0}, scheme, top);
             canvas.pop_clip();
         }
@@ -341,7 +358,7 @@ void TopAppBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         }
     } else {
         const render::Rect title = title_rect();
-        canvas.push_clip(render::Rect{title.x, r.y, text_room, r.height});
+        canvas.push_clip(render::Rect{title.x, r.y, room, r.height});
         paint_title(canvas, title_, subtitle_, {title.x, title.y}, scheme, 1.0);
         canvas.pop_clip();
     }

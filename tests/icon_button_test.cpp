@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include "lamina/color/mix.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina_thorvg/canvas.hpp"
@@ -143,4 +144,19 @@ TEST_CASE("a FAB clicks and paints its container") {
     canvas.clear(0xffffffff);
     fab.paint(canvas, scheme);
     CHECK(canvas.pixel(25, 48) == scheme[color::Role::primary_container]);
+}
+
+TEST_CASE("a pressed icon button fades its state layer with the scheme") {
+    widgets::IconButton b({icon(res::icons::add), "Add", IconButtonStyle::standard, IconButtonSize::medium});
+    thorvg::Canvas canvas(56, 56);
+    const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
+    b.handle({PointerAction::down, 28.0, 28.0});
+    settle(b);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, scheme);
+    CHECK(canvas.pixel(10, 28) != 0xffffffff);
+    canvas.clear(0xffffffff);
+    b.paint(canvas, color::faded(scheme, 0.0));
+    CHECK(canvas.pixel(10, 28) == 0xffffffff);
+    CHECK(canvas.pixel(28, 28) == 0xffffffff);
 }
