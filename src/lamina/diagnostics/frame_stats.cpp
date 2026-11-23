@@ -168,8 +168,8 @@ std::vector<ReportRow> report_rows(const FrameSummary& s, const DisplayInfo& d, 
                     format("%.2f", s.interval.worst * ms)});
     rows.push_back({"late " + std::to_string(s.late) + " missed " + std::to_string(s.missed_refreshes) + " at " + format("%.1f", d.refresh_hz) +
                     " Hz, budget " + format("%.2f", d.refresh_hz > 0.0 ? ms / d.refresh_hz : 0.0) + " ms"});
-    rows.push_back({d.renderer + " vsync " + (d.vsync ? std::to_string(*d.vsync) : std::string("?")) + ", window " + std::to_string(d.window_width) +
-                    "x" + std::to_string(d.window_height) + ", canvas " + std::to_string(d.canvas_width) + "x" +
+    rows.push_back({d.renderer + " vsync " + (d.vsync ? std::to_string(*d.vsync) : std::string("?"))});
+    rows.push_back({"window " + std::to_string(d.window_width) + "x" + std::to_string(d.window_height) + ", canvas " + std::to_string(d.canvas_width) + "x" +
                     std::to_string(d.canvas_height) + " " +
                     format("%.2f", static_cast<double>(d.canvas_width) * d.canvas_height / t.pixels_per_megapixel) + " Mpx"});
     rows.push_back({"stage ms", "avg", "worst", "per frame", "avg", "worst"});
