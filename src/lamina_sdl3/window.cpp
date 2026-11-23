@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <exception>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -186,6 +187,35 @@ struct Window::Impl {
     input::TouchReleaseGate touch_release;
     int origin_x = 0;
     int origin_y = 0;
+    diagnostics::FrameProbe probe;
+
+    void read_display() {
+        if (!probe.active()) {
+            return;
+        }
+        diagnostics::DisplayInfo d;
+        const char* name = SDL_GetRendererName(renderer);
+        d.renderer = name ? name : "";
+        int vsync = 0;
+        if (SDL_GetRenderVSync(renderer, &vsync)) {
+            d.vsync = vsync;
+        }
+        if (const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetDisplayForWindow(window))) {
+            d.refresh_hz = mode->refresh_rate;
+        }
+        d.window_width = last_pixels.width;
+        d.window_height = last_pixels.height;
+        d.canvas_width = canvas->width();
+        d.canvas_height = canvas->height();
+        probe.set_display(std::move(d));
+    }
+
+    void log_frames(bool going_idle) {
+        if (const auto summary = probe.take_log(going_idle)) {
+            const std::string_view title = going_idle ? "gesture" : "running";
+            report_info(probe.tokens().log_tag, diagnostics::report_line(diagnostics::report_rows(*summary, probe.display(), title, probe.tokens())));
+        }
+    }
 
     void measure(Frame& frame) {
         const Uint64 now = SDL_GetTicksNS();
@@ -221,6 +251,7 @@ struct Window::Impl {
         self->in_live_redraw = true;
         try {
             Frame frame{};
+            self->probe.begin_frame(std::numeric_limits<double>::infinity());
             self->measure(frame);
             self->live_redraw(frame);
         } catch (...) {
@@ -329,6 +360,8 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
         throw std::invalid_argument("lamina::sdl3::Window needs a canvas");
     }
     impl_->canvas = std::move(canvas);
+    impl_->canvas->set_probe(&impl_->probe);
+    impl_->probe.set_switches(options.frame_stats);
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
@@ -414,15 +447,29 @@ bool Window::next_frame(Frame& frame, bool animating) {
     frame.fingers.clear();
     const bool redraw = impl_->pending_redraws > 0;
     impl_->pending_redraws = std::max(0, impl_->pending_redraws - 1);
+    double waited = 0.0;
     if (!animating && !redraw) {
+        const Uint64 wait_start = SDL_GetTicksNS();
+        if (impl_->probe.switches().log) {
+            const double idle = impl_->probe.idle_wait_seconds();
+            const double first = impl_->wake_seconds >= 0.0 ? std::min(idle, impl_->wake_seconds) : idle;
+            if (!SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(first * milliseconds_per_second)))) {
+                impl_->log_frames(true);
+            }
+        }
+        const double slept = static_cast<double>(SDL_GetTicksNS() - wait_start) / nanoseconds_per_second;
         if (impl_->wake_seconds >= 0.0) {
-            SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(impl_->wake_seconds * milliseconds_per_second)));
+            if (slept < impl_->wake_seconds) {
+                SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil((impl_->wake_seconds - slept) * milliseconds_per_second)));
+            }
             impl_->frame_limit_seconds = std::max(max_frame_seconds, impl_->wake_seconds);
         } else {
             SDL_WaitEvent(nullptr);
             impl_->last_ns = SDL_GetTicksNS();
         }
+        waited = static_cast<double>(SDL_GetTicksNS() - wait_start) / nanoseconds_per_second;
     }
+    impl_->probe.begin_frame(waited);
     impl_->wake_seconds = -1.0;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
@@ -522,6 +569,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
         impl_->pending_redraws = std::max(impl_->pending_redraws, 1);
     }
     impl_->measure(frame);
+    impl_->read_display();
     return true;
 }
 
@@ -636,11 +684,28 @@ render::Canvas& Window::canvas() {
 
 void Window::present() {
     const render::PixelView view = impl_->canvas->finish();
-    impl_->ensure_texture(view.width, view.height);
-    SDL_UpdateTexture(impl_->texture, nullptr, view.data, static_cast<int>(view.stride));
-    SDL_RenderClear(impl_->renderer);
-    SDL_RenderTexture(impl_->renderer, impl_->texture, nullptr, nullptr);
-    SDL_RenderPresent(impl_->renderer);
+    {
+        const diagnostics::StageScope stage(&impl_->probe, diagnostics::Stage::upload);
+        impl_->ensure_texture(view.width, view.height);
+        SDL_UpdateTexture(impl_->texture, nullptr, view.data, static_cast<int>(view.stride));
+    }
+    {
+        const diagnostics::StageScope stage(&impl_->probe, diagnostics::Stage::present);
+        SDL_RenderClear(impl_->renderer);
+        SDL_RenderTexture(impl_->renderer, impl_->texture, nullptr, nullptr);
+        SDL_RenderPresent(impl_->renderer);
+    }
+    impl_->probe.end_frame();
+    impl_->log_frames(false);
+}
+
+diagnostics::FrameProbe& Window::frame_probe() {
+    return impl_->probe;
+}
+
+void Window::set_frame_stats(diagnostics::FrameStatsSwitches switches) {
+    impl_->probe.set_switches(switches);
+    impl_->read_display();
 }
 
 }

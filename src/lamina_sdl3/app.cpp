@@ -7,14 +7,22 @@ namespace lamina::sdl3 {
 void run_app(Window& window, const UpdateFrame& update, const PaintFrame& paint) {
     Frame frame;
     bool animating = true;
+    diagnostics::FrameProbe* probe = &window.frame_probe();
     auto draw = [&](const Frame& f) {
-        const color::Argb background = update(f);
+        color::Argb background = 0;
+        {
+            const diagnostics::StageScope stage(probe, diagnostics::Stage::update);
+            background = update(f);
+        }
         render::Canvas& canvas = window.canvas();
-        canvas.clear(background);
-        canvas.save();
-        canvas.scale(f.scale);
-        animating = paint(canvas, f);
-        canvas.restore();
+        {
+            const diagnostics::StageScope stage(probe, diagnostics::Stage::paint);
+            canvas.clear(background);
+            canvas.save();
+            canvas.scale(f.scale);
+            animating = paint(canvas, f);
+            canvas.restore();
+        }
         window.present();
     };
     window.on_live_resize(draw);

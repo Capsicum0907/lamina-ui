@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "lamina/diagnostics/frame_stats.hpp"
 #include "lamina/input/caption.hpp"
 #include "lamina/input/clipboard.hpp"
 #include "lamina/input/events.hpp"
@@ -21,6 +22,7 @@ struct WindowOptions {
     int width_dp;
     int height_dp;
     bool client_title_bar = false;
+    diagnostics::FrameStatsSwitches frame_stats = {};
 };
 
 struct Frame {
@@ -59,6 +61,8 @@ public:
     input::Clipboard& clipboard();
     render::Canvas& canvas();
     void present();
+    diagnostics::FrameProbe& frame_probe();
+    void set_frame_stats(diagnostics::FrameStatsSwitches switches);
 
     bool client_title_bar() const;
     void set_caption_regions(input::CaptionRegions regions);

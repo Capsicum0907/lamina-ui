@@ -1,12 +1,17 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 #include "lamina/color/argb.hpp"
 #include "lamina/render/geometry.hpp"
 #include "lamina/render/image.hpp"
 #include "lamina/render/path.hpp"
+
+namespace lamina::diagnostics {
+class FrameProbe;
+}
 
 namespace lamina::render {
 
@@ -54,6 +59,9 @@ public:
 
     color::Argb pixel(int x, int y);
 
+    void set_probe(diagnostics::FrameProbe* probe) { probe_ = probe; }
+    diagnostics::FrameProbe* probe() const { return probe_; }
+
 protected:
     virtual void fill_device_path(const Path& path, color::Argb color, FillRule rule) = 0;
     virtual void fill_device_shadow(const Path& path, const Shadow& shadow) = 0;
@@ -64,7 +72,10 @@ protected:
     virtual void end_device_clip() = 0;
 
 private:
+    double covered(std::span<const Point> device_points);
+
     Affine transform_{};
+    diagnostics::FrameProbe* probe_ = nullptr;
     std::vector<Affine> stack_;
 };
 

@@ -36,6 +36,8 @@ add_library(lamina STATIC
     src/lamina/color/mcu_scheme.cpp
     src/lamina/color/spec_2021.cpp
     src/lamina/color/spec_2025.cpp
+    src/lamina/diagnostics/frame_hud.cpp
+    src/lamina/diagnostics/frame_stats.cpp
     src/lamina/icons/icon.cpp
     src/lamina/motion/spring.cpp
     src/lamina/motion/spline_decay.cpp
@@ -171,6 +173,7 @@ if(LAMINA_BUILD_SDL3)
     find_package(SDL3 CONFIG REQUIRED)
     add_library(lamina_sdl3 STATIC
         src/lamina_sdl3/app.cpp
+        src/lamina_sdl3/frame_stats.cpp
         src/lamina_sdl3/report.cpp
         src/lamina_sdl3/resources.cpp
         src/lamina_sdl3/system_fonts.cpp
@@ -181,6 +184,7 @@ if(LAMINA_BUILD_SDL3)
     if(ANDROID)
         include(cmake/LaminaAndroid.cmake)
         target_sources(lamina_sdl3 PRIVATE src/lamina_sdl3/system_ui_android.cpp)
+        target_link_libraries(lamina_sdl3 PRIVATE log)
     else()
         target_sources(lamina_sdl3 PRIVATE src/lamina_sdl3/system_ui_none.cpp)
     endif()
@@ -331,6 +335,7 @@ if(LAMINA_BUILD_TESTS)
         tests/focus_manager_test.cpp
         tests/font_ownership_test.cpp
         tests/frame_size_test.cpp
+        tests/frame_stats_test.cpp
         tests/gallery_reflow_test.cpp
         tests/grouped_menu_test.cpp
         tests/icon_button_test.cpp

@@ -5,6 +5,8 @@
 
 #include <thorvg.h>
 
+#include "lamina/diagnostics/frame_stats.hpp"
+
 namespace lamina::thorvg {
 
 using render::FillRule;
@@ -136,7 +138,11 @@ void Canvas::clear(color::Argb color) {
 
 PixelView Canvas::finish() {
     if (impl_->dirty) {
-        impl_->canvas->update();
+        {
+            const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_update);
+            impl_->canvas->update();
+        }
+        const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_draw);
         impl_->canvas->draw(true);
         impl_->canvas->sync();
         impl_->dirty = false;
@@ -177,10 +183,18 @@ void Canvas::fill_device_rect(render::Point from, render::Point to, color::Argb 
 
 void Canvas::draw_device_image(const render::Image& image, const render::Affine& m, double opacity) {
     auto* picture = tvg::Picture::gen();
-    if (picture->load(image.pixels.data(), static_cast<std::uint32_t>(image.width), static_cast<std::uint32_t>(image.height),
-                      tvg::ColorSpace::ARGB8888S, true) != tvg::Result::Success) {
+    tvg::Result loaded = tvg::Result::Unknown;
+    {
+        const diagnostics::StageScope stage(probe(), diagnostics::Stage::image_copy);
+        loaded = picture->load(image.pixels.data(), static_cast<std::uint32_t>(image.width), static_cast<std::uint32_t>(image.height),
+                               tvg::ColorSpace::ARGB8888S, true);
+    }
+    if (loaded != tvg::Result::Success) {
         tvg::Paint::rel(picture);
         return;
+    }
+    if (probe() && probe()->counting()) {
+        probe()->counts().image_bytes += static_cast<std::uint64_t>(image.width) * static_cast<std::uint64_t>(image.height) * sizeof(std::uint32_t);
     }
     auto f = [](double v) { return static_cast<float>(v); };
     picture->transform({f(m.a), f(m.c), f(m.tx), f(m.b), f(m.d), f(m.ty), 0.0f, 0.0f, 1.0f});
