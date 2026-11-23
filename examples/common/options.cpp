@@ -44,6 +44,18 @@ text::Typeface take_typeface(int& argc, char** argv) {
     throw std::invalid_argument(std::string(typeface_option) + " " + *key + ": not a typeface; the typefaces are " + known);
 }
 
+diagnostics::FrameStatsSwitches take_frame_stats(int& argc, char** argv) {
+    const std::optional<std::string> value = take_option(argc, argv, frame_stats_option);
+    if (!value) {
+        return {};
+    }
+    if (const auto switches = diagnostics::parse_frame_stats(*value)) {
+        return *switches;
+    }
+    throw std::invalid_argument(std::string(frame_stats_option) + " " + *value + ": use " + std::string(diagnostics::frame_stats_on) + ", " +
+                                std::string(diagnostics::frame_stats_log_only) + " or " + std::string(diagnostics::frame_stats_off));
+}
+
 int window_height_dp(int content_height_dp, bool title_bar) {
     return content_height_dp + (title_bar && sdl3::client_title_bar_supported() ? static_cast<int>(std::ceil(tokens::title_bar_tokens.height)) : 0);
 }

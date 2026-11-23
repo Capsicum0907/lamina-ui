@@ -250,7 +250,7 @@ if(LAMINA_BUILD_EXAMPLES)
     lamina_add_example(components components TEXT_FONTS google_sans_flex roboto_flex noto_sans_jp ICONS
         add remove close check check_small search menu settings home favorite star bookmark delete edit share
         content_copy send mail person notifications info warning error visibility visibility_off refresh download
-        upload play_arrow pause stop light_mode dark_mode palette arrow_back arrow_forward arrow_upward arrow_downward
+        upload play_arrow pause stop light_mode dark_mode palette speed arrow_back arrow_forward arrow_upward arrow_downward
         chevron_left chevron_right expand_more expand_less more_vert more_horiz menu_open view_list grid_view backspace
         task_alt event location_on flight attach_file wifi bluetooth open_in_new inbox folder calendar_today chat groups videocam
         directions_walk directions_transit directions_car format_bold format_italic format_underlined mic work restaurant coffee undo redo

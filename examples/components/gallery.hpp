@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "lamina/color/argb.hpp"
+#include "lamina/color/scheme.hpp"
+#include "lamina/diagnostics/frame_stats.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/caption.hpp"
 #include "lamina/input/clipboard.hpp"
@@ -32,6 +34,9 @@ public:
     virtual void close() {}
     virtual void set_dark_theme(bool) {}
     virtual void system_back() {}
+    virtual bool frame_stats() const { return false; }
+    virtual void set_frame_stats(bool) {}
+    virtual diagnostics::FrameProbe* frame_probe() { return nullptr; }
 };
 
 struct GalleryStart {
@@ -55,6 +60,8 @@ public:
     bool paint(render::Canvas& canvas, const sdl3::Frame& frame);
 
     std::optional<render::Rect> caret_area() const;
+    const color::ColorScheme& scheme() const;
+    const text::FontStack& fonts() const;
     std::optional<double> next_wake_seconds() const;
     std::optional<input::Cursor> cursor() const;
     std::vector<widgets::AccessibleNode> accessible_nodes() const;

@@ -82,6 +82,7 @@ struct Layout {
     double status_width = 150.0;
     double status_gap = 24.0;
     std::string font_name_prefix = "Font, ";
+    std::string frame_stats_name = "Frame timing";
     std::string font_report_prefix = "Font: ";
     std::string width_report_prefix = "Width: ";
     std::array<const char*, 16> page_names{"Basics", "Chips", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
@@ -250,6 +251,7 @@ struct Gallery::Impl {
     bool tabs_following = false;
     std::shared_ptr<PagedBody> page_box;
     widgets::IconButton* dark_toggle = nullptr;
+    widgets::IconButton* stats_toggle = nullptr;
     widgets::Button* menu_button = nullptr;
     widgets::Button* dialog_button = nullptr;
     std::unique_ptr<widgets::Menu> menu;
@@ -447,6 +449,7 @@ input::PointerEvent Gallery::Impl::page_event(const input::PointerEvent& e) {
 }
 
 void Gallery::Impl::place(const sdl3::Frame& frame) {
+    const diagnostics::StageScope stage(host.frame_probe(), diagnostics::Stage::layout);
     layout::run(*root, layout::inset_rect({0.0, 0.0, frame.width_dp, frame.height_dp}, frame.safe_area));
     if (title_bar) {
         host.set_caption_regions(title_bar->regions());
@@ -779,6 +782,19 @@ void Gallery::Impl::build_right(std::vector<layout::NodePtr>& column) {
     focus.add(chips);
     focus.add(*dark_toggle);
     theme_controls.push_back(widgets::node(*dark_toggle));
+    stats_toggle = &chrome.emplace_with<widgets::IconButton>(
+        [this](widgets::IconButton& w, bool c) {
+            if (c) {
+                host.set_frame_stats(w.checked());
+                report(layout.frame_stats_name + (w.checked() ? ": on" : ": off"));
+            }
+        },
+        widgets::IconButtonOptions{icon(res::icons::speed), layout.frame_stats_name, IconButtonStyle::outlined, IconButtonSize::small,
+                                   ButtonShape::round, IconButtonWidth::uniform, true});
+    stats_toggle->set_checked(host.frame_stats());
+    add_tooltip(widgets::name_tooltip(*stats_toggle, fonts));
+    focus.add(*stats_toggle);
+    theme_controls.push_back(widgets::node(*stats_toggle));
     if (typefaces) {
         const text::TypefaceSpec& current = text::typeface_spec(typefaces->typeface);
         std::vector<widgets::MenuItem> items;
@@ -1193,6 +1209,14 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     }
     return paging || !g.theme.settled() || g.reflow.animating() || g.scroll().animating() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
            (g.font_menu && g.font_menu->animating()) || g.dialog->animating() || tooltips_moving || (g.title_bar && g.title_bar->animating());
+}
+
+const color::ColorScheme& Gallery::scheme() const {
+    return impl_->scheme;
+}
+
+const text::FontStack& Gallery::fonts() const {
+    return impl_->fonts;
 }
 
 std::optional<render::Rect> Gallery::caret_area() const {
