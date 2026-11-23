@@ -2,7 +2,7 @@
 
 [English](android.md) · [README](../README.ja.md#資料)
 
-部品の見本（components）は Android の APK として作れます。作るのに使うのは CMake と NDK と Android SDK のコマンドの道具だけで、Gradle のプロジェクトはありません。API 37 の x86_64 のエミュレーターで動かしました。arm64-v8a の APK も同じ手順で作れますが、まだ実機では動かしていません。
+部品の見本（components）は Android の APK として作れます。作るのに使うのは CMake と NDK と Android SDK のコマンドの道具だけで、Gradle のプロジェクトはありません。API 37 の x86_64 のエミュレーターで動かし、arm64-v8a の APK は実機で動かしました。
 
 ## 必要なもの
 
@@ -86,6 +86,12 @@ lamina-ui は、システムの設定ではなくアプリ自身の配色に従�
 
 見本は、Android ではシステムのダークモードに合わせて起動します（`isSystemInDarkTheme` に従う形です）。暗い配色のボタンでそれを上書きできます。デスクトップでは、これまでどおり明るい配色で起動します。見本は配色が変わるたびに、また起動したときに一度、それをホストに伝えます（`GalleryHost::set_dark_theme`）。`examples/components/main.cpp` がそれを `set_dark_system_bars` に渡します。
 
+## 余白（インセット）
+
+SDL 3.4.10 が安全な領域（`SDL_GetWindowSafeArea`）として知らせるのは、`systemBars`・`systemGestures`・`mandatorySystemGestures`・`tappableElement`・`displayCutout` を合わせたものです（SDL の Java のソースの `SDLSurface.onApplyWindowInsets`、`android-project/app/src/main/java/org/libsdl/app/SDLSurface.java:205-213`）。ジェスチャーナビゲーションでは、システムのジェスチャーの余白が左右の端から 30 dp ほど内側まで来ます。そこを横になぞると戻る操作になる場所です。なので安全な領域の内側に配置すると、左右それぞれ 30 dp ほど狭くなっていました。エミュレーターでも実機でも、見本の中身は左端から自分の余白の 24 dp ではなく 54 dp の所から始まっていました。ジェスチャーの余白は、アプリが自分のドラッグを置くべきでない場所を表すもので、中身を止める場所ではありません。中身はその下にあってかまいません。Compose の `WindowInsets.safeDrawing` は、システムのバー・画面の切り欠き・IME を合わせたものです（記憶によるもので、ここでは読んでいません）。
+
+`LaminaActivity` は自分の `SDLSurface` を作ります（`createSDLSurface`）。その `onApplyWindowInsets` は、`systemBars | displayCutout` と `systemGestures | mandatorySystemGestures` の二組の余白をピクセルで取っておき、そのあと余白をそのまま SDL の処理に渡します。`getWindowInsets()` は、それぞれの組の左・上・右・下の八つの整数を返します。`Window` は毎フレーム JNI でそれを読み、画面の倍率で割ります（`layout::insets_in_dp`）。一組目が `Frame::safe_area`、二組目が `Frame::gesture_insets` です。lamina は二組目を配置には使いません。端のドラッグをシステムのジェスチャーから離したいアプリのためのものです。端末を回したり、バーを出したり隠したりすると余白が変わり、次のフレームで新しい値になります。種類つきの余白がない Android 11（API 30）より前では、アクティビティは何も返さず、`Frame::safe_area` は SDL の安全な領域のまま、ジェスチャーの余白は 0 です。アクティビティに `getWindowInsets` がないときは、窓がそのことを logcat に一度だけ出し、やはり SDL の安全な領域を使います。ソフトウェアキーボードの余白は読みません。
+
 ## 戻る操作
 
 lamina は `SDL_HINT_ANDROID_TRAP_BACK_BUTTON` を立てています。なので SDL は戻る操作をアクティビティに渡さず、キー `SDLK_AC_BACK` として知らせます。`Window` はそれを、`KeyEvent::back` を立てた `Key::escape` として渡します。Escape で閉じるものは、戻る操作でも閉じます。キーを使ったかどうかはアプリが決めます。何も使わなかったときは、アプリが `Window::system_back()` を呼びます。Android では、これが `SDL_SendAndroidBackButton()` を呼びます。SDL の Java 側は、UI のスレッドでプラットフォームの `Activity.onBackPressed()` を実行します（`SDLActivity.pressBackButton` と `superOnBackPressed`）。SDL 自身の捕まえる仕組みは通りません。ほかの OS では `system_back` は何もせず、`KeyEvent::back` は立ちません。なので、キーボードの Escape でアプリを離れることはありません。
@@ -112,7 +118,7 @@ API 37 のエミュレーター（16 KB ページ、GPU は SwiftShader）で確
 
 - 見本は幅およそ 411 dp の小さい幅の配置で起動して描かれます。画面を横にすると広い幅の配置に変わります。
 - タップが効きます。ページのタブ、フィルターのチップ、スイッチ、書体のメニューとその項目、Menu と Dialog のボタン、文字の欄で確かめました。タップの後、ボタンにホバーの色は残りません。
-- 配置はステータスバーとジェスチャーのバーにかかりません（`Frame::safe_area`）。
+- 配置はステータスバー・ナビゲーションバー・画面の切り欠きにかからず、左右のジェスチャーの余白の下には中身が来ます（[余白](#余白インセット)）。ジェスチャーナビゲーションでは、見本の中身は左端から自分の余白の 24 dp の所から始まります。SDL の安全な領域の内側では 54 dp でした。横向きにして戻すと、余白も変わります。
 - 戻る操作で、開いているメニューやダイアログが閉じ、文字の欄からフォーカスが外れます（見本には Escape として届きます）。ランチャーから開いたアプリでは、何も開いていなければ、アプリは後ろへ回ってランチャーが出ます。もう一度開くと、同じプロセスのまま、同じページと配色で出ます（[戻る操作](#戻る操作)）。
 - 文字の欄を押すとソフトウェアキーボードが出ます。Gboard で打った文字と `adb shell input text` の文字が入ります。
 - マウスのホイールでページとタブがスクロールします（エミュレーターでは `adb shell input mouse scroll`）。
@@ -129,7 +135,6 @@ API 37 のエミュレーター（16 KB ページ、GPU は SwiftShader）で確
 - 予測型の戻る操作はありません。マニフェストは `enableOnBackInvokedCallback="false"` のままです。なので戻る操作はキーとして届き、`OnBackInvokedCallback` はなく、シート・ドロワー・アプリが離れるときの先読みの動きもありません。
 - 見本がシステムのダークモードを読むのは起動したときだけです。動いている間に設定を変えても追いません（`SDL_EVENT_SYSTEM_THEME_CHANGED` は読んでいません）。
 - ダイアログとメニューは、安全な領域の中ではなく窓全体を基準に置かれます。
-- 画面の下のほうの欄はソフトウェアキーボードに隠れることがあります。SDL が知らせるのはキーボードが出ているかどうかだけで、高さは分かりません。
+- 画面の下のほうの欄はソフトウェアキーボードに隠れることがあります。SDL が知らせるのはキーボードが出ているかどうかだけで、高さは分かりません。アクティビティも IME の余白は読んでいません。
 - IME での日本語入力は試していません。SDL は変換中の文字を、変換の途中経過ではなく、確定した文字と削除として渡します。
 - APK にはアイコンがありません。作るのは見本だけで、ほかの見本は Android では作りません。
-- arm64-v8a の APK は実機で動かしていません。

@@ -40,7 +40,7 @@
 
 ## 分割ボタン
 
-`SplitButton`（`lamina/widgets/split_button.hpp`）は、前のボタンと後ろの山形の印を 2 dp あけて並べたものです。大きさはボタンの五つ（32・40・56・96・136 dp）、形は `filled`・`tonal`・`outlined`・`elevated` です。後ろの半分をオンにすると、山形が半回転し、ボタン全体の下に `SplitButtonOptions::menu` を開きます。項目を選ぶかメニューを閉じるとオフに戻ります。`handle` は `leading_clicked`・`trailing_toggled`・`chosen` を持つ `SplitButtonResponse` を返します。本来の幅（`natural_width()`）より狭い幅を `measure` と `arrange` か `set_width` で渡すと、後ろの半分と 2 dp の間はそのままで、前の半分が残りの幅を取り、`min_width()` まで縮みます。前の半分は左右の余白とアイコンを残し、文字を「…」で切ります。ボタンが文字を切るのは `ButtonOptions::ellipsize_label` を付けたときだけで、分割ボタンは前の半分にこれを付けます（`Button::min_width`・`label_ellipsized`・`shown_label`）。分割ボタンに `widgets::node` を使うと、セグメントボタンと同じく測って縮めます。値は[分割ボタン](../design-tokens.ja.md#分割ボタン)にあります。
+`SplitButton`（`lamina/widgets/split_button.hpp`）は、前のボタンと後ろの山形の印を 2 dp あけて並べたものです。大きさはボタンの五つ（32・40・56・96・136 dp）、形は `filled`・`tonal`・`outlined`・`elevated` です。後ろの半分をオンにすると、山形が半回転し、後ろの半分から `SplitButtonOptions::menu` を開きます。置き方はドロップダウンのメニューと同じです（[メニュー](menus.ja.md)）。後ろの半分の下に、その左端にそろえて開きます。右に収まらないときはその右端にそろえ、下に場所がないときは上に開きます。Compose の分割ボタンの見本は `DropdownMenu` を後ろのボタンの隣に置いているので、メニューはそのボタンを基準に開きます（記憶によるもので、ここでは読んでいません）。項目を選ぶかメニューを閉じるとオフに戻ります。`handle` は `leading_clicked`・`trailing_toggled`・`chosen` を持つ `SplitButtonResponse` を返します。本来の幅（`natural_width()`）より狭い幅を `measure` と `arrange` か `set_width` で渡すと、後ろの半分と 2 dp の間はそのままで、前の半分が残りの幅を取り、`min_width()` まで縮みます。前の半分は左右の余白とアイコンを残し、文字を「…」で切ります。ボタンが文字を切るのは `ButtonOptions::ellipsize_label` を付けたときだけで、分割ボタンは前の半分にこれを付けます（`Button::min_width`・`label_ellipsized`・`shown_label`）。分割ボタンに `widgets::node` を使うと、セグメントボタンと同じく測って縮めます。値は[分割ボタン](../design-tokens.ja.md#分割ボタン)にあります。
 
 ## 出典
 
