@@ -247,6 +247,7 @@ struct Gallery::Impl {
     std::size_t page = 0;
     widgets::Pager pager{{.count = std::tuple_size_v<decltype(Layout::page_names)>, .mouse_drag = false}};
     motion::PageRange shown_pages;
+    bool tabs_following = false;
     std::shared_ptr<PagedBody> page_box;
     widgets::IconButton* dark_toggle = nullptr;
     widgets::Button* menu_button = nullptr;
@@ -869,12 +870,17 @@ void Gallery::Impl::switch_page(std::size_t next) {
 
 void Gallery::Impl::follow_pager() {
     if (!pager.swiping()) {
+        if (tabs_following) {
+            page_tabs->set_indicator_position(static_cast<double>(pager.settled_page()));
+            tabs_following = false;
+        }
         return;
     }
     if (page_tabs->selected() != pager.current_page()) {
         page_tabs->select(pager.current_page());
     }
     page_tabs->set_indicator_position(pager.position());
+    tabs_following = true;
 }
 
 void Gallery::Impl::snap_pages_in_view() {
