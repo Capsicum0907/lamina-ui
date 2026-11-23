@@ -1,11 +1,17 @@
 #include "lamina_thorvg/canvas.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <functional>
+#include <list>
+#include <unordered_map>
 #include <vector>
 
 #include <thorvg.h>
 
 #include "lamina/diagnostics/frame_stats.hpp"
+#include "lamina/tokens/raster.hpp"
 
 namespace lamina::thorvg {
 
@@ -18,7 +24,7 @@ using render::Shadow;
 
 namespace {
 
-constexpr int shadow_quality = 100;
+constexpr const tokens::RasterTokens& rt = tokens::raster;
 
 struct Rgba {
     std::uint8_t r;
@@ -65,6 +71,107 @@ tvg::Shape* to_shape(const Path& path, color::Argb color) {
     return shape;
 }
 
+struct ShadowKey {
+    std::vector<std::int32_t> coords;
+    std::vector<PathVerb> verbs;
+    double sigma = 0.0;
+    color::Argb color = 0;
+
+    bool operator==(const ShadowKey&) const = default;
+
+    std::size_t hash() const {
+        std::size_t h = std::hash<double>{}(sigma) ^ (std::hash<std::uint32_t>{}(color) << 1);
+        for (const std::int32_t c : coords) {
+            h = h * hash_prime ^ static_cast<std::size_t>(static_cast<std::uint32_t>(c));
+        }
+        for (const PathVerb v : verbs) {
+            h = h * hash_prime ^ static_cast<std::size_t>(v);
+        }
+        return h;
+    }
+
+    static constexpr std::size_t hash_prime = 1099511628211ull;
+};
+
+struct ShadowImage {
+    ShadowKey key;
+    std::size_t hash = 0;
+    int width = 0;
+    int height = 0;
+    int margin = 0;
+    std::vector<std::uint32_t> pixels;
+    std::uint64_t used = 0;
+
+    std::size_t bytes() const { return pixels.size() * sizeof(std::uint32_t); }
+};
+
+class ShadowCache {
+public:
+    ShadowImage* find(const ShadowKey& key, std::size_t hash, std::uint64_t frame) {
+        auto [first, last] = index_.equal_range(hash);
+        for (auto it = first; it != last; ++it) {
+            if (it->second->key == key) {
+                entries_.splice(entries_.begin(), entries_, it->second);
+                it->second->used = frame;
+                return &*it->second;
+            }
+        }
+        return nullptr;
+    }
+
+    ShadowImage& insert(ShadowImage image) {
+        bytes_ += image.bytes();
+        entries_.push_front(std::move(image));
+        index_.emplace(entries_.front().hash, entries_.begin());
+        return entries_.front();
+    }
+
+    void trim(std::size_t budget, std::uint64_t frame) {
+        while (bytes_ > budget && !entries_.empty() && entries_.back().used != frame) {
+            auto [first, last] = index_.equal_range(entries_.back().hash);
+            for (auto it = first; it != last; ++it) {
+                if (&*it->second == &entries_.back()) {
+                    index_.erase(it);
+                    break;
+                }
+            }
+            bytes_ -= entries_.back().bytes();
+            entries_.pop_back();
+        }
+    }
+
+private:
+    std::list<ShadowImage> entries_;
+    std::unordered_multimap<std::size_t, std::list<ShadowImage>::iterator> index_;
+    std::size_t bytes_ = 0;
+};
+
+Path quantized_path(const ShadowKey& key, double steps, double margin) {
+    Path local;
+    std::size_t i = 0;
+    auto at = [&](std::size_t k) { return render::Point{key.coords[2 * k] / steps + margin, key.coords[2 * k + 1] / steps + margin}; };
+    for (const PathVerb verb : key.verbs) {
+        switch (verb) {
+        case PathVerb::move:
+            local.move_to(at(i));
+            i += 1;
+            break;
+        case PathVerb::line:
+            local.line_to(at(i));
+            i += 1;
+            break;
+        case PathVerb::cubic:
+            local.cubic_to(at(i), at(i + 1), at(i + 2));
+            i += 3;
+            break;
+        case PathVerb::close:
+            local.close();
+            break;
+        }
+    }
+    return local;
+}
+
 }
 
 struct Canvas::Impl {
@@ -74,10 +181,14 @@ struct Canvas::Impl {
     tvg::SwCanvas* canvas = nullptr;
     bool dirty = false;
     std::vector<std::pair<tvg::Scene*, tvg::Shape*>> clips;
+    ShadowCache shadows;
+    tvg::SwCanvas* shadow_canvas = nullptr;
+    std::uint64_t frame = 0;
 
     Impl(int w, int h) {
         tvg::Initializer::init(0);
         canvas = tvg::SwCanvas::gen();
+        shadow_canvas = tvg::SwCanvas::gen();
         retarget(w, h);
     }
 
@@ -93,6 +204,7 @@ struct Canvas::Impl {
     ~Impl() {
         drop_clips();
         delete canvas;
+        delete shadow_canvas;
         tvg::Initializer::term();
     }
 
@@ -128,7 +240,10 @@ int Canvas::height() const {
 
 void Canvas::clear(color::Argb color) {
     impl_->drop_clips();
+    impl_->canvas->sync();
     impl_->canvas->remove();
+    impl_->frame += 1;
+    impl_->shadows.trim(rt.shadow_cache_bytes, impl_->frame);
     auto* bg = tvg::Shape::gen();
     bg->appendRect(0.0f, 0.0f, static_cast<float>(impl_->width), static_cast<float>(impl_->height));
     const Rgba c = split(color);
@@ -206,14 +321,71 @@ void Canvas::fill_device_shadow(const Path& path, const Shadow& shadow) {
     if ((shadow.color >> 24) == 0) {
         return;
     }
+    const Path moved = path.transformed({1.0, 0.0, 0.0, 1.0, shadow.offset_x, shadow.offset_y});
     if (shadow.blur_sigma <= 0.0) {
-        fill_device_path(path.transformed({1.0, 0.0, 0.0, 1.0, shadow.offset_x, shadow.offset_y}), shadow.color, FillRule::non_zero);
+        fill_device_path(moved, shadow.color, FillRule::non_zero);
         return;
     }
-    auto* scene = tvg::Scene::gen();
-    scene->add(to_shape(path.transformed({1.0, 0.0, 0.0, 1.0, shadow.offset_x, shadow.offset_y}), shadow.color));
-    scene->add(tvg::SceneEffect::GaussianBlur, shadow.blur_sigma, 0, 0, shadow_quality);
-    impl_->add(scene);
+    const auto& pts = moved.points();
+    if (pts.empty()) {
+        return;
+    }
+    double x0 = pts.front().x;
+    double y0 = pts.front().y;
+    for (const render::Point& p : pts) {
+        x0 = std::min(x0, p.x);
+        y0 = std::min(y0, p.y);
+    }
+    const double steps = rt.shadow_shape_steps;
+    ShadowKey key;
+    key.coords.reserve(pts.size() * 2);
+    std::int32_t max_x = 0;
+    std::int32_t max_y = 0;
+    for (const render::Point& p : pts) {
+        const auto qx = static_cast<std::int32_t>(std::lround((p.x - x0) * steps));
+        const auto qy = static_cast<std::int32_t>(std::lround((p.y - y0) * steps));
+        key.coords.push_back(qx);
+        key.coords.push_back(qy);
+        max_x = std::max(max_x, qx);
+        max_y = std::max(max_y, qy);
+    }
+    key.verbs.assign(moved.verbs().begin(), moved.verbs().end());
+    key.sigma = shadow.blur_sigma;
+    key.color = shadow.color;
+    const std::size_t hash = key.hash();
+    ShadowImage* image = impl_->shadows.find(key, hash, impl_->frame);
+    if (!image) {
+        ShadowImage made;
+        made.margin = static_cast<int>(std::ceil(shadow.blur_sigma * rt.shadow_margin_sigmas));
+        made.width = static_cast<int>(std::ceil(max_x / steps)) + 2 * made.margin + 1;
+        made.height = static_cast<int>(std::ceil(max_y / steps)) + 2 * made.margin + 1;
+        made.pixels.assign(static_cast<std::size_t>(made.width) * static_cast<std::size_t>(made.height), 0);
+        tvg::SwCanvas* off = impl_->shadow_canvas;
+        off->target(made.pixels.data(), static_cast<std::uint32_t>(made.width), static_cast<std::uint32_t>(made.width),
+                    static_cast<std::uint32_t>(made.height), tvg::ColorSpace::ARGB8888);
+        auto* scene = tvg::Scene::gen();
+        scene->add(to_shape(quantized_path(key, steps, made.margin), shadow.color));
+        scene->add(tvg::SceneEffect::GaussianBlur, shadow.blur_sigma, 0, 0, rt.shadow_quality);
+        off->add(scene);
+        off->draw(true);
+        off->sync();
+        off->remove();
+        made.key = std::move(key);
+        made.hash = hash;
+        made.used = impl_->frame;
+        image = &impl_->shadows.insert(std::move(made));
+        if (probe() && probe()->counting()) {
+            probe()->counts().shadow_renders += 1;
+        }
+    }
+    auto* picture = tvg::Picture::gen();
+    if (picture->load(image->pixels.data(), static_cast<std::uint32_t>(image->width), static_cast<std::uint32_t>(image->height),
+                      tvg::ColorSpace::ARGB8888, false) != tvg::Result::Success) {
+        tvg::Paint::rel(picture);
+        return;
+    }
+    picture->translate(static_cast<float>(std::round(x0) - image->margin), static_cast<float>(std::round(y0) - image->margin));
+    impl_->add(picture);
 }
 
 void Canvas::begin_device_clip(const Rect& rect) {

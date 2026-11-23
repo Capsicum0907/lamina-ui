@@ -10,7 +10,7 @@ namespace {
 
 constexpr std::array<std::string_view, stage_count> stage_names{"wait",          "events",      "update", "layout",  "paint",  "image copy",
                                                                 "raster update", "raster draw", "upload", "present"};
-constexpr std::array<std::string_view, count_field_count> count_names{"paths",     "offscreen", "points",    "shadows", "clips",   "images",
+constexpr std::array<std::string_view, count_field_count> count_names{"paths",     "offscreen", "points",    "shadows", "shadow new", "clips",   "images",
                                                                       "image MB",  "image Mpx", "loads",   "load MB", "cover Mpx"};
 
 std::string format(const char* pattern, double value) {
@@ -54,6 +54,7 @@ double count_value(const FrameCounts& c, CountField field) {
     case CountField::offscreen_paths: return static_cast<double>(c.offscreen_paths);
     case CountField::path_points: return static_cast<double>(c.path_points);
     case CountField::shadows: return static_cast<double>(c.shadows);
+    case CountField::shadow_renders: return static_cast<double>(c.shadow_renders);
     case CountField::clips: return static_cast<double>(c.clips);
     case CountField::images: return static_cast<double>(c.images);
     case CountField::image_bytes: return static_cast<double>(c.image_bytes);

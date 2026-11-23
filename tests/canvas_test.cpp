@@ -1,6 +1,9 @@
 #include <doctest/doctest.h>
 
 #include <cstdint>
+#include <vector>
+
+#include "lamina/diagnostics/frame_stats.hpp"
 
 #include "lamina_thorvg/canvas.hpp"
 
@@ -201,4 +204,56 @@ TEST_CASE_TEMPLATE("path and rectangle clips nest", CanvasType, lamina::thorvg::
     CHECK(canvas.pixel(10, 20) == red);
     CHECK(canvas.pixel(30, 20) == white);
     CHECK(canvas.pixel(2, 2) == white);
+}
+
+TEST_CASE("a blurred shadow is blurred once and drawn again from the cache when the shape only moves") {
+    lamina::thorvg::Canvas canvas(160, 160);
+    lamina::diagnostics::FrameProbe probe;
+    probe.set_switches({false, true});
+    canvas.set_probe(&probe);
+    const Shadow shadow{0.0, 6.0, 5.0, 0x80000000};
+    auto frame = [&](double dy) {
+        probe.begin_frame(0.0);
+        canvas.clear(white);
+        canvas.fill_shadow(rounded_rect_path({40, 30 + dy, 60, 40}, uniform_radii(10)), shadow);
+        canvas.finish();
+        const std::uint64_t made = probe.counts().shadow_renders;
+        probe.end_frame();
+        return made;
+    };
+    CHECK(frame(0.0) == 1);
+    CHECK(frame(0.0) == 0);
+    CHECK(frame(17.25) == 0);
+    CHECK(frame(40.0) == 0);
+    canvas.set_probe(nullptr);
+}
+
+TEST_CASE("a cached shadow moved by whole pixels lands on the same pixels moved") {
+    lamina::thorvg::Canvas canvas(160, 160);
+    const Shadow shadow{0.0, 6.0, 5.0, 0x80000000};
+    canvas.clear(white);
+    canvas.fill_shadow(rounded_rect_path({40, 30, 60, 40}, uniform_radii(10)), shadow);
+    std::vector<Argb> first;
+    for (int y = 0; y < 100; ++y) {
+        first.push_back(canvas.pixel(70, y));
+    }
+    canvas.clear(white);
+    canvas.fill_shadow(rounded_rect_path({40, 50, 60, 40}, uniform_radii(10)), shadow);
+    for (int y = 0; y < 100; ++y) {
+        CAPTURE(y);
+        CHECK(canvas.pixel(70, y + 20) == first[static_cast<std::size_t>(y)]);
+    }
+}
+
+TEST_CASE("a cached shadow is dark under its shape and fades out within its margin") {
+    const Shadow shadow{0.0, 6.0, 5.0, 0x80000000};
+    lamina::thorvg::Canvas canvas(160, 160);
+    canvas.clear(white);
+    canvas.fill_shadow(rounded_rect_path({40, 30, 60, 40}, uniform_radii(10)), shadow);
+    const Argb under = canvas.pixel(70, 60);
+    const Argb edge = canvas.pixel(70, 30 + 40 + 6 + 3 * 5);
+    CAPTURE(under);
+    CAPTURE(edge);
+    CHECK(channel(under, 16) < 200);
+    CHECK(near(edge, white, 3));
 }
