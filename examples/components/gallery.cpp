@@ -32,6 +32,7 @@
 #include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/overlay_stack.hpp"
+#include "lamina/widgets/pager.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/scroll_area.hpp"
 #include "lamina/widgets/slider.hpp"
@@ -78,9 +79,6 @@ struct Layout {
     double symbol_gap = 12.0;
     int dialog_paragraphs = 10;
     double title_top = 16.0;
-    color::Role veil = color::Role::surface;
-    motion::SpringSpec veil_spring = tokens::motion_scheme.fast_effects();
-    double veil_swap_at = 0.99;
     double status_width = 150.0;
     double status_gap = 24.0;
     std::string font_name_prefix = "Font, ";
@@ -92,10 +90,9 @@ struct Layout {
 
 class ScrolledBody final : public layout::Node {
 public:
-    ScrolledBody(layout::NodePtr content, std::vector<widgets::ScrollArea>& scrolls, const std::size_t& current)
-        : content_(std::move(content)), scrolls_(scrolls), current_(current) {}
+    ScrolledBody(layout::NodePtr content, widgets::ScrollArea& scroll) : content_(std::move(content)), scroll_(scroll) {}
 
-    widgets::ScrollArea& scroll() const { return scrolls_[current_]; }
+    widgets::ScrollArea& scroll() const { return scroll_; }
 
 protected:
     layout::Size on_measure(const layout::Constraints& c) override {
@@ -115,22 +112,37 @@ protected:
 
 private:
     layout::NodePtr content_;
-    std::vector<widgets::ScrollArea>& scrolls_;
-    const std::size_t& current_;
+    widgets::ScrollArea& scroll_;
     double content_height_ = 0.0;
 };
 
-class PageSwitch final : public layout::Node {
+class PagedBody final : public layout::Node {
 public:
-    PageSwitch(std::vector<layout::NodePtr> pages, const std::size_t& current) : pages_(std::move(pages)), current_(current) {}
+    PagedBody(std::vector<layout::NodePtr> pages, widgets::Pager& pager) : pages_(std::move(pages)), pager_(pager) {}
 
 protected:
-    layout::Size on_measure(const layout::Constraints& c) override { return pages_[current_]->measure(c); }
-    void on_arrange(const render::Rect& r) override { pages_[current_]->arrange(r); }
+    layout::Size on_measure(const layout::Constraints& c) override {
+        layout::Size size{};
+        const motion::PageRange shown = pager_.pages_in_view();
+        for (std::size_t i = shown.first; !shown.empty && i <= shown.last; ++i) {
+            const layout::Size s = pages_[i]->measure(c);
+            if (i == pager_.settled_page() || i == shown.first) {
+                size = s;
+            }
+        }
+        return size;
+    }
+    void on_arrange(const render::Rect& r) override {
+        pager_.set_bounds(r);
+        const motion::PageRange shown = pager_.pages_in_view();
+        for (std::size_t i = shown.first; !shown.empty && i <= shown.last; ++i) {
+            pages_[i]->arrange(r);
+        }
+    }
 
 private:
     std::vector<layout::NodePtr> pages_;
-    const std::size_t& current_;
+    widgets::Pager& pager_;
 };
 
 struct TypeSample {
@@ -195,13 +207,15 @@ struct Gallery::Impl {
     void open_dialog();
     GalleryState state() const;
     void switch_page(std::size_t next);
-    void show_pending_page();
-    void paint_veil(render::Canvas& canvas, const color::ColorScheme& scheme) const;
+    void finish_page_switch();
+    void follow_pager();
+    void snap_pages_in_view();
+    void paint_page(render::Canvas& canvas, std::size_t index, const color::ColorScheme& scheme) const;
     void handle_title_bar(const input::PointerEvent& e);
     void set_size_class(const layout::WindowSizeClass& c);
     void place(const sdl3::Frame& frame);
     input::PointerEvent page_event(const input::PointerEvent& e);
-    widgets::ScrollArea& scroll() { return page_box->scroll(); }
+    widgets::ScrollArea& scroll() { return scrolls[page]; }
     void reveal_focus();
     bool route(const input::KeyEvent& k);
     widgets::FocusManager& current_focus() { return page == 0 ? focus : pages[page - 1]->focus(); }
@@ -231,9 +245,9 @@ struct Gallery::Impl {
     widgets::TabRow* page_tabs = nullptr;
     std::vector<std::unique_ptr<Page>> pages;
     std::size_t page = 0;
-    std::optional<std::size_t> pending_page;
-    motion::Animated veil{0.0, layout.veil_spring};
-    std::shared_ptr<ScrolledBody> page_box;
+    widgets::Pager pager{{.count = std::tuple_size_v<decltype(Layout::page_names)>, .mouse_drag = false}};
+    motion::PageRange shown_pages;
+    std::shared_ptr<PagedBody> page_box;
     widgets::IconButton* dark_toggle = nullptr;
     widgets::Button* menu_button = nullptr;
     widgets::Button* dialog_button = nullptr;
@@ -301,6 +315,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
                                .edge_padding = layout.margin - tokens::tab_tokens.horizontal_text_padding},
         f);
     page = state.page;
+    pager.scroll_to_page(page);
     focus.add(*page_tabs);
     PageContext context{f, i, [this](std::string s) { report(std::move(s)); },
                         [this](widgets::FocusManager& m) {
@@ -364,10 +379,15 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
         bodies.push_back(p->body());
     }
     scrolls.resize(bodies.size());
-    auto page_content = layout::column({std::make_shared<PageSwitch>(std::move(bodies), page)});
-    page_content->padding({layout.margin, layout.row_gap, layout.margin, layout.margin}).fill_cross(true);
-    page_box = std::make_shared<ScrolledBody>(page_content, scrolls, page);
+    std::vector<layout::NodePtr> boxes;
+    for (std::size_t k = 0; k < bodies.size(); ++k) {
+        auto page_content = layout::column({bodies[k]});
+        page_content->padding({layout.margin, layout.row_gap, layout.margin, layout.margin}).fill_cross(true);
+        boxes.push_back(std::make_shared<ScrolledBody>(page_content, scrolls[k]));
+    }
+    page_box = std::make_shared<PagedBody>(std::move(boxes), pager);
     page_box->self_align = layout::CrossAlign::stretch;
+    shown_pages = pager.pages_in_view();
     auto content = layout::column({header_row, widgets::full_width_node(*page_tabs), page_box});
     content->padding({0.0, layout.title_top, 0.0, 0.0}).fill_cross(true);
 
@@ -840,28 +860,61 @@ void Gallery::Impl::handle_title_bar(const input::PointerEvent& e) {
 }
 
 void Gallery::Impl::switch_page(std::size_t next) {
-    if (next > pages.size() || next == pending_page.value_or(page)) {
+    if (next > pages.size() || next == pager.target_page()) {
         return;
     }
-    pending_page = next;
-    veil.animate_to(1.0);
+    pager.animate_to_page(next);
+    snap_pages_in_view();
 }
 
-void Gallery::Impl::paint_veil(render::Canvas& canvas, const color::ColorScheme& s) const {
-    if (veil.value() > 0.0) {
-        canvas.fill_rect(page_box->rect(), color::scale_alpha(s[layout.veil], std::min(1.0, veil.value())));
-    }
-}
-
-void Gallery::Impl::show_pending_page() {
-    if (!pending_page || veil.value() < layout.veil_swap_at) {
+void Gallery::Impl::follow_pager() {
+    if (!pager.swiping()) {
         return;
     }
-    const std::size_t next = *pending_page;
-    pending_page.reset();
-    veil.animate_to(0.0);
+    if (page_tabs->selected() != pager.current_page()) {
+        page_tabs->select(pager.current_page());
+    }
+    page_tabs->set_indicator_position(pager.position());
+}
+
+void Gallery::Impl::snap_pages_in_view() {
+    const motion::PageRange now = pager.pages_in_view();
+    for (std::size_t i = now.first; !now.empty && i <= now.last; ++i) {
+        if (shown_pages.contains(i)) {
+            continue;
+        }
+        if (i == 0) {
+            reflow.snap();
+        } else {
+            pages[i - 1]->snap_layout();
+        }
+    }
+    shown_pages = now;
+}
+
+void Gallery::Impl::paint_page(render::Canvas& canvas, std::size_t index, const color::ColorScheme& s) const {
+    if (index > 0) {
+        pages[index - 1]->paint(canvas, s);
+        return;
+    }
+    for (const Row& row : rows) {
+        row.caption->paint(canvas, s);
+    }
+    for (std::size_t i = 0; i < res::all_icons.size(); ++i) {
+        icon_font.draw(canvas, res::all_icons[i], symbol_spots[i], layout.symbol_size, s[layout.caption]);
+    }
+    chips.paint(canvas, s);
+    chrome.paint(canvas, s);
+    controls.paint(canvas, s);
+}
+
+void Gallery::Impl::finish_page_switch() {
+    const std::size_t next = pager.settled_page();
     if (next == page) {
         return;
+    }
+    if (page_tabs->selected() != next) {
+        page_tabs->select(next);
     }
     const bool tabs_focused = page_tabs->focused();
     current_focus().clear_focus();
@@ -944,7 +997,7 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         impl_->report(impl_->layout.font_report_prefix + std::string(text::typeface_spec(next.typeface).name));
     }
     Impl& g = *impl_;
-    g.show_pending_page();
+    g.finish_page_switch();
     g.window = {frame.width_dp, frame.height_dp};
     g.set_size_class(frame.size_class);
     if (g.title_bar) {
@@ -973,9 +1026,12 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
         g.source = input::InputSource::pointer;
         if (current) {
             g.handle_title_bar(e);
-            g.scroll().route(e, [&](const input::PointerEvent& routed) {
-                current->handle(g.page_event(routed));
-                return current->holds_pointer();
+            g.pager.route(e, [&](const input::PointerEvent& paged) {
+                const bool scrolled = g.scroll().route(paged, [&](const input::PointerEvent& routed) {
+                    current->handle(g.page_event(routed));
+                    return current->holds_pointer();
+                });
+                return scrolled || g.scroll().dragging() || current->holds_pointer();
             });
             g.header_widgets.handle(e);
             continue;
@@ -984,7 +1040,9 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
             continue;
         }
         bool tip_consumed = false;
-        const bool scrolled = g.scroll().route(e, [&](const input::PointerEvent& routed) {
+        bool scrolled = false;
+        const bool paged = g.pager.route(e, [&](const input::PointerEvent& outer) {
+            scrolled = g.scroll().route(outer, [&](const input::PointerEvent& routed) {
             const input::PointerEvent pe = g.page_event(routed);
             bool consumed = false;
             for (auto& t : g.tooltips) {
@@ -1005,7 +1063,10 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
             g.controls.handle(pe);
             g.chrome.handle(pe);
             return g.controls.holds_pointer() || g.chrome.holds_pointer();
+            });
+            return scrolled || g.scroll().dragging() || g.controls.holds_pointer() || g.chrome.holds_pointer();
         });
+        scrolled = scrolled || paged;
         if (tip_consumed && !scrolled) {
             continue;
         }
@@ -1059,7 +1120,11 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     Impl& g = *impl_;
     const double dt = frame.dt_seconds;
     g.theme.step(dt);
-    g.veil.step(dt);
+    const std::size_t was_settled = g.pager.settled_page();
+    g.pager.step(dt);
+    g.follow_pager();
+    g.snap_pages_in_view();
+    const bool switched = g.pager.settled_page() != was_settled || g.pager.settled_page() != g.page;
     g.scroll().step(dt);
     Page* current = g.current_page();
     if (current) {
@@ -1092,35 +1157,22 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     g.status.paint(canvas, s);
     canvas.pop_clip();
     canvas.restore();
-    const render::Rect viewport = g.page_box->rect();
+    g.header_widgets.paint(canvas, s);
+    const motion::PageRange shown = g.pager.pages_in_view();
+    for (std::size_t i = shown.first; !shown.empty && i <= shown.last; ++i) {
+        g.pager.begin_page(canvas, i);
+        g.paint_page(canvas, i, s);
+        g.pager.end_page(canvas);
+        g.pager.begin_page(canvas, i);
+        g.scrolls[i].paint(canvas, s);
+        g.pager.end_page(canvas);
+    }
+    const bool paging = switched || g.pager.animating();
     if (current) {
-        g.header_widgets.paint(canvas, s);
-        canvas.save();
-        canvas.push_clip(viewport);
-        current->paint(canvas, s);
-        canvas.pop_clip();
-        canvas.restore();
-        g.scroll().paint(canvas, s);
         current->paint_overlays(canvas, s);
-        g.paint_veil(canvas, s);
-        return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.header_widgets.animating() || current->animating() || g.scroll().animating() ||
+        return paging || !g.theme.settled() || g.header_widgets.animating() || current->animating() || g.scroll().animating() ||
                (g.title_bar && g.title_bar->animating());
     }
-    g.header_widgets.paint(canvas, s);
-    canvas.save();
-    canvas.push_clip(viewport);
-    for (const Row& row : g.rows) {
-        row.caption->paint(canvas, s);
-    }
-    for (std::size_t i = 0; i < res::all_icons.size(); ++i) {
-        g.icon_font.draw(canvas, res::all_icons[i], g.symbol_spots[i], g.layout.symbol_size, s[g.layout.caption]);
-    }
-    g.chips.paint(canvas, s);
-    g.chrome.paint(canvas, s);
-    g.controls.paint(canvas, s);
-    canvas.pop_clip();
-    canvas.restore();
-    g.scroll().paint(canvas, s);
     g.menu->paint(canvas, s);
     if (g.font_menu) {
         g.font_menu->paint(canvas, s);
@@ -1129,12 +1181,11 @@ bool Gallery::paint(render::Canvas& canvas, const sdl3::Frame& frame) {
     for (const auto& t : g.tooltips) {
         t->paint(canvas, s);
     }
-    g.paint_veil(canvas, s);
     bool tooltips_moving = false;
     for (const auto& t : g.tooltips) {
         tooltips_moving = tooltips_moving || t->animating();
     }
-    return g.pending_page || !g.veil.settled() || !g.theme.settled() || g.reflow.animating() || g.scroll().animating() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
+    return paging || !g.theme.settled() || g.reflow.animating() || g.scroll().animating() || g.chips.animating() || g.controls.animating() || g.chrome.animating() || g.header_widgets.animating() || g.menu->animating() ||
            (g.font_menu && g.font_menu->animating()) || g.dialog->animating() || tooltips_moving || (g.title_bar && g.title_bar->animating());
 }
 
@@ -1155,7 +1206,7 @@ std::optional<double> Gallery::next_wake_seconds() const {
             wake = wake ? std::min(*wake, *w) : *w;
         }
     };
-    const double bar = impl_->page_box->scroll().next_wake_seconds();
+    const double bar = impl_->scroll().next_wake_seconds();
     if (bar >= 0.0) {
         merge(bar);
     }
