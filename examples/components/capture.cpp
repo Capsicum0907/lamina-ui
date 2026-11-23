@@ -26,6 +26,7 @@
 #include "lamina/calendar/date.hpp"
 #include "lamina/calendar/locale.hpp"
 #include "lamina/color/mix.hpp"
+#include "lamina/diagnostics/frame_stats.hpp"
 #include "lamina/icons/icon.hpp"
 #include "lamina/input/clipboard.hpp"
 #include "lamina/layout/window_size_class.hpp"
@@ -100,6 +101,10 @@ struct CaptureStyle {
     double page_scroll_to = 0.2;
     double page_scroll_seconds = 0.6;
     std::string_view photos_target = "Photos";
+    double bench_x = 0.9;
+    double bench_from = 0.85;
+    double bench_to = 0.25;
+    double bench_refresh_hz = 120.0;
 };
 
 inline constexpr std::string_view window_option = "--window";
@@ -164,6 +169,10 @@ public:
     void set_window_width(double width) { window_.width = std::clamp(width, 1.0, stage_.width); }
 
     void set_recording(bool on) { recording_ = on; }
+    void set_probe(diagnostics::FrameProbe* probe) {
+        probe_ = probe;
+        canvas_.set_probe(probe);
+    }
     void set_cursor(bool on) { cursor_ = on; }
     render::Point pointer() const { return pointer_; }
     void set_pointer(render::Point p) { pointer_ = p; }
@@ -189,17 +198,31 @@ public:
         wheel_events_.clear();
         key_events_.clear();
         text_events_.clear();
-        const color::Argb background = gallery_.update(f);
+        if (probe_) {
+            probe_->begin_frame(0.0);
+        }
+        color::Argb background = 0;
+        {
+            const diagnostics::StageScope stage(probe_, diagnostics::Stage::update);
+            background = gallery_.update(f);
+        }
         const render::Rect window_rect{0.0, 0.0, window_.width, window_.height};
-        canvas_.clear(style_.stage);
-        canvas_.save();
-        canvas_.scale(scale_);
-        canvas_.fill_rect(window_rect, background);
-        canvas_.push_clip(window_rect);
-        animating_ = gallery_.paint(canvas_, f);
-        paint_overlay();
-        canvas_.pop_clip();
-        canvas_.restore();
+        {
+            const diagnostics::StageScope stage(probe_, diagnostics::Stage::paint);
+            canvas_.clear(style_.stage);
+            canvas_.save();
+            canvas_.scale(scale_);
+            canvas_.fill_rect(window_rect, background);
+            canvas_.push_clip(window_rect);
+            animating_ = gallery_.paint(canvas_, f);
+            paint_overlay();
+            canvas_.pop_clip();
+            canvas_.restore();
+        }
+        if (probe_) {
+            canvas_.finish();
+            probe_->end_frame();
+        }
         badge_left_ -= f.dt_seconds;
         clock_ += f.dt_seconds;
         if (recording_) {
@@ -298,6 +321,12 @@ public:
             return;
         }
         wait(hold);
+        pointer_events_.push_back(touch(at(PointerAction::up)));
+        pointer_events_.push_back(at(PointerAction::leave));
+        frame();
+    }
+
+    void touch_lift() {
         pointer_events_.push_back(touch(at(PointerAction::up)));
         pointer_events_.push_back(at(PointerAction::leave));
         frame();
@@ -604,6 +633,7 @@ private:
     std::string badge_text_;
     double badge_left_ = 0.0;
     double clock_ = 0.0;
+    diagnostics::FrameProbe* probe_ = nullptr;
 };
 
 void tab_to(Driver& d, examples::components::Gallery& g, std::string_view name, int limit = 60) {
@@ -3370,7 +3400,8 @@ int usage() {
                  "usage: components_capture [%s %s] [%s <width>x<height>] <mode> ...\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
                  "  components_capture tree <scene> <light|dark> <scale>\n"
                  "  components_capture check\n"
-                 "  components_capture video <scene> <light|dark> <scale>\n",
+                 "  components_capture video <scene> <light|dark> <scale>\n"
+                 "  components_capture bench <scene> <light|dark> <scale> <start dp> <distance dp> <seconds> [repeats] [out.bgra]\n",
                  examples::typeface_option.data(), keys.c_str(), window_option.data());
     return 2;
 }
@@ -3490,6 +3521,57 @@ int main(int argc, char** argv) {
             }
             driver.settle();
             std::fputs(widgets::describe(gallery.accessible_nodes()).c_str(), stdout);
+            return 0;
+        }
+        if (mode == "bench") {
+            const Scene* found = find_scene({&stills(), &pattern_stills(), &expressive_stills(), &adaptive_stills(), &files_stills(), &font_stills()}, scene);
+            if (!found || argc < 8) {
+                return usage();
+            }
+            const double start = std::stod(argv[5]);
+            const double distance = std::stod(argv[6]);
+            const double seconds = std::stod(argv[7]);
+            const int repeats = argc > 8 ? std::stoi(argv[8]) : 1;
+            Driver driver(gallery, fonts, scale, nullptr, window);
+            driver.set_cursor(false);
+            driver.settle();
+            (*found)(driver, gallery);
+            driver.settle();
+            const CaptureStyle& s = driver.style();
+            const double x = driver.window_width() * s.bench_x;
+            const double low = driver.window_height() * s.bench_from;
+            const double reach = driver.window_height() * (s.bench_from - s.bench_to);
+            for (double left = start; left > 0.0; left -= reach) {
+                driver.set_pointer({x, low});
+                driver.touch_swipe({x, low - std::min(left, reach)}, s.page_scroll_seconds, s.swipe_hold_seconds, true);
+                driver.settle();
+            }
+            diagnostics::FrameProbe probe;
+            diagnostics::DisplayInfo display;
+            display.renderer = "headless";
+            display.refresh_hz = s.bench_refresh_hz;
+            display.window_width = driver.width();
+            display.window_height = driver.height();
+            display.canvas_width = driver.width();
+            display.canvas_height = driver.height();
+            for (int r = 0; r < repeats; ++r) {
+                probe.set_switches({false, true});
+                probe.set_display(display);
+                driver.set_probe(&probe);
+                const bool up = r % 2 == 0;
+                const double from = up ? low : low - distance;
+                driver.set_pointer({x, from});
+                driver.touch_swipe({x, up ? from - distance : low}, seconds, 0.0, false);
+                driver.set_probe(nullptr);
+                std::printf("%s\n", diagnostics::report_line(diagnostics::report_rows(probe.recent(), display, up ? "bench up" : "bench down")).c_str());
+                probe.set_switches({});
+                driver.wait(s.swipe_hold_seconds);
+                driver.touch_lift();
+                driver.settle();
+            }
+            if (argc > 9) {
+                driver.write_raw(argv[9]);
+            }
             return 0;
         }
         if (mode == "video") {
