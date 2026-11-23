@@ -121,7 +121,7 @@ private:
     double initial_span_ = 0.0;
     bool single_tap_ = false;
     std::optional<Tap> last_tap_;
-    bool touch_pointer_down_ = false;
+    bool after_touch_up_ = false;
     double mouse_x_ = 0.0;
     double mouse_y_ = 0.0;
     motion::VelocityTracker tracker_x_;

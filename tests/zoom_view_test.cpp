@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "lamina/widgets/protocol.hpp"
+#include "lamina/widgets/scroll_area.hpp"
 #include "lamina/widgets/zoom_view.hpp"
 #include "support.hpp"
 
@@ -410,4 +411,43 @@ TEST_CASE("a new size keeps the scale and clamps the pan") {
     z.set_bounds({100.0, 50.0, 300.0, 300.0});
     CHECK(z.scale() == doctest::Approx(3.0));
     CHECK(motion::in_bounds(z.geometry(), z.transform(), {t.min_scale, t.max_scale}, 1e-6));
+}
+
+TEST_CASE("a touch that stops an outer fling hands a zoomed view's finger to the scroller") {
+    ZoomView z = make();
+    Clock c;
+    zoom_in(z, 2.0);
+    widgets::ScrollArea outer;
+    outer.set_viewport({0.0, 0.0, 600.0, 400.0});
+    outer.set_content_height(4000.0);
+    auto touch = [&](PointerAction a, double x, double y) {
+        return input::PointerEvent{a, x, y, a == PointerAction::down ? 1 : 0, input::PointerKind::touch, c.tick()};
+    };
+    auto deliver = [&](const input::PointerEvent& e) {
+        z.handle(e);
+        return z.holds_pointer();
+    };
+    outer.route(touch(PointerAction::down, 550.0, 300.0), deliver);
+    for (int i = 1; i <= 6; ++i) {
+        outer.route(touch(PointerAction::move, 550.0, 300.0 - 40.0 * i), deliver);
+    }
+    outer.route(touch(PointerAction::up, 550.0, 60.0), deliver);
+    outer.route(input::PointerEvent{PointerAction::leave, 0.0, 0.0}, deliver);
+    outer.step(frame_seconds);
+    REQUIRE(outer.flinging());
+    const motion::ZoomTransform before = z.transform();
+    z.handle(finger(FingerAction::down, 5, 300.0, 200.0, c.tick()));
+    CHECK(outer.route(touch(PointerAction::down, 300.0, 200.0), deliver));
+    CHECK(!outer.flinging());
+    CHECK(!z.holds_pointer());
+    const double offset = outer.offset();
+    for (int i = 1; i <= 5; ++i) {
+        const double y = 200.0 - 20.0 * i;
+        z.handle(finger(FingerAction::move, 5, 300.0, y, c.tick()));
+        outer.route(touch(PointerAction::move, 300.0, y), deliver);
+    }
+    CHECK(outer.offset() > offset);
+    CHECK(z.transform().x == before.x);
+    CHECK(z.transform().y == before.y);
+    CHECK(!z.holds_pointer());
 }

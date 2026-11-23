@@ -244,7 +244,6 @@ bool ZoomView::finger_down(const input::FingerEvent& e) {
         }
         catch_motion();
         fingers_.push_back({e.finger, x, y, x, y});
-        touch_pointer_down_ = false;
         const bool second_tap = last_tap_ && e.time_seconds - last_tap_->up_seconds <= tokens_->double_tap_timeout_seconds &&
                                 e.time_seconds - last_tap_->up_seconds >= tokens_->double_tap_min_seconds &&
                                 std::hypot(x - last_tap_->x, y - last_tap_->y) < tokens_->double_tap_slop;
@@ -378,18 +377,14 @@ bool ZoomView::handle(const input::PointerEvent& e) {
             phase_ = Phase::idle;
             settle_about(mouse_x_, mouse_y_);
         }
-        if (touch_pointer_down_ && !fingers_.empty() && phase_ != Phase::yielded) {
+        if (!after_touch_up_ && !fingers_.empty() && phase_ != Phase::yielded) {
             yield();
         }
-        touch_pointer_down_ = false;
+        after_touch_up_ = false;
         return false;
     }
+    after_touch_up_ = e.kind == input::PointerKind::touch && e.action == input::PointerAction::up;
     if (e.kind == input::PointerKind::touch) {
-        if (e.action == input::PointerAction::down) {
-            touch_pointer_down_ = !fingers_.empty();
-        } else if (e.action == input::PointerAction::up) {
-            touch_pointer_down_ = false;
-        }
         return holds_pointer();
     }
     const double x = e.x_dp - bounds_.x;
@@ -448,7 +443,7 @@ void ZoomView::cancel_interaction() {
     phase_ = Phase::idle;
     scaling_ = false;
     single_tap_ = false;
-    touch_pointer_down_ = false;
+    after_touch_up_ = false;
     last_tap_.reset();
     if (active) {
         settle_about(prev_focus_x_, prev_focus_y_);
