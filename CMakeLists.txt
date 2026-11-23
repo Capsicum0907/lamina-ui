@@ -254,7 +254,7 @@ if(LAMINA_BUILD_EXAMPLES)
     examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
     examples/components/drawer_pages.cpp examples/components/search_pages.cpp examples/components/group_pages.cpp
     examples/components/progress_pages.cpp examples/components/toolbar_pages.cpp examples/components/adaptive_pages.cpp
-    examples/components/desktop_pages.cpp examples/components/files_view.cpp)
+    examples/components/desktop_pages.cpp examples/components/files_view.cpp examples/components/viewer_pages.cpp)
     if(ANDROID)
         lamina_android_apk(components PACKAGE io.github.capsicum0907.lamina.components LABEL "lamina components" OUTPUT_NAME lamina-components)
     else()
@@ -262,7 +262,7 @@ if(LAMINA_BUILD_EXAMPLES)
         examples/components/date_pages.cpp examples/components/time_pages.cpp examples/components/sheet_pages.cpp
         examples/components/drawer_pages.cpp examples/components/search_pages.cpp examples/components/group_pages.cpp
         examples/components/progress_pages.cpp examples/components/toolbar_pages.cpp examples/components/adaptive_pages.cpp
-        examples/components/desktop_pages.cpp examples/components/files_view.cpp)
+        examples/components/desktop_pages.cpp examples/components/files_view.cpp examples/components/viewer_pages.cpp)
         target_link_libraries(components_capture PRIVATE lamina lamina_thorvg lamina_sdl3 lamina_examples_common components_resources)
         lamina_warnings(components_capture)
         lamina_add_example(navigation navigation ICONS

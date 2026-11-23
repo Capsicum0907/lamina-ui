@@ -81,8 +81,16 @@ struct CaptureStyle {
     double fling_redraw_from = 0.8;
     double fling_redraw_to = 0.3;
     double fling_redraw_seconds = 0.08;
-    std::array<std::string_view, 15> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
-                                                 "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop"};
+    std::array<std::string_view, 16> page_scenes{"default", "chips",  "lists",    "bars",     "inputs",   "dates",    "times",  "sheets",
+                                                 "drawers", "search", "groups",   "progress", "toolbars", "adaptive", "desktop", "viewer"};
+    std::string_view viewer_target = "Pattern";
+    double finger_tap_seconds = 0.05;
+    double double_tap_gap_seconds = 0.12;
+    double pinch_from = 0.25;
+    double pinch_to = 0.45;
+    double pinch_seconds = 0.5;
+    double pan_fraction = 0.3;
+    double pan_seconds = 0.12;
 };
 
 inline constexpr std::string_view window_option = "--window";
@@ -165,7 +173,9 @@ public:
                       std::move(text_events_)};
         f.size_class = layout::compute_window_size_class(f.width_dp, f.height_dp);
         f.context = std::move(context_events_);
+        f.fingers = std::move(finger_events_);
         context_events_.clear();
+        finger_events_.clear();
         pointer_events_.clear();
         wheel_events_.clear();
         key_events_.clear();
@@ -262,6 +272,41 @@ public:
             pointer_events_.push_back(at(PointerAction::leave));
         }
         frame();
+    }
+
+    void fingers_to(const std::vector<render::Point>& from, const std::vector<render::Point>& to, double seconds, double hold) {
+        const auto finger = [this](input::FingerAction a, std::size_t i, render::Point p) {
+            return input::FingerEvent{a, static_cast<std::uint64_t>(i + 1), p.x, p.y, clock_};
+        };
+        for (std::size_t i = 0; i < from.size(); ++i) {
+            finger_events_.push_back(finger(input::FingerAction::down, i, from[i]));
+        }
+        pointer_ = from.front();
+        pointer_events_.push_back(touch(at(PointerAction::down, 1)));
+        frame();
+        const int n = std::max(1, static_cast<int>(std::lround(seconds * style_.fps)));
+        std::vector<render::Point> live = from;
+        for (int s = 1; s <= n; ++s) {
+            const double t = static_cast<double>(s) / n;
+            for (std::size_t i = 0; i < from.size(); ++i) {
+                live[i] = {from[i].x + (to[i].x - from[i].x) * t, from[i].y + (to[i].y - from[i].y) * t};
+                finger_events_.push_back(finger(input::FingerAction::move, i, live[i]));
+            }
+            pointer_ = live.front();
+            pointer_events_.push_back(touch(at(PointerAction::move)));
+            frame();
+        }
+        wait(hold);
+        for (std::size_t i = 0; i < live.size(); ++i) {
+            finger_events_.push_back(finger(input::FingerAction::up, i, live[i]));
+        }
+        pointer_events_.push_back(touch(at(PointerAction::up)));
+        pointer_events_.push_back(at(PointerAction::leave));
+        frame();
+    }
+
+    void finger_tap(render::Point p) {
+        fingers_to({p}, {p}, 0.0, style_.finger_tap_seconds);
     }
 
     std::vector<std::uint8_t> pixels() {
@@ -526,6 +571,7 @@ private:
     std::vector<input::KeyEvent> key_events_;
     std::vector<input::TextEvent> text_events_;
     std::vector<input::ContextClick> context_events_;
+    std::vector<input::FingerEvent> finger_events_;
     std::string badge_text_;
     double badge_left_ = 0.0;
     double clock_ = 0.0;
@@ -2468,9 +2514,70 @@ void files_menus_by_keyboard(Driver& d) {
     d.wait(1.0);
 }
 
+render::Rect viewer_rect(const Driver& d) {
+    const std::optional<render::Rect> r = d.find(d.style().viewer_target);
+    if (!r) {
+        throw std::runtime_error("no widget named " + std::string(d.style().viewer_target));
+    }
+    return *r;
+}
+
+void viewer_pinch(Driver& d) {
+    const CaptureStyle& s = d.style();
+    const render::Rect r = viewer_rect(d);
+    const render::Point c{r.x + r.width / 2.0, r.y + r.height / 2.0};
+    const double from = r.width * s.pinch_from;
+    const double to = r.width * s.pinch_to;
+    d.fingers_to({{c.x - from, c.y}, {c.x + from, c.y}}, {{c.x - to, c.y}, {c.x + to, c.y}}, s.pinch_seconds, s.finger_tap_seconds);
+}
+
+void viewer_pan(Driver& d) {
+    const CaptureStyle& s = d.style();
+    const render::Rect r = viewer_rect(d);
+    const render::Point c{r.x + r.width / 2.0, r.y + r.height / 2.0};
+    d.fingers_to({c}, {{c.x - r.width * s.pan_fraction, c.y}}, s.pan_seconds, 0.0);
+}
+
+void viewer_double_tap(Driver& d, double fx, double fy) {
+    const render::Rect r = viewer_rect(d);
+    const render::Point p{r.x + r.width * fx, r.y + r.height * fy};
+    d.finger_tap(p);
+    d.wait(d.style().double_tap_gap_seconds);
+    d.finger_tap(p);
+}
+
 const std::map<std::string, Scene>& files_stills() {
     static const std::map<std::string, Scene> scenes{
         {"files", [](Driver& d, examples::components::Gallery&) { files_view(d); }},
+        {"viewer", [](Driver& d, examples::components::Gallery&) { show_page(d, "Viewer"); }},
+        {"viewer_zoomed",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             viewer_pinch(d);
+             d.settle();
+         }},
+        {"viewer_panned",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             viewer_pinch(d);
+             d.settle();
+             viewer_pan(d);
+             d.settle();
+         }},
+        {"viewer_double_tap",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             viewer_double_tap(d, 0.25, 0.25);
+             d.settle();
+         }},
+        {"viewer_disabled",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             click_named(d, "Enabled", 0.4);
+             d.move_to({720.0, 845.0}, 0.3);
+             viewer_pinch(d);
+             d.settle();
+         }},
         {"files_file_menu",
          [](Driver& d, examples::components::Gallery& g) {
              files_view(d);
@@ -2561,6 +2668,18 @@ const std::map<std::string, Scene>& files_stills() {
 
 const std::map<std::string, Scene>& files_videos() {
     static const std::map<std::string, Scene> scenes{
+        {"viewer_pinch",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             viewer_pinch(d);
+             d.wait(0.6);
+             viewer_pan(d);
+             d.wait(1.0);
+             viewer_double_tap(d, 0.5, 0.5);
+             d.wait(0.8);
+             viewer_double_tap(d, 0.25, 0.25);
+             d.wait(0.8);
+         }},
         {"files_menubar",
          [](Driver& d, examples::components::Gallery& g) {
              files_view(d);

@@ -35,6 +35,7 @@ public:
     virtual bool handle(const input::PointerEvent& event) = 0;
     virtual bool handle(const input::KeyEvent& event) = 0;
     virtual bool handle(const input::WheelEvent& event) = 0;
+    virtual bool handle(const input::FingerEvent&) { return false; }
     virtual bool holds_pointer() const { return false; }
     virtual void handle(const input::TextEvent&) {}
     virtual void handle(const input::ContextClick&) {}
@@ -68,5 +69,6 @@ std::unique_ptr<Page> make_progress_page(PageContext context);
 std::unique_ptr<Page> make_toolbars_page(PageContext context);
 std::unique_ptr<Page> make_adaptive_page(PageContext context);
 std::unique_ptr<Page> make_desktop_page(PageContext context);
+std::unique_ptr<Page> make_viewer_page(PageContext context);
 
 }

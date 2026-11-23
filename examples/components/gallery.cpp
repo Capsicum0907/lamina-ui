@@ -86,8 +86,8 @@ struct Layout {
     std::string font_name_prefix = "Font, ";
     std::string font_report_prefix = "Font: ";
     std::string width_report_prefix = "Width: ";
-    std::array<const char*, 15> page_names{"Basics", "Chips", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
-                                           "Groups", "Progress", "Toolbars", "Adaptive", "Desktop"};
+    std::array<const char*, 16> page_names{"Basics", "Chips", "Lists", "App bars", "Inputs", "Dates", "Times", "Sheets", "Drawers", "Search",
+                                           "Groups", "Progress", "Toolbars", "Adaptive", "Desktop", "Viewer"};
 };
 
 class ScrolledBody final : public layout::Node {
@@ -322,6 +322,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
     pages.push_back(make_toolbars_page(context));
     pages.push_back(make_adaptive_page(context));
     pages.push_back(make_desktop_page(context));
+    pages.push_back(make_viewer_page(context));
 
     auto toggle_row = layout::row({widgets::node(switch_label), widgets::node(*enabled_switch)});
     toggle_row->spacing(layout.column_gap).cross_align(layout::CrossAlign::center);
@@ -963,6 +964,11 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
     g.scheme = g.theme.current();
     Page* current = g.current_page();
 
+    if (current) {
+        for (const auto& f : frame.fingers) {
+            current->handle(f);
+        }
+    }
     for (const auto& e : frame.pointer) {
         g.source = input::InputSource::pointer;
         if (current) {
@@ -1043,7 +1049,7 @@ color::Argb Gallery::update(const sdl3::Frame& frame) {
             g.controls.handle(t);
         }
     }
-    if (!frame.pointer.empty() || !frame.context.empty() || !frame.wheel.empty() || !frame.keys.empty() || !frame.text.empty()) {
+    if (!frame.pointer.empty() || !frame.context.empty() || !frame.wheel.empty() || !frame.keys.empty() || !frame.text.empty() || !frame.fingers.empty()) {
         g.place(frame);
     }
     return g.scheme[color::Role::surface];
