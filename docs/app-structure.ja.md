@@ -18,17 +18,43 @@ lamina-ui のプログラムがどう動くかを書きます。窓とその繰�
 
 ## 描画面
 
-`lamina/render/canvas.hpp`：曲線・角丸の四角・影・座標変換の積み重ねを持つ 2D の描画面。描くのは ThorVG です（`lamina::thorvg`）。ThorVG を選んだ理由は [docs/renderer-comparison.ja.md](renderer-comparison.ja.md) にあります。`fill_rect` はただの四角を塗り、バックエンドごとに実装します。ThorVG の描画面は `appendRect` を使わず、四角の曲線と同じ輪郭を渡します。ThorVG は軸にそろった4つの角の輪郭をなめらかにせずに塗るので、縁が変わってしまうためです。`draw_image(image, rect, opacity)` は `render::Image`（`render/image.hpp`：幅・高さと、行ごとに並べた ARGB の画素。アルファは乗算済みでないもの）を四角いっぱいに引き伸ばして描きます。座標変換とクリップに従い、不透明度は 0 から 1 です。Compose の `DrawScope.drawImage` に描き先の大きさとアルファを渡したときと同じです。ThorVG の描画面は呼ばれた時点で画素を写し取るので、画像を描画の終わりまで残しておく必要はありません。拡大縮小はバイリニアで補間します。`push_clip` は四角のほか任意の曲線も取ります。Compose の `Modifier.clip(shape)` と同じで、画像を Material の形に切り抜けます。`pop_clip` は最後のクリップを終え、クリップは入れ子にできます。`render/geometry.hpp` には点の計算（`+`・`-`・拡大・`length`・`unit`・`left_normal`・`cross`）と `circle_rect` があり、`render/path.hpp` は角丸の四角、枠線のための輪（`ring_path`）、円（`circle_path`）、点の列に沿って両端の丸い線の輪郭（`stroke_path`）を作ります。描画面は塗ることしかできないので、線もこの輪郭で塗ります。
+`lamina/render/canvas.hpp`：曲線・角丸の四角・影・座標変換の積み重ねを持つ 2D の描画面。描くのは ThorVG です（`lamina::thorvg`）。ThorVG を選んだ理由は [docs/renderer-comparison.ja.md](renderer-comparison.ja.md) にあります。`fill_rect` はただの四角を塗り、バックエンドごとに実装します。ThorVG の描画面は `appendRect` を使わず、四角の曲線と同じ輪郭を渡します。ThorVG は軸にそろった4つの角の輪郭をなめらかにせずに塗るので、縁が変わってしまうためです。`draw_image(image, rect, opacity)` は `render::Image`（`render/image.hpp`：幅・高さと、行ごとに並べた ARGB の画素。アルファは乗算済みでないもの）を四角いっぱいに引き伸ばして描きます。座標変換とクリップに従い、不透明度は 0 から 1 です。Compose の `DrawScope.drawImage` に描き先の大きさとアルファを渡したときと同じです。ThorVG の描画面は呼ばれた時点で画素を写し取るので、画像を描画の終わりまで残しておく必要はありません。拡大縮小はバイリニアで補間します。GPU で描く身元のある画像は例外です（[GPU で描く画像](#gpu-で描く画像)）。`push_clip` は四角のほか任意の曲線も取ります。Compose の `Modifier.clip(shape)` と同じで、画像を Material の形に切り抜けます。`pop_clip` は最後のクリップを終え、クリップは入れ子にできます。`render/geometry.hpp` には点の計算（`+`・`-`・拡大・`length`・`unit`・`left_normal`・`cross`）と `circle_rect` があり、`render/path.hpp` は角丸の四角、枠線のための輪（`ring_path`）、円（`circle_path`）、点の列に沿って両端の丸い線の輪郭（`stroke_path`）を作ります。描画面は塗ることしかできないので、線もこの輪郭で塗ります。
 
 描画面が省くもの：描画面は切り抜きの外接する長方形を持っています（四角の切り抜きはその四角、曲線の切り抜きはその外接する長方形を、座標変換をかけてから外側の切り抜きと重ねたもの。`visible_bounds()`）。`quick_reject(rect, outset)` は、今の座標での長方形を `outset` だけ広げたものが、それと描画面の外にまるごと出ているかを返します。`fill_path`・`fill_rect`・`fill_rounded_rect`・`fill_shadow`（ずれと、ぼかしの `shadow_margin_sigmas` 倍だけ広げる）・`draw_image` は、描くものの外接する長方形を座標変換の前に調べ、外ならバックエンドに渡しません。`text::draw_line` と `IconFont::draw` は、字形の輪郭を作る前に行やアイコンの箱（大きさの `cull_glyph_outset_em` 倍だけ広げる）を調べます。プログラムも `quick_reject` を呼んで、まとまった部分を飛ばせます。スクロールする領域はページ全体を毎フレーム描くので、長いページの大半はこれで飛ばされます。
 
 ThorVG の描画面は、ぼかした影をキャッシュから描きます。ある形に初めて影を付けるとき、その形を ThorVG のガウスぼかし（`shadow_quality`）で専用の画像にぼかします。画像は四方に標準偏差の `shadow_margin_sigmas` 倍だけ大きく取ります。以後はその画像を描くので、ぼかしではなく画素を写すだけになります。キーは、左上の角から見た形（`1 / shadow_shape_steps` px に丸める）と、ぼかしと色です。なので、スクロールするページのように動くだけの影は一度しかぼかしません。画像はいちばん近い整数の画素の位置に描くので、影は面の端数の位置から最大で半画素ずれます。端数の位置に描くと、ThorVG は画像を拡大縮小する遅い道を通るためです。キャッシュは `shadow_cache_bytes` を超えた分を、描いたのが古い順に捨てます。今のフレームで描いた画像は捨てません。ThorVG はワーカーのスレッドを使います。数はコアの数より一つ少なく、多くて `worker_threads_max` です（`reserved_cores` がメインのスレッドのために残すコア）。トークンは `lamina/tokens/raster.hpp` にあります。
 
+## GPU で描く画像
+
+ThorVG で描く写真は、毎フレーム CPU で拡大縮小されます。スマホではそれがフレームの残り全部より重くなります（実機で、画面いっぱいの 1080 × 2400 のスクリーンショットに約 24 ms。予算は 8.33 ms）。フレームをまたいで変わらない画像なら、一度だけ転送したテクスチャから GPU に描かせられます。
+
+これは画像ごとにプログラムが頼みます。`render::retained(image)` は画像に身元（`Image::identity`、共有の `ImageIdentity`）を付け、身元のある画像の `draw_image` は、窓が受けられれば GPU に回ります。画像を写すと身元も共有されるので、身元のある画像は画素を変えてはいけません。変えた画像は別の画像で、新しい身元を付けます。身元のない画像は、これまでどおりいつも ThorVG で描きます。
+
+1 フレームの組み立て：
+
+- 描画面は、描くものを層に分けます（`render::LayerPlan`）。どれも初めは層 0、窓いっぱいの ThorVG のバッファーです。身元のある画像は、その下（切り抜きの中の外接する長方形）に何かを描いた層のうち一番上の層の上の組に入ります。後から描くものは、下に画像のある組のうち一番上の組の上の層か、重なる前の描画の層に入ります。なので、どの画像とも重ならない描画は、どれだけ後に来ても層 0 に残ります。サムネイルの間に文字のあるページも一つの層のままです。
+- 層 0 より上の層は、それぞれ別の ThorVG の描画面で、中身の外接する長方形に切ってあります（`Canvas::upper_layers()`）。写真の上の上部バーなら、かかるのはバーの面積で、窓いっぱいのバッファーがもう一枚ではありません。切り抜きは、使われる層それぞれに持ち込みます。
+- `sdl3::Window::present` は層 0 をこれまでどおり転送し、上の層はテクスチャのその部分にだけ転送します。それから層 0、組 0 の画像、層 1、組 1 の画像…の順に描きます。画像は `SDL_RenderGeometry` で、座標変換をそのままかけた四角形（ズームビューの倍率と位置、ページャーのずれ）として描き、切り抜きの四角で切り、不透明度は頂点の色に入れます。
+- テクスチャは画像を初めて描くときに作ります（途中で画素を乗算済みにします。線形の補間で透明な部分の縁が暗くならないようにするためで、描くときは `SDL_BLENDMODE_BLEND_PREMULTIPLIED`。ThorVG が乗算済みで書く上の層も同じに描きます）。テクスチャは身元をキーに `render::RetainedTextures` に取っておきます。キャッシュは身元を弱い参照で持つので、画像がなくなった次のフレームでテクスチャも捨てます。テクスチャは画像を持っている入れ物に従います。`WindowOptions::image_texture_bytes`（既定は `image_texture_bytes`）を超えた分は、描いたのが古い順にも捨てます。今のフレームで描いたものは捨てません。デバイスを失ったとき（`SDL_EVENT_RENDER_DEVICE_RESET`）は全部捨てます。
+- `Canvas::prefetch_image(image)` は、まだ描かない画像のテクスチャを先に作らせます。次にスワイプで入ってくる写真を、手が止まっている間に転送しておくためです。
+
+次のときは ThorVG で描きます：
+
+- 窓に GPU のレンダラーがない（SDL の `software`）か、`Window::set_gpu_images(false)` や `WindowOptions::gpu_images = false` で切ってあるとき。窓のない描画面（キャプチャーの道具や試験）は、いつも CPU で描きます。
+- 曲線の切り抜き（角丸の四角、Material の形）の中のとき。GPU が切れるのは四角だけです。回転した四角の切り抜きは、ThorVG と同じく外接する長方形で切ります。
+- どちらかの向きに `retained_min_scale` より小さく描くとき。SDL のレンダラーにはミップマップがないので、半分より縮めたテクスチャは、ThorVG が平均を取るところでちらつきます。
+- レンダラーの最大のテクスチャ（`SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER`）より大きいときと、テクスチャを作るのに一度失敗したとき。
+- `layers_max` より多くの層が要るとき。
+
+限界：切り抜きの四角は整数の画素に丸めます。ThorVG は端数のある切り抜きの縁をなめらかにします。補間はバイリニア（`image_texture_smooth`）で、GPU が受ける倍率では ThorVG と同じです。ThorVG の補間は画像の幾何から元の画素の約半分ずれているので、同じ画像を GPU で描くと、ThorVG の位置より最大で約半画素だけ左上に来ます。正しいのは GPU の位置です。画像の画素は、テクスチャとは別にメモリーに残ります。窓は `present` で画像を読むので、画像は表示し終わるまで残っていなければいけません。
+
+[フレームの計時](#フレームの計時)の数：`gpu images`（テクスチャで描いた画像。`images` は全部を数える）、`uploads` と `upload MB`（そのフレームで作ったテクスチャ）、`layers`（走査した ThorVG の層）、`textures` と `texture MB`（フレームの終わりに取ってあるもの）。テクスチャを作る時間は `upload` に、テクスチャを描く時間は `present` に入ります。
+
 ## フレームの計時
 
 `lamina/diagnostics/frame_stats.hpp` は、1 フレームの時間がどこで使われているかを測ります。実機で動きが引っかかる理由を調べるためのものです。既定では切ってあり、切ってある間は描画面は何も数えず、段階の時間も取りません（窓が時計を読むのは、時間の刻みのためにイベント待ちの前後で読むところだけです）。起動時に入れるのは `WindowOptions::frame_stats`（`diagnostics::FrameStatsSwitches{hud, log}`）、途中で入れたり切ったりするのは `Window::set_frame_stats` です。集めているのは `Window::frame_probe()` の `diagnostics::FrameProbe` です。例のプログラムは `--frame-stats on|log|off` を受け取ります（`on` は重ね表示とログ、`log` はログだけ）。components のギャラリーでは、Basics の Theme にある Frame timing のトグル（速度計のアイコン）で両方が入ります。
 
-1 フレームは段階に分けて測ります。段階はそれぞれ排他で、内側の段階に入っている間は外側の時間を止めます。`wait`（`next_frame` がイベントを待って眠っていた時間。前のフレームに続いて来たフレームだけ数えます。下を参照）、`events`（SDL のイベントを取り出して変換し、窓の大きさを測る）、`update`（`update` の呼び出し）、`layout`（プログラムが `diagnostics::StageScope(probe, Stage::layout)` で印を付けたところ。ギャラリーはレイアウトの処理に付けています）、`paint`（描画面を塗りつぶし、`paint` を呼んで ThorVG の場面を組み立てる）、`image copy`（`draw_image` の中で、ThorVG の描画面の `Picture::load` が画素を写す）、`raster update`（`SwCanvas::update`：ThorVG がパスを走査線の区間に直す）、`raster draw`（`SwCanvas::draw` と `sync`：32 ビットのバッファー全体を消してから塗る。ワーカーのスレッドがあると、`update` はパスをワーカーに渡すだけで、メインのスレッドは `draw` と `sync` でワーカーを待つので、二つの合計で比べる）、`upload`（描画面全体の `SDL_UpdateTexture`）、`present`（`SDL_RenderClear`、`SDL_RenderTexture`、vsync を待つ `SDL_RenderPresent`）です。`work` は `wait` と `present` を除いた全段階の合計です。GPU のドライバーはテクスチャの転送を present まで遅らせることがあるので、`upload` と `present` の境目は CPU から見た区切りで、GPU が実際にしたことの区切りではありません。
+1 フレームは段階に分けて測ります。段階はそれぞれ排他で、内側の段階に入っている間は外側の時間を止めます。`wait`（`next_frame` がイベントを待って眠っていた時間。前のフレームに続いて来たフレームだけ数えます。下を参照）、`events`（SDL のイベントを取り出して変換し、窓の大きさを測る）、`update`（`update` の呼び出し）、`layout`（プログラムが `diagnostics::StageScope(probe, Stage::layout)` で印を付けたところ。ギャラリーはレイアウトの処理に付けています）、`paint`（描画面を塗りつぶし、`paint` を呼んで ThorVG の場面を組み立てる）、`image copy`（`draw_image` の中で、ThorVG の描画面の `Picture::load` が画素を写す）、`raster update`（`SwCanvas::update`：ThorVG がパスを走査線の区間に直す）、`raster draw`（`SwCanvas::draw` と `sync`：32 ビットのバッファー全体を消してから塗る。ワーカーのスレッドがあると、`update` はパスをワーカーに渡すだけで、メインのスレッドは `draw` と `sync` でワーカーを待つので、二つの合計で比べる）、`upload`（描画面全体と上の層の `SDL_UpdateTexture`、身元のある画像のテクスチャ作り）、`present`（`SDL_RenderClear`、`SDL_RenderTexture`、vsync を待つ `SDL_RenderPresent`）です。`work` は `wait` と `present` を除いた全段階の合計です。GPU のドライバーはテクスチャの転送を present まで遅らせることがあるので、`upload` と `present` の境目は CPU から見た区切りで、GPU が実際にしたことの区切りではありません。
 
 描画面は、各フレームで描いたものを `render::Canvas` 自身のメソッドで数えます。なのでどのバックエンドでも数え方は同じです。パスとその点の数（`fill_path`、`fill_rect`、角の丸い長方形、文字。文字は 1 行ごとに字形の輪郭を一つのパスにして描きます）、`offscreen`（外接する長方形がまるごと描画面かその切り抜きの外にあるパス・四角・文字の行・アイコン。描かずに飛ばします。文字の行とアイコンは輪郭を作る前に飛ばすので、その点は数えません）、ぼかした影（飛ばしたものも数える）、`shadow new`（ThorVG の描画面のキャッシュになく、そのフレームでぼかした影）、切り抜き、`draw_image` の回数と描いた画像の画素数、`cover Mpx`（描いた図形の外接する長方形のうち描画面の中にある面積の合計。重ね塗りの見積もりで、ThorVG が実際に触った画素ではありません。ThorVG はそれを知らせません）です。ThorVG の描画面は写したバイト数（`image MB`）を足します。プログラムは `loads` と `load MB` を足せます（Gallery は、そのフレームで受け取ったデコード済みの絵を数えます）。
 

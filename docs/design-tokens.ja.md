@@ -276,6 +276,10 @@ ThorVG の描画面は、影の形を一度だけぼかしてキャッシュか�
 | `cull_glyph_outset_em` | 0.5 | 文字の行やアイコンが箱の外へはみ出しうる幅。大きさの何倍か |
 | `worker_threads_max` | 3 | ThorVG のワーカーのスレッドの上限 |
 | `reserved_cores` | 1 | ThorVG のワーカーに回さないコアの数 |
+| `layers_max` | 3 | 1 フレームの描画面の層の上限。それより多く要る身元のある画像は ThorVG で描く（[GPU で描く画像](app-structure.ja.md#gpu-で描く画像)） |
+| `retained_min_scale` | 0.5 | どちらかの向きにこれより小さく描く身元のある画像は ThorVG で描く |
+| `image_texture_bytes` | 256 MiB | 身元のある画像のテクスチャの既定の上限（`WindowOptions::image_texture_bytes`） |
+| `image_texture_smooth` | true | そのテクスチャをバイリニアで補間する（false は最近傍） |
 
 C の `tokens/StateTokens.kt`（`VERSION: v0_103`）の状態の重ねの不透明度：hover 0.08、focus 0.10、pressed 0.10、dragged 0.16。
 
