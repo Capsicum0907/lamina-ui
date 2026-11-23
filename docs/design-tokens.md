@@ -15,7 +15,7 @@ The values lamina-ui takes from Material 3 Expressive, read from Google's open-s
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
 | A | androidx/androidx — `compose/material3/adaptive/` (adaptive, adaptive-layout, adaptive-navigation), `compose/material3/material3-adaptive-navigation-suite/` and `window/window-core/` | `6068a9492ba8` | Apache-2.0 |
 | D | [material-components/material-components-web](https://github.com/material-components/material-components-web) — `packages/mdc-density/` and the components' `$density-config` | `6ceadb81df50` | MIT |
-| S | The Android SDK as installed by Android Studio: SDK Platform `android-36.1` (revision 1), `platforms/android-36.1/data/res/values/config.xml`, and Sources for Android `android-36.1` (revision 1), `sources/android-36.1/android/view/ViewConfiguration.java` | read on 2026-11-22 | Apache-2.0 |
+| S | The Android SDK as installed by Android Studio: SDK Platform `android-36.1` (revision 1), `platforms/android-36.1/data/res/values/config.xml`, and Sources for Android `android-36.1` (revision 1), `sources/android-36.1/android/view/ViewConfiguration.java`; for the zoom view also `ScaleGestureDetector.java` and `GestureDetector.java` in the same folder (read on 2026-11-23) | read on 2026-11-22 | Apache-2.0 |
 | J | [JetBrains/compose-multiplatform-core](https://github.com/JetBrains/compose-multiplatform-core) — `compose/foundation/foundation/src/desktopMain/` and `compose/ui/ui/src/desktopMain/` (Compose Multiplatform Desktop) | the `jb-main` branch as read on 2026-11-21 (no commit was recorded) | Apache-2.0 |
 
 Reusing these values requires keeping the Apache-2.0 notice and attribution (the MIT notice for D).
@@ -699,7 +699,38 @@ Read on 2026-11-22. From androidx at `6068a9492ba8` (C below means that commit i
 - App bars: `ScrollArea::scroll_in_progress()` covers a touch drag and a fling, and the top and flexible bottom app bars settle only once it is over (Compose settles in `onPostFling`).
 - Sheet content: a touch drag on a bottom sheet's content scrolls the content first when it can scroll that way as the drag starts: downward while the content is not at its top, upward while the sheet is at its Expanded anchor and the content is not at its end. Otherwise the sheet moves. Compose passes what is left of each delta between the content and the sheet through nested scroll during the gesture; lamina-ui decides once per gesture.
 - Text fields, lamina-ui's own: a touch focuses a text field on the tap (the up), not on the press, so a scroll that starts on a field does not focus it, and a tap elsewhere takes the focus away on the up. The mouse still focuses and starts a selection on the press.
-- Not implemented: the overscroll stretch; nested scrolling, so a list inside a page does not hand the rest of a drag or fling to the page at its end; Android's framework velocity tracker, which Compose uses when `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` is set (its default was not read; lamina-ui keeps Lsq2); more than one finger (SDL maps only the first finger to the mouse); Android's minimum fling velocity (S `config_viewMinFlingVelocity` = 50dp), which Compose's scrollable does not use either. A data table selects a row on the press, so a touch drag that starts on a row selects it.
+- Not implemented: the overscroll stretch; nested scrolling, so a list inside a page does not hand the rest of a drag or fling to the page at its end; Android's framework velocity tracker, which Compose uses when `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` is set (its default was not read; lamina-ui keeps Lsq2); more than one finger in a scroll area (SDL maps only the first finger to the mouse; the window reports every finger in `Frame::fingers` since the zoom view, but scroll areas do not read them); Android's minimum fling velocity (S `config_viewMinFlingVelocity` = 50dp), which Compose's scrollable does not use either. A data table selects a row on the press, so a touch drag that starts on a row selects it.
+
+### Zoom view
+
+Read on 2026-11-23 from S: `ScaleGestureDetector.java` (`onTouchEvent`, the constructor), `GestureDetector.java` (`onTouchEvent`, `isConsideredDoubleTap`, `cancelTaps`), `ViewConfiguration.java` and `config.xml`. No androidx (Compose `transformable`, `detectTransformGestures`) or material-components-android source was on this machine, so none was read; the values in the second table are lamina-ui's own. Into `lamina/tokens/zoom.hpp` (`zoom`), `lamina/motion/zoom.hpp` (the math) and `lamina/widgets/zoom_view.hpp` (`ZoomView`).
+
+| Value | lamina-ui | Source |
+|---|---|---|
+| Span slop | 16 dp (`span_slop`) | S `ScaleGestureDetector(Context, ...)` passes `ViewConfiguration.getScaledTouchSlop() * 2` as `spanSlop`; the touch slop is 8 dp ([Touch scrolling](#touch-scrolling)) |
+| Minimum span | 27 mm, 170.08 dp (`min_span`) | S `config.xml` `config_minScalingSpan` = 27mm, read by `getScaledMinimumScalingSpan()`. Android turns millimetres into pixels with the screen's real density; lamina-ui uses 160 dp per inch, so on a screen whose dp is not exactly 1/160 inch the span differs a little |
+| Span | twice the mean distance of the fingers from their centroid on each axis, combined with `hypot` | S `onTouchEvent`: `devSumX / div`, `spanX = devX * 2`, `span = Math.hypot(spanX, spanY)` |
+| Start and end of scaling | starts when the span is at least the minimum and has changed by more than the span slop since the fingers last changed; ends when the span falls below the minimum; a finger added or lifted during scaling restarts it at once if the span is still at least the minimum | S `onTouchEvent`: `span >= minSpan && (wasInProgress || Math.abs(span - mInitialSpan) > mSpanSlop)`, `span < mMinSpan`, `configChanged` |
+| Scale step | each move multiplies the scale by the span over the previous span | S `getScaleFactor()` = `mCurrSpan / mPrevSpan` |
+| Double tap | the second down 40 ms to 300 ms after the first up, less than 100 dp from the first down, and the first tap moved no more than 8 dp; a second finger cancels it; the zoom starts on the second down, about the first tap | S `config_doubleTapTimeoutMillis` = 300, `config_doubleTapMinTimeMillis` = 40, `ViewConfiguration.DOUBLE_TAP_SLOP = 100`, `DOUBLE_TAP_TOUCH_SLOP = TOUCH_SLOP`; `GestureDetector.isConsideredDoubleTap`, `mAlwaysInBiggerTapRegion`, `cancelTaps` on `ACTION_POINTER_DOWN`, `onDoubleTap(mCurrentDownEvent)` on the second `ACTION_DOWN` |
+| Pan slop, fling, edge | 8 dp; Lsq2 velocity clamped to 8000 dp/s, spline decay, a fling above 1 dp/s, stop more than 0.5 dp past an edge | as in [Touch scrolling](#touch-scrolling) |
+
+lamina-ui's own, with no source:
+
+| Value | lamina-ui |
+|---|---|
+| Scale range | 1 (fitted) to 5 (`min_scale`, `max_scale`) |
+| Double tap scale | 2.5 (`double_tap_scale`); a double tap on zoomed content fits it again |
+| Zoomed | more than 0.001 above the minimum scale (`zoomed_epsilon`) |
+| Ctrl and the wheel | 1.25 per notch about the cursor (`wheel_zoom_factor`) |
+| Pan rubber band | `extent × (1 − 1 / (overshoot × 0.55 / extent + 1))`, extent half the viewport (`pan_band_coefficient`, `pan_band_extent`); the form is the one UIKit is commonly described as using, remembered and not read |
+| Scale rubber band | the same curve on the logarithm of the scale, at most ×1.5 past a limit (`scale_band_coefficient`, `scale_band_ratio`) |
+| Settle | the default effects spring (damping 1.0), settled within 0.0001 of the way and 0.001 per second (`settle_spring`, `settle_threshold`); the scale and the offset move along the same fraction, which keeps the focus fixed because the focus-preserving offset is linear in the scale |
+
+- Fitted means scaled to fit inside the viewport and centred (contain). On an axis where the scaled content is smaller than the viewport it stays centred; on an axis where it is larger, its edges cannot come inside the viewport.
+- One finger on content at scale 1 does not pan and is not held, so a scroller around the view keeps the drag, and a pager can later take it. Two fingers always are held, also at scale 1.
+- The double tap fires on the second down, as Android's `GestureDetector` does; Android's quick scale (double tap and drag, `ANCHORED_SCALE_MODE_DOUBLE_TAP`) is not implemented. The mouse double click uses the system's click count, not these values.
+- Not implemented: rotation, quick scale, keyboard zoom, a fling after a mouse drag, and the overscroll stretch.
 
 ### Bottom sheets
 

@@ -26,7 +26,7 @@ The CMake options `LAMINA_BUILD_THORVG` and `LAMINA_BUILD_SDL3` (both on by defa
 
 ## Running the gallery
 
-`build/Release/components.exe` shows every component on fifteen pages. The pages are chosen with the scrollable tabs under the header; the wheel over the tabs scrolls them, and the arrow keys move along them when they have the focus. `--font roboto-flex` or `--font os` starts it in another typeface, and `--title-bar` uses the client-drawn title bar. The pages are described in [Examples](examples.md#components).
+`build/Release/components.exe` shows every component on sixteen pages. The pages are chosen with the scrollable tabs under the header; the wheel over the tabs scrolls them, and the arrow keys move along them when they have the focus. `--font roboto-flex` or `--font os` starts it in another typeface, and `--title-bar` uses the client-drawn title bar. The pages are described in [Examples](examples.md#components).
 
 The other examples are listed in [Examples](examples.md).
 

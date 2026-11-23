@@ -23,7 +23,7 @@ ctest --preset release
 build/Release/components.exe
 ```
 
-`components.exe` is the gallery of every component, fifteen pages chosen with the tabs under its header. More in [Getting started](docs/getting-started.md) and [Examples](docs/examples.md).
+`components.exe` is the gallery of every component, sixteen pages chosen with the tabs under its header. More in [Getting started](docs/getting-started.md) and [Examples](docs/examples.md).
 
 ## A minimal program
 

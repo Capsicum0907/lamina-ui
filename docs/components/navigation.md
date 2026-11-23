@@ -15,7 +15,7 @@ With `TabRowOptions::scrollable`, the tabs no longer share the width. Each tab i
 - Tabs outside the row cannot be clicked, and their accessible bounds are the part that is visible (empty when hidden).
 - `scroll_extent()`, `max_scroll()` and `scroll_offset()` give the content width, the range and the current offset. Changing the width keeps the offset in range without a jump.
 
-Drag scrolling with a finger or the mouse is not implemented yet. The gallery uses a scrollable secondary tab row for its fifteen pages, with `edge_padding` set so that the first label lines up with the title.
+Drag scrolling with a finger or the mouse is not implemented yet. The gallery uses a scrollable secondary tab row for its sixteen pages, with `edge_padding` set so that the first label lines up with the title.
 
 ## Navigation bar
 

@@ -12,6 +12,7 @@ Where lamina-ui does not follow Material 3 and its Compose implementation: value
 - Data table: the values come from MDC Web's data table where it has one, and are lamina-ui's own otherwise. [Table](design-tokens.md#table)
 - Docked date picker: Compose has none; the popup values come from material-web, and the 4 dp gap and the scale-in from 0.8 are lamina-ui's own. [Date picker](design-tokens.md#date-picker)
 - Side sheet header and actions: no source specifies them; the 72 dp header and the action row are lamina-ui's own. [Side sheets](design-tokens.md#side-sheets)
+- Zoom view: Material 3 has no zoomable image component. The gesture thresholds come from Android's `ScaleGestureDetector` and `GestureDetector`; the scale range (1 to 5), the double-tap scale (2.5), the wheel step, the rubber bands and the settle are lamina-ui's own. [Zoom view](design-tokens.md#zoom-view)
 
 ## Values lamina-ui chose
 
