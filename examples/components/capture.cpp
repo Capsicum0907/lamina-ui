@@ -91,6 +91,15 @@ struct CaptureStyle {
     double pinch_seconds = 0.5;
     double pan_fraction = 0.3;
     double pan_seconds = 0.12;
+    double swipe_from = 0.75;
+    double swipe_to = 0.3;
+    double swipe_height = 0.75;
+    double swipe_seconds = 0.2;
+    double swipe_hold_seconds = 0.3;
+    double page_scroll_from = 0.8;
+    double page_scroll_to = 0.2;
+    double page_scroll_seconds = 0.6;
+    std::string_view photos_target = "Photos";
 };
 
 inline constexpr std::string_view window_option = "--window";
@@ -271,6 +280,26 @@ public:
         if (input::leaves_after_up(input::PointerKind::touch)) {
             pointer_events_.push_back(at(PointerAction::leave));
         }
+        frame();
+    }
+
+    void touch_swipe(render::Point to, double seconds, double hold, bool lift) {
+        pointer_events_.push_back(touch(at(PointerAction::down, 1)));
+        frame();
+        const render::Point from = pointer_;
+        const int n = std::max(1, static_cast<int>(std::lround(seconds * style_.fps)));
+        for (int i = 1; i <= n; ++i) {
+            const double t = static_cast<double>(i) / n;
+            pointer_ = {from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t};
+            pointer_events_.push_back(touch(at(PointerAction::move)));
+            frame();
+        }
+        if (!lift) {
+            return;
+        }
+        wait(hold);
+        pointer_events_.push_back(touch(at(PointerAction::up)));
+        pointer_events_.push_back(at(PointerAction::leave));
         frame();
     }
 
@@ -2546,8 +2575,57 @@ void viewer_double_tap(Driver& d, double fx, double fy) {
     d.finger_tap(p);
 }
 
+void page_swipe(Driver& d, bool lift) {
+    const CaptureStyle& s = d.style();
+    const double y = d.window_height() * s.swipe_height;
+    d.set_pointer({d.window_width() * s.swipe_from, y});
+    d.touch_swipe({d.window_width() * s.swipe_to, y}, s.swipe_seconds, 0.0, lift);
+}
+
+render::Rect photos_rect(Driver& d) {
+    const CaptureStyle& s = d.style();
+    const double x = d.window_width() / 2.0;
+    d.set_pointer({x, d.window_height() * s.page_scroll_from});
+    d.touch_swipe({x, d.window_height() * s.page_scroll_to}, s.page_scroll_seconds, s.swipe_hold_seconds, true);
+    d.settle();
+    const std::optional<render::Rect> r = d.find(s.photos_target);
+    if (!r) {
+        throw std::runtime_error("no widget named " + std::string(s.photos_target));
+    }
+    return *r;
+}
+
+void photo_swipe(Driver& d, const render::Rect& r, bool lift) {
+    const CaptureStyle& s = d.style();
+    const double y = r.y + r.height / 2.0;
+    d.set_pointer({r.x + r.width * s.swipe_from, y});
+    d.touch_swipe({r.x + r.width * s.swipe_to, y}, s.swipe_seconds, 0.0, lift);
+}
+
 const std::map<std::string, Scene>& files_stills() {
     static const std::map<std::string, Scene> scenes{
+        {"pages_swiping", [](Driver& d, examples::components::Gallery&) { page_swipe(d, false); }},
+        {"pages_swiped",
+         [](Driver& d, examples::components::Gallery&) {
+             page_swipe(d, true);
+             d.settle();
+         }},
+        {"viewer_photos",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             photos_rect(d);
+         }},
+        {"viewer_photo_swiping",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             photo_swipe(d, photos_rect(d), false);
+         }},
+        {"viewer_photo_swiped",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             photo_swipe(d, photos_rect(d), true);
+             d.settle();
+         }},
         {"files", [](Driver& d, examples::components::Gallery&) { files_view(d); }},
         {"viewer", [](Driver& d, examples::components::Gallery&) { show_page(d, "Viewer"); }},
         {"viewer_zoomed",
@@ -2668,6 +2746,26 @@ const std::map<std::string, Scene>& files_stills() {
 
 const std::map<std::string, Scene>& files_videos() {
     static const std::map<std::string, Scene> scenes{
+        {"pages_swipe",
+         [](Driver& d, examples::components::Gallery&) {
+             d.wait(0.4);
+             page_swipe(d, true);
+             d.wait(0.8);
+             page_swipe(d, true);
+             d.wait(0.8);
+             show_page(d, "Basics");
+             d.wait(0.4);
+         }},
+        {"viewer_photos",
+         [](Driver& d, examples::components::Gallery&) {
+             show_page(d, "Viewer");
+             const render::Rect r = photos_rect(d);
+             d.wait(0.4);
+             photo_swipe(d, r, true);
+             d.wait(0.8);
+             photo_swipe(d, r, true);
+             d.wait(0.8);
+         }},
         {"viewer_pinch",
          [](Driver& d, examples::components::Gallery&) {
              show_page(d, "Viewer");
