@@ -47,6 +47,7 @@ Rect intersect(const Rect& a, const Rect& b) {
 void Canvas::clear(color::Argb color) {
     plan_.reset();
     batches_.clear();
+    prefetched_.clear();
     clip_bounds_.clear();
     clip_is_path_.clear();
     path_clips_ = 0;
@@ -56,6 +57,13 @@ void Canvas::clear(color::Argb color) {
 void Canvas::place_paint(const Rect& device) {
     if (sink_) {
         select_device_layer(plan_.place_paint(intersect(device, visible_bounds())));
+    }
+}
+
+void Canvas::prefetch_image(const Image& image) {
+    if (sink_ && image.identity && image.width > 0 && image.height > 0 &&
+        image.pixels.size() >= static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height) && sink_->accepts(image)) {
+        prefetched_.push_back(&image);
     }
 }
 

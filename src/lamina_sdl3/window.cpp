@@ -838,15 +838,21 @@ void Window::present() {
             const SDL_Rect r{u.x, u.y, u.pixels.width, u.pixels.height};
             SDL_UpdateTexture(m.upper_texture(u.layer), &r, u.pixels.data, static_cast<int>(u.pixels.stride));
         }
+        auto count_upload = [&](const Impl::Textures::Lookup& found) {
+            if (found.made && counting) {
+                m.probe.counts().gpu_uploads += 1;
+                m.probe.counts().gpu_upload_bytes += found.bytes;
+            }
+        };
         for (std::size_t b = 0; b < batches.size(); ++b) {
             for (const render::RetainedDraw& d : batches[b]) {
                 const Impl::Textures::Lookup found = m.textures->get(*d.image, m.frame_number);
                 bound[b].push_back(found.texture.value_or(nullptr));
-                if (found.made && counting) {
-                    m.probe.counts().gpu_uploads += 1;
-                    m.probe.counts().gpu_upload_bytes += found.bytes;
-                }
+                count_upload(found);
             }
+        }
+        for (const render::Image* image : m.canvas->prefetched_images()) {
+            count_upload(m.textures->get(*image, m.frame_number));
         }
     }
     {

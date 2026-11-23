@@ -420,3 +420,21 @@ TEST_CASE("clips carry into the layer above") {
     CHECK(uppers[0].pixels.width == 30);
     canvas.set_retained_images(nullptr);
 }
+
+TEST_CASE("prefetched images are listed for the window only while it takes retained images, until the next clear") {
+    lamina::thorvg::Canvas canvas(20, 20);
+    const Image photo = lamina::render::retained(solid(4, 4, red));
+    const Image plain = solid(4, 4, red);
+    canvas.clear(white);
+    canvas.prefetch_image(photo);
+    CHECK(canvas.prefetched_images().empty());
+    AcceptAll sink;
+    canvas.set_retained_images(&sink);
+    canvas.prefetch_image(photo);
+    canvas.prefetch_image(plain);
+    REQUIRE(canvas.prefetched_images().size() == 1);
+    CHECK(canvas.prefetched_images()[0] == &photo);
+    canvas.clear(white);
+    CHECK(canvas.prefetched_images().empty());
+    canvas.set_retained_images(nullptr);
+}

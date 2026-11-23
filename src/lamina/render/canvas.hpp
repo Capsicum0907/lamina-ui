@@ -69,6 +69,8 @@ public:
     void set_retained_images(const RetainedImageSink* sink) { sink_ = sink; }
     const RetainedImageSink* retained_images() const { return sink_; }
     const std::vector<std::vector<RetainedDraw>>& retained_draws() const { return batches_; }
+    void prefetch_image(const Image& image);
+    const std::vector<const Image*>& prefetched_images() const { return prefetched_; }
 
     void fill_path(const Path& path, color::Argb color, FillRule rule = FillRule::non_zero);
     void fill_shadow(const Path& path, const Shadow& shadow);
@@ -123,6 +125,7 @@ private:
     const RetainedImageSink* sink_ = nullptr;
     LayerPlan plan_{tokens::raster.layers_max};
     std::vector<std::vector<RetainedDraw>> batches_;
+    std::vector<const Image*> prefetched_;
 };
 
 }
