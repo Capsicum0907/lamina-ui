@@ -106,6 +106,7 @@ add_library(lamina STATIC
     src/lamina/widgets/navigation_rail.cpp
     src/lamina/widgets/overlay_stack.cpp
     src/lamina/widgets/pattern_strings.cpp
+    src/lamina/widgets/pinch.cpp
     src/lamina/widgets/picker_dialog.cpp
     src/lamina/widgets/progress_indicator.cpp
     src/lamina/widgets/radio_button.cpp
@@ -378,6 +379,7 @@ if(LAMINA_BUILD_TESTS)
         tests/zoom_test.cpp
         tests/zoom_view_test.cpp
         tests/pager_test.cpp
+        tests/pinch_test.cpp
         tests/search_bar_test.cpp
         tests/segmented_button_test.cpp
         tests/shapes_test.cpp
