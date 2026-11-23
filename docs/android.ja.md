@@ -114,7 +114,7 @@ adb shell am start -n io.github.capsicum0907.lamina.components/.LaminaActivity
 adb logcat -s SDL SDL/APP AndroidRuntime
 ```
 
-デスクトップで標準エラー出力に出るエラーは、Android では logcat にタグ `SDL/APP` のエラーとして出ます（`lamina_sdl3/report.hpp`）。起動中の例外もここに出ます。
+デスクトップで標準エラー出力に出るエラーは、Android では logcat にタグ `SDL/APP` のエラーとして出ます（`lamina_sdl3/report.hpp`）。起動中の例外もここに出ます。フレームの計時のログ（[フレームの計時](app-structure.ja.md#フレームの計時)）は、自分のタグで logcat に info の重さで出ます（`adb logcat -s lamina.frames`）。ギャラリーでは、Basics の Theme にある Frame timing のトグルで、ログと重ね表示が入ります。
 
 x86_64 の APK を動かすエミュレーターは、システムイメージ `android-37.0/google_apis_playstore_ps16k/x86_64` で 1080 × 2400・420 dpi の AVD（幅はおよそ 411 dp で、見本は小さい幅の配置になります）を作り、`emulator -avd <名前> -no-metrics` で起動します。スマートフォンでは USB デバッグかワイヤレスデバッグを有効にして、arm64-v8a の APK を入れます。
 
