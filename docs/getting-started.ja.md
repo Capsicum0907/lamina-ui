@@ -26,7 +26,7 @@ CMake のオプション `LAMINA_BUILD_THORVG` と `LAMINA_BUILD_SDL3`（どち�
 
 ## 部品の一覧を動かす
 
-`build/Release/components.exe` は、すべての部品を十五のページに並べます。ページは見出しの下のタブで選びます。タブの上でホイールを回すとタブが横に送られ、タブにフォーカスがあるときは左右の矢印で移れます。`--font roboto-flex` か `--font os` でほかの書体で始まり、`--title-bar` で自前で描くタイトルバーを使います。各ページの中身は[見本](examples.ja.md#components部品の一覧)にあります。
+`build/Release/components.exe` は、すべての部品を十六のページに並べます。ページは見出しの下のタブで選びます。タブの上でホイールを回すとタブが横に送られ、タブにフォーカスがあるときは左右の矢印で移れます。`--font roboto-flex` か `--font os` でほかの書体で始まり、`--title-bar` で自前で描くタイトルバーを使います。各ページの中身は[見本](examples.ja.md#components部品の一覧)にあります。
 
 ほかの見本は[見本](examples.ja.md)にあります。
 

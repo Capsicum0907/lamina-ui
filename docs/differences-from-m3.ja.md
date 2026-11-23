@@ -12,6 +12,7 @@ lamina-ui が Material 3 とその Compose の実装に従っていないとこ�
 - データの表：MDC Web のデータの表にある値はそこから取り、無いものは lamina-ui が決めました。[表](design-tokens.ja.md#表)
 - 欄の下に開く日付の選択：Compose にはありません。浮かぶ入れ物の値は material-web から取り、4 dp の隙間と 0.8 からの拡大は lamina-ui の値です。[日付の選択](design-tokens.ja.md#日付の選択)
 - サイドシートの見出しと操作の行：決めているソースが無いので、72 dp の見出しと操作の行は lamina-ui の形です。[サイドシート](design-tokens.ja.md#サイドシート)
+- 拡大の表示：Material 3 には拡大できる画像の部品がありません。指の操作のしきい値は Android の `ScaleGestureDetector` と `GestureDetector` から取りました。倍率の範囲（1〜5）、二度たたいたときの倍率（2.5）、ホイールの一段、ゴムのような手応え、戻る動きは lamina-ui の値です。[拡大の表示](design-tokens.ja.md#拡大の表示)
 
 ## lamina-ui が決めた値
 

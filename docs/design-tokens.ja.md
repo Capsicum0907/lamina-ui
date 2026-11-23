@@ -15,7 +15,7 @@ lamina-ui が Material 3 Expressive から借りる値です。Google が公開�
 | U | [material-foundation/material-color-utilities](https://github.com/material-foundation/material-color-utilities) | `f242efc74afc` | Apache-2.0 |
 | A | androidx/androidx の `compose/material3/adaptive/`（adaptive・adaptive-layout・adaptive-navigation）、`compose/material3/material3-adaptive-navigation-suite/`、`window/window-core/` | `6068a9492ba8` | Apache-2.0 |
 | D | [material-components/material-components-web](https://github.com/material-components/material-components-web) の `packages/mdc-density/` と部品ごとの `$density-config` | `6ceadb81df50` | MIT |
-| S | Android Studio が入れた Android SDK：SDK Platform `android-36.1`（リビジョン 1）の `platforms/android-36.1/data/res/values/config.xml` と、Sources for Android `android-36.1`（リビジョン 1）の `sources/android-36.1/android/view/ViewConfiguration.java` | 2026-11-22 に読みました | Apache-2.0 |
+| S | Android Studio が入れた Android SDK：SDK Platform `android-36.1`（リビジョン 1）の `platforms/android-36.1/data/res/values/config.xml` と、Sources for Android `android-36.1`（リビジョン 1）の `sources/android-36.1/android/view/ViewConfiguration.java`。拡大の表示のために、同じフォルダーの `ScaleGestureDetector.java` と `GestureDetector.java` も読みました（2026-11-23） | 2026-11-22 に読みました | Apache-2.0 |
 | J | [JetBrains/compose-multiplatform-core](https://github.com/JetBrains/compose-multiplatform-core) の `compose/foundation/foundation/src/desktopMain/` と `compose/ui/ui/src/desktopMain/`（Compose Multiplatform Desktop） | 2026-11-21 に読んだ `jb-main` ブランチ（コミットは記録していません） | Apache-2.0 |
 
 値を使うときは Apache-2.0 の表示と出典を残します（D は MIT の表示）。
@@ -699,7 +699,38 @@ C の `OutlinedTextField` の既定：補助の文字は Body S で、上に 4 d
 - アプリバー：`ScrollArea::scroll_in_progress()` は指でのドラッグとはじいた動きの間も true で、トップアプリバーとフレキシブルなボトムアプリバーは、それが終わってから止め方を決めます（Compose は `onPostFling` で決めます）。
 - シートの中身：ボトムシートの中身を指でなぞると、なぞり始めにその向きへ中身がスクロールできるときは中身が先に動きます。下向きは中身が一番上にないとき、上向きはシートが Expanded の位置にあって中身が一番下にないときです。そうでなければシートが動きます。Compose は操作の途中でも、入れ子のスクロールで残りの量を中身とシートの間で受け渡しますが、lamina-ui は一回の操作ごとに一度だけ決めます。
 - 入力欄（lamina-ui が決めたこと）：指では、押したときではなく、欄の中で指を離したとき（タップ）に入力欄へ焦点が移ります。そのため欄の上から始めたスクロールで焦点が移ることはなく、ほかの場所のタップは指を離したときに焦点を外します。マウスはこれまでどおり、押したときに焦点を移して選択を始めます。
-- 作っていないもの：端で伸びる動き。入れ子のスクロール（ページの中のリストが端に着いたとき、なぞりやはじきの残りをページに渡すこと）。Android の仕組みの速さの測り方（Compose は `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` のときに使います。その既定値は読んでいません。lamina-ui は Lsq2 のままです）。二本目からの指（SDL がマウスに写すのは最初の指だけです）。Android のはじく速さの下限（S の `config_viewMinFlingVelocity` = 50dp）。Compose のスクロールもこれは使いません。データ表は押したときに行を選ぶので、行の上から始めた指のなぞりはその行を選びます。
+- 作っていないもの：端で伸びる動き。入れ子のスクロール（ページの中のリストが端に着いたとき、なぞりやはじきの残りをページに渡すこと）。Android の仕組みの速さの測り方（Compose は `AndroidComposeUiFlags.isFrameworkVelocityTrackerEnabled` のときに使います。その既定値は読んでいません。lamina-ui は Lsq2 のままです）。スクロールの領域での二本目からの指（SDL がマウスに写すのは最初の指だけです。拡大の表示のために窓はすべての指を `Frame::fingers` で知らせるようになりましたが、スクロールの領域はそれを読みません）。Android のはじく速さの下限（S の `config_viewMinFlingVelocity` = 50dp）。Compose のスクロールもこれは使いません。データ表は押したときに行を選ぶので、行の上から始めた指のなぞりはその行を選びます。
+
+### 拡大の表示
+
+2026-11-23 に S の `ScaleGestureDetector.java`（`onTouchEvent`・コンストラクター）、`GestureDetector.java`（`onTouchEvent`・`isConsideredDoubleTap`・`cancelTaps`）、`ViewConfiguration.java`、`config.xml` を読みました。androidx（Compose の `transformable`・`detectTransformGestures`）と material-components-android のソースはこの機械に無かったので、読んでいません。二つ目の表の値は lamina-ui の値です。入れた先は `lamina/tokens/zoom.hpp`（`zoom`）、`lamina/motion/zoom.hpp`（計算）、`lamina/widgets/zoom_view.hpp`（`ZoomView`）です。
+
+| 値 | lamina-ui | 出典 |
+|---|---|---|
+| 指の間隔の遊び | 16 dp（`span_slop`） | S の `ScaleGestureDetector(Context, ...)` が `spanSlop` に `ViewConfiguration.getScaledTouchSlop() * 2` を渡します。タッチの遊びは 8 dp です（[指でのスクロール](#指でのスクロール)） |
+| 最小の間隔 | 27 mm、170.08 dp（`min_span`） | S の `config.xml` の `config_minScalingSpan` = 27mm を `getScaledMinimumScalingSpan()` が読みます。Android は画面の本当の密度でミリメートルを画素に直します。lamina-ui は 1 インチを 160 dp として直すので、1 dp がちょうど 1/160 インチでない画面では少しずれます |
+| 間隔 | 指の重心からの距離の平均を軸ごとに 2 倍し、`hypot` で合わせたもの | S の `onTouchEvent`：`devSumX / div`、`spanX = devX * 2`、`span = Math.hypot(spanX, spanY)` |
+| 拡大の始まりと終わり | 間隔が最小以上で、指の本数が変わってから遊びより大きく変わったら始まり、最小を下回ったら終わります。拡大の途中で指が増えたり減ったりしたときは、間隔が最小以上ならすぐにまた始まります | S の `onTouchEvent`：`span >= minSpan && (wasInProgress || Math.abs(span - mInitialSpan) > mSpanSlop)`、`span < mMinSpan`、`configChanged` |
+| 一回の倍率 | 動くたびに、今の間隔を前の間隔で割った分を掛けます | S の `getScaleFactor()` = `mCurrSpan / mPrevSpan` |
+| 二度たたき | 二回目の押し下げが一回目を離してから 40〜300 ms、一回目の押し下げから 100 dp 未満、一回目の指の動きが 8 dp 以内。二本目の指が来たら取り消します。拡大は二回目の押し下げで、一回目の位置を中心に始まります | S の `config_doubleTapTimeoutMillis` = 300、`config_doubleTapMinTimeMillis` = 40、`ViewConfiguration.DOUBLE_TAP_SLOP = 100`、`DOUBLE_TAP_TOUCH_SLOP = TOUCH_SLOP`。`GestureDetector.isConsideredDoubleTap`、`mAlwaysInBiggerTapRegion`、`ACTION_POINTER_DOWN` での `cancelTaps`、二回目の `ACTION_DOWN` での `onDoubleTap(mCurrentDownEvent)` |
+| 動かすときの遊び・はじく・端 | 8 dp。Lsq2 の速さを 8000 dp/s で抑え、スプラインで減速し、1 dp/s を超えたらはじき、端を 0.5 dp より越えたら止めます | [指でのスクロール](#指でのスクロール)と同じです |
+
+出典の無い lamina-ui の値：
+
+| 値 | lamina-ui |
+|---|---|
+| 倍率の範囲 | 1（収まる大きさ）〜5（`min_scale`・`max_scale`） |
+| 二度たたいたときの倍率 | 2.5（`double_tap_scale`）。拡大しているときに二度たたくと収まる大きさに戻ります |
+| 拡大している | 最小の倍率より 0.001 を超えて大きいとき（`zoomed_epsilon`） |
+| Ctrl とホイール | 一段でカーソルを中心に 1.25 倍（`wheel_zoom_factor`） |
+| 動かすときのゴムの手応え | `extent × (1 − 1 / (overshoot × 0.55 / extent + 1))`。`extent` は表示の半分（`pan_band_coefficient`・`pan_band_extent`）。UIKit がこの形を使うとよく説明されていますが、記憶によるもので、読んではいません |
+| 倍率のゴムの手応え | 同じ曲線を倍率の対数にかけたもの。限りを越えるのは最大で 1.5 倍まで（`scale_band_coefficient`・`scale_band_ratio`） |
+| 戻る動き | 既定の効果のばね（減衰 1.0）。道のりの 0.0001 以内・毎秒 0.001 以内で止まったとみなします（`settle_spring`・`settle_threshold`）。倍率と位置は同じ割合で進みます。中心を保つ位置は倍率に対して一次なので、これで中心がずれません |
+
+- 収まる大きさとは、表示の中に収まるように縮めて中央にそろえた大きさです。拡大した中身が表示より小さい軸では中央にそろったままで、大きい軸では中身の端が表示の内側に入りません。
+- 倍率 1 のときの一本の指は動かさず、押さえもしません。そのため周りのスクロールがなぞりを受け取れ、あとでページ送りもそれを受け取れます。二本の指は、倍率 1 でもいつも押さえます。
+- 二度たたきは、Android の `GestureDetector` と同じく二回目の押し下げで起こります。Android のクイックスケール（二度たたいてなぞる、`ANCHORED_SCALE_MODE_DOUBLE_TAP`）は作っていません。マウスのダブルクリックは、これらの値ではなくシステムのクリックの回数を使います。
+- 作っていないもの：回転、クイックスケール、キーでの拡大、マウスでのドラッグのあとのはじき、端を越えたときの伸び。
 
 ### ボトムシート
 
