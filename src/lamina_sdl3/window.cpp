@@ -210,11 +210,16 @@ struct Window::Impl {
         probe.set_display(std::move(d));
     }
 
-    void log_frames(bool going_idle) {
-        if (const auto summary = probe.take_log(going_idle)) {
-            const std::string_view title = going_idle ? "gesture" : "running";
-            report_info(probe.tokens().log_tag, diagnostics::report_line(diagnostics::report_rows(*summary, probe.display(), title, probe.tokens())));
+    void log_summary(const diagnostics::FrameSummary& summary, std::string_view title) {
+        report_info(probe.tokens().log_tag, diagnostics::report_line(diagnostics::report_rows(summary, probe.display(), title, probe.tokens())));
+    }
+
+    bool end_gesture() {
+        const diagnostics::FrameProbe::GestureEnd end = probe.end_gesture();
+        if (end.log) {
+            log_summary(*end.log, "gesture");
         }
+        return end.report;
     }
 
     void measure(Frame& frame) {
@@ -448,28 +453,29 @@ bool Window::next_frame(Frame& frame, bool animating) {
     const bool redraw = impl_->pending_redraws > 0;
     impl_->pending_redraws = std::max(0, impl_->pending_redraws - 1);
     double waited = 0.0;
+    bool report = false;
     if (!animating && !redraw) {
         const Uint64 wait_start = SDL_GetTicksNS();
-        if (impl_->probe.switches().log) {
+        if (impl_->probe.active()) {
             const double idle = impl_->probe.idle_wait_seconds();
             const double first = impl_->wake_seconds >= 0.0 ? std::min(idle, impl_->wake_seconds) : idle;
             if (!SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(first * milliseconds_per_second)))) {
-                impl_->log_frames(true);
+                report = impl_->end_gesture();
             }
         }
         const double slept = static_cast<double>(SDL_GetTicksNS() - wait_start) / nanoseconds_per_second;
         if (impl_->wake_seconds >= 0.0) {
-            if (slept < impl_->wake_seconds) {
+            if (!report && slept < impl_->wake_seconds) {
                 SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil((impl_->wake_seconds - slept) * milliseconds_per_second)));
             }
             impl_->frame_limit_seconds = std::max(max_frame_seconds, impl_->wake_seconds);
-        } else {
+        } else if (!report) {
             SDL_WaitEvent(nullptr);
             impl_->last_ns = SDL_GetTicksNS();
         }
         waited = static_cast<double>(SDL_GetTicksNS() - wait_start) / nanoseconds_per_second;
     }
-    impl_->probe.begin_frame(waited);
+    impl_->probe.begin_frame(waited, !report);
     impl_->wake_seconds = -1.0;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {
@@ -696,7 +702,9 @@ void Window::present() {
         SDL_RenderPresent(impl_->renderer);
     }
     impl_->probe.end_frame();
-    impl_->log_frames(false);
+    if (const auto running = impl_->probe.take_running()) {
+        impl_->log_summary(*running, "running");
+    }
 }
 
 diagnostics::FrameProbe& Window::frame_probe() {

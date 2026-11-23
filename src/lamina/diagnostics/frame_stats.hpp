@@ -14,7 +14,7 @@
 
 namespace lamina::diagnostics {
 
-enum class Stage : std::size_t { wait, events, update, layout, paint, image_copy, raster_update, raster_draw, upload, present, overlay, count };
+enum class Stage : std::size_t { wait, events, update, layout, paint, image_copy, raster_update, raster_draw, upload, present, count };
 
 inline constexpr std::size_t stage_count = static_cast<std::size_t>(Stage::count);
 
@@ -133,12 +133,13 @@ public:
     void set_switches(FrameStatsSwitches switches);
     const tokens::FrameStatsTokens& tokens() const { return *tokens_; }
 
-    void begin_frame(double waited_seconds);
+    void begin_frame(double waited_seconds, bool recorded = true);
     double idle_wait_seconds() const;
     Stage enter(Stage stage);
     void end_frame();
     bool in_frame() const { return in_frame_; }
-    bool counting() const { return active() && in_frame_ && stage_ != Stage::overlay; }
+    bool counting() const { return active() && in_frame_ && recorded_; }
+    bool report_frame() const { return in_frame_ && !recorded_; }
     FrameCounts& counts() { return current_.counts; }
 
     void set_display(DisplayInfo display) { display_ = std::move(display); }
@@ -146,7 +147,14 @@ public:
 
     FrameSummary recent() const;
     std::vector<FrameSample> history() const { return ring_.ordered(); }
-    std::optional<FrameSummary> take_log(bool going_idle);
+    const std::optional<FrameSummary>& last_gesture() const { return last_gesture_; }
+
+    struct GestureEnd {
+        std::optional<FrameSummary> log;
+        bool report = false;
+    };
+    GestureEnd end_gesture();
+    std::optional<FrameSummary> take_running();
 
 private:
     using Clock = std::chrono::steady_clock;
@@ -156,6 +164,9 @@ private:
     DisplayInfo display_;
     FrameRing ring_;
     std::vector<FrameSample> pending_log_;
+    std::size_t gesture_frames_ = 0;
+    std::optional<FrameSummary> last_gesture_;
+    bool recorded_ = true;
     FrameSample current_;
     bool in_frame_ = false;
     bool continuous_ = false;

@@ -9,7 +9,7 @@ namespace lamina::diagnostics {
 namespace {
 
 constexpr std::array<std::string_view, stage_count> stage_names{"wait",          "events",      "update", "layout",  "paint",  "image copy",
-                                                                "raster update", "raster draw", "upload", "present", "overlay"};
+                                                                "raster update", "raster draw", "upload", "present"};
 constexpr std::array<std::string_view, count_field_count> count_names{"paths",     "offscreen", "points",    "shadows", "clips",   "images",
                                                                       "image MB",  "image Mpx", "loads",   "load MB", "cover Mpx"};
 
@@ -300,6 +300,8 @@ void FrameProbe::set_switches(FrameStatsSwitches switches) {
     if (active() != was_active) {
         ring_.clear();
         pending_log_.clear();
+        gesture_frames_ = 0;
+        last_gesture_.reset();
         last_end_.reset();
         in_frame_ = false;
     }
@@ -309,10 +311,11 @@ double FrameProbe::idle_wait_seconds() const {
     return tokens_->idle_wait_refreshes / refresh_or_fallback(display_.refresh_hz, *tokens_);
 }
 
-void FrameProbe::begin_frame(double waited_seconds) {
+void FrameProbe::begin_frame(double waited_seconds, bool recorded) {
     if (!active()) {
         return;
     }
+    recorded_ = recorded;
     continuous_ = last_end_.has_value() && waited_seconds <= idle_wait_seconds();
     current_ = {};
     current_.seconds[static_cast<std::size_t>(Stage::wait)] = continuous_ ? waited_seconds : 0.0;
@@ -337,6 +340,10 @@ void FrameProbe::end_frame() {
     if (!in_frame_) {
         return;
     }
+    in_frame_ = false;
+    if (!recorded_) {
+        return;
+    }
     const Clock::time_point now = Clock::now();
     current_.seconds[static_cast<std::size_t>(stage_)] += std::chrono::duration<double>(now - stage_start_).count();
     if (continuous_ && last_end_) {
@@ -344,10 +351,10 @@ void FrameProbe::end_frame() {
     }
     last_end_ = now;
     ring_.push(current_);
+    gesture_frames_ += 1;
     if (switches_.log) {
         pending_log_.push_back(current_);
     }
-    in_frame_ = false;
 }
 
 FrameSummary FrameProbe::recent() const {
@@ -355,16 +362,28 @@ FrameSummary FrameProbe::recent() const {
     return summarize(samples, display_.refresh_hz, *tokens_);
 }
 
-std::optional<FrameSummary> FrameProbe::take_log(bool going_idle) {
-    if (!switches_.log) {
-        return std::nullopt;
+FrameProbe::GestureEnd FrameProbe::end_gesture() {
+    if (gesture_frames_ == 0) {
+        return {};
     }
-    const bool full = pending_log_.size() >= tokens_->log_frames;
-    const bool burst = going_idle && pending_log_.size() >= tokens_->log_min_frames;
-    if (!full && !burst) {
-        if (going_idle) {
-            pending_log_.clear();
-        }
+    GestureEnd out;
+    out.report = switches_.hud;
+    if (gesture_frames_ >= tokens_->log_min_frames) {
+        const std::vector<FrameSample> all = ring_.ordered();
+        const std::size_t n = std::min(gesture_frames_, all.size());
+        last_gesture_ = summarize(std::span<const FrameSample>(all).last(n), display_.refresh_hz, *tokens_);
+    }
+    if (switches_.log && pending_log_.size() >= tokens_->log_min_frames) {
+        out.log = summarize(pending_log_, display_.refresh_hz, *tokens_);
+    }
+    pending_log_.clear();
+    gesture_frames_ = 0;
+    last_end_.reset();
+    return out;
+}
+
+std::optional<FrameSummary> FrameProbe::take_running() {
+    if (!switches_.log || pending_log_.size() < tokens_->log_frames) {
         return std::nullopt;
     }
     FrameSummary out = summarize(pending_log_, display_.refresh_hz, *tokens_);

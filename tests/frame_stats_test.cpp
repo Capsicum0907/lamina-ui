@@ -96,39 +96,56 @@ TEST_CASE("the probe measures an interval only between continuous frames") {
     CHECK(s.intervals == 1);
 }
 
-TEST_CASE("the overlay stage is timed but not counted") {
+TEST_CASE("a report frame is neither recorded nor counted") {
     FrameProbe probe;
     probe.set_switches({true, false});
-    probe.begin_frame(0.0);
-    const StageScope stage(&probe, Stage::overlay);
+    probe.begin_frame(0.0, false);
     CHECK(probe.in_frame());
+    CHECK(probe.report_frame());
     CHECK_FALSE(probe.counting());
+    probe.end_frame();
+    CHECK(probe.recent().frames == 0);
 }
 
-TEST_CASE("the log takes a gesture when it goes idle and a long run every log_frames") {
+TEST_CASE("a gesture ends with a log line and a report frame, and a long run logs every log_frames") {
     tokens::FrameStatsTokens t = tokens::frame_stats;
     t.log_frames = 4;
     t.log_min_frames = 2;
     FrameProbe probe(t);
-    probe.set_switches({false, true});
+    probe.set_switches({true, true});
     auto frames = [&](int n) {
         for (int i = 0; i < n; ++i) {
             probe.begin_frame(0.0);
             probe.end_frame();
         }
     };
+    CHECK_FALSE(probe.end_gesture().report);
     frames(1);
-    CHECK_FALSE(probe.take_log(true));
+    const auto short_one = probe.end_gesture();
+    CHECK(short_one.report);
+    CHECK_FALSE(short_one.log);
+    CHECK_FALSE(probe.last_gesture());
     frames(3);
-    CHECK_FALSE(probe.take_log(false));
+    CHECK_FALSE(probe.take_running());
     frames(1);
-    const auto running = probe.take_log(false);
+    const auto running = probe.take_running();
     REQUIRE(running);
     CHECK(running->frames == 4);
     frames(2);
-    const auto gesture = probe.take_log(true);
-    REQUIRE(gesture);
-    CHECK(gesture->frames == 2);
+    const auto end = probe.end_gesture();
+    REQUIRE(end.log);
+    CHECK(end.log->frames == 2);
+    REQUIRE(probe.last_gesture());
+    CHECK(probe.last_gesture()->frames == 6);
+    CHECK_FALSE(probe.end_gesture().report);
+}
+
+TEST_CASE("without the overlay a gesture end asks for no report frame") {
+    FrameProbe probe;
+    probe.set_switches({false, true});
+    probe.begin_frame(0.0);
+    probe.end_frame();
+    CHECK_FALSE(probe.end_gesture().report);
 }
 
 TEST_CASE("the canvas counts paths, images and the bytes the ThorVG canvas copies") {
