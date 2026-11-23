@@ -301,6 +301,7 @@ void FrameProbe::set_switches(FrameStatsSwitches switches) {
         ring_.clear();
         pending_log_.clear();
         gesture_frames_ = 0;
+        run_frames_ = 0;
         last_gesture_.reset();
         last_end_.reset();
         in_frame_ = false;
@@ -316,6 +317,9 @@ void FrameProbe::begin_frame(double waited_seconds, bool recorded) {
         return;
     }
     recorded_ = recorded;
+    if (recorded && waited_seconds > tokens_->run_gap_seconds) {
+        run_frames_ = 0;
+    }
     continuous_ = last_end_.has_value() && waited_seconds <= idle_wait_seconds();
     current_ = {};
     current_.seconds[static_cast<std::size_t>(Stage::wait)] = continuous_ ? waited_seconds : 0.0;
@@ -352,6 +356,7 @@ void FrameProbe::end_frame() {
     last_end_ = now;
     ring_.push(current_);
     gesture_frames_ += 1;
+    run_frames_ += 1;
     if (switches_.log) {
         pending_log_.push_back(current_);
     }
@@ -368,9 +373,9 @@ FrameProbe::GestureEnd FrameProbe::end_gesture() {
     }
     GestureEnd out;
     out.report = switches_.hud;
-    if (gesture_frames_ >= tokens_->log_min_frames) {
+    if (run_frames_ >= tokens_->log_min_frames) {
         const std::vector<FrameSample> all = ring_.ordered();
-        const std::size_t n = std::min(gesture_frames_, all.size());
+        const std::size_t n = std::min(run_frames_, all.size());
         last_gesture_ = summarize(std::span<const FrameSample>(all).last(n), display_.refresh_hz, *tokens_);
     }
     if (switches_.log && pending_log_.size() >= tokens_->log_min_frames) {

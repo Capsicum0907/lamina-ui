@@ -165,6 +165,7 @@ private:
     FrameRing ring_;
     std::vector<FrameSample> pending_log_;
     std::size_t gesture_frames_ = 0;
+    std::size_t run_frames_ = 0;
     std::optional<FrameSummary> last_gesture_;
     bool recorded_ = true;
     FrameSample current_;

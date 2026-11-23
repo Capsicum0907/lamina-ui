@@ -18,6 +18,7 @@ struct FrameStatsTokens {
     std::size_t report_items_per_row;
     double late_factor;
     double idle_wait_refreshes;
+    double run_gap_seconds;
     double fallback_refresh_hz;
     std::string_view log_tag;
     double seconds_to_ms;
@@ -48,6 +49,7 @@ inline constexpr FrameStatsTokens frame_stats{
     .report_items_per_row = 2,
     .late_factor = 1.5,
     .idle_wait_refreshes = 2.0,
+    .run_gap_seconds = 1.0,
     .fallback_refresh_hz = 60.0,
     .log_tag = "lamina.frames",
     .seconds_to_ms = 1000.0,

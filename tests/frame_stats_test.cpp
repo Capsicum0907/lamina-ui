@@ -125,7 +125,9 @@ TEST_CASE("a gesture ends with a log line and a report frame, and a long run log
     CHECK(short_one.report);
     CHECK_FALSE(short_one.log);
     CHECK_FALSE(probe.last_gesture());
-    frames(3);
+    probe.begin_frame(t.run_gap_seconds * 2.0);
+    probe.end_frame();
+    frames(2);
     CHECK_FALSE(probe.take_running());
     frames(1);
     const auto running = probe.take_running();
