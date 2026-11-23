@@ -94,7 +94,7 @@ void SplitButton::sync_menu(input::InputSource source) {
         return;
     }
     if (trailing_->checked() && !menu_->is_open()) {
-        menu_->open(bounds(), window_, source);
+        menu_->open(trailing_->bounds(), window_, source);
     } else if (!trailing_->checked() && menu_->is_open()) {
         menu_->close();
     }

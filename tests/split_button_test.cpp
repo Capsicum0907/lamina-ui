@@ -260,3 +260,39 @@ TEST_CASE("a button ellipsizes its label only when asked to") {
     e.set_size(natural, e.height());
     CHECK_FALSE(e.label_ellipsized());
 }
+
+TEST_CASE("the menu opens under the trailing half, start-aligned with it, and end-aligned with it when there is no room to the right") {
+    auto s = make(ButtonSize::large);
+    click_on(s, s.trailing());
+    settle(s);
+    REQUIRE(s.menu_open());
+    const render::Rect trail = s.trailing().bounds();
+    render::Rect menu = s.menu()->bounds();
+    CHECK(menu.x == doctest::Approx(trail.x));
+    CHECK(menu.y == doctest::Approx(trail.y + trail.height));
+    click_on(s, s.trailing());
+    REQUIRE_FALSE(s.menu_open());
+    s.set_origin({800.0 - s.width() - 10.0, 10.0});
+    click_on(s, s.trailing());
+    settle(s);
+    const render::Rect moved = s.trailing().bounds();
+    menu = s.menu()->bounds();
+    CHECK(menu.x + menu.width == doctest::Approx(moved.x + moved.width));
+    CHECK(menu.y == doctest::Approx(moved.y + moved.height));
+}
+
+TEST_CASE("without room below, the menu opens above the trailing half and leaves the split button uncovered") {
+    const layout::Size phone{1080.0 / 2.625, 2400.0 / 2.625};
+    auto s = make(ButtonSize::extra_large);
+    s.set_window(phone);
+    s.arrange({16.0, phone.height - 24.0 - s.height() - 100.0, phone.width - 32.0, s.height()});
+    click_on(s, s.trailing());
+    settle(s);
+    REQUIRE(s.menu_open());
+    const render::Rect trail = s.trailing().bounds();
+    const render::Rect menu = s.menu()->bounds();
+    CHECK(trail.y + trail.height + menu.height > phone.height - tokens::menu_tokens.window_vertical_margin);
+    CHECK(menu.y + menu.height == doctest::Approx(trail.y));
+    CHECK(menu.y + menu.height <= s.bounds().y + 1e-9);
+    CHECK(menu.x == doctest::Approx(trail.x));
+}
