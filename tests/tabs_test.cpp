@@ -272,3 +272,30 @@ TEST_CASE("a touch on scrollable tabs during a fling stops it and does not selec
     CHECK_FALSE(row.handle(touch_at(input::PointerAction::up, 150.0, y, time)));
     CHECK(row.selected() == 0);
 }
+
+TEST_CASE("a pager can place the indicator between two tabs without a spring and a selection then animates from there") {
+    widgets::TabRow row = make(TabStyle::primary);
+    const render::Rect one = row.indicator_rect();
+    row.select(2);
+    settle(row);
+    const render::Rect three = row.indicator_rect();
+    row.select(0);
+    settle(row);
+    row.set_indicator_position(0.5);
+    CHECK(!row.animating());
+    const render::Rect half = row.indicator_rect();
+    CHECK(half.x + half.width / 2.0 == doctest::Approx(row.tab_rect(0).x + 50.0 + 50.0));
+    row.set_indicator_position(1.75);
+    const render::Rect late = row.indicator_rect();
+    const double two_centre = row.tab_rect(1).x + row.tab_rect(1).width / 2.0;
+    const double three_centre = three.x + three.width / 2.0;
+    CHECK(late.x + late.width / 2.0 == doctest::Approx(two_centre + 0.75 * (three_centre - two_centre)));
+    row.set_indicator_position(-1.0);
+    CHECK(row.indicator_rect().x == doctest::Approx(one.x));
+    row.set_indicator_position(9.0);
+    CHECK(row.indicator_rect().x == doctest::Approx(three.x));
+    row.select(1);
+    CHECK(row.animating());
+    settle(row);
+    CHECK(row.indicator_rect().x + row.indicator_rect().width / 2.0 == doctest::Approx(two_centre));
+}

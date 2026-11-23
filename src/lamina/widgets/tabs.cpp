@@ -152,14 +152,31 @@ double TabRow::content_width(const Tab& tab, double slot) const {
     return std::max(std::min(intrinsic, slot) - padding, t.indicator_min_width);
 }
 
-double TabRow::indicator_target_width() const {
-    if (tabs_.empty()) {
-        return 0.0;
-    }
+double TabRow::indicator_width_for(std::size_t index) const {
     if (tokens::tab_style(options_.style).indicator_matches_content) {
-        return content_width(tabs_[options_.selected], slot_width(options_.selected));
+        return content_width(tabs_[index], slot_width(index));
     }
-    return slot_width(options_.selected);
+    return slot_width(index);
+}
+
+double TabRow::indicator_target_width() const {
+    return tabs_.empty() ? 0.0 : indicator_width_for(options_.selected);
+}
+
+void TabRow::set_indicator_position(double position) {
+    if (tabs_.empty()) {
+        return;
+    }
+    const double last = static_cast<double>(tabs_.size() - 1);
+    const double p = std::clamp(position, 0.0, last);
+    const auto from = static_cast<std::size_t>(std::floor(p));
+    const std::size_t to = std::min(from + 1, tabs_.size() - 1);
+    const double f = p - static_cast<double>(from);
+    const double centre_from = slot_start(from) + slot_width(from) / 2.0;
+    const double centre_to = slot_start(to) + slot_width(to) / 2.0;
+    indicator_offset_.snap_to(motion::lerp(centre_from, centre_to, f));
+    indicator_width_.snap_to(motion::lerp(indicator_width_for(from), indicator_width_for(to), f));
+    placed_ = true;
 }
 
 void TabRow::retarget_indicator() {

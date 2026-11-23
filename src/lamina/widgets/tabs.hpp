@@ -66,6 +66,7 @@ public:
     void select(std::size_t index);
     render::Rect tab_rect(std::size_t index) const;
     render::Rect indicator_rect() const;
+    void set_indicator_position(double position);
     double selection(std::size_t index) const { return tabs_[index].selected.value(); }
 
     bool focused() const { return focus_.focused(); }
@@ -106,6 +107,7 @@ private:
     void clamp_scroll();
     std::optional<bool> handle_touch(const input::PointerEvent& event);
     void follow_touch(double dx);
+    double indicator_width_for(std::size_t index) const;
     double indicator_target_width() const;
     void retarget_indicator();
     void retarget_state_layers();
