@@ -299,6 +299,28 @@ Read on 2026-11-23 from androidx at `6068a9492ba8`: material3 `InteractiveCompon
 - Where the choice is made: among the members of a `WidgetSet` (a nested set competes with its best member), and inside `ButtonGroup`, `ChipGroup`, `FloatingToolbar`, `TopAppBar`, `FlexibleBottomAppBar` and `SplitButton`. A widget takes part through `target_hit` (the `Targeted` concept). Widgets without it, such as list rows, text fields and menus, do not compete, and a control's margin can reach over them.
 - Deviations: Compose's `minimumInteractiveComponentSize` also reserves the 48 dp in the layout ("Reserves at least 48.dp in size"), and `Surface(onClick)` starts its modifier chain with it, so a 40 dp Compose button takes a 48 dp slot. lamina-ui keeps the layout at the visual size, as for the dialog buttons ([Dialog](#dialog)). Compose widens the hit area for touch only (`PointerType.Touch`; a mouse or a stylus hits the bounds); lamina-ui widens it for the mouse and the pen too. Compose has no density and widens touches even with `LocalMinimumInteractiveComponentSize` at 0 dp; lamina-ui drops the area at a negative density, as MDC does ([Density](#density)). A disabled control still competes, so a tap in a margin it wins does nothing.
 
+### Mouse echoes after a touch
+
+lamina-ui's own rule, from what SDL 3.4.10 sends on Windows ([Testing](testing.md#touch-injection-on-windows)). It is `input::TouchEchoFilter` in `lamina/input/touch_echo.hpp`, with the tolerance `touch_echo_tolerance_pixels` (1 px) in `lamina/tokens/interaction.hpp`; the SDL window passes every mouse, touch and pen event through it before the widgets see it.
+
+- While a finger is down, no mouse move reaches the widgets.
+- After the finger lifts, a mouse move that lands less than one pixel, on each axis, from the last touch point on the screen does not reach the widgets. Any other mouse move does, at once: the hover comes back as soon as the mouse really moves.
+- The point is kept in screen coordinates (the window's position plus the event's position), so a move at the same place on the screen after the window has moved is still held back.
+- Mouse presses, releases and leaves, wheel turns, and touch and pen events always pass. A mouse press also ends a finger whose lift never arrived.
+
+Why. On Windows a touch also moves the system cursor to the touch point. Windows then sends mouse moves of its own to the window under the cursor, without the touch marker that SDL uses to drop the mouse messages Windows makes from a touch (`GetMouseMessageSource`), so SDL reports them as the real mouse (`SDL_GLOBAL_MOUSE_ID`), and the control under the last touch shows hover. Traced on this machine: such a move came between the finger's down and up or right after the up, after the window was resized, after it was restored from minimized, and, by timing only, after another process started or ended; during a drag one came at a point the finger had already left. Every one was at the cursor, which is the last touch point. SDL drops moves that do not change its position, but these pass: SDL's touch position has a fraction of a pixel and the cursor does not, and SDL forgets its position when the mouse enters the window again. An echo cannot be told from a real move by where it comes from; it can by where it lands, since a real mouse that moves leaves the touch point and an echo does not.
+
+- The tolerance is one pixel because the echo is the cursor's whole-pixel position of a touch point that has a fraction: the two differ by less than one pixel on each axis (296.002 against 296 in the trace).
+- No timer. A time window after a touch would hold back a real mouse moved right after a touch and still pass an echo that comes later, as the ones after a restore or a resize do.
+- Cost: a real mouse that moves by less than a pixel from the touch point, or comes back exactly onto it, loses that one move; the next move passes. A real mouse moved while a finger is down is ignored until the finger lifts.
+- Not covered: a tap on the title bar's system buttons (maximize) arrives as non-client mouse messages, not as a touch, so its point is not recorded.
+
+Compared, from general knowledge and not read for this:
+
+- Browsers fire compatibility mouse events at the touch point after a tap, and `:hover` stays on the tapped element until something else is touched; the media query `(hover: none)` exists partly for this. lamina-ui deliberately differs: it ends the hover when the finger lifts (`leaves_after_up`) and keeps it ended.
+- Compose on Android gets hover only from a mouse or a stylus (hover `MotionEvent`s), so a touch never leaves hover there; this rule gives the same result on Windows. Compose for desktop on Windows was not looked at.
+- Chromium on Windows is remembered to drop mouse messages for a short time after a touch; that was not checked here.
+
 ## Disabled state
 
 Read on 2026-11-21 from androidx at `6068a9492ba8` (C below means that commit in this section): the disabled colors of each component's Compose defaults, which sometimes differ from the token file.
