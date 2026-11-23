@@ -261,6 +261,13 @@ std::vector<ZoomView::Finger>::iterator ZoomView::find_finger(std::uint64_t id) 
 bool ZoomView::finger_down(const input::FingerEvent& e) {
     const double x = e.x_dp - bounds_.x;
     const double y = e.y_dp - bounds_.y;
+    if (const auto stale = find_finger(e.finger); stale != fingers_.end()) {
+        fingers_.erase(stale);
+        if (fingers_.empty()) {
+            phase_ = Phase::idle;
+            scaling_ = false;
+        }
+    }
     if (fingers_.empty()) {
         if (!contains(bounds_, e.x_dp, e.y_dp)) {
             return false;
@@ -287,9 +294,6 @@ bool ZoomView::finger_down(const input::FingerEvent& e) {
         tracker_x_.add(e.time_seconds, x);
         tracker_y_.add(e.time_seconds, y);
         return zoomed();
-    }
-    if (find_finger(e.finger) != fingers_.end()) {
-        return false;
     }
     fingers_.push_back({e.finger, x, y, x, y});
     single_tap_ = false;

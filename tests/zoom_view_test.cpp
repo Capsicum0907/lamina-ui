@@ -492,3 +492,18 @@ TEST_CASE("a touch that stops an outer fling hands a zoomed view's finger to the
     CHECK(z.transform().y == before.y);
     CHECK(!z.holds_pointer());
 }
+
+TEST_CASE("a down for a finger the view still holds drops the old one, so a missed up does not stick") {
+    ZoomView z = make();
+    Clock c;
+    z.handle(finger(FingerAction::down, 7, 300.0, 200.0, c.tick()));
+    z.handle(input::PointerEvent{PointerAction::leave, 0.0, 0.0});
+    CHECK(z.fingers_down() == 1);
+    const double x = 250.0;
+    const double y = 180.0;
+    tap(z, x, y, c.now + 1.0, c.now + 1.05);
+    CHECK(z.fingers_down() == 0);
+    tap(z, x, y, c.now + 1.2, c.now + 1.25);
+    run(z);
+    CHECK(z.scale() == doctest::Approx(t.double_tap_scale));
+}
