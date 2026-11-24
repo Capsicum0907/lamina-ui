@@ -7,9 +7,12 @@
 #include <vector>
 
 #include "components/base_page.hpp"
+#include "components/demo_frame.hpp"
 #include "components/pages.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/list_view.hpp"
 #include "lamina/widgets/loading_indicator.hpp"
+#include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/wavy_progress.hpp"
@@ -36,6 +39,9 @@ struct ProgressLayout {
     double percent = 100.0;
     double large = 144.0;
     double handoff_inset = 64.0;
+    layout::Size refresh_frame{320.0, 400.0};
+    std::size_t refresh_rows = 16;
+    double refresh_seconds = 1.5;
 };
 
 const ProgressLayout progress_layout;
@@ -50,12 +56,44 @@ class ProgressPage final : public BasePage {
 public:
     explicit ProgressPage(PageContext context) : BasePage(std::move(context)) {
         const ProgressLayout& l = progress_layout;
-        root = columns({{controls_section(), loading()}, {wavy()}}, l.column_space, l.section_gap);
+        root = columns({{controls_section(), loading()}, {wavy(), refresh()}}, l.column_space, l.section_gap);
         set_all(l.start_progress, false);
     }
 
+    bool handle(const input::PointerEvent& e) override {
+        handle_tips(e);
+        const bool at_top = list_->scroll_area().offset() <= tokens::pull_to_refresh_tokens.top_tolerance;
+        const widgets::PullToRefreshResponse r = pull_.handle(e, at_top);
+        if (r.refresh) {
+            refresh_clock_ = 0.0;
+            ctx.report("Pull to refresh: refreshing");
+        }
+        if (r.claimed) {
+            list_->cancel_interaction();
+        }
+        if (r.consumed) {
+            return true;
+        }
+        const bool used = list_->handle(e).consumed;
+        return handle_controls(e) || used;
+    }
+    bool handle(const input::WheelEvent& e) override { return list_->handle(e); }
+    bool holds_pointer() const override { return pull_.holds_pointer() || list_->holds_pointer() || BasePage::holds_pointer(); }
+
     void step(double dt) override {
         BasePage::step(dt);
+        list_->step(dt);
+        if (pull_.refreshing()) {
+            refresh_clock_ += dt;
+            if (refresh_clock_ >= progress_layout.refresh_seconds) {
+                refreshed_ += 1;
+                std::vector<widgets::ListItemSpec> rows = refresh_rows();
+                list_->set_items(std::move(rows));
+                pull_.set_refreshing(false);
+                ctx.report("Pull to refresh: done");
+            }
+        }
+        pull_.step(dt);
         if (running_) {
             run_clock_ += dt;
             if (run_clock_ >= progress_layout.run_interval) {
@@ -70,7 +108,47 @@ public:
         }
     }
 
-    bool animating() const override { return BasePage::animating() || running_; }
+    bool animating() const override { return BasePage::animating() || running_ || list_->animating() || pull_.animating(); }
+
+    void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override {
+        frame_.paint_background(canvas, scheme);
+        BasePage::paint(canvas, scheme);
+        frame_.begin_clip(canvas);
+        list_->paint(canvas, scheme);
+        pull_.paint(canvas, scheme);
+        frame_.end_clip(canvas);
+        frame_.paint_border(canvas, scheme);
+    }
+
+    std::vector<widgets::AccessibleNode> accessible_nodes() const override {
+        std::vector<widgets::AccessibleNode> nodes = BasePage::accessible_nodes();
+        nodes.push_back(list_->accessible());
+        if (auto n = pull_.accessible()) {
+            nodes.push_back(std::move(*n));
+        }
+        return nodes;
+    }
+
+    void set_enabled(bool enabled) override {
+        BasePage::set_enabled(enabled);
+        list_->set_enabled(enabled);
+        pull_.set_enabled(enabled);
+    }
+
+    void cancel_interaction() override {
+        BasePage::cancel_interaction();
+        list_->cancel_interaction();
+        pull_.cancel_interaction();
+    }
+
+    std::optional<double> next_wake_seconds() const override {
+        std::optional<double> wake = BasePage::next_wake_seconds();
+        const double w = list_->next_wake_seconds();
+        if (w >= 0.0) {
+            wake = wake ? std::min(*wake, w) : w;
+        }
+        return wake;
+    }
 
 private:
     layout::NodePtr loading() {
@@ -169,6 +247,30 @@ private:
         return heading("Wavy progress indicators", column);
     }
 
+    std::vector<widgets::ListItemSpec> refresh_rows() const {
+        std::vector<widgets::ListItemSpec> rows;
+        for (std::size_t i = 0; i < refreshed_; ++i) {
+            widgets::ListItemSpec s{"New message " + std::to_string(refreshed_ - i), "Arrived with refresh " + std::to_string(refreshed_ - i)};
+            s.leading = widgets::ListSlot::of_avatar("N");
+            rows.push_back(std::move(s));
+        }
+        for (std::size_t i = 0; i < progress_layout.refresh_rows; ++i) {
+            widgets::ListItemSpec s{"Message " + std::to_string(i + 1), i % 2 == 0 ? "Supporting text" : ""};
+            s.leading = widgets::ListSlot::of_avatar("M");
+            rows.push_back(std::move(s));
+        }
+        return rows;
+    }
+
+    layout::NodePtr refresh() {
+        list_ = std::make_unique<widgets::ListView>(widgets::ListViewOptions{refresh_rows(), false, "Refresh list"}, ctx.fonts);
+        frame_.on_arrange([this](const render::Rect& r) {
+            list_->set_viewport(r);
+            pull_.set_area(r);
+        });
+        return heading("Pull to refresh", frame_.node(nullptr), layout::CrossAlign::start);
+    }
+
     void set_all(double v, bool ease) {
         shown_ = v;
         for (auto* li : loaders_) {
@@ -204,6 +306,11 @@ private:
     double shown_ = 0.0;
     bool running_ = false;
     double run_clock_ = 0.0;
+    DemoFrame frame_{progress_layout.refresh_frame};
+    std::unique_ptr<widgets::ListView> list_;
+    widgets::PullToRefresh pull_{widgets::PullToRefreshOptions{.accessible_name = "Refreshing"}};
+    double refresh_clock_ = 0.0;
+    std::size_t refreshed_ = 0;
 };
 
 }

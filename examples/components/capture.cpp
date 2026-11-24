@@ -65,6 +65,12 @@ struct CaptureStyle {
     double sweep_back_seconds = 3.0;
     int reveal_notches = 40;
     double reveal_pause_seconds = 0.05;
+    double reveal_margin = 16.0;
+    double pull_start = 40.0;
+    double pull_short = 90.0;
+    double pull_long = 300.0;
+    double pull_seconds = 0.8;
+    double pull_hold = 0.3;
     int scroll_notches = 6;
     std::string_view page_tabs = "Pages";
     double overlap_tolerance = 0.5;
@@ -333,6 +339,17 @@ public:
         pointer_events_.push_back(touch(at(PointerAction::up)));
         pointer_events_.push_back(at(PointerAction::leave));
         frame();
+    }
+
+    void touch_move_to(render::Point to, double seconds) {
+        const render::Point from = pointer_;
+        const int n = std::max(1, static_cast<int>(std::lround(seconds * style_.fps)));
+        for (int i = 1; i <= n; ++i) {
+            const double t = static_cast<double>(i) / n;
+            pointer_ = {from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t};
+            pointer_events_.push_back(touch(at(PointerAction::move)));
+            frame();
+        }
     }
 
     void touch_lift() {
@@ -1968,6 +1985,18 @@ void hold_on(Driver& d, render::Point p, double move, double hold) {
     d.release();
 }
 
+void reveal_frame(Driver& d, examples::components::Gallery& g, const std::string& list) {
+    for (int i = 0; i < d.style().reveal_notches; ++i) {
+        const render::Rect r = bounds_of(g, list);
+        if (r.y + r.height + d.style().reveal_margin <= d.window_height()) {
+            return;
+        }
+        d.move_to({r.x - d.style().reveal_margin, r.y}, 0.0);
+        d.wheel(1.0);
+        d.wait(d.style().reveal_pause_seconds);
+    }
+}
+
 void scroll_frame(Driver& d, examples::components::Gallery& g, const std::string& list, double dy, int notches, double pause) {
     const render::Rect r = bounds_of(g, list);
     d.move_to({r.x + r.width / 2.0, r.y + r.height * 0.4}, 0.5);
@@ -2175,6 +2204,24 @@ const std::map<std::string, Scene>& expressive_videos() {
              d.wait(1.5);
              click_named(d, "Indeterminate", 0.4);
              d.wait(1.6);
+         }},
+        {"pull_refresh",
+         [](Driver& d, examples::components::Gallery& g) {
+             show_page(d, "Progress");
+             reveal_frame(d, g, "Refresh list");
+             const render::Rect r = bounds_of(g, "Refresh list");
+             const render::Point start{r.x + r.width / 2.0, r.y + d.style().pull_start};
+             d.move_to(start, 0.4);
+             d.touch_swipe({start.x, start.y + d.style().pull_short}, d.style().pull_seconds, d.style().pull_hold, true);
+             d.wait(1.0);
+             d.move_to(start, 0.3);
+             d.touch_swipe({start.x, start.y + d.style().pull_long}, d.style().pull_seconds, d.style().pull_hold, true);
+             d.wait(3.0);
+             d.move_to(start, 0.3);
+             d.touch_swipe({start.x, start.y + d.style().pull_long}, d.style().pull_seconds, d.style().pull_hold, false);
+             d.touch_move_to(start, d.style().pull_seconds);
+             d.touch_lift();
+             d.wait(1.0);
          }},
         {"toolbars",
          [](Driver& d, examples::components::Gallery& g) {
