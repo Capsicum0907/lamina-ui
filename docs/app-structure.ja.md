@@ -72,6 +72,19 @@ ThorVG で描く写真は、毎フレーム CPU で拡大縮小されます。�
 
 [フレームの計時](#フレームの計時)の数：`gpu images`（テクスチャで描いた画像。`images` は全部を数える）、`uploads` と `upload MB`（そのフレームで作ったテクスチャ）、`layers`（走査した ThorVG の層）、`textures` と `texture MB`（フレームの終わりに取ってあるもの）。テクスチャを作る時間は `upload` に、テクスチャを描く時間は `present` に入ります。
 
+## GPU で描く動画のコマ
+
+再生中の動画は 1 秒に 24〜60 回絵が変わります。画素が変わってはいけない GPU に取っておく画像にはできず、ThorVG で描けば毎コマ CPU で変換して拡大縮小することになります。`render::VideoFrame`（`lamina/render/video.hpp`）は、デコーダーが渡したままのデコード済みのコマです。大きさ、`VideoLayout::nv12`（輝度の面と、Cb と Cr を交互に並べた面がひとつ）か `VideoLayout::i420`（三つの面）、それぞれの面とその行の幅、行列（`VideoMatrix::bt601` か `bt709`）、全範囲かどうかを持ちます。さらに、動画のあいだずっと変わらない識別の `surface`（プレーヤーごとに一度 `render::video_surface()` で作ります）と、新しいコマごとにプログラムが増やす `generation` を持ちます。
+
+`Canvas::draw_video(frame, rect, opacity)` は、`draw_image` と同じように、変換と切り抜きのもとで長方形いっぱいに描きます。
+
+- ウィンドウが受け取れるとき（`RetainedImageSink::accepts_video`）は、GPU に取っておく画像とまったく同じように層に置きます（[GPU で描く画像](#gpu-で描く画像)）。なので層 0 の指紋には入りません。新しいコマが来ても CPU のバッファーのタイルはひとつも変わらず、動画の上に重なるもの（上に描いたバーやシークの行など）だけが上の層に入ります。ウィンドウは surface ごとにストリーミングのテクスチャをひとつ持ちます。形式はコマに合わせて `SDL_PIXELFORMAT_NV12` か `SDL_PIXELFORMAT_IYUV`、色空間もそれに合うもの（`SDL_COLORSPACE_BT709_LIMITED` など）にするので、RGB への変換は GPU が描きながら行います。面の転送（`SDL_UpdateNVTexture` か `SDL_UpdateYUVTexture`）は generation が変わったときだけなので、止めている動画や、コマのあいだに拡大や移動をしただけの動画は何も転送しません。二つの形式の片方しか持たないレンダラーには、面を並べ替えてから渡します。テクスチャは、surface の最後の持ち主が手放した次のフレームと、デバイスを失ったときに捨てます。
+- そうでないとき（GPU のレンダラーがない、`gpu_images` が切ってある、パスで切り抜いている、元の半分より小さく描く、レンダラーに YUV の形式がない）は、キャンバスがコマを generation ごとに一度だけ ARGB に変換し（`render::video_image`、係数は `lamina/tokens/video.hpp`）、それを GPU に取っておく画像として描きます。なので、画像は受け取れても動画は受け取れないウィンドウでも、コマごとにテクスチャをひとつ作る代わりに GPU で描けます。直近の `cpu_frames_kept` 個の surface の変換済みのコマは取っておくので、止めている動画を何度も変換しません。CPU で描くときは、新しい generation は新しい画像なので、そのタイルを描き直します。
+
+`lamina/render/video.hpp` にデコーダーはありません。デコードはプログラムが行い、新しいコマを新しい generation と一緒に渡します。
+
+[フレームの計時](#フレームの計時)の数：`video ups` と `video MB`（そのフレームで転送した動画のコマとそのバイト数）。GPU で描いた動画も `gpu images` に数えます。
+
 ## フレームの計時
 
 `lamina/diagnostics/frame_stats.hpp` は、1 フレームの時間がどこで使われているかを測ります。実機で動きが引っかかる理由を調べるためのものです。既定では切ってあり、切ってある間は描画面は何も数えず、段階の時間も取りません（窓が時計を読むのは、時間の刻みのためにイベント待ちの前後で読むところだけです）。起動時に入れるのは `WindowOptions::frame_stats`（`diagnostics::FrameStatsSwitches{hud, log}`）、途中で入れたり切ったりするのは `Window::set_frame_stats` です。集めているのは `Window::frame_probe()` の `diagnostics::FrameProbe` です。例のプログラムは `--frame-stats on|log|off` を受け取ります（`on` は重ね表示とログ、`log` はログだけ）。components のギャラリーでは、Basics の Theme にある Frame timing のトグル（速度計のアイコン）で両方が入ります。

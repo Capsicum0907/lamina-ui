@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -184,6 +185,7 @@ struct Window::Impl {
     struct Sink final : render::RetainedImageSink {
         explicit Sink(const Impl& owner) : impl(owner) {}
         bool accepts(const render::Image& image) const override { return impl.accepts(image); }
+        bool accepts_video(const render::VideoFrame& frame) const override { return impl.accepts_video(frame); }
         const Impl& impl;
     };
 
@@ -226,6 +228,149 @@ struct Window::Impl {
     std::vector<std::uint32_t> staging;
     std::uint64_t frame_number = 0;
     bool upload_all = true;
+    bool nv12_textures = false;
+    bool iyuv_textures = false;
+
+    struct VideoTexture {
+        std::weak_ptr<const render::ImageIdentity> owner;
+        SDL_Texture* texture = nullptr;
+        int width = 0;
+        int height = 0;
+        SDL_PixelFormat format = SDL_PIXELFORMAT_UNKNOWN;
+        SDL_Colorspace colorspace = SDL_COLORSPACE_UNKNOWN;
+        std::uint64_t generation = 0;
+        bool filled = false;
+    };
+    std::unordered_map<const render::ImageIdentity*, VideoTexture> video_textures;
+    std::vector<std::uint8_t> plane_a;
+    std::vector<std::uint8_t> plane_b;
+
+    bool accepts_video(const render::VideoFrame& f) const {
+        return gpu_wanted && gpu_capable && (nv12_textures || iyuv_textures) && f.surface && f.width <= max_texture && f.height <= max_texture;
+    }
+
+    static SDL_Colorspace colorspace_of(const render::VideoFrame& f) {
+        if (f.matrix == render::VideoMatrix::bt601) {
+            return f.full_range ? SDL_COLORSPACE_BT601_FULL : SDL_COLORSPACE_BT601_LIMITED;
+        }
+        return f.full_range ? SDL_COLORSPACE_BT709_FULL : SDL_COLORSPACE_BT709_LIMITED;
+    }
+
+    SDL_PixelFormat video_format(const render::VideoFrame& f) const {
+        const bool nv12 = f.layout == render::VideoLayout::nv12;
+        if (nv12 ? nv12_textures : iyuv_textures) {
+            return nv12 ? SDL_PIXELFORMAT_NV12 : SDL_PIXELFORMAT_IYUV;
+        }
+        return nv12_textures ? SDL_PIXELFORMAT_NV12 : SDL_PIXELFORMAT_IYUV;
+    }
+
+    void read_video_formats() {
+        nv12_textures = false;
+        iyuv_textures = false;
+        const auto* formats = static_cast<const SDL_PixelFormat*>(
+            SDL_GetPointerProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_TEXTURE_FORMATS_POINTER, nullptr));
+        for (const SDL_PixelFormat* f = formats; f && *f != SDL_PIXELFORMAT_UNKNOWN; ++f) {
+            nv12_textures = nv12_textures || *f == SDL_PIXELFORMAT_NV12;
+            iyuv_textures = iyuv_textures || *f == SDL_PIXELFORMAT_IYUV;
+        }
+    }
+
+    bool upload_video(SDL_Texture* t, SDL_PixelFormat format, const render::VideoFrame& f) {
+        const int cw = (f.width + 1) / 2;
+        const int ch = (f.height + 1) / 2;
+        if (format == SDL_PIXELFORMAT_NV12) {
+            if (f.layout == render::VideoLayout::nv12) {
+                return SDL_UpdateNVTexture(t, nullptr, f.y.data(), f.y_pitch, f.u.data(), f.uv_pitch);
+            }
+            plane_a.resize(static_cast<std::size_t>(cw) * 2 * static_cast<std::size_t>(ch));
+            for (int r = 0; r < ch; ++r) {
+                for (int c = 0; c < cw; ++c) {
+                    const std::size_t at = static_cast<std::size_t>(r) * static_cast<std::size_t>(f.uv_pitch) + static_cast<std::size_t>(c);
+                    plane_a[(static_cast<std::size_t>(r) * cw + c) * 2] = f.u[at];
+                    plane_a[(static_cast<std::size_t>(r) * cw + c) * 2 + 1] = f.v[at];
+                }
+            }
+            return SDL_UpdateNVTexture(t, nullptr, f.y.data(), f.y_pitch, plane_a.data(), cw * 2);
+        }
+        if (f.layout == render::VideoLayout::i420) {
+            return SDL_UpdateYUVTexture(t, nullptr, f.y.data(), f.y_pitch, f.u.data(), f.uv_pitch, f.v.data(), f.uv_pitch);
+        }
+        plane_a.resize(static_cast<std::size_t>(cw) * static_cast<std::size_t>(ch));
+        plane_b.resize(plane_a.size());
+        for (int r = 0; r < ch; ++r) {
+            for (int c = 0; c < cw; ++c) {
+                const std::size_t at = static_cast<std::size_t>(r) * static_cast<std::size_t>(f.uv_pitch) + static_cast<std::size_t>(c) * 2;
+                plane_a[static_cast<std::size_t>(r) * cw + c] = f.u[at];
+                plane_b[static_cast<std::size_t>(r) * cw + c] = f.u[at + 1];
+            }
+        }
+        return SDL_UpdateYUVTexture(t, nullptr, f.y.data(), f.y_pitch, plane_a.data(), cw, plane_b.data(), cw);
+    }
+
+    SDL_Texture* video_texture(const render::VideoFrame& f, bool counting) {
+        VideoTexture& v = video_textures[f.surface.get()];
+        const SDL_PixelFormat format = video_format(f);
+        const SDL_Colorspace colorspace = colorspace_of(f);
+        if (v.texture && (v.width != f.width || v.height != f.height || v.format != format || v.colorspace != colorspace || v.owner.expired())) {
+            SDL_DestroyTexture(v.texture);
+            v = VideoTexture{};
+        }
+        if (!v.texture) {
+            const SDL_PropertiesID props = SDL_CreateProperties();
+            SDL_SetNumberProperty(props, SDL_PROP_TEXTURE_CREATE_FORMAT_NUMBER, format);
+            SDL_SetNumberProperty(props, SDL_PROP_TEXTURE_CREATE_ACCESS_NUMBER, SDL_TEXTUREACCESS_STREAMING);
+            SDL_SetNumberProperty(props, SDL_PROP_TEXTURE_CREATE_WIDTH_NUMBER, f.width);
+            SDL_SetNumberProperty(props, SDL_PROP_TEXTURE_CREATE_HEIGHT_NUMBER, f.height);
+            SDL_SetNumberProperty(props, SDL_PROP_TEXTURE_CREATE_COLORSPACE_NUMBER, colorspace);
+            v.texture = SDL_CreateTextureWithProperties(renderer, props);
+            SDL_DestroyProperties(props);
+            if (!v.texture) {
+                report_error(std::string("lamina: cannot make a video texture (") + SDL_GetError() + ")");
+                video_textures.erase(f.surface.get());
+                return nullptr;
+            }
+            SDL_SetTextureBlendMode(v.texture, SDL_BLENDMODE_BLEND_PREMULTIPLIED);
+            SDL_SetTextureScaleMode(v.texture, tokens::raster.image_texture_smooth ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
+            v.owner = f.surface;
+            v.width = f.width;
+            v.height = f.height;
+            v.format = format;
+            v.colorspace = colorspace;
+        }
+        if (!v.filled || v.generation != f.generation) {
+            if (!upload_video(v.texture, format, f)) {
+                report_error(std::string("lamina: cannot upload a video frame (") + SDL_GetError() + ")");
+            }
+            v.generation = f.generation;
+            v.filled = true;
+            if (counting) {
+                probe.counts().video_uploads += 1;
+                probe.counts().video_upload_bytes += f.bytes();
+            }
+        }
+        return v.texture;
+    }
+
+    void collect_video_textures() {
+        std::erase_if(video_textures, [](auto& p) {
+            if (!p.second.owner.expired()) {
+                return false;
+            }
+            if (p.second.texture) {
+                SDL_DestroyTexture(p.second.texture);
+            }
+            return true;
+        });
+    }
+
+    void drop_video_textures() {
+        for (auto& [key, v] : video_textures) {
+            if (v.texture) {
+                SDL_DestroyTexture(v.texture);
+            }
+        }
+        video_textures.clear();
+    }
 
     bool accepts(const render::Image& image) const {
         return gpu_wanted && gpu_capable && textures && image.width <= max_texture && image.height <= max_texture && !textures->refused(image);
@@ -258,6 +403,7 @@ struct Window::Impl {
         max_texture = SDL_GetNumberProperty(SDL_GetRendererProperties(renderer), SDL_PROP_RENDERER_MAX_TEXTURE_SIZE_NUMBER, 0);
         textures = std::make_unique<Textures>(
             texture_budget, [this](const render::Image& image) { return make_texture(image); }, [](SDL_Texture* t) { SDL_DestroyTexture(t); });
+        read_video_formats();
         route_images();
     }
 
@@ -294,8 +440,8 @@ struct Window::Impl {
     }
 
     void draw_retained(const render::RetainedDraw& d, SDL_Texture* t) {
-        const auto w = static_cast<double>(d.image->width);
-        const auto h = static_cast<double>(d.image->height);
+        const auto w = static_cast<double>(d.video ? d.video->width : d.image->width);
+        const auto h = static_cast<double>(d.video ? d.video->height : d.image->height);
         const std::array<render::Point, quad_vertices> at{d.to_device.apply({0.0, 0.0}), d.to_device.apply({w, 0.0}), d.to_device.apply({w, h}),
                                                            d.to_device.apply({0.0, h})};
         const std::array<SDL_FPoint, quad_vertices> uv{SDL_FPoint{0.0f, 0.0f}, SDL_FPoint{1.0f, 0.0f}, SDL_FPoint{1.0f, 1.0f}, SDL_FPoint{0.0f, 1.0f}};
@@ -571,6 +717,7 @@ Window::~Window() {
     }
     impl_->canvas->set_retained_images(nullptr);
     impl_->textures.reset();
+    impl_->drop_video_textures();
     impl_->drop_upper_textures();
     if (impl_->texture) {
         SDL_DestroyTexture(impl_->texture);
@@ -727,6 +874,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
         case SDL_EVENT_RENDER_DEVICE_RESET:
             impl_->drop_texture();
             impl_->drop_upper_textures();
+            impl_->drop_video_textures();
             if (impl_->textures) {
                 impl_->textures->clear();
             }
@@ -886,6 +1034,10 @@ void Window::present() {
         };
         for (std::size_t b = 0; b < batches.size(); ++b) {
             for (const render::RetainedDraw& d : batches[b]) {
+                if (d.video) {
+                    bound[b].push_back(m.video_texture(*d.video, counting));
+                    continue;
+                }
                 const Impl::Textures::Lookup found = m.textures->get(*d.image, m.frame_number);
                 bound[b].push_back(found.texture.value_or(nullptr));
                 count_upload(found);
@@ -919,6 +1071,7 @@ void Window::present() {
         SDL_RenderPresent(m.renderer);
     }
     m.textures->collect(m.frame_number);
+    m.collect_video_textures();
     m.frame_number += 1;
     if (counting) {
         m.probe.counts().gpu_textures = m.textures->size();

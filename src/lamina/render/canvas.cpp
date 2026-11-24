@@ -7,6 +7,7 @@
 
 #include "lamina/diagnostics/frame_stats.hpp"
 #include "lamina/tokens/raster.hpp"
+#include "lamina/tokens/video.hpp"
 
 namespace lamina::render {
 
@@ -78,6 +79,10 @@ std::size_t tiles_across(int pixels) {
 }
 
 void Canvas::clear(color::Argb color) {
+    std::erase_if(cpu_videos_, [](const std::unique_ptr<CpuVideo>& v) { return !v->used; });
+    for (const auto& v : cpu_videos_) {
+        v->used = false;
+    }
     plan_.reset();
     batches_.clear();
     prefetched_.clear();
@@ -198,6 +203,70 @@ bool Canvas::retain(const Image& image, const Affine& m, double opacity, std::sp
     }
     batches_[*batch].push_back({&image, m, opacity, visible});
     return true;
+}
+
+bool Canvas::retain_video(const VideoFrame& frame, const Affine& m, double opacity, std::span<const Point> corners) {
+    if (!sink_ || !frame.surface || path_clips_ > 0) {
+        return false;
+    }
+    const double min_scale = minified_ ? 0.0 : tokens::raster.retained_min_scale;
+    if (std::hypot(m.a, m.b) < min_scale || std::hypot(m.c, m.d) < min_scale || !sink_->accepts_video(frame)) {
+        return false;
+    }
+    const Rect visible = visible_bounds();
+    const std::optional<std::size_t> batch = plan_.place_image(intersect(bounds_of(corners), visible));
+    if (!batch) {
+        return false;
+    }
+    if (batches_.size() <= *batch) {
+        batches_.resize(*batch + 1);
+    }
+    batches_[*batch].push_back({nullptr, m, opacity, visible, &frame});
+    return true;
+}
+
+const Image& Canvas::cpu_video(const VideoFrame& frame) {
+    const ImageIdentity* key = frame.surface.get();
+    for (const auto& v : cpu_videos_) {
+        if (key && v->surface == key && v->generation == frame.generation) {
+            v->used = true;
+            return v->image;
+        }
+    }
+    std::erase_if(cpu_videos_, [key](const std::unique_ptr<CpuVideo>& v) { return key && v->surface == key && !v->used; });
+    if (cpu_videos_.size() >= tokens::video.cpu_frames_kept) {
+        std::erase_if(cpu_videos_, [](const std::unique_ptr<CpuVideo>& v) { return !v->used; });
+    }
+    cpu_videos_.push_back(std::make_unique<CpuVideo>(CpuVideo{key, frame.generation, retained(video_image(frame)), true}));
+    return cpu_videos_.back()->image;
+}
+
+void Canvas::draw_video(const VideoFrame& frame, const Rect& rect, double opacity) {
+    if (!frame.valid() || opacity <= 0.0) {
+        return;
+    }
+    if (quick_reject(rect)) {
+        if (probe_ && probe_->counting()) {
+            probe_->counts().images += 1;
+        }
+        return;
+    }
+    const Affine place{rect.width / frame.width, 0.0, 0.0, rect.height / frame.height, rect.x, rect.y};
+    const Affine m = transform_.then_local(place);
+    const auto w = static_cast<double>(frame.width);
+    const auto h = static_cast<double>(frame.height);
+    const std::array<Point, 4> corners{m.apply({0.0, 0.0}), m.apply({w, 0.0}), m.apply({w, h}), m.apply({0.0, h})};
+    if (retain_video(frame, m, std::min(opacity, 1.0), corners)) {
+        if (probe_ && probe_->counting()) {
+            diagnostics::FrameCounts& c = probe_->counts();
+            c.images += 1;
+            c.gpu_images += 1;
+            c.image_pixels += static_cast<std::uint64_t>(frame.width) * static_cast<std::uint64_t>(frame.height);
+            c.covered_pixels += covered(corners);
+        }
+        return;
+    }
+    draw_image(cpu_video(frame), rect, opacity);
 }
 
 Rect Canvas::visible_bounds() const {

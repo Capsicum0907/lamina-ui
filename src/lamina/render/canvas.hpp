@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <vector>
@@ -12,6 +13,7 @@
 #include "lamina/render/image.hpp"
 #include "lamina/render/layer_plan.hpp"
 #include "lamina/render/path.hpp"
+#include "lamina/render/video.hpp"
 #include "lamina/tokens/raster.hpp"
 
 namespace lamina::diagnostics {
@@ -41,6 +43,7 @@ struct RetainedDraw {
     Affine to_device;
     double opacity;
     Rect clip;
+    const VideoFrame* video = nullptr;
 };
 
 struct UpperLayer {
@@ -54,6 +57,7 @@ class RetainedImageSink {
 public:
     virtual ~RetainedImageSink() = default;
     virtual bool accepts(const Image& image) const = 0;
+    virtual bool accepts_video(const VideoFrame&) const { return false; }
 };
 
 class Canvas {
@@ -78,6 +82,7 @@ public:
     void fill_rounded_rect(const Rect& rect, const CornerRadii& radii, color::Argb color);
     void fill_rect(const Rect& rect, color::Argb color);
     void draw_image(const Image& image, const Rect& rect, double opacity = 1.0);
+    void draw_video(const VideoFrame& frame, const Rect& rect, double opacity = 1.0);
 
     void save();
     void restore();
@@ -129,6 +134,15 @@ private:
     void note(const Rect& device, Fingerprint print);
     std::uint64_t clip_hash() const { return clip_hashes_.empty() ? 0 : clip_hashes_.back(); }
     bool retain(const Image& image, const Affine& m, double opacity, std::span<const Point> corners);
+    bool retain_video(const VideoFrame& frame, const Affine& m, double opacity, std::span<const Point> corners);
+    const Image& cpu_video(const VideoFrame& frame);
+
+    struct CpuVideo {
+        const ImageIdentity* surface;
+        std::uint64_t generation;
+        Image image;
+        bool used;
+    };
 
     struct Saved {
         Affine transform;
@@ -151,6 +165,7 @@ private:
     DamageGrid damage_;
     std::vector<std::uint64_t> clip_hashes_;
     std::vector<PixelRect> changed_;
+    std::vector<std::unique_ptr<CpuVideo>> cpu_videos_;
 };
 
 }
