@@ -198,6 +198,7 @@ struct Window::Impl {
     int texture_h = 0;
     std::unique_ptr<render::Canvas> canvas;
     Uint64 last_ns = 0;
+    std::optional<Uint64> presented_ns;
     double wake_seconds = -1.0;
     double frame_limit_seconds = max_frame_seconds;
     bool text_input = false;
@@ -1071,6 +1072,7 @@ void Window::present() {
             }
         }
         SDL_RenderPresent(m.renderer);
+        m.presented_ns = SDL_GetTicksNS();
     }
     m.textures->collect(m.frame_number);
     m.collect_video_textures();
@@ -1083,6 +1085,13 @@ void Window::present() {
     if (const auto running = impl_->probe.take_running()) {
         impl_->log_summary(*running, "running");
     }
+}
+
+std::optional<double> Window::presented_seconds() const {
+    if (!impl_->presented_ns) {
+        return std::nullopt;
+    }
+    return static_cast<double>(*impl_->presented_ns) / nanoseconds_per_second;
 }
 
 diagnostics::FrameProbe& Window::frame_probe() {

@@ -67,6 +67,7 @@ public:
     input::Clipboard& clipboard();
     render::Canvas& canvas();
     void present();
+    std::optional<double> presented_seconds() const;
     diagnostics::FrameProbe& frame_probe();
     void set_frame_stats(diagnostics::FrameStatsSwitches switches);
     void set_gpu_images(bool on);
