@@ -398,6 +398,7 @@ if(LAMINA_BUILD_TESTS)
         tests/split_button_test.cpp
         tests/split_pane_test.cpp
         tests/spring_test.cpp
+        tests/style_test.cpp
         tests/support.cpp
         tests/surface_test.cpp
         tests/switch_test.cpp
