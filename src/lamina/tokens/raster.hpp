@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <string_view>
 
 namespace lamina::tokens {
 
@@ -16,6 +17,14 @@ struct RasterTokens {
     double retained_min_scale;
     std::size_t image_texture_bytes;
     bool image_texture_smooth;
+    bool damage_tracking;
+    int damage_tile;
+    std::size_t damage_rects_max;
+    std::size_t damage_merge_input_max;
+    double damage_full_fraction;
+    double damage_outset;
+    std::size_t damage_pending_max;
+    std::string_view full_repaint_environment;
 };
 
 inline constexpr RasterTokens raster{
@@ -30,6 +39,14 @@ inline constexpr RasterTokens raster{
     .retained_min_scale = 0.5,
     .image_texture_bytes = 256u * 1024u * 1024u,
     .image_texture_smooth = true,
+    .damage_tracking = true,
+    .damage_tile = 64,
+    .damage_rects_max = 1,
+    .damage_merge_input_max = 48,
+    .damage_full_fraction = 0.6,
+    .damage_outset = 2.0,
+    .damage_pending_max = 16,
+    .full_repaint_environment = "LAMINA_FULL_REPAINT",
 };
 
 }

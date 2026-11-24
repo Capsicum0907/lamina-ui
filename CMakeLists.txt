@@ -45,6 +45,7 @@ add_library(lamina STATIC
     src/lamina/motion/paging.cpp
     src/lamina/motion/velocity_tracker.cpp
     src/lamina/render/canvas.cpp
+    src/lamina/render/damage.cpp
     src/lamina/render/geometry.cpp
     src/lamina/render/layer_plan.cpp
     src/lamina/render/path.cpp
@@ -317,6 +318,7 @@ if(LAMINA_BUILD_TESTS)
         tests/calendar_locale_test.cpp
         tests/calendar_test.cpp
         tests/canvas_test.cpp
+        tests/damage_test.cpp
         tests/layer_plan_test.cpp
         tests/retained_textures_test.cpp
         tests/card_test.cpp
