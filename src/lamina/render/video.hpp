@@ -8,7 +8,7 @@
 
 namespace lamina::render {
 
-enum class VideoLayout { nv12, i420 };
+enum class VideoLayout { nv12, i420, argb };
 enum class VideoMatrix { bt601, bt709 };
 
 struct VideoFrame {
@@ -18,6 +18,7 @@ struct VideoFrame {
     std::vector<std::uint8_t> y;
     std::vector<std::uint8_t> u;
     std::vector<std::uint8_t> v;
+    std::vector<std::uint32_t> argb;
     int y_pitch = 0;
     int uv_pitch = 0;
     VideoMatrix matrix = VideoMatrix::bt709;
@@ -26,7 +27,7 @@ struct VideoFrame {
     std::uint64_t generation = 0;
 
     bool valid() const;
-    std::size_t bytes() const { return y.size() + u.size() + v.size(); }
+    std::size_t bytes() const { return y.size() + u.size() + v.size() + argb.size() * sizeof(std::uint32_t); }
 };
 
 std::shared_ptr<const ImageIdentity> video_surface();

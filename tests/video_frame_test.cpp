@@ -139,3 +139,40 @@ TEST_CASE("a video drawn at a quarter of its size still goes to the GPU, where a
     REQUIRE(canvas.retained_draws().size() == 1);
     CHECK(canvas.retained_draws()[0][0].video != nullptr);
 }
+
+TEST_CASE("an ARGB video frame keeps its straight alpha, goes to the GPU like a YUV one, and blends on the CPU without one") {
+    render::VideoFrame f;
+    f.width = video_w;
+    f.height = video_h;
+    f.layout = render::VideoLayout::argb;
+    f.argb.assign(static_cast<std::size_t>(video_w * video_h), 0x80FF0000u);
+    f.surface = render::video_surface();
+    f.generation = 1;
+    REQUIRE(f.valid());
+    CHECK(f.bytes() == static_cast<std::size_t>(video_w * video_h) * sizeof(std::uint32_t));
+    const render::Image image = render::video_image(f);
+    REQUIRE(image.pixels.size() == f.argb.size());
+    CHECK(image.pixels[7] == 0x80FF0000u);
+    render::VideoFrame short_frame = f;
+    short_frame.argb.resize(10);
+    CHECK_FALSE(short_frame.valid());
+
+    thorvg::Canvas gpu(320, 220);
+    AcceptVideo sink;
+    gpu.set_retained_images(&sink);
+    gpu.clear(0xff000000u);
+    gpu.draw_video(f, {0.0, 0.0, 320.0, 180.0});
+    gpu.finish();
+    REQUIRE(gpu.retained_draws().size() == 1);
+    CHECK(gpu.retained_draws()[0][0].video == &f);
+
+    thorvg::Canvas cpu(320, 220);
+    cpu.clear(0xff0000ffu);
+    cpu.draw_video(f, {0.0, 0.0, 320.0, 180.0});
+    cpu.finish();
+    const std::uint32_t mid = cpu.pixel(160, 90);
+    CHECK(((mid >> 16) & 0xFF) >= 126);
+    CHECK(((mid >> 16) & 0xFF) <= 130);
+    CHECK((mid & 0xFF) >= 125);
+    CHECK((mid & 0xFF) <= 129);
+}

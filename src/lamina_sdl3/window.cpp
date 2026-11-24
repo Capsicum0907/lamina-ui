@@ -245,12 +245,17 @@ struct Window::Impl {
     std::unordered_map<const render::ImageIdentity*, VideoTexture> video_textures;
     std::vector<std::uint8_t> plane_a;
     std::vector<std::uint8_t> plane_b;
+    std::vector<std::uint32_t> video_staging;
 
     bool accepts_video(const render::VideoFrame& f) const {
-        return gpu_wanted && gpu_capable && (nv12_textures || iyuv_textures) && f.surface && f.width <= max_texture && f.height <= max_texture;
+        const bool format = f.layout == render::VideoLayout::argb || nv12_textures || iyuv_textures;
+        return gpu_wanted && gpu_capable && format && f.surface && f.width <= max_texture && f.height <= max_texture;
     }
 
     static SDL_Colorspace colorspace_of(const render::VideoFrame& f) {
+        if (f.layout == render::VideoLayout::argb) {
+            return SDL_COLORSPACE_SRGB;
+        }
         if (f.matrix == render::VideoMatrix::bt601) {
             return f.full_range ? SDL_COLORSPACE_BT601_FULL : SDL_COLORSPACE_BT601_LIMITED;
         }
@@ -258,6 +263,9 @@ struct Window::Impl {
     }
 
     SDL_PixelFormat video_format(const render::VideoFrame& f) const {
+        if (f.layout == render::VideoLayout::argb) {
+            return SDL_PIXELFORMAT_ARGB8888;
+        }
         const bool nv12 = f.layout == render::VideoLayout::nv12;
         if (nv12 ? nv12_textures : iyuv_textures) {
             return nv12 ? SDL_PIXELFORMAT_NV12 : SDL_PIXELFORMAT_IYUV;
@@ -277,6 +285,14 @@ struct Window::Impl {
     }
 
     bool upload_video(SDL_Texture* t, SDL_PixelFormat format, const render::VideoFrame& f) {
+        if (format == SDL_PIXELFORMAT_ARGB8888) {
+            const std::size_t n = static_cast<std::size_t>(f.width) * static_cast<std::size_t>(f.height);
+            video_staging.resize(n);
+            for (std::size_t i = 0; i < n; ++i) {
+                video_staging[i] = premultiplied(f.argb[i]);
+            }
+            return SDL_UpdateTexture(t, nullptr, video_staging.data(), f.width * static_cast<int>(sizeof(std::uint32_t)));
+        }
         const int cw = (f.width + 1) / 2;
         const int ch = (f.height + 1) / 2;
         if (format == SDL_PIXELFORMAT_NV12) {

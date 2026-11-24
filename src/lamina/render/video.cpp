@@ -21,6 +21,9 @@ std::uint32_t channel(double v) {
 }
 
 bool VideoFrame::valid() const {
+    if (layout == VideoLayout::argb) {
+        return width > 0 && height > 0 && argb.size() >= static_cast<std::size_t>(width) * static_cast<std::size_t>(height);
+    }
     if (width <= 0 || height <= 0 || y_pitch < width) {
         return false;
     }
@@ -44,6 +47,12 @@ std::shared_ptr<const ImageIdentity> video_surface() {
 Image video_image(const VideoFrame& f) {
     Image out;
     if (!f.valid()) {
+        return out;
+    }
+    if (f.layout == VideoLayout::argb) {
+        out.width = f.width;
+        out.height = f.height;
+        out.pixels.assign(f.argb.begin(), f.argb.begin() + static_cast<std::ptrdiff_t>(f.width) * f.height);
         return out;
     }
     const tokens::VideoTokens& t = tokens::video;
