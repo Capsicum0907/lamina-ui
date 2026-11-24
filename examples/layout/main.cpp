@@ -27,7 +27,7 @@ using tokens::TypeRole;
 
 namespace {
 
-struct Style {
+struct LayoutStyle {
     double page_padding = 24.0;
     double section_gap = 16.0;
     double card_padding = 20.0;
@@ -46,7 +46,7 @@ struct Card {
 
 int main(int argc, char** argv) {
     try {
-        const Style style;
+        const LayoutStyle style;
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const auto scheme = color::spec_2021().build(color::default_scheme_options);
 

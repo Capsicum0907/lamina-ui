@@ -182,6 +182,7 @@ std::uint32_t premultiplied(std::uint32_t argb) {
 }
 
 struct Window::Impl {
+    const Style* style = nullptr;
     struct Sink final : render::RetainedImageSink {
         explicit Sink(const Impl& owner) : impl(owner) {}
         bool accepts(const render::Image& image) const override { return impl.accepts(image); }
@@ -1156,6 +1157,14 @@ void Window::set_damage_tracking(bool on) {
 
 bool Window::damage_tracking() const {
     return impl_->canvas->damage_tracking();
+}
+
+void Window::set_style(const Style& style) {
+    impl_->style = &style;
+}
+
+const Style& Window::style() const {
+    return impl_->style ? *impl_->style : current_style();
 }
 
 void Window::set_frame_stats(diagnostics::FrameStatsSwitches switches) {

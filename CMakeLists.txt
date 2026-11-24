@@ -62,6 +62,7 @@ add_library(lamina STATIC
     src/lamina/shapes/rounded_polygon.cpp
     src/lamina/shapes/shapes.cpp
     src/lamina/shapes/to_path.cpp
+    src/lamina/style/style.cpp
     src/lamina/text/font.cpp
     src/lamina/text/edit_buffer.cpp
     src/lamina/text/edit_history.cpp

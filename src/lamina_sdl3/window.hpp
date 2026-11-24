@@ -14,6 +14,7 @@
 #include "lamina/layout/safe_area.hpp"
 #include "lamina/layout/window_size_class.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/raster.hpp"
 
 namespace lamina::sdl3 {
@@ -76,6 +77,8 @@ public:
     void set_image_texture_budget(std::size_t bytes);
     void set_damage_tracking(bool on);
     bool damage_tracking() const;
+    void set_style(const Style& style);
+    const Style& style() const;
 
     bool client_title_bar() const;
     void set_caption_regions(input::CaptionRegions regions);

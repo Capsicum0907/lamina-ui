@@ -9,6 +9,7 @@ void run_app(Window& window, const UpdateFrame& update, const PaintFrame& paint)
     bool animating = true;
     diagnostics::FrameProbe* probe = &window.frame_probe();
     auto draw = [&](const Frame& f) {
+        const StyleScope style(window.style());
         color::Argb background = 0;
         {
             const diagnostics::StageScope stage(probe, diagnostics::Stage::update);
