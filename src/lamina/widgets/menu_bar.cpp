@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/menu_bar.hpp"
 
 #include <algorithm>
@@ -10,7 +11,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::MenuBarTokens& t = tokens::menu_bar_tokens;
+const tokens::MenuBarTokens& t() {
+    return current_style().menu_bar;
+}
 using tokens::motion_scheme;
 
 }
@@ -38,13 +41,13 @@ void sync_commands(Menu& menu, const ShortcutRegistry& commands) {
 MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(required_name(options.accessible_name, "a menu bar")), commands_(options.commands),
       density_(options.density) {
-    const auto style = tokens::text_style(tokens::type_style(t.label));
-    double x = t.start_padding;
+    const auto style = tokens::text_style(tokens::type_style(t().label));
+    double x = t().start_padding;
     for (MenuBarMenu& spec : options.menus) {
         text::TextLine label = text::layout_line(fonts_, spec.label, style);
         const std::optional<input::Key> key = access_key_for(spec.label, spec.access_key);
         std::optional<AccessKeyLabel> access;
-        double w = 2.0 * t.item_horizontal_padding + label.width;
+        double w = 2.0 * t().item_horizontal_padding + label.width;
         if (key) {
             access = access_key_label(fonts_, spec.label, label, *key);
             w += access->suffix_width();
@@ -60,7 +63,7 @@ MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
                           motion::Animated(0.0, motion_scheme.default_effects())});
         x += w;
     }
-    width_ = x + t.start_padding;
+    width_ = x + t().start_padding;
 }
 
 double MenuBar::height() const {
@@ -69,7 +72,7 @@ double MenuBar::height() const {
 
 render::Rect MenuBar::item_rect(std::size_t index) const {
     const Item& item = items_[index];
-    return {origin_.x + item.x, origin_.y + t.item_vertical_inset, item.width, height() - 2.0 * t.item_vertical_inset};
+    return {origin_.x + item.x, origin_.y + t().item_vertical_inset, item.width, height() - 2.0 * t().item_vertical_inset};
 }
 
 std::optional<std::size_t> MenuBar::item_at(double x, double y) const {
@@ -139,7 +142,7 @@ void MenuBar::open(std::size_t index, input::InputSource source) {
     if (commands_) {
         sync_commands(*menus_[index], *commands_);
     }
-    menus_[index]->open(item_rect(index), window_, source, t.window_margin, t.window_margin);
+    menus_[index]->open(item_rect(index), window_, source, t().window_margin, t().window_margin);
     open_ = index;
     highlight_ = index;
     if (source == input::InputSource::keyboard) {
@@ -374,21 +377,21 @@ AccessibleNode MenuBar::accessible() const {
 }
 
 void MenuBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    canvas.fill_rect(bounds(), scheme[t.container]);
+    canvas.fill_rect(bounds(), scheme[t().container]);
     const double fade = std::clamp(access_keys_fade_.value(), 0.0, 1.0);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const render::Rect r = item_rect(i);
-        const render::CornerRadii radii = render::uniform_radii(tokens::corner_radius(t.item_corner, r.width, r.height));
+        const render::CornerRadii radii = render::uniform_radii(tokens::corner_radius(t().item_corner, r.width, r.height));
         const double open = std::clamp(item.open.value(), 0.0, 1.0);
         if (open > 0.0) {
-            canvas.fill_path(render::rounded_rect_path(r, radii), color::with_alpha(scheme[t.open_container], open));
+            canvas.fill_path(render::rounded_rect_path(r, radii), color::with_alpha(scheme[t().open_container], open));
         }
         if (item.state_layer.value() > 0.0) {
-            canvas.fill_path(render::rounded_rect_path(r, radii), color::with_alpha(scheme[t.state_layer], item.state_layer.value()));
+            canvas.fill_path(render::rounded_rect_path(r, radii), color::with_alpha(scheme[t().state_layer], item.state_layer.value()));
         }
-        const color::Argb label = enabled_.mix(resolve(scheme, t.disabled_label), color::mix(scheme[t.label_color], scheme[t.open_label], open));
-        const render::Point top_left{r.x + t.item_horizontal_padding, r.y + (r.height - item.label.box_height()) / 2.0};
+        const color::Argb label = enabled_.mix(resolve(scheme, t().disabled_label), color::mix(scheme[t().label_color], scheme[t().open_label], open));
+        const render::Point top_left{r.x + t().item_horizontal_padding, r.y + (r.height - item.label.box_height()) / 2.0};
         text::draw_line(canvas, fonts_, item.label, top_left, label);
         if (item.access && fade > 0.0) {
             paint_access_key(canvas, fonts_, *item.access, item.label, top_left, color::scale_alpha(label, fade));

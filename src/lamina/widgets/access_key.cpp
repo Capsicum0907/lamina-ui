@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/access_key.hpp"
 
 #include <algorithm>
@@ -10,7 +11,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::AccessKeyTokens& t = tokens::access_key_tokens;
+const tokens::AccessKeyTokens& t() {
+    return current_style().access_key;
+}
 
 constexpr char32_t ascii_lower(char32_t c) {
     return c >= U'A' && c <= U'Z' ? c - U'A' + U'a' : c;
@@ -64,7 +67,7 @@ std::optional<AccessKeyMatch> match_access_key(const input::KeyEvent& e, std::sp
 AccessKeyLabel access_key_label(const text::FontStack& fonts, std::string_view label, const text::TextLine& line, input::Key key) {
     const char32_t c = *input::character_for_key(key);
     AccessKeyLabel mark{std::nullopt, 0.0, 0.0, text::underline(fonts, line.style)};
-    mark.underline.thickness = std::max(mark.underline.thickness, t.min_underline_thickness);
+    mark.underline.thickness = std::max(mark.underline.thickness, t().min_underline_thickness);
     const std::u32string text = text::decode_utf8(label);
     const auto found = std::find_if(text.begin(), text.end(), [c](char32_t x) { return ascii_lower(x) == c; });
     if (found != text.end()) {
@@ -73,7 +76,7 @@ AccessKeyLabel access_key_label(const text::FontStack& fonts, std::string_view l
         mark.underline_end = text::caret_x(line, i + 1);
         return mark;
     }
-    const std::u32string suffix{t.suffix_open, ascii_upper(c), t.suffix_close};
+    const std::u32string suffix{t().suffix_open, ascii_upper(c), t().suffix_close};
     mark.suffix = text::layout_line(fonts, text::encode_utf8(suffix), line.style);
     mark.underline_start = line.width + text::caret_x(*mark.suffix, 1);
     mark.underline_end = line.width + text::caret_x(*mark.suffix, 2);

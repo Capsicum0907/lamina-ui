@@ -23,7 +23,9 @@ const tokens::DatePickerColors& k() {
 const tokens::DatePickerMotion& m() {
     return current_style().date_picker_motion;
 }
-constexpr double closed_scale = tokens::dialog_tokens.closed_scale;
+double closed_scale() {
+    return current_style().dialog.closed_scale;
+}
 
 const calendar::CalendarLocale& locale_or_default(const calendar::CalendarLocale* l) {
     return l ? *l : calendar::english_us();
@@ -54,7 +56,7 @@ DockedDatePicker::DockedDatePicker(DockedDatePickerOptions options, const text::
                     tokens::IconButtonStyle::standard, tokens::IconButtonSize::small, tokens::ButtonShape::round,
                     tokens::IconButtonWidth::uniform, false, false, options_.enabled, color::Role::on_surface_variant}),
       picker_(picker_options(options_), fonts, icon_font),
-      popup_(closed_scale, m().popup_scale, m().popup_fade),
+      popup_(closed_scale(), m().popup_scale, m().popup_fade),
       enabled_(options_.enabled) {
     rebuild_field();
     place();

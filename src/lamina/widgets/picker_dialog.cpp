@@ -17,7 +17,9 @@ namespace {
 const tokens::PickerDialogTokens& t() {
     return current_style().picker_dialog;
 }
-constexpr const tokens::DialogTokens& d = tokens::dialog_tokens;
+const tokens::DialogTokens& d() {
+    return current_style().dialog;
+}
 
 text::TextStyle title_style() {
     return tokens::text_style(tokens::type_style(t().time_title_type));
@@ -31,7 +33,7 @@ PickerDialog::PickerDialog(PickerDialogOptions options, std::unique_ptr<DialogPa
       fonts_(fonts),
       confirm_({options_.confirm_label, t().action_style, t().action_size}, fonts),
       dismiss_({options_.dismiss_label, t().action_style, t().action_size}, fonts),
-      popup_(d.closed_scale, tokens::motion_scheme.default_spatial(), tokens::motion_scheme.default_effects()) {
+      popup_(d().closed_scale, tokens::motion_scheme.default_spatial(), tokens::motion_scheme.default_effects()) {
     if (options_.leading) {
         leading_ = std::make_unique<IconButton>(IconButtonOptions{options_.leading->icon, options_.leading->accessible_name,
                                                                   tokens::IconButtonStyle::standard, tokens::IconButtonSize::small,
@@ -218,13 +220,13 @@ void PickerDialog::paint(render::Canvas& canvas, const color::ColorScheme& schem
         return;
     }
     const double a = popup_.opacity();
-    canvas.fill_rect(area_, color::with_alpha(scheme[d.scrim], d.scrim_opacity * a));
+    canvas.fill_rect(area_, color::with_alpha(scheme[d().scrim], d().scrim_opacity * a));
     const color::ColorScheme faded = color::faded(scheme, a);
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});
     const double radius = tokens::corner_radius(options_.corner, surface_.width, surface_.height);
     const render::Path shape = render::rounded_rect_path(surface_, render::uniform_radii(radius));
-    canvas.fill_path(shape, faded[d.container]);
+    canvas.fill_path(shape, faded[d().container]);
     canvas.push_clip(shape);
     if (title_height() > 0.0) {
         const text::TextLine line = text::layout_line(fonts_, options_.title, title_style());

@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/menu.hpp"
 
@@ -15,7 +16,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::MenuTokens& t = tokens::menu_tokens;
+const tokens::MenuTokens& t() {
+    return current_style().menu;
+}
 using tokens::motion_scheme;
 
 template <std::size_t N>
@@ -51,7 +54,7 @@ const input::PointerEvent pointer_leave{input::PointerAction::leave, 0.0, 0.0};
 }
 
 render::Point menu_position(const render::Rect& anchor, layout::Size window, layout::Size menu) {
-    return menu_position(anchor, window, menu, t.window_horizontal_margin, t.window_vertical_margin);
+    return menu_position(anchor, window, menu, t().window_horizontal_margin, t().window_vertical_margin);
 }
 
 render::Point menu_position(const render::Rect& anchor, layout::Size window, layout::Size menu, double horizontal_margin,
@@ -79,7 +82,7 @@ render::Point menu_transform_origin(const render::Rect& anchor, const render::Re
 }
 
 render::Point context_menu_position(render::Point at, layout::Size window, layout::Size menu) {
-    return context_menu_position(at, window, menu, t.context_window_margin);
+    return context_menu_position(at, window, menu, t().context_window_margin);
 }
 
 render::Point context_menu_position(render::Point at, layout::Size window, layout::Size menu, double margin) {
@@ -95,7 +98,7 @@ render::Point context_menu_position(render::Point at, layout::Size window, layou
 }
 
 render::Point submenu_position(const render::Rect& item, layout::Size window, layout::Size menu) {
-    const double margin = t.context_window_margin;
+    const double margin = t().context_window_margin;
     double x = item.x + item.width;
     if (x + menu.width > window.width - margin) {
         x = item.x - menu.width;
@@ -109,17 +112,17 @@ render::Point submenu_position(const render::Rect& item, layout::Size window, la
 
 Menu::Menu(MenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(options.accessible_name), icon_font_(options.icon_font),
-      popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+      popup_(t().closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     density_ = options.density;
     const tokens::ShortcutFormat& format = options.shortcut_format ? *options.shortcut_format : tokens::default_shortcut_format();
-    const auto style = tokens::text_style(tokens::type_style(t.label));
+    const auto style = tokens::text_style(tokens::type_style(t().label));
     double content = 0.0;
     for (auto& item : options.items) {
         std::optional<text::TextLine> label;
         std::optional<AccessKeyLabel> access;
         std::optional<text::TextLine> shortcut;
         const std::optional<input::Key> key = access_key_for(item.label, item.access_key);
-        double w = 2.0 * t.item_horizontal_padding;
+        double w = 2.0 * t().item_horizontal_padding;
         if (!item.label.empty()) {
             label = text::layout_line(fonts_, item.label, style);
             w += label->width;
@@ -129,7 +132,7 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
             }
         }
         if (item.leading_icon) {
-            w += t.icon_size + t.icon_text_space;
+            w += t().icon_size + t().icon_text_space;
         }
         std::string shortcut_text = item.shortcut ? format_chord(*item.shortcut, format) : std::string{};
         std::unique_ptr<Menu> child;
@@ -138,10 +141,10 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
                 throw std::invalid_argument("a menu with a submenu needs an icon font for the submenu arrow");
             }
             child = std::make_unique<Menu>(MenuOptions{std::move(item.submenu), item.label, density_, icon_font_, options.shortcut_format}, fonts_);
-            w += t.trailing_space + t.trailing_icon_size;
+            w += t().trailing_space + t().trailing_icon_size;
         } else if (!shortcut_text.empty()) {
             shortcut = text::layout_line(fonts_, shortcut_text, style);
-            w += t.trailing_space + std::max(t.trailing_icon_size, shortcut->width);
+            w += t().trailing_space + std::max(t().trailing_icon_size, shortcut->width);
         }
         content = std::max(content, w);
         names_.push_back(item.label);
@@ -152,7 +155,7 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
         items_.push_back({std::move(label), std::move(item.leading_icon), std::move(access), std::move(shortcut), {},
                           motion::Animated(0.0, motion_scheme.fast_effects()), Enablement(item.enabled), item.divider_before});
     }
-    width_ = std::clamp(content, t.item_min_width, t.item_max_width);
+    width_ = std::clamp(content, t().item_min_width, t().item_max_width);
 }
 
 void Menu::set_density(tokens::Density density) {
@@ -169,7 +172,7 @@ double Menu::item_height() const {
 }
 
 double Menu::divider_height() const {
-    return 2.0 * t.divider_vertical_padding + t.divider_thickness;
+    return 2.0 * t().divider_vertical_padding + t().divider_thickness;
 }
 
 double Menu::item_top(std::size_t index) const {
@@ -177,7 +180,7 @@ double Menu::item_top(std::size_t index) const {
     for (std::size_t i = 0; i <= index && i < items_.size(); ++i) {
         dividers += items_[i].divider_before ? 1 : 0;
     }
-    return t.vertical_padding + item_height() * static_cast<double>(index) + divider_height() * static_cast<double>(dividers);
+    return t().vertical_padding + item_height() * static_cast<double>(index) + divider_height() * static_cast<double>(dividers);
 }
 
 double Menu::height() const {
@@ -185,7 +188,7 @@ double Menu::height() const {
     for (const Item& item : items_) {
         dividers += item.divider_before ? 1 : 0;
     }
-    return 2.0 * t.vertical_padding + item_height() * static_cast<double>(items_.size()) + divider_height() * static_cast<double>(dividers);
+    return 2.0 * t().vertical_padding + item_height() * static_cast<double>(items_.size()) + divider_height() * static_cast<double>(dividers);
 }
 
 render::Rect Menu::bounds() const {
@@ -385,9 +388,9 @@ void Menu::hover(std::optional<std::size_t> index) {
         return;
     }
     if (has_submenu(*index)) {
-        hover_timer_ = t.submenu_open_seconds;
+        hover_timer_ = t().submenu_open_seconds;
     } else {
-        hover_timer_ = open_child_ ? t.submenu_close_seconds : -1.0;
+        hover_timer_ = open_child_ ? t().submenu_close_seconds : -1.0;
     }
 }
 
@@ -579,29 +582,29 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     }
     const double a = opacity();
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(t.corner, r.width, r.height);
+    const double radius = tokens::corner_radius(t().corner, r.width, r.height);
     canvas.save();
     popup_.scale_about(canvas, pivot_);
     const color::ColorScheme s = color::faded(scheme, a);
-    paint_surface(canvas, r, radius, s[t.container], tokens::elevation_dp[t.elevation], s[color::Role::shadow]);
+    paint_surface(canvas, r, radius, s[t().container], tokens::elevation_dp[t().elevation], s[color::Role::shadow]);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
-        const color::Argb label_color = item.enabled.mix(resolve(s, t.disabled_label), s[t.label_color]);
-        const color::Argb icon_color = item.enabled.mix(resolve(s, t.disabled_leading_icon), s[t.leading_icon]);
+        const color::Argb label_color = item.enabled.mix(resolve(s, t().disabled_label), s[t().label_color]);
+        const color::Argb icon_color = item.enabled.mix(resolve(s, t().disabled_leading_icon), s[t().leading_icon]);
         const render::Rect ir = item_rect(i);
         if (item.divider_before) {
-            canvas.fill_rect({r.x + t.divider_horizontal_padding, ir.y - divider_height() + t.divider_vertical_padding,
-                              r.width - 2.0 * t.divider_horizontal_padding, t.divider_thickness},
-                             s[t.divider_color]);
+            canvas.fill_rect({r.x + t().divider_horizontal_padding, ir.y - divider_height() + t().divider_vertical_padding,
+                              r.width - 2.0 * t().divider_horizontal_padding, t().divider_thickness},
+                             s[t().divider_color]);
         }
         if (item.state_layer.value() > 0.0) {
-            canvas.fill_rect(ir, color::scale_alpha(color::with_alpha(scheme[t.state_layer], item.state_layer.value()), a));
+            canvas.fill_rect(ir, color::scale_alpha(color::with_alpha(scheme[t().state_layer], item.state_layer.value()), a));
         }
-        double x = ir.x + t.item_horizontal_padding;
+        double x = ir.x + t().item_horizontal_padding;
         const double cy = ir.y + ir.height / 2.0;
         if (item.icon) {
-            item.icon->font.draw(canvas, item.icon->symbol, {x, cy - t.icon_size / 2.0}, t.icon_size, icon_color);
-            x += t.icon_size + t.icon_text_space;
+            item.icon->font.draw(canvas, item.icon->symbol, {x, cy - t().icon_size / 2.0}, t().icon_size, icon_color);
+            x += t().icon_size + t().icon_text_space;
         }
         if (item.label) {
             const render::Point top_left{x, cy - item.label->box_height() / 2.0};
@@ -611,17 +614,17 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
                                  color::scale_alpha(label_color, std::clamp(access_keys_fade_.value(), 0.0, 1.0)));
             }
         }
-        const double end = ir.x + ir.width - t.item_horizontal_padding;
-        const color::Argb trailing_color = item.enabled.mix(resolve(s, t.disabled_trailing), s[t.trailing]);
+        const double end = ir.x + ir.width - t().item_horizontal_padding;
+        const color::Argb trailing_color = item.enabled.mix(resolve(s, t().disabled_trailing), s[t().trailing]);
         if (children_[i]) {
-            icon_font_->draw(canvas, t.submenu_symbol, {end - t.trailing_icon_size, cy - t.trailing_icon_size / 2.0}, t.trailing_icon_size,
+            icon_font_->draw(canvas, t().submenu_symbol, {end - t().trailing_icon_size, cy - t().trailing_icon_size / 2.0}, t().trailing_icon_size,
                              trailing_color);
         } else if (item.shortcut) {
             text::draw_line(canvas, fonts_, *item.shortcut, {end - item.shortcut->width, cy - item.shortcut->box_height() / 2.0}, trailing_color);
         }
     }
     if (active_ && !(open_child_ && children_[*open_child_]->active_)) {
-        focus_.paint_inward(canvas, s, item_rect(*active_), t.focus_ring_corner);
+        focus_.paint_inward(canvas, s, item_rect(*active_), t().focus_ring_corner);
     }
     canvas.restore();
     for (const auto& c : children_) {

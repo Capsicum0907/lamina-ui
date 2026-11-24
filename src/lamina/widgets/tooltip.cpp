@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/tooltip.hpp"
 
 #include <algorithm>
@@ -13,9 +14,15 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::TooltipTokens& t = tokens::tooltip_tokens;
-constexpr const tokens::PlainTooltipTokens& plain = tokens::plain_tooltip_tokens;
-constexpr const tokens::RichTooltipTokens& rich = tokens::rich_tooltip_tokens;
+const tokens::TooltipTokens& t() {
+    return current_style().tooltip;
+}
+const tokens::PlainTooltipTokens& plain() {
+    return current_style().plain_tooltip;
+}
+const tokens::RichTooltipTokens& rich() {
+    return current_style().rich_tooltip;
+}
 using tokens::motion_scheme;
 
 double fit(double v, double lo, double hi) {
@@ -27,8 +34,8 @@ double lines_height(const Label& label, tokens::TypeRole role) {
 }
 
 ButtonOptions action_options(std::string label) {
-    ButtonOptions o{std::move(label), rich.action_style, rich.action_size};
-    o.colors = ButtonColors{std::nullopt, rich.action_color};
+    ButtonOptions o{std::move(label), rich().action_style, rich().action_size};
+    o.colors = ButtonColors{std::nullopt, rich().action_color};
     return o;
 }
 
@@ -71,11 +78,11 @@ render::Point tooltip_position(const render::Rect& anchor, layout::Size window, 
 
 Tooltip::Tooltip(TooltipOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
-      text_({options_.text, options_.kind == TooltipKind::rich ? rich.text : plain.text,
-             options_.kind == TooltipKind::rich ? rich.text_color : plain.content, true},
+      text_({options_.text, options_.kind == TooltipKind::rich ? rich().text : plain().text,
+             options_.kind == TooltipKind::rich ? rich().text_color : plain().content, true},
             fonts),
-      title_({options_.title, rich.title, rich.title_color, true}, fonts),
-      popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+      title_({options_.title, rich().title, rich().title_color, true}, fonts),
+      popup_(t().closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     if (options_.kind == TooltipKind::rich && !options_.action_label.empty()) {
         action_.emplace(action_options(options_.action_label), fonts);
     }
@@ -97,37 +104,37 @@ TooltipAnchor Tooltip::anchor() const {
 }
 
 double Tooltip::spacing() const {
-    return t.anchor_spacing + (options_.caret ? t.caret_height : 0.0);
+    return t().anchor_spacing + (options_.caret ? t().caret_height : 0.0);
 }
 
 void Tooltip::relayout() {
     if (options_.kind == TooltipKind::plain) {
-        const layout::Size s = text_.measure({0.0, plain.max_width - 2.0 * plain.horizontal_padding, 0.0, layout::unbounded});
-        size_ = {std::clamp(s.width + 2.0 * plain.horizontal_padding, t.min_width, plain.max_width),
-                 std::max(t.min_height, lines_height(text_, plain.text) + 2.0 * plain.vertical_padding)};
+        const layout::Size s = text_.measure({0.0, plain().max_width - 2.0 * plain().horizontal_padding, 0.0, layout::unbounded});
+        size_ = {std::clamp(s.width + 2.0 * plain().horizontal_padding, t().min_width, plain().max_width),
+                 std::max(t().min_height, lines_height(text_, plain().text) + 2.0 * plain().vertical_padding)};
         return;
     }
-    const double inner = rich.max_width - 2.0 * rich.horizontal_padding;
+    const double inner = rich().max_width - 2.0 * rich().horizontal_padding;
     const bool has_title = !options_.title.empty();
     double width = 0.0;
     double height = 0.0;
     if (has_title) {
         const layout::Size s = title_.measure({0.0, inner, 0.0, layout::unbounded});
         width = std::max(width, s.width);
-        height += std::max(0.0, rich.title_first_baseline - title_.first_baseline()) + lines_height(title_, rich.title);
+        height += std::max(0.0, rich().title_first_baseline - title_.first_baseline()) + lines_height(title_, rich().title);
     }
     const layout::Size s = text_.measure({0.0, inner, 0.0, layout::unbounded});
     width = std::max(width, s.width);
     if (has_title || action_) {
-        height += std::max(0.0, rich.text_first_baseline - text_.first_baseline()) + lines_height(text_, rich.text) + rich.text_bottom_padding;
+        height += std::max(0.0, rich().text_first_baseline - text_.first_baseline()) + lines_height(text_, rich().text) + rich().text_bottom_padding;
     } else {
-        height += 2.0 * rich.plain_vertical_padding + lines_height(text_, rich.text);
+        height += 2.0 * rich().plain_vertical_padding + lines_height(text_, rich().text);
     }
     if (action_) {
         width = std::max(width, action_->width());
-        height += std::max(rich.action_min_height, action_->height()) + rich.action_bottom_padding;
+        height += std::max(rich().action_min_height, action_->height()) + rich().action_bottom_padding;
     }
-    size_ = {std::clamp(width + 2.0 * rich.horizontal_padding, t.min_width, rich.max_width), std::max(t.min_height, height)};
+    size_ = {std::clamp(width + 2.0 * rich().horizontal_padding, t().min_width, rich().max_width), std::max(t().min_height, height)};
 }
 
 render::Rect Tooltip::bounds() const {
@@ -149,47 +156,47 @@ std::optional<render::Rect> Tooltip::caret() const {
     const render::Rect a = placed_anchor_;
     if (options_.position == TooltipPosition::left || options_.position == TooltipPosition::right) {
         const bool to_the_right = b.x > a.x;
-        const double x = to_the_right ? b.x - t.caret_height : b.x + b.width;
-        return render::Rect{x, b.y + b.height / 2.0 - t.caret_width / 2.0, t.caret_height, t.caret_width};
+        const double x = to_the_right ? b.x - t().caret_height : b.x + b.width;
+        return render::Rect{x, b.y + b.height / 2.0 - t().caret_width / 2.0, t().caret_height, t().caret_width};
     }
     const bool below = b.y > a.y;
     const double mid = std::clamp(a.x + a.width / 2.0, b.x, b.x + b.width);
-    const double y = below ? b.y - t.caret_height : b.y + b.height;
-    return render::Rect{mid - t.caret_width / 2.0, y, t.caret_width, t.caret_height};
+    const double y = below ? b.y - t().caret_height : b.y + b.height;
+    return render::Rect{mid - t().caret_width / 2.0, y, t().caret_width, t().caret_height};
 }
 
 void Tooltip::open(TooltipTrigger trigger) {
     placed_anchor_ = anchor().bounds;
     origin_ = tooltip_position(placed_anchor_, window_, size_, options_.position, spacing());
     if (options_.kind == TooltipKind::plain) {
-        const double slack = lines_height(text_, plain.text) - text_.bounds().height;
-        text_.set_origin({origin_.x + plain.horizontal_padding, origin_.y + plain.vertical_padding + slack / 2.0});
+        const double slack = lines_height(text_, plain().text) - text_.bounds().height;
+        text_.set_origin({origin_.x + plain().horizontal_padding, origin_.y + plain().vertical_padding + slack / 2.0});
     } else {
-        const double x = origin_.x + rich.horizontal_padding;
+        const double x = origin_.x + rich().horizontal_padding;
         double y = origin_.y;
         if (!options_.title.empty()) {
-            y += std::max(0.0, rich.title_first_baseline - title_.first_baseline());
+            y += std::max(0.0, rich().title_first_baseline - title_.first_baseline());
             title_.set_origin({x, y});
-            y += lines_height(title_, rich.title);
+            y += lines_height(title_, rich().title);
         }
         if (!options_.title.empty() || action_) {
-            y += std::max(0.0, rich.text_first_baseline - text_.first_baseline());
+            y += std::max(0.0, rich().text_first_baseline - text_.first_baseline());
         } else {
-            y += rich.plain_vertical_padding + (lines_height(text_, rich.text) - text_.bounds().height) / 2.0;
+            y += rich().plain_vertical_padding + (lines_height(text_, rich().text) - text_.bounds().height) / 2.0;
         }
         text_.set_origin({x, y});
     }
     if (action_) {
-        const double inner_bottom = origin_.y + size_.height - rich.action_bottom_padding;
-        const double slot = std::max(rich.action_min_height, action_->height());
-        action_->set_origin({origin_.x + rich.horizontal_padding, inner_bottom - slot + (slot - action_->height()) / 2.0});
+        const double inner_bottom = origin_.y + size_.height - rich().action_bottom_padding;
+        const double slot = std::max(rich().action_min_height, action_->height());
+        action_->set_origin({origin_.x + rich().horizontal_padding, inner_bottom - slot + (slot - action_->height()) / 2.0});
     }
     popup_.open();
     trigger_ = trigger;
     hover_wait_ = -1.0;
     long_press_wait_ = -1.0;
     const bool times_out = !options_.persistent && (trigger == TooltipTrigger::focus || trigger == TooltipTrigger::long_press);
-    time_left_ = times_out ? t.timeout_seconds : -1.0;
+    time_left_ = times_out ? t().timeout_seconds : -1.0;
 }
 
 void Tooltip::show() {
@@ -250,7 +257,7 @@ TooltipResponse Tooltip::handle(const input::PointerEvent& e) {
         }
     } else {
         if (e.action == input::PointerAction::down && over_anchor) {
-            long_press_wait_ = t.long_press_seconds;
+            long_press_wait_ = t().long_press_seconds;
         } else if (e.action == input::PointerAction::up || e.action == input::PointerAction::leave ||
                    (e.action == input::PointerAction::move && !over_anchor)) {
             long_press_wait_ = -1.0;
@@ -347,10 +354,10 @@ void Tooltip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
     canvas.save();
     popup_.scale_about(canvas, {r.x + r.width / 2.0, r.y + r.height / 2.0});
     const bool is_rich = options_.kind == TooltipKind::rich;
-    const color::Argb container = s[is_rich ? rich.container : plain.container];
-    const double radius = tokens::corner_radius(is_rich ? rich.corner : plain.corner, r.width, r.height);
+    const color::Argb container = s[is_rich ? rich().container : plain().container];
+    const double radius = tokens::corner_radius(is_rich ? rich().corner : plain().corner, r.width, r.height);
     if (is_rich) {
-        paint_surface(canvas, r, radius, container, tokens::elevation_dp[rich.elevation], s[color::Role::shadow]);
+        paint_surface(canvas, r, radius, container, tokens::elevation_dp[rich().elevation], s[color::Role::shadow]);
     } else {
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), container);
     }

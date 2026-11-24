@@ -10,6 +10,7 @@
 #include "lamina/motion/anchored_draggable.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/bottom_sheet.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/content_host.hpp"
@@ -66,7 +67,7 @@ struct BottomSheetOptions {
     bool drag_handle = true;
     bool skip_partially_expanded = false;
     bool skip_hidden = true;
-    double peek_height = tokens::bottom_sheet_tokens.peek_height;
+    double peek_height = current_style().bottom_sheet.peek_height;
     bool dismiss_on_scrim = true;
     bool gestures = true;
     SheetValue initial = SheetValue::hidden;

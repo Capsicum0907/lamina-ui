@@ -1,15 +1,22 @@
 #pragma once
 
 #include "lamina/color/scheme.hpp"
+#include "lamina/tokens/access_key.hpp"
+#include "lamina/tokens/bottom_sheet.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/button_group.hpp"
 #include "lamina/tokens/checkbox.hpp"
 #include "lamina/tokens/chip.hpp"
 #include "lamina/tokens/date_picker.hpp"
+#include "lamina/tokens/dialog.hpp"
+#include "lamina/tokens/drag_handle.hpp"
 #include "lamina/tokens/fab.hpp"
 #include "lamina/tokens/fab_menu.hpp"
 #include "lamina/tokens/floating_toolbar.hpp"
+#include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/tokens/icon_button.hpp"
+#include "lamina/tokens/menu.hpp"
+#include "lamina/tokens/menu_bar.hpp"
 #include "lamina/tokens/navigation_bar.hpp"
 #include "lamina/tokens/navigation_drawer.hpp"
 #include "lamina/tokens/navigation_rail.hpp"
@@ -19,10 +26,13 @@
 #include "lamina/tokens/pane_scaffold.hpp"
 #include "lamina/tokens/picker_dialog.hpp"
 #include "lamina/tokens/radio_button.hpp"
+#include "lamina/tokens/scrim.hpp"
 #include "lamina/tokens/search.hpp"
 #include "lamina/tokens/segmented_button.hpp"
 #include "lamina/tokens/side_navigation.hpp"
+#include "lamina/tokens/side_sheet.hpp"
 #include "lamina/tokens/slider.hpp"
+#include "lamina/tokens/snackbar.hpp"
 #include "lamina/tokens/split_button.hpp"
 #include "lamina/tokens/split_pane.hpp"
 #include "lamina/tokens/switch.hpp"
@@ -30,6 +40,7 @@
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/tokens/time_picker.hpp"
 #include "lamina/tokens/title_bar.hpp"
+#include "lamina/tokens/tooltip.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
 
 namespace lamina {
@@ -79,6 +90,22 @@ struct Style {
     tokens::TimePickerColors time_picker_colors = tokens::time_picker_colors;
     tokens::TimePickerMotion time_picker_motion = tokens::time_picker_motion;
     tokens::PickerDialogTokens picker_dialog = tokens::picker_dialog_tokens;
+    
+    tokens::BottomSheetTokens bottom_sheet = tokens::bottom_sheet_tokens;
+    tokens::SheetMotion bottom_sheet_motion = tokens::bottom_sheet_motion;
+    tokens::SideSheetTokens side_sheet = tokens::side_sheet_tokens;
+    motion::TweenSpec side_sheet_motion = tokens::side_sheet_motion;
+    tokens::DialogTokens dialog = tokens::dialog_tokens;
+    tokens::ScrimTokens scrim = tokens::scrim_tokens;
+    tokens::MenuTokens menu = tokens::menu_tokens;
+    tokens::MenuBarTokens menu_bar = tokens::menu_bar_tokens;
+    tokens::GroupedMenuTokens grouped_menu = tokens::grouped_menu_tokens;
+    tokens::PlainTooltipTokens plain_tooltip = tokens::plain_tooltip_tokens;
+    tokens::RichTooltipTokens rich_tooltip = tokens::rich_tooltip_tokens;
+    tokens::TooltipTokens tooltip = tokens::tooltip_tokens;
+    tokens::SnackbarTokens snackbar = tokens::snackbar_tokens;
+    tokens::DragHandleTokens drag_handle = tokens::drag_handle_tokens;
+    tokens::AccessKeyTokens access_key = tokens::access_key_tokens;
 };
 
 const Style& m3_expressive_style();

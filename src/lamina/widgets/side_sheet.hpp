@@ -12,6 +12,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/anchored_draggable.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/side_sheet.hpp"
@@ -107,7 +108,7 @@ public:
 
 private:
     double sign() const { return options_.edge == SideSheetEdge::end ? 1.0 : -1.0; }
-    double margin() const { return options_.detached ? tokens::side_sheet_tokens.detached_margin : 0.0; }
+    double margin() const { return options_.detached ? current_style().side_sheet.detached_margin : 0.0; }
     double actions_height() const;
     render::Rect open_rect() const;
     void update_anchors();

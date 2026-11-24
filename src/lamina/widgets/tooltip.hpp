@@ -8,6 +8,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/tooltip.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -30,7 +31,7 @@ struct TooltipOptions {
     TooltipPosition position = TooltipPosition::above;
     bool caret = false;
     bool persistent = false;
-    double hover_delay_seconds = tokens::tooltip_tokens.hover_show_delay_seconds;
+    double hover_delay_seconds = current_style().tooltip.hover_show_delay_seconds;
 };
 
 struct TooltipResponse {

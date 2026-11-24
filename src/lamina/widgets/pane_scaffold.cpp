@@ -387,7 +387,7 @@ void ThreePaneScaffold::compute_targets(std::array<render::Rect, pane_count>& ou
             expansion_.on_offset_measured(centre - left);
         }
         centre = std::clamp(centre, left + spacer / 2.0, std::max(left + spacer / 2.0, right - spacer / 2.0));
-        const tokens::DragHandleTokens& h = tokens::drag_handle_tokens;
+        const tokens::DragHandleTokens& h = current_style().drag_handle;
         const double size = t().handle_touch_target;
         handle_ = render::Rect{centre - std::max(h.container_width, size) / 2.0, rect_.y + rect_.height / 2.0 - size / 2.0,
                                std::max(h.container_width, size), size};

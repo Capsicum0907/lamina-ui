@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/bottom_sheet.hpp"
 
 #include <algorithm>
@@ -13,20 +14,24 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::BottomSheetTokens& t = tokens::bottom_sheet_tokens;
-constexpr const tokens::SheetMotion& motion_spec = tokens::bottom_sheet_motion;
+const tokens::BottomSheetTokens& t() {
+    return current_style().bottom_sheet;
+}
+const tokens::SheetMotion& motion_spec() {
+    return current_style().bottom_sheet_motion;
+}
 
 constexpr input::PointerEvent left{input::PointerAction::leave, 0.0, 0.0};
 
 motion::DragThresholds sheet_thresholds() {
-    return {[](double) { return t.positional_threshold; }, t.velocity_threshold};
+    return {[](double) { return t().positional_threshold; }, t().velocity_threshold};
 }
 
 }
 
 render::Rect SheetDragHandle::handle_rect() const {
-    return {bounds_.x + (bounds_.width - t.drag_handle_width) / 2.0, bounds_.y + t.drag_handle_vertical_padding, t.drag_handle_width,
-            t.drag_handle_height};
+    return {bounds_.x + (bounds_.width - t().drag_handle_width) / 2.0, bounds_.y + t().drag_handle_vertical_padding, t().drag_handle_width,
+            t().drag_handle_height};
 }
 
 void SheetDragHandle::set_focused(bool focused) {
@@ -72,12 +77,12 @@ void SheetDragHandle::paint(render::Canvas& canvas, const color::ColorScheme& sc
     const double radius = tokens::corner_radius(tokens::CornerSize::full, bounds_.width, bounds_.height);
     if (layer > 0.0) {
         canvas.fill_path(render::rounded_rect_path(bounds_, render::uniform_radii(radius)),
-                         color::with_alpha(scheme[t.drag_handle_state_layer], layer));
+                         color::with_alpha(scheme[t().drag_handle_state_layer], layer));
     }
     const render::Rect h = handle_rect();
-    canvas.fill_path(render::rounded_rect_path(h, render::uniform_radii(std::min(tokens::corner_radius(t.drag_handle_corner, h.width, h.height),
+    canvas.fill_path(render::rounded_rect_path(h, render::uniform_radii(std::min(tokens::corner_radius(t().drag_handle_corner, h.width, h.height),
                                                                                   h.height / 2.0))),
-                     scheme[t.drag_handle]);
+                     scheme[t().drag_handle]);
     focus_.paint(canvas, scheme, bounds_, radius);
 }
 
@@ -86,7 +91,7 @@ BottomSheet::BottomSheet(BottomSheetOptions options)
       handle_(options_.strings->drag_handle),
       content_(options_.content),
       drag_(options_.initial, sheet_thresholds(), tokens::drag_gesture),
-      scrim_(0.0, motion_spec.scrim) {
+      scrim_(0.0, motion_spec().scrim) {
     if (options_.accessible_name.empty()) {
         options_.accessible_name = options_.strings->bottom_sheet_pane_title;
     }
@@ -99,7 +104,7 @@ BottomSheet::BottomSheet(BottomSheetOptions options)
 }
 
 double BottomSheet::handle_height() const {
-    return options_.drag_handle ? t.drag_handle_height + 2.0 * t.drag_handle_vertical_padding : 0.0;
+    return options_.drag_handle ? t().drag_handle_height + 2.0 * t().drag_handle_vertical_padding : 0.0;
 }
 
 void BottomSheet::set_area(const render::Rect& area) {
@@ -111,7 +116,7 @@ void BottomSheet::set_area(const render::Rect& area) {
 }
 
 void BottomSheet::layout_sheet() {
-    sheet_width_ = std::min(area_.width, t.max_width);
+    sheet_width_ = std::min(area_.width, t().max_width);
     const double natural = handle_height() + content_.measure(sheet_width_);
     sheet_height_ = std::min(natural, area_.height);
     if (!modal()) {
@@ -128,7 +133,7 @@ void BottomSheet::update_anchors() {
         anchors.push_back({SheetValue::hidden, full});
         if (!options_.skip_partially_expanded && h != 0.0) {
             anchors.push_back({SheetValue::partially_expanded,
-                               full - std::min(full * t.partial_screen_fraction, h * t.partial_sheet_fraction)});
+                               full - std::min(full * t().partial_screen_fraction, h * t().partial_sheet_fraction)});
         }
         if (h != 0.0) {
             anchors.push_back({SheetValue::expanded, std::max(0.0, full - h)});
@@ -181,7 +186,7 @@ double BottomSheet::visible_height() const {
 
 void BottomSheet::place_parts() {
     const render::Rect s = bounds();
-    handle_.set_bounds({s.x + (s.width - t.drag_handle_width) / 2.0, s.y, t.drag_handle_width, handle_height()});
+    handle_.set_bounds({s.x + (s.width - t().drag_handle_width) / 2.0, s.y, t().drag_handle_width, handle_height()});
     content_.place({s.x, s.y + handle_height(), s.width, std::max(0.0, s.height - handle_height())});
 }
 
@@ -216,7 +221,7 @@ void BottomSheet::show(input::InputSource source) {
         own_focus_.clear_focus();
     }
     const SheetValue target = drag_.has(SheetValue::partially_expanded) ? SheetValue::partially_expanded : SheetValue::expanded;
-    drag_.animate_to(target, motion_spec.show);
+    drag_.animate_to(target, motion_spec().show);
     update_handle();
     if (source == input::InputSource::keyboard && modal()) {
         own_focus_.clear_focus();
@@ -227,19 +232,19 @@ void BottomSheet::show(input::InputSource source) {
 
 void BottomSheet::hide() {
     if (drag_.has(SheetValue::hidden)) {
-        drag_.animate_to(SheetValue::hidden, motion_spec.hide);
+        drag_.animate_to(SheetValue::hidden, motion_spec().hide);
         update_handle();
     }
 }
 
 void BottomSheet::expand() {
-    drag_.animate_to(SheetValue::expanded, motion_spec.show);
+    drag_.animate_to(SheetValue::expanded, motion_spec().show);
     update_handle();
 }
 
 void BottomSheet::partial_expand() {
     if (drag_.has(SheetValue::partially_expanded)) {
-        drag_.animate_to(SheetValue::partially_expanded, motion_spec.hide);
+        drag_.animate_to(SheetValue::partially_expanded, motion_spec().hide);
         update_handle();
     }
 }
@@ -346,13 +351,13 @@ double BottomSheet::damped(double velocity) const {
     }
     const double floor = *drag_.position_of(SheetValue::hidden);
     const double distance = std::max(0.0, floor - drag_.offset());
-    if (distance >= t.boundary_dampening_zone) {
+    if (distance >= t().boundary_dampening_zone) {
         return velocity;
     }
-    const double factor = distance / t.boundary_dampening_zone;
+    const double factor = distance / t().boundary_dampening_zone;
     double safe = velocity * factor * factor;
-    if (velocity >= t.velocity_threshold) {
-        safe = std::max(safe, t.velocity_threshold);
+    if (velocity >= t().velocity_threshold) {
+        safe = std::max(safe, t().velocity_threshold);
     }
     return safe;
 }
@@ -361,7 +366,7 @@ BottomSheetResponse BottomSheet::finish_drag(double time_seconds) {
     const std::optional<double> v = drag_.release(time_seconds);
     tracking_ = false;
     const double velocity = modal() ? damped(v.value_or(0.0)) : v.value_or(0.0);
-    drag_.fling(velocity, motion_spec.settle);
+    drag_.fling(velocity, motion_spec().settle);
     update_handle();
     return {.dismissed = dismiss_after_settle(), .consumed = true};
 }
@@ -500,7 +505,7 @@ void BottomSheet::cancel_interaction() {
     content_.cancel_interaction();
     if (drag_.dragging()) {
         drag_.cancel_press();
-        drag_.fling(0.0, motion_spec.settle);
+        drag_.fling(0.0, motion_spec().settle);
     }
     drag_.cancel_press();
     tracking_ = false;
@@ -536,8 +541,8 @@ void BottomSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme
         overflow = *top - drag_.offset();
     }
     const render::Rect container{s.x, s.y, s.width, s.height + overflow};
-    const render::CornerRadii radii = tokens::corner_radii(t.shape, container.width, container.height);
-    paint_surface(canvas, container, radii, scheme[t.container], modal() ? t.modal_shadow_elevation : t.standard_shadow_elevation,
+    const render::CornerRadii radii = tokens::corner_radii(t().shape, container.width, container.height);
+    paint_surface(canvas, container, radii, scheme[t().container], modal() ? t().modal_shadow_elevation : t().standard_shadow_elevation,
                   scheme[color::Role::shadow]);
     canvas.push_clip(render::rounded_rect_path(container, radii));
     if (options_.drag_handle) {

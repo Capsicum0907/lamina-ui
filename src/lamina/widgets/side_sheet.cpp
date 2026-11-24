@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/side_sheet.hpp"
 
 #include <algorithm>
@@ -15,12 +16,14 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SideSheetTokens& t = tokens::side_sheet_tokens;
+const tokens::SideSheetTokens& t() {
+    return current_style().side_sheet;
+}
 
 constexpr input::PointerEvent left{input::PointerAction::leave, 0.0, 0.0};
 
 motion::DragThresholds side_thresholds() {
-    return {[](double distance) { return distance * t.hide_fraction; }, t.significant_velocity};
+    return {[](double distance) { return distance * t().hide_fraction; }, t().significant_velocity};
 }
 
 std::unique_ptr<IconButton> header_button(const std::optional<SideSheetIcon>& spec) {
@@ -30,8 +33,8 @@ std::unique_ptr<IconButton> header_button(const std::optional<SideSheetIcon>& sp
     return std::make_unique<IconButton>(IconButtonOptions{.icon = spec->icon,
                                                           .accessible_name = spec->accessible_name,
                                                           .style = tokens::IconButtonStyle::standard,
-                                                          .size = t.header_button_size,
-                                                          .content = t.header_icon});
+                                                          .size = t().header_button_size,
+                                                          .content = t().header_icon});
 }
 
 }
@@ -39,7 +42,7 @@ std::unique_ptr<IconButton> header_button(const std::optional<SideSheetIcon>& sp
 SideSheet::SideSheet(SideSheetOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      headline_(text::layout_line(fonts, options_.headline, tokens::text_style(tokens::type_style(t.headline_type)))),
+      headline_(text::layout_line(fonts, options_.headline, tokens::text_style(tokens::type_style(t().headline_type)))),
       close_(header_button(options_.close)),
       back_(header_button(options_.back)),
       content_(options_.content),
@@ -48,7 +51,7 @@ SideSheet::SideSheet(SideSheetOptions options, const text::FontStack& fonts)
         options_.accessible_name = options_.headline.empty() ? options_.strings->side_sheet_pane_title : options_.headline;
     }
     for (ButtonOptions o : options_.actions) {
-        o.size = t.action_size;
+        o.size = t().action_size;
         actions_.push_back(std::make_unique<Button>(std::move(o), fonts));
     }
     if (back_) {
@@ -92,7 +95,7 @@ void SideSheet::add_action_stops(FocusManager& focus) {
 }
 
 double SideSheet::travel() const {
-    return t.width + margin();
+    return t().width + margin();
 }
 
 double SideSheet::progress() const {
@@ -100,7 +103,7 @@ double SideSheet::progress() const {
 }
 
 double SideSheet::occupied_width() const {
-    return (t.width + 2.0 * margin()) * progress();
+    return (t().width + 2.0 * margin()) * progress();
 }
 
 void SideSheet::set_area(const render::Rect& area) {
@@ -123,8 +126,8 @@ void SideSheet::update_anchors() {
 
 render::Rect SideSheet::open_rect() const {
     const double m = margin();
-    const double x = options_.edge == SideSheetEdge::end ? area_.x + area_.width - m - t.width : area_.x + m;
-    return {x, area_.y + m, t.width, std::max(0.0, area_.height - 2.0 * m)};
+    const double x = options_.edge == SideSheetEdge::end ? area_.x + area_.width - m - t().width : area_.x + m;
+    return {x, area_.y + m, t().width, std::max(0.0, area_.height - 2.0 * m)};
 }
 
 render::Rect SideSheet::bounds() const {
@@ -141,33 +144,33 @@ double SideSheet::actions_height() const {
     for (const auto& a : actions_) {
         h = std::max(h, a->height());
     }
-    return tokens::divider_tokens.thickness + 2.0 * t.actions_padding + h;
+    return tokens::divider_tokens.thickness + 2.0 * t().actions_padding + h;
 }
 
 void SideSheet::place() {
     const render::Rect s = bounds();
-    double end = s.x + s.width - t.header_button_padding;
+    double end = s.x + s.width - t().header_button_padding;
     if (close_) {
-        close_->set_origin({end - close_->width(), s.y + (t.header_height - close_->height()) / 2.0});
+        close_->set_origin({end - close_->width(), s.y + (t().header_height - close_->height()) / 2.0});
     }
     if (back_) {
-        back_->set_origin({s.x + t.header_button_padding, s.y + (t.header_height - back_->height()) / 2.0});
+        back_->set_origin({s.x + t().header_button_padding, s.y + (t().header_height - back_->height()) / 2.0});
     }
     const double actions_top = s.y + s.height - actions_height();
-    double x = s.x + t.padding;
+    double x = s.x + t().padding;
     for (auto& a : actions_) {
-        a->set_origin({x, actions_top + tokens::divider_tokens.thickness + t.actions_padding});
-        x += a->width() + t.action_space;
+        a->set_origin({x, actions_top + tokens::divider_tokens.thickness + t().actions_padding});
+        x += a->width() + t().action_space;
     }
-    content_.place({s.x + t.padding, s.y + t.header_height, std::max(0.0, s.width - 2.0 * t.padding),
-                    std::max(0.0, actions_top - (s.y + t.header_height))});
+    content_.place({s.x + t().padding, s.y + t().header_height, std::max(0.0, s.width - 2.0 * t().padding),
+                    std::max(0.0, actions_top - (s.y + t().header_height))});
 }
 
 void SideSheet::open(input::InputSource source) {
     if (current_value() == SideSheetValue::hidden && drag_.idle()) {
         content_.reset_scroll();
     }
-    drag_.animate_to(SideSheetValue::expanded, tokens::side_sheet_motion, 0.0);
+    drag_.animate_to(SideSheetValue::expanded, current_style().side_sheet_motion, 0.0);
     if (source == input::InputSource::keyboard && modal()) {
         set_focused(false);
         tab(false);
@@ -175,7 +178,7 @@ void SideSheet::open(input::InputSource source) {
 }
 
 void SideSheet::close() {
-    drag_.animate_to(SideSheetValue::hidden, tokens::side_sheet_motion, 0.0);
+    drag_.animate_to(SideSheetValue::hidden, current_style().side_sheet_motion, 0.0);
     cancel_interaction();
 }
 
@@ -224,8 +227,8 @@ SideSheetValue SideSheet::release_target(double velocity) const {
     if (velocity != 0.0 && outwards) {
         return SideSheetValue::expanded;
     }
-    const bool significant = std::abs(velocity) > t.significant_velocity;
-    const bool past_half = std::abs(drag_.offset()) > travel() * t.hide_fraction;
+    const bool significant = std::abs(velocity) > t().significant_velocity;
+    const bool past_half = std::abs(drag_.offset()) > travel() * t().hide_fraction;
     return significant || past_half ? SideSheetValue::hidden : SideSheetValue::expanded;
 }
 
@@ -291,7 +294,7 @@ SideSheetResponse SideSheet::handle(const input::PointerEvent& e) {
         if (drag_.dragging()) {
             const std::optional<double> v = drag_.release(e.time_seconds);
             const SideSheetValue target = release_target(v.value_or(0.0));
-            drag_.animate_to(target, tokens::side_sheet_motion);
+            drag_.animate_to(target, current_style().side_sheet_motion);
             r.dismissed = target == SideSheetValue::hidden;
             r.consumed = true;
             return r;
@@ -315,7 +318,7 @@ SideSheetResponse SideSheet::handle(const input::PointerEvent& e) {
         tracking_ = false;
         if (drag_.dragging()) {
             drag_.release(e.time_seconds);
-            drag_.animate_to(release_target(0.0), tokens::side_sheet_motion);
+            drag_.animate_to(release_target(0.0), current_style().side_sheet_motion);
         }
         drag_.cancel_press();
         buttons(e);
@@ -379,7 +382,7 @@ void SideSheet::cancel_interaction() {
     content_.cancel_interaction();
     if (drag_.dragging()) {
         drag_.cancel_press();
-        drag_.animate_to(release_target(0.0), tokens::side_sheet_motion);
+        drag_.animate_to(release_target(0.0), current_style().side_sheet_motion);
     }
     drag_.cancel_press();
     tracking_ = false;
@@ -411,19 +414,19 @@ void SideSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         paint_scrim(canvas, area_, scheme, progress());
     }
     const render::Rect s = bounds();
-    const double r = tokens::corner_radius(t.corner, s.width, s.height);
+    const double r = tokens::corner_radius(t().corner, s.width, s.height);
     render::CornerRadii radii = render::uniform_radii(options_.detached ? r : 0.0);
     if (modal() && !options_.detached) {
         radii = options_.edge == SideSheetEdge::end ? render::CornerRadii{r, 0.0, 0.0, r} : render::CornerRadii{0.0, r, r, 0.0};
     }
-    paint_surface(canvas, s, radii, scheme[modal() ? t.modal_container : t.standard_container], modal() ? t.modal_elevation : t.standard_elevation,
+    paint_surface(canvas, s, radii, scheme[modal() ? t().modal_container : t().standard_container], modal() ? t().modal_elevation : t().standard_elevation,
                   scheme[color::Role::shadow]);
     canvas.push_clip(render::rounded_rect_path(s, radii));
     if (!options_.headline.empty()) {
-        const double x = back_ ? back_->bounds().x + back_->width() + t.back_headline_space : s.x + t.padding;
-        const double limit = (close_ ? close_->bounds().x : s.x + s.width - t.padding) - x;
-        canvas.push_clip({x, s.y, std::max(0.0, limit), t.header_height});
-        text::draw_line(canvas, fonts_, headline_, {x, s.y + (t.header_height - headline_.box_height()) / 2.0}, scheme[t.headline]);
+        const double x = back_ ? back_->bounds().x + back_->width() + t().back_headline_space : s.x + t().padding;
+        const double limit = (close_ ? close_->bounds().x : s.x + s.width - t().padding) - x;
+        canvas.push_clip({x, s.y, std::max(0.0, limit), t().header_height});
+        text::draw_line(canvas, fonts_, headline_, {x, s.y + (t().header_height - headline_.box_height()) / 2.0}, scheme[t().headline]);
         canvas.pop_clip();
     }
     if (back_) {
@@ -435,7 +438,7 @@ void SideSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     content_.paint(canvas, scheme);
     if (!actions_.empty()) {
         const double top = s.y + s.height - actions_height();
-        canvas.fill_rect({s.x, top, s.width, tokens::divider_tokens.thickness}, scheme[t.divider]);
+        canvas.fill_rect({s.x, top, s.width, tokens::divider_tokens.thickness}, scheme[t().divider]);
         for (const auto& a : actions_) {
             a->paint(canvas, scheme);
         }
@@ -454,7 +457,7 @@ std::optional<AccessibleNode> SideSheet::accessible() const {
         node.children.push_back(back_->accessible());
     }
     if (!options_.headline.empty()) {
-        node.children.push_back({AccessibleRole::heading, options_.headline, {bounds().x, bounds().y, bounds().width, t.header_height}});
+        node.children.push_back({AccessibleRole::heading, options_.headline, {bounds().x, bounds().y, bounds().width, t().header_height}});
     }
     if (close_) {
         node.children.push_back(close_->accessible());

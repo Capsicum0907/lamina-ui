@@ -6,6 +6,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/snackbar.hpp"
 #include "lamina/widgets/button.hpp"
@@ -16,7 +17,7 @@ namespace lamina::widgets {
 
 struct SnackbarOptions {
     std::string action_label;
-    double duration_seconds = tokens::snackbar_tokens.short_duration_seconds;
+    double duration_seconds = current_style().snackbar.short_duration_seconds;
 };
 
 struct SnackbarResponse {

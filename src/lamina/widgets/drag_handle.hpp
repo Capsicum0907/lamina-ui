@@ -8,6 +8,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/render/path.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/drag_handle.hpp"
 
 namespace lamina::widgets {
@@ -16,12 +17,12 @@ class DragHandlePainter {
 public:
     explicit DragHandlePainter(layout::Axis axis = layout::Axis::horizontal)
         : axis_(axis),
-          width_(tokens::drag_handle_tokens.width, tokens::drag_handle_tokens.size_spring),
-          height_(tokens::drag_handle_tokens.height, tokens::drag_handle_tokens.size_spring),
-          active_(0.0, tokens::drag_handle_tokens.color_spring) {}
+          width_(current_style().drag_handle.width, current_style().drag_handle.size_spring),
+          height_(current_style().drag_handle.height, current_style().drag_handle.size_spring),
+          active_(0.0, current_style().drag_handle.color_spring) {}
 
     void set_state(bool pressed, bool dragged) {
-        const tokens::DragHandleTokens& t = tokens::drag_handle_tokens;
+        const tokens::DragHandleTokens& t = current_style().drag_handle;
         const bool active = pressed || dragged;
         width_.animate_to(dragged ? t.dragged_width : pressed ? t.pressed_width : t.width);
         height_.animate_to(dragged ? t.dragged_height : pressed ? t.pressed_height : t.height);
@@ -45,7 +46,7 @@ public:
     }
 
     double radius(const render::Rect& r) const {
-        const tokens::DragHandleTokens& t = tokens::drag_handle_tokens;
+        const tokens::DragHandleTokens& t = current_style().drag_handle;
         const double a = std::clamp(active_.value(), 0.0, 1.0);
         const double rest = tokens::corner_radius(t.shape, r.width, r.height);
         const double pressed = tokens::corner_radius(t.pressed_shape, r.width, r.height);
@@ -56,7 +57,7 @@ public:
         if (opacity <= 0.0) {
             return;
         }
-        const tokens::DragHandleTokens& t = tokens::drag_handle_tokens;
+        const tokens::DragHandleTokens& t = current_style().drag_handle;
         const render::Rect r = rect(centre);
         const color::Argb c = color::mix(scheme[t.color], scheme[t.pressed_color], std::clamp(active_.value(), 0.0, 1.0));
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius(r))), color::scale_alpha(c, opacity));

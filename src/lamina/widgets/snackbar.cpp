@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/snackbar.hpp"
 
 #include <algorithm>
@@ -14,18 +15,20 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SnackbarTokens& t = tokens::snackbar_tokens;
+const tokens::SnackbarTokens& t() {
+    return current_style().snackbar;
+}
 using tokens::motion_scheme;
 
 }
 
 Snackbar::Snackbar(SnackbarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
-      message_({"", t.supporting_text, t.supporting_text_color}, fonts),
-      popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+      message_({"", t().supporting_text, t().supporting_text_color}, fonts),
+      popup_(t().closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
     if (!options_.action_label.empty()) {
-        action_.emplace(ButtonOptions{options_.action_label, t.action_style, t.action_size, tokens::ButtonShape::round,
-                                      std::nullopt, ButtonColors{std::nullopt, t.action_color, t.action_focus_ring}},
+        action_.emplace(ButtonOptions{options_.action_label, t().action_style, t().action_size, tokens::ButtonShape::round,
+                                      std::nullopt, ButtonColors{std::nullopt, t().action_color, t().action_focus_ring}},
                         fonts);
     }
 }
@@ -55,17 +58,17 @@ void Snackbar::set_area(const render::Rect& area) {
 }
 
 void Snackbar::relayout() {
-    const double width = std::clamp(area_.width - 2.0 * t.outer_padding, 0.0, t.max_width);
+    const double width = std::clamp(area_.width - 2.0 * t().outer_padding, 0.0, t().max_width);
     const double action_width = action_ ? action_->width() : 0.0;
-    const double text_width = std::max(0.0, width - t.start_padding - t.end_padding - action_width - t.text_end_spacing);
+    const double text_width = std::max(0.0, width - t().start_padding - t().end_padding - action_width - t().text_end_spacing);
     const layout::Size text = message_.measure({0.0, text_width, 0.0, std::numeric_limits<double>::infinity()});
     const double lines = static_cast<double>(std::max<std::size_t>(1, message_.line_count()));
-    const double line_height = tokens::type_style(t.supporting_text).line_height_sp;
-    const double height = std::max(t.single_line_height, lines * line_height + 2.0 * t.text_vertical_padding);
-    surface_ = {area_.x + (area_.width - width) / 2.0, area_.y + area_.height - t.outer_padding - height, width, height};
-    message_.set_origin({surface_.x + t.start_padding, surface_.y + (height - text.height) / 2.0});
+    const double line_height = tokens::type_style(t().supporting_text).line_height_sp;
+    const double height = std::max(t().single_line_height, lines * line_height + 2.0 * t().text_vertical_padding);
+    surface_ = {area_.x + (area_.width - width) / 2.0, area_.y + area_.height - t().outer_padding - height, width, height};
+    message_.set_origin({surface_.x + t().start_padding, surface_.y + (height - text.height) / 2.0});
     if (action_) {
-        action_->set_origin({surface_.x + width - t.end_padding - action_width, surface_.y + (height - action_->height()) / 2.0});
+        action_->set_origin({surface_.x + width - t().end_padding - action_width, surface_.y + (height - action_->height()) / 2.0});
     }
 }
 
@@ -135,8 +138,8 @@ void Snackbar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) c
     const color::ColorScheme s = color::faded(scheme, opacity());
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});
-    const double radius = tokens::corner_radius(t.corner, surface_.width, surface_.height);
-    paint_surface(canvas, surface_, radius, s[t.container], tokens::elevation_dp[t.elevation], s[color::Role::shadow]);
+    const double radius = tokens::corner_radius(t().corner, surface_.width, surface_.height);
+    paint_surface(canvas, surface_, radius, s[t().container], tokens::elevation_dp[t().elevation], s[color::Role::shadow]);
     message_.paint(canvas, s);
     if (action_) {
         action_->paint(canvas, s);

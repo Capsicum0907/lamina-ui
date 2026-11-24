@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 
@@ -14,7 +15,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::GroupedMenuTokens& t = tokens::grouped_menu_tokens;
+const tokens::GroupedMenuTokens& t() {
+    return current_style().grouped_menu;
+}
 using tokens::motion_scheme;
 
 motion::AnimatedRadii corner_springs() {
@@ -25,52 +28,52 @@ motion::AnimatedRadii corner_springs() {
 
 tokens::Corners menu_group_corners(std::size_t index, std::size_t count) {
     if (count <= 1) {
-        return t.standalone_group;
+        return t().standalone_group;
     }
     if (index == 0) {
-        return t.leading_group;
+        return t().leading_group;
     }
-    return index + 1 == count ? t.trailing_group : t.middle_group;
+    return index + 1 == count ? t().trailing_group : t().middle_group;
 }
 
 tokens::Corners menu_item_corners(std::size_t index, std::size_t count) {
     if (count <= 1) {
-        return t.standalone_item;
+        return t().standalone_item;
     }
     if (index == 0) {
-        return t.leading_item;
+        return t().leading_item;
     }
-    return index + 1 == count ? t.trailing_item : t.middle_item;
+    return index + 1 == count ? t().trailing_item : t().middle_item;
 }
 
 GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(options.accessible_name),
-      popup_(t.closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
-    const auto item_style = tokens::text_style(tokens::type_style(t.label));
-    const auto group_label_style = tokens::text_style(tokens::type_style(t.group_label));
+      popup_(t().closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+    const auto item_style = tokens::text_style(tokens::type_style(t().label));
+    const auto group_label_style = tokens::text_style(tokens::type_style(t().group_label));
     double content = 0.0;
     double y = 0.0;
     for (std::size_t g = 0; g < options.groups.size(); ++g) {
         MenuGroup& spec = options.groups[g];
         Group group{std::nullopt, spec.label, 0.0, 0.0, std::nullopt, spec.selection, {}, y, 0.0, false, false, corner_springs()};
-        double gy = t.group_vertical_padding;
+        double gy = t().group_vertical_padding;
         if (!spec.label.empty()) {
             group.label = text::layout_line(fonts_, spec.label, group_label_style);
             group.label_y = gy;
-            group.label_height = std::max(t.group_label_min_height, group.label->style.line_height);
+            group.label_height = std::max(t().group_label_min_height, group.label->style.line_height);
             gy += group.label_height;
-            content = std::max(content, std::clamp(t.group_label_start_padding + group.label->width + t.group_label_end_padding,
-                                                   t.item_min_width, t.item_max_width));
+            content = std::max(content, std::clamp(t().group_label_start_padding + group.label->width + t().group_label_end_padding,
+                                                   t().item_min_width, t().item_max_width));
         }
         if (spec.divider) {
-            group.divider_y = gy + t.divider_vertical_padding;
-            gy += 2.0 * t.divider_vertical_padding + t.divider_thickness;
+            group.divider_y = gy + t().divider_vertical_padding;
+            gy += 2.0 * t().divider_vertical_padding + t().divider_thickness;
         }
         for (GroupedMenuItem& item : spec.items) {
             std::optional<text::TextLine> label;
             std::optional<AccessKeyLabel> access;
             const std::optional<input::Key> key = access_key_for(item.label, item.access_key);
-            double w = 2.0 * t.item_horizontal_padding;
+            double w = 2.0 * t().item_horizontal_padding;
             double h = 0.0;
             if (!item.label.empty()) {
                 label = text::layout_line(fonts_, item.label, item_style);
@@ -82,15 +85,15 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
                 }
             }
             if (item.leading_icon) {
-                w += t.leading_icon_size + t.icon_text_space;
-                h = std::max(h, t.leading_icon_size);
+                w += t().leading_icon_size + t().icon_text_space;
+                h = std::max(h, t().leading_icon_size);
             }
             if (item.trailing_icon) {
-                w += t.icon_text_space + t.trailing_icon_size;
-                h = std::max(h, t.trailing_icon_size);
+                w += t().icon_text_space + t().trailing_icon_size;
+                h = std::max(h, t().trailing_icon_size);
             }
-            content = std::max(content, std::clamp(w, t.item_min_width, t.item_max_width) + 2.0 * t.item_horizontal_inset);
-            const double height = std::max(t.item_min_height, h + 2.0 * t.item_vertical_padding);
+            content = std::max(content, std::clamp(w, t().item_min_width, t().item_max_width) + 2.0 * t().item_horizontal_inset);
+            const double height = std::max(t().item_min_height, h + 2.0 * t().item_vertical_padding);
             const double on = item.selected ? 1.0 : 0.0;
             access_keys_.push_back(key);
             group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
@@ -99,8 +102,8 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
                                    corner_springs(), Enablement(item.enabled), item.label});
             gy += height;
         }
-        group.height = gy + t.group_vertical_padding;
-        y += group.height + t.group_gap;
+        group.height = gy + t().group_vertical_padding;
+        y += group.height + t().group_gap;
         groups_.push_back(std::move(group));
     }
     width_ = content;
@@ -131,7 +134,7 @@ render::Rect GroupedMenu::group_rect(std::size_t group) const {
 render::Rect GroupedMenu::item_rect(std::size_t group, std::size_t item) const {
     const Group& g = groups_[group];
     const Item& i = g.items[item];
-    return {origin_.x + t.item_horizontal_inset, origin_.y + g.y + i.y, width_ - 2.0 * t.item_horizontal_inset, i.height};
+    return {origin_.x + t().item_horizontal_inset, origin_.y + g.y + i.y, width_ - 2.0 * t().item_horizontal_inset, i.height};
 }
 
 render::CornerRadii GroupedMenu::group_radii(std::size_t group) const {
@@ -146,7 +149,7 @@ render::CornerRadii GroupedMenu::group_target(std::size_t group) const {
     const Group& g = groups_[group];
     const render::Rect r = group_rect(group);
     if (g.has_been_hovered && !g.hovered) {
-        return tokens::corner_radii(tokens::all_corners(t.inactive_group), r.width, r.height);
+        return tokens::corner_radii(tokens::all_corners(t().inactive_group), r.width, r.height);
     }
     return tokens::corner_radii(menu_group_corners(group, groups_.size()), r.width, r.height);
 }
@@ -155,7 +158,7 @@ render::CornerRadii GroupedMenu::item_target(std::size_t group, std::size_t item
     const Group& g = groups_[group];
     const render::Rect r = item_rect(group, item);
     if (g.items[item].selected) {
-        return tokens::corner_radii(tokens::all_corners(t.selected_item), r.width, r.height);
+        return tokens::corner_radii(tokens::all_corners(t().selected_item), r.width, r.height);
     }
     return tokens::corner_radii(menu_item_corners(item, g.items.size()), r.width, r.height);
 }
@@ -193,7 +196,7 @@ void GroupedMenu::choose(std::size_t group, std::size_t item) {
 }
 
 void GroupedMenu::open(const render::Rect& anchor, layout::Size window, input::InputSource source) {
-    origin_ = menu_position(anchor, window, {width_, height()}, t.window_horizontal_margin, t.window_vertical_margin);
+    origin_ = menu_position(anchor, window, {width_, height()}, t().window_horizontal_margin, t().window_vertical_margin);
     pivot_ = menu_transform_origin(anchor, bounds());
     if (popup_.open()) {
         for (std::size_t g = 0; g < groups_.size(); ++g) {
@@ -441,19 +444,19 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const color::ColorScheme s = color::faded(scheme, a);
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const render::Rect gr = group_rect(g);
-        paint_surface(canvas, gr, group_radii(g), s[t.group_container], tokens::elevation_dp[t.elevation], s[color::Role::shadow]);
+        paint_surface(canvas, gr, group_radii(g), s[t().group_container], tokens::elevation_dp[t().elevation], s[color::Role::shadow]);
     }
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const Group& group = groups_[g];
         const render::Rect gr = group_rect(g);
         if (group.label) {
             const double y = gr.y + group.label_y + (group.label_height - group.label->box_height()) / 2.0;
-            text::draw_line(canvas, fonts_, *group.label, {gr.x + t.group_label_start_padding, y}, s[t.group_label_color]);
+            text::draw_line(canvas, fonts_, *group.label, {gr.x + t().group_label_start_padding, y}, s[t().group_label_color]);
         }
         if (group.divider_y) {
-            const render::Rect line{gr.x + t.divider_horizontal_padding, gr.y + *group.divider_y,
-                                    gr.width - 2.0 * t.divider_horizontal_padding, t.divider_thickness};
-            canvas.fill_rect(line, s[t.divider_color]);
+            const render::Rect line{gr.x + t().divider_horizontal_padding, gr.y + *group.divider_y,
+                                    gr.width - 2.0 * t().divider_horizontal_padding, t().divider_thickness};
+            canvas.fill_rect(line, s[t().divider_color]);
         }
         for (std::size_t i = 0; i < group.items.size(); ++i) {
             const Item& item = group.items[i];
@@ -462,25 +465,25 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
             const double k = std::clamp(item.selection.value(), 0.0, 1.0);
             const double fill = k * item.enabled.amount();
             if (fill > 0.0) {
-                canvas.fill_path(render::rounded_rect_path(ir, radii), color::mix(s[t.group_container], s[t.selected_container], fill));
+                canvas.fill_path(render::rounded_rect_path(ir, radii), color::mix(s[t().group_container], s[t().selected_container], fill));
             }
             if (item.state_layer.value() > 0.0) {
-                const color::Argb layer = color::mix(scheme[t.state_layer], scheme[t.selected_state_layer], k);
+                const color::Argb layer = color::mix(scheme[t().state_layer], scheme[t().selected_state_layer], k);
                 canvas.fill_path(render::rounded_rect_path(ir, radii),
                                  color::scale_alpha(color::with_alpha(layer, item.state_layer.value()), a));
             }
-            double x = ir.x + t.item_horizontal_padding;
+            double x = ir.x + t().item_horizontal_padding;
             const double cy = ir.y + ir.height / 2.0;
             if (item.leading_icon) {
                 const icons::Icon& icon = item.selected && item.selected_leading_icon ? *item.selected_leading_icon : *item.leading_icon;
-                icon.font.draw(canvas, icon.symbol, {x, cy - t.leading_icon_size / 2.0}, t.leading_icon_size,
-                               item.enabled.mix(resolve(s, t.disabled_leading_icon), color::mix(s[t.leading_icon], s[t.selected_leading_icon], k)));
-                x += t.leading_icon_size + t.icon_text_space;
+                icon.font.draw(canvas, icon.symbol, {x, cy - t().leading_icon_size / 2.0}, t().leading_icon_size,
+                               item.enabled.mix(resolve(s, t().disabled_leading_icon), color::mix(s[t().leading_icon], s[t().selected_leading_icon], k)));
+                x += t().leading_icon_size + t().icon_text_space;
             }
             if (item.label) {
                 const render::Point top_left{x, cy - item.label->box_height() / 2.0};
                 const color::Argb label_color =
-                    item.enabled.mix(resolve(s, t.disabled_label), color::mix(s[t.label_color], s[t.selected_label], k));
+                    item.enabled.mix(resolve(s, t().disabled_label), color::mix(s[t().label_color], s[t().selected_label], k));
                 text::draw_line(canvas, fonts_, *item.label, top_left, label_color);
                 if (item.access && access_keys_fade_.value() > 0.0) {
                     paint_access_key(canvas, fonts_, *item.access, *item.label, top_left,
@@ -488,11 +491,11 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
                 }
             }
             if (item.trailing_icon) {
-                const double tx = ir.x + ir.width - t.item_horizontal_padding - t.trailing_icon_size;
-                item.trailing_icon->font.draw(canvas, item.trailing_icon->symbol, {tx, cy - t.trailing_icon_size / 2.0},
-                                              t.trailing_icon_size,
-                                              item.enabled.mix(resolve(s, t.disabled_trailing_icon),
-                                                               color::mix(s[t.trailing_icon], s[t.selected_trailing_icon], k)));
+                const double tx = ir.x + ir.width - t().item_horizontal_padding - t().trailing_icon_size;
+                item.trailing_icon->font.draw(canvas, item.trailing_icon->symbol, {tx, cy - t().trailing_icon_size / 2.0},
+                                              t().trailing_icon_size,
+                                              item.enabled.mix(resolve(s, t().disabled_trailing_icon),
+                                                               color::mix(s[t().trailing_icon], s[t().selected_trailing_icon], k)));
             }
         }
     }
