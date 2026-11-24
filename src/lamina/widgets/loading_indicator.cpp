@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/loading_indicator.hpp"
 
 #include <algorithm>
@@ -11,7 +12,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::LoadingIndicatorTokens& t = tokens::loading_indicator_tokens;
+const tokens::LoadingIndicatorTokens& t() {
+    return current_style().loading_indicator.common;
+}
 
 double radians(double degrees) {
     return degrees * std::numbers::pi / 180.0;
@@ -20,16 +23,16 @@ double radians(double degrees) {
 std::vector<shapes::RoundedPolygon> polygons(bool determinate) {
     std::vector<shapes::RoundedPolygon> out;
     if (determinate) {
-        const float a = static_cast<float>(radians(t.determinate_circle_rotation_degrees));
+        const float a = static_cast<float>(radians(t().determinate_circle_rotation_degrees));
         const float c = std::cos(a);
         const float s = std::sin(a);
-        out.push_back(shapes::material_shape(tokens::loading_indicator_determinate_shapes[0]).transformed([c, s](shapes::Point p) {
+        out.push_back(shapes::material_shape(current_style().loading_indicator.determinate_shapes[0]).transformed([c, s](shapes::Point p) {
             return shapes::Point{c * p.x - s * p.y, s * p.x + c * p.y};
         }));
-        out.push_back(shapes::material_shape(tokens::loading_indicator_determinate_shapes[1]));
+        out.push_back(shapes::material_shape(current_style().loading_indicator.determinate_shapes[1]));
         return out;
     }
-    for (shapes::MaterialShape m : tokens::loading_indicator_indeterminate_shapes) {
+    for (shapes::MaterialShape m : current_style().loading_indicator.indeterminate_shapes) {
         out.push_back(shapes::material_shape(m));
     }
     return out;
@@ -57,7 +60,7 @@ double scale_factor(bool determinate) {
         const double sy = (b.bottom - b.top) / (m.bottom - m.top);
         factor = std::min(factor, std::max(sx, sy));
     }
-    return factor * t.active_size / t.container_size;
+    return factor * t().active_size / t().container_size;
 }
 
 }
@@ -79,9 +82,9 @@ double spring_finish_seconds(const motion::SpringSpec& spec, double threshold) {
     const double zeta = spec.damping_ratio;
     if (zeta >= 1.0) {
         double time = 0.0;
-        const double dt = t.estimate_step_seconds;
+        const double dt = t().estimate_step_seconds;
         motion::SpringState s{0.0, 0.0};
-        while (std::abs(1.0 - s.value) >= threshold && time < t.estimate_limit_seconds) {
+        while (std::abs(1.0 - s.value) >= threshold && time < t().estimate_limit_seconds) {
             s = motion::advance(spec, s, 1.0, dt);
             time += dt;
         }
@@ -96,13 +99,13 @@ double spring_finish_seconds(const motion::SpringSpec& spec, double threshold) {
 
 LoadingIndicator::LoadingIndicator(LoadingIndicatorOptions options)
     : options_(std::move(options)),
-      morph_(0.0, t.morph_spring),
-      handoff_(0.0, t.handoff_spring),
-      turn_(t.morph_turn_degrees) {
+      morph_(0.0, t().morph_spring),
+      handoff_(0.0, t().handoff_spring),
+      turn_(t().morph_turn_degrees) {
     if (options_.progress) {
         options_.progress = std::clamp(*options_.progress, 0.0, 1.0);
     }
-    morph_seconds_ = spring_finish_seconds(t.morph_spring, t.morph_threshold);
+    morph_seconds_ = spring_finish_seconds(t().morph_spring, t().morph_threshold);
     if (!determinate()) {
         start_morph();
     }
@@ -154,9 +157,9 @@ double LoadingIndicator::morph_progress() const {
 
 double LoadingIndicator::rotation_degrees() const {
     if (determinate()) {
-        return *options_.progress * t.determinate_turn_degrees;
+        return *options_.progress * t().determinate_turn_degrees;
     }
-    return morph_.value() * t.morph_turn_degrees + turn_ + spin_;
+    return morph_.value() * t().morph_turn_degrees + turn_ + spin_;
 }
 
 namespace {
@@ -229,7 +232,7 @@ void LoadingIndicator::step(double dt) {
     if (determinate()) {
         return;
     }
-    spin_ = std::fmod(spin_ + 360.0 * dt / t.rotation_period_seconds, 360.0);
+    spin_ = std::fmod(spin_ + 360.0 * dt / t().rotation_period_seconds, 360.0);
     cycle_elapsed_ += dt;
     if (morph_running_) {
         morph_.step(dt);
@@ -238,25 +241,25 @@ void LoadingIndicator::step(double dt) {
             morph_running_ = false;
             morph_index_ = (morph_index_ + 1) % morph_count();
             morph_.snap_to(0.0);
-            turn_ = std::fmod(turn_ + t.morph_turn_degrees, 360.0);
+            turn_ = std::fmod(turn_ + t().morph_turn_degrees, 360.0);
         }
     }
-    if (!morph_running_ && cycle_elapsed_ >= t.morph_interval_seconds) {
-        cycle_elapsed_ -= t.morph_interval_seconds;
+    if (!morph_running_ && cycle_elapsed_ >= t().morph_interval_seconds) {
+        cycle_elapsed_ -= t().morph_interval_seconds;
         start_morph();
     }
 }
 
 void LoadingIndicator::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(t.container_shape, r.width, r.height);
+    const double radius = tokens::corner_radius(t().container_shape, r.width, r.height);
     const render::Path container = render::rounded_rect_path(r, render::uniform_radii(radius));
     if (options_.contained) {
-        canvas.fill_path(container, scheme[t.contained_container]);
+        canvas.fill_path(container, scheme[t().contained_container]);
     }
     canvas.save();
     canvas.push_clip(container);
-    canvas.fill_path(indicator_path(), scheme[options_.contained ? t.contained_indicator : t.indicator]);
+    canvas.fill_path(indicator_path(), scheme[options_.contained ? t().contained_indicator : t().indicator]);
     canvas.pop_clip();
     canvas.restore();
 }

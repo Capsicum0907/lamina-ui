@@ -59,4 +59,10 @@ inline constexpr std::array<shapes::MaterialShape, 2> loading_indicator_determin
     shapes::MaterialShape::soft_burst,
 };
 
+struct LoadingIndicatorSet {
+    LoadingIndicatorTokens common = loading_indicator_tokens;
+    std::array<shapes::MaterialShape, 7> indeterminate_shapes = loading_indicator_indeterminate_shapes;
+    std::array<shapes::MaterialShape, 2> determinate_shapes = loading_indicator_determinate_shapes;
+};
+
 }

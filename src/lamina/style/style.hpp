@@ -19,6 +19,7 @@
 #include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/tokens/icon_button.hpp"
 #include "lamina/tokens/list.hpp"
+#include "lamina/tokens/loading_indicator.hpp"
 #include "lamina/tokens/menu.hpp"
 #include "lamina/tokens/menu_bar.hpp"
 #include "lamina/tokens/navigation_bar.hpp"
@@ -29,6 +30,8 @@
 #include "lamina/tokens/pager.hpp"
 #include "lamina/tokens/pane_scaffold.hpp"
 #include "lamina/tokens/picker_dialog.hpp"
+#include "lamina/tokens/progress_indicator.hpp"
+#include "lamina/tokens/pull_to_refresh.hpp"
 #include "lamina/tokens/radio_button.hpp"
 #include "lamina/tokens/scrim.hpp"
 #include "lamina/tokens/scroll_area.hpp"
@@ -48,6 +51,7 @@
 #include "lamina/tokens/title_bar.hpp"
 #include "lamina/tokens/tooltip.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
+#include "lamina/tokens/wavy_progress.hpp"
 
 namespace lamina {
 
@@ -119,6 +123,15 @@ struct Style {
     tokens::CardSet card;
     tokens::BadgeTokens badge = tokens::badge_tokens;
     tokens::ScrollAreaTokens scroll_area = tokens::scroll_area_tokens;
+    
+    tokens::CircularProgressTokens circular_progress = tokens::circular_progress_tokens;
+    tokens::CircularIndeterminateTokens circular_indeterminate = tokens::circular_indeterminate;
+    tokens::LinearIndeterminateTokens linear_indeterminate = tokens::linear_indeterminate;
+    tokens::WavyProgressTokens wavy_progress = tokens::wavy_progress_tokens;
+    tokens::WavyProgressMotion wavy_progress_motion = tokens::wavy_progress_motion;
+    tokens::LoadingIndicatorSet loading_indicator;
+    tokens::PullToRefreshTokens pull_to_refresh = tokens::pull_to_refresh_tokens;
+    tokens::PullArrowTokens pull_arrow = tokens::pull_arrow_tokens;
 };
 
 const Style& m3_expressive_style();

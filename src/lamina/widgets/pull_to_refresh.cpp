@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
 
 #include <algorithm>
@@ -80,7 +81,7 @@ double PullToRefresh::spinner_sweep_degrees() const {
 }
 
 double PullToRefresh::spinner_rotation_degrees() const {
-    return circular_indeterminate_rotation(spinner_ms_) + tokens::wavy_progress_tokens.start_angle_degrees;
+    return circular_indeterminate_rotation(spinner_ms_) + current_style().wavy_progress.start_angle_degrees;
 }
 
 bool PullToRefresh::shown() const {

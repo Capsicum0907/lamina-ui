@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/accessibility.hpp"
 
 #include "lamina/color/scheme.hpp"
@@ -12,19 +13,19 @@
 namespace lamina::widgets {
 
 struct ProgressColors {
-    color::Role indicator = tokens::circular_progress_tokens.indicator;
-    color::Role track = tokens::circular_progress_tokens.track;
+    color::Role indicator = current_style().circular_progress.indicator;
+    color::Role track = current_style().circular_progress.track;
 };
 
 struct CircularProgressOptions {
-    double diameter = tokens::circular_progress_tokens.wavy_size;
-    double thickness = tokens::circular_progress_tokens.active_thickness;
-    double track_thickness = tokens::circular_progress_tokens.track_thickness;
-    double gap = tokens::circular_progress_tokens.track_active_space;
-    double amplitude = tokens::circular_progress_tokens.wave_amplitude;
-    double wavelength = tokens::circular_progress_tokens.wavelength;
-    double waves_per_second = tokens::circular_progress_tokens.waves_per_second;
-    double sample_length = tokens::circular_progress_tokens.sample_length;
+    double diameter = current_style().circular_progress.wavy_size;
+    double thickness = current_style().circular_progress.active_thickness;
+    double track_thickness = current_style().circular_progress.track_thickness;
+    double gap = current_style().circular_progress.track_active_space;
+    double amplitude = current_style().circular_progress.wave_amplitude;
+    double wavelength = current_style().circular_progress.wavelength;
+    double waves_per_second = current_style().circular_progress.waves_per_second;
+    double sample_length = current_style().circular_progress.sample_length;
     bool wavy = true;
     ProgressColors colors = {};
 };

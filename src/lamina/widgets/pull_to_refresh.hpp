@@ -8,6 +8,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/motion/tween.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/pull_to_refresh.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/loading_indicator.hpp"
@@ -19,9 +20,9 @@ enum class PullIndicatorStyle { expressive, arrow };
 struct PullToRefreshOptions {
     std::string accessible_name = {};
     bool enabled = true;
-    const tokens::PullToRefreshTokens* tokens = &tokens::pull_to_refresh_tokens;
+    const tokens::PullToRefreshTokens* tokens = &current_style().pull_to_refresh;
     PullIndicatorStyle style = PullIndicatorStyle::expressive;
-    const tokens::PullArrowTokens* arrow_tokens = &tokens::pull_arrow_tokens;
+    const tokens::PullArrowTokens* arrow_tokens = &current_style().pull_arrow;
 };
 
 struct PullArrow {

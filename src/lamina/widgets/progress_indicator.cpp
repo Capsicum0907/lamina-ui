@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/progress_indicator.hpp"
 
 #include <algorithm>
@@ -72,7 +73,7 @@ void CircularProgressIndicator::set_colors(ProgressColors colors) {
 }
 
 double CircularProgressIndicator::target_amplitude() const {
-    const auto& t = tokens::circular_progress_tokens;
+    const auto& t = current_style().circular_progress;
     const double p = progress();
     return options_.wavy && p > t.wave_start_progress && p < t.wave_end_progress ? 1.0 : 0.0;
 }

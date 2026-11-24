@@ -10,6 +10,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/shapes/morph.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/loading_indicator.hpp"
 #include "lamina/widgets/accessibility.hpp"
 
@@ -19,7 +20,7 @@ struct LoadingIndicatorOptions {
     std::optional<double> progress = std::nullopt;
     bool contained = false;
     std::string accessible_name = {};
-    double size = tokens::loading_indicator_tokens.container_size;
+    double size = current_style().loading_indicator.common.container_size;
 };
 
 class LoadingIndicator {
