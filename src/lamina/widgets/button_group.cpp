@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/button_group.hpp"
 
 #include <algorithm>
@@ -8,7 +9,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::ButtonGroupTokens& t = tokens::button_group_tokens;
+const tokens::ButtonGroupTokens& t() {
+    return current_style().button_group;
+}
 
 std::optional<tokens::ConnectedPosition> connected_position(std::size_t index, std::size_t count) {
     if (count < 2) {
@@ -44,13 +47,13 @@ ButtonGroup::ButtonGroup(ButtonGroupOptions options, const text::FontStack& font
         }
         if (options_.connected) {
             if (const auto p = connected_position(i, n)) {
-                b.shapes = ButtonShapes{tokens::connected_rest_corners(*p), tokens::connected_pressed_corners(*p),
-                                        tokens::all_corners(t.connected_checked_corner), tokens::toggle_button_motion.shape};
+                b.shapes = ButtonShapes{current_style().button_group.rest_corners(*p), current_style().button_group.pressed_corners(*p),
+                                        tokens::all_corners(t().connected_checked_corner), current_style().button.toggle_motion.shape};
             }
         }
-        items_.push_back(Item{spec, std::make_unique<Button>(std::move(b), fonts_), motion::Animated(0.0, t.width_spring)});
+        items_.push_back(Item{spec, std::make_unique<Button>(std::move(b), fonts_), motion::Animated(0.0, t().width_spring)});
     }
-    IconButtonOptions overflow{icons::Icon{icon_font_, t.overflow_symbol}, options_.strings->more_options, t.overflow_style,
+    IconButtonOptions overflow{icons::Icon{icon_font_, t().overflow_symbol}, options_.strings->more_options, t().overflow_style,
                                static_cast<tokens::IconButtonSize>(static_cast<std::size_t>(options_.size))};
     overflow.enabled = enabled_;
     overflow_ = std::make_unique<IconButton>(std::move(overflow));
@@ -58,11 +61,11 @@ ButtonGroup::ButtonGroup(ButtonGroupOptions options, const text::FontStack& font
 }
 
 double ButtonGroup::spacing() const {
-    return options_.connected ? t.connected_between_space : t.between_space;
+    return options_.connected ? t().connected_between_space : t().between_space;
 }
 
 double ButtonGroup::compression_limit(std::size_t) const {
-    return tokens::button_size(options_.size).trailing_space;
+    return current_style().button.size(options_.size).trailing_space;
 }
 
 layout::Size ButtonGroup::measure(const layout::Constraints& c) {
@@ -404,7 +407,7 @@ void ButtonGroup::step(double dt) {
     for (Item& item : items_) {
         item.button->step(dt);
         item.pressed.step(dt);
-        if (item.releasing && item.pressed.value() > t.release_threshold) {
+        if (item.releasing && item.pressed.value() > t().release_threshold) {
             item.releasing = false;
             item.pressed.animate_to(0.0);
         }

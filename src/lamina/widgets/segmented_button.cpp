@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 
 #include <algorithm>
@@ -13,11 +14,15 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SegmentedButtonTokens& t = tokens::segmented_button_tokens;
-constexpr const tokens::SegmentedButtonMotion& m = tokens::segmented_button_motion;
+const tokens::SegmentedButtonTokens& t() {
+    return current_style().segmented_button;
+}
+const tokens::SegmentedButtonMotion& m() {
+    return current_style().segmented_button_motion;
+}
 
 double icon_slot() {
-    return t.icon_size + t.icon_spacing;
+    return t().icon_size + t().icon_spacing;
 }
 
 double hidden_offset() {
@@ -27,11 +32,11 @@ double hidden_offset() {
 }
 
 SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const text::FontStack& fonts, const icons::IconFont& icon_font)
-    : options_(std::move(options)), fonts_(fonts), checkmark_{icon_font, t.checkmark}, enabled_(options_.enabled) {
+    : options_(std::move(options)), fonts_(fonts), checkmark_{icon_font, t().checkmark}, enabled_(options_.enabled) {
     if (options_.segments.empty()) {
         throw std::invalid_argument("A segmented button row needs at least one segment");
     }
-    const text::TextStyle style = tokens::text_style(tokens::type_style(t.label));
+    const text::TextStyle style = tokens::text_style(tokens::type_style(t().label));
     bool seen_selected = false;
     segments_.reserve(options_.segments.size());
     for (Segment& spec : options_.segments) {
@@ -50,20 +55,20 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
         text::TextLine line = text::layout_line(fonts_, spec.label, style);
         const bool allowed = spec.enabled;
         text::TextLine shown = line;
-        segments_.push_back(Item{std::move(spec), std::move(line), std::move(shown), false, {}, motion::Animated(0.0, m.state_layer),
-                                 motion::Animated(on ? 1.0 : 0.0, m.colors), motion::Animated(on ? 1.0 : 0.0, m.check_scale),
-                                 motion::Animated(on ? 1.0 : 0.0, m.check_fade), motion::Animated(on ? 1.0 : 0.0, m.icon_crossfade),
-                                 motion::Animated(shows_icon ? 0.0 : hidden_offset(), m.label_shift), Enablement(allowed && enabled_),
+        segments_.push_back(Item{std::move(spec), std::move(line), std::move(shown), false, {}, motion::Animated(0.0, m().state_layer),
+                                 motion::Animated(on ? 1.0 : 0.0, m().colors), motion::Animated(on ? 1.0 : 0.0, m().check_scale),
+                                 motion::Animated(on ? 1.0 : 0.0, m().check_fade), motion::Animated(on ? 1.0 : 0.0, m().icon_crossfade),
+                                 motion::Animated(shows_icon ? 0.0 : hidden_offset(), m().label_shift), Enablement(allowed && enabled_),
                                  allowed});
     }
     const double mark = text::layout_line(fonts_, tokens::ellipsis, style).width;
-    double widest = t.min_width;
-    double narrowest = t.min_width;
+    double widest = t().min_width;
+    double narrowest = t().min_width;
     for (const Item& item : segments_) {
-        const double label = item.spec.label.empty() ? t.icon_size : item.label.width;
-        const double least = item.spec.label.empty() ? t.icon_size : std::min(item.label.width, mark);
-        widest = std::max(widest, 2.0 * t.horizontal_padding + icon_slot() + label);
-        narrowest = std::max(narrowest, 2.0 * t.horizontal_padding + icon_slot() + least);
+        const double label = item.spec.label.empty() ? t().icon_size : item.label.width;
+        const double least = item.spec.label.empty() ? t().icon_size : std::min(item.label.width, mark);
+        widest = std::max(widest, 2.0 * t().horizontal_padding + icon_slot() + label);
+        narrowest = std::max(narrowest, 2.0 * t().horizontal_padding + icon_slot() + least);
     }
     natural_segment_ = widest;
     min_segment_ = narrowest;
@@ -71,7 +76,7 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
     fit_labels();
     double tallest = 0.0;
     for (const Item& item : segments_) {
-        tallest = std::max(tallest, item.spec.label.empty() ? t.icon_size : item.label.box_height());
+        tallest = std::max(tallest, item.spec.label.empty() ? t().icon_size : item.label.box_height());
     }
     tallest_ = tallest;
     update_height();
@@ -80,7 +85,7 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
 void SegmentedButtonRow::update_height() {
     const tokens::DenseLength& l = tokens::density_tokens.segmented_button;
     const double removed = l.base - l.at(options_.density);
-    height_ = std::max(l.at(options_.density), tallest_ + 2.0 * std::max(0.0, t.vertical_padding - removed / 2.0));
+    height_ = std::max(l.at(options_.density), tallest_ + 2.0 * std::max(0.0, t().vertical_padding - removed / 2.0));
 }
 
 void SegmentedButtonRow::set_density(tokens::Density density) {
@@ -89,7 +94,7 @@ void SegmentedButtonRow::set_density(tokens::Density density) {
 }
 
 double SegmentedButtonRow::row_width(double segment) const {
-    return count() * segment - (count() - 1.0) * t.outline_width;
+    return count() * segment - (count() - 1.0) * t().outline_width;
 }
 
 double SegmentedButtonRow::width() const {
@@ -105,7 +110,7 @@ double SegmentedButtonRow::min_width() const {
 }
 
 void SegmentedButtonRow::set_width(double width) {
-    const double segment = (width + (count() - 1.0) * t.outline_width) / count();
+    const double segment = (width + (count() - 1.0) * t().outline_width) / count();
     segment_width_ = std::max(width >= natural_width() ? natural_segment_ : min_segment_, segment);
     fit_labels();
 }
@@ -122,14 +127,14 @@ void SegmentedButtonRow::arrange(const render::Rect& r) {
 }
 
 void SegmentedButtonRow::fit_labels() {
-    const double room = segment_width_ - 2.0 * t.horizontal_padding - icon_slot();
+    const double room = segment_width_ - 2.0 * t().horizontal_padding - icon_slot();
     if (room == label_room_) {
         return;
     }
     label_room_ = room;
-    const text::TextStyle style = tokens::text_style(tokens::type_style(t.label));
+    const text::TextStyle style = tokens::text_style(tokens::type_style(t().label));
     for (Item& item : segments_) {
-        const bool fits = item.spec.label.empty() || 2.0 * t.horizontal_padding + icon_slot() + item.label.width <= segment_width_;
+        const bool fits = item.spec.label.empty() || 2.0 * t().horizontal_padding + icon_slot() + item.label.width <= segment_width_;
         if (fits) {
             if (item.ellipsized) {
                 item.shown = item.label;
@@ -147,7 +152,7 @@ double SegmentedButtonRow::height() const {
 }
 
 render::Rect SegmentedButtonRow::segment_bounds(std::size_t index) const {
-    return {origin_.x + static_cast<double>(index) * (segment_width_ - t.outline_width), origin_.y, segment_width_, height_};
+    return {origin_.x + static_cast<double>(index) * (segment_width_ - t().outline_width), origin_.y, segment_width_, height_};
 }
 
 const std::string& SegmentedButtonRow::segment_name(std::size_t index) const {
@@ -291,7 +296,7 @@ void SegmentedButtonRow::activate(std::size_t index, SegmentedButtonResponse& re
 render::Rect SegmentedButtonRow::segment_hit(std::size_t i) const {
     render::Rect hit = segment_bounds(i);
     if (i + 1 < segments_.size()) {
-        hit.width -= t.outline_width;
+        hit.width -= t().outline_width;
     }
     return hit;
 }
@@ -380,63 +385,63 @@ bool SegmentedButtonRow::animating() const {
 int SegmentedButtonRow::z_of(std::size_t index) const {
     const Item& item = segments_[index];
     const int interactions = (item.press.pressed ? 1 : 0) + (focused_segment() == index ? 1 : 0);
-    return interactions + (item.spec.checked ? t.checked_z : 0);
+    return interactions + (item.spec.checked ? t().checked_z : 0);
 }
 
 void SegmentedButtonRow::paint_segment(render::Canvas& canvas, const color::ColorScheme& scheme, std::size_t index) const {
     const Item& item = segments_[index];
     const render::Rect r = segment_bounds(index);
-    const double full = tokens::corner_radius(t.corner, r.width, r.height);
+    const double full = tokens::corner_radius(t().corner, r.width, r.height);
     const bool first = index == 0;
     const bool last = index + 1 == segments_.size();
     const render::CornerRadii radii{first ? full : 0.0, last ? full : 0.0, last ? full : 0.0, first ? full : 0.0};
     const double k = std::clamp(item.checked_amount.value(), 0.0, 1.0);
 
     const color::Argb content =
-        item.enabled.mix(resolve(scheme, t.disabled_content), color::mix(scheme[t.inactive_content], scheme[t.active_content], k));
+        item.enabled.mix(resolve(scheme, t().disabled_content), color::mix(scheme[t().inactive_content], scheme[t().active_content], k));
     const color::Argb active_container =
-        item.enabled.mix(scheme[t.disabled_active_container], scheme[t.active_container]);
+        item.enabled.mix(scheme[t().disabled_active_container], scheme[t().active_container]);
     const color::Argb container = color::scale_alpha(active_container, k);
     const color::Argb filled = color::source_over(color::with_alpha(content, item.state_layer.value()), container);
     const render::Path shape = render::rounded_rect_path(r, radii);
     if (color::alpha(filled) != 0) {
         canvas.fill_path(shape, filled);
     }
-    const color::Argb outline = item.enabled.mix(resolve(scheme, t.disabled_outline), scheme[t.outline]);
+    const color::Argb outline = item.enabled.mix(resolve(scheme, t().disabled_outline), scheme[t().outline]);
     render::Path ring = shape;
-    const double w = t.outline_width;
+    const double w = t().outline_width;
     const render::Rect inner{r.x + w, r.y + w, r.width - 2.0 * w, r.height - 2.0 * w};
     auto inset = [w](double v) { return std::max(0.0, v - w); };
     ring.append(render::rounded_rect_path(inner, {inset(radii.top_left), inset(radii.top_right), inset(radii.bottom_right), inset(radii.bottom_left)}));
     canvas.fill_path(ring, outline, render::FillRule::even_odd);
 
-    const double label_w = item.spec.label.empty() ? t.icon_size : item.shown.width;
+    const double label_w = item.spec.label.empty() ? t().icon_size : item.shown.width;
     const double content_w = icon_slot() + label_w;
     const double cx = r.x + (r.width - content_w) / 2.0;
-    const double icon_y = r.y + (r.height - t.icon_size) / 2.0;
+    const double icon_y = r.y + (r.height - t().icon_size) / 2.0;
     canvas.push_clip(shape);
     if (item.spec.icon && !item.spec.label.empty()) {
         const double c = std::clamp(item.icon_cross.value(), 0.0, 1.0);
         if (c < 1.0) {
-            item.spec.icon->font.draw(canvas, item.spec.icon->symbol, {cx, icon_y}, t.icon_size, color::scale_alpha(content, 1.0 - c));
+            item.spec.icon->font.draw(canvas, item.spec.icon->symbol, {cx, icon_y}, t().icon_size, color::scale_alpha(content, 1.0 - c));
         }
         if (c > 0.0) {
-            checkmark_.font.draw(canvas, checkmark_.symbol, {cx, icon_y}, t.icon_size, color::scale_alpha(content, c));
+            checkmark_.font.draw(canvas, checkmark_.symbol, {cx, icon_y}, t().icon_size, color::scale_alpha(content, c));
         }
     } else {
         const double s = std::max(0.0, item.check_scale.value());
         const double a = std::clamp(item.check_alpha.value(), 0.0, 1.0);
         if (s > 0.0 && a > 0.0) {
             canvas.save();
-            canvas.translate(cx, icon_y + t.icon_size);
+            canvas.translate(cx, icon_y + t().icon_size);
             canvas.scale(s);
-            checkmark_.font.draw(canvas, checkmark_.symbol, {0.0, -t.icon_size}, t.icon_size, color::scale_alpha(content, a));
+            checkmark_.font.draw(canvas, checkmark_.symbol, {0.0, -t().icon_size}, t().icon_size, color::scale_alpha(content, a));
             canvas.restore();
         }
     }
     const double label_x = cx + icon_slot() + item.label_offset.value();
     if (item.spec.label.empty()) {
-        item.spec.icon->font.draw(canvas, item.spec.icon->symbol, {label_x, icon_y}, t.icon_size, content);
+        item.spec.icon->font.draw(canvas, item.spec.icon->symbol, {label_x, icon_y}, t().icon_size, content);
     } else {
         text::draw_line(canvas, fonts_, item.shown, {label_x, r.y + (r.height - item.shown.box_height()) / 2.0}, content);
     }

@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/split_button.hpp"
 
 #include <algorithm>
@@ -9,33 +10,35 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SplitButtonTokens& t = tokens::split_button_tokens;
+const tokens::SplitButtonTokens& t() {
+    return current_style().split_button.common;
+}
 
 }
 
 SplitButton::SplitButton(SplitButtonOptions options, const text::FontStack& fonts, const icons::IconFont& icon_font)
-    : options_(std::move(options)), rotation_(0.0, t.chevron_spring) {
-    const tokens::SplitButtonSizeTokens& s = tokens::split_button_size(options_.size);
+    : options_(std::move(options)), rotation_(0.0, t().chevron_spring) {
+    const tokens::SplitButtonSizeTokens& s = current_style().split_button.size(options_.size);
     ButtonOptions lead{options_.label, options_.style, options_.size, tokens::ButtonShape::round, options_.icon};
     lead.enabled = options_.enabled;
     lead.accessible_name = options_.label.empty() ? options_.accessible_name : std::string();
     lead.shapes = ButtonShapes{tokens::split_leading_corners(s.inner_corner), tokens::split_leading_corners(s.inner_pressed_corner),
-                               std::nullopt, t.shape_spring};
+                               std::nullopt, t().shape_spring};
     lead.padding = ButtonPadding{s.leading_leading_space, s.leading_trailing_space};
-    lead.min_width = t.min_width;
+    lead.min_width = t().min_width;
     lead.ellipsize_label = true;
     leading_ = std::make_unique<Button>(std::move(lead), fonts);
 
-    ButtonOptions trail{"", options_.style, options_.size, tokens::ButtonShape::round, icons::Icon{icon_font, t.chevron}};
+    ButtonOptions trail{"", options_.style, options_.size, tokens::ButtonShape::round, icons::Icon{icon_font, t().chevron}};
     trail.enabled = options_.enabled;
     trail.accessible_name = required_name(options_.trailing_name, "The trailing button of a split button");
-    trail.toggle = ButtonToggle{.checked = false, .radio = false, .checked_colors = false, .checked_overlay = t.checked_overlay,
+    trail.toggle = ButtonToggle{.checked = false, .radio = false, .checked_colors = false, .checked_overlay = t().checked_overlay,
                                 .fill_checked_icon = false};
     trail.shapes = ButtonShapes{tokens::split_trailing_corners(s.inner_corner), tokens::split_trailing_corners(s.inner_pressed_corner),
-                                tokens::all_corners(tokens::CornerSize::full), t.shape_spring};
+                                tokens::all_corners(tokens::CornerSize::full), t().shape_spring};
     trail.center_optically = true;
     trail.padding = ButtonPadding{s.trailing_leading_space, s.trailing_trailing_space};
-    trail.min_width = t.min_width;
+    trail.min_width = t().min_width;
     trail.icon_size = s.trailing_icon_size;
     trailing_ = std::make_unique<Button>(std::move(trail), fonts);
     if (!options_.menu.empty()) {
@@ -45,19 +48,19 @@ SplitButton::SplitButton(SplitButtonOptions options, const text::FontStack& font
 }
 
 double SplitButton::width() const {
-    return leading_->width() + t.between_space + trailing_->width();
+    return leading_->width() + t().between_space + trailing_->width();
 }
 
 double SplitButton::natural_width() const {
-    return leading_->intrinsic_width() + t.between_space + trailing_->width();
+    return leading_->intrinsic_width() + t().between_space + trailing_->width();
 }
 
 double SplitButton::min_width() const {
-    return leading_->min_width() + t.between_space + trailing_->width();
+    return leading_->min_width() + t().between_space + trailing_->width();
 }
 
 void SplitButton::set_width(double width) {
-    const double room = width >= natural_width() ? leading_->intrinsic_width() : width - t.between_space - trailing_->width();
+    const double room = width >= natural_width() ? leading_->intrinsic_width() : width - t().between_space - trailing_->width();
     const double lead = std::max(leading_->min_width(), room);
     leading_->set_size(lead, leading_->height());
     set_origin(origin_);
@@ -81,7 +84,7 @@ void SplitButton::set_origin(render::Point origin) {
     origin_ = origin;
     const double h = height();
     leading_->set_origin({origin.x, origin.y + (h - leading_->height()) / 2.0});
-    trailing_->set_origin({origin.x + leading_->width() + t.between_space, origin.y + (h - trailing_->height()) / 2.0});
+    trailing_->set_origin({origin.x + leading_->width() + t().between_space, origin.y + (h - trailing_->height()) / 2.0});
 }
 
 void SplitButton::set_checked(bool checked) {
@@ -203,14 +206,14 @@ void SplitButton::step(double dt) {
     if (menu_) {
         menu_->step(dt);
     }
-    rotation_.animate_to(trailing_->checked() ? t.chevron_turn : 0.0);
+    rotation_.animate_to(trailing_->checked() ? t().chevron_turn : 0.0);
     rotation_.step(dt);
     trailing_->set_icon_rotation(rotation_.value());
     set_origin(origin_);
 }
 
 bool SplitButton::animating() const {
-    const double target = trailing_->checked() ? t.chevron_turn : 0.0;
+    const double target = trailing_->checked() ? t().chevron_turn : 0.0;
     return leading_->animating() || trailing_->animating() || !rotation_.settled() || rotation_.target() != target ||
            (menu_ && menu_->animating());
 }

@@ -79,9 +79,21 @@ constexpr const IconButtonStyleTokens& icon_button_style(IconButtonStyle s) {
     return icon_button_styles[static_cast<std::size_t>(s)];
 }
 
-constexpr double icon_button_width(IconButtonSize size, IconButtonWidth width) {
-    const auto& s = icon_button_size(size);
+constexpr double icon_button_width(const IconButtonSizeTokens& s, IconButtonWidth width) {
     return s.icon_size + 2.0 * s.side_space[static_cast<std::size_t>(width)];
 }
+
+constexpr double icon_button_width(IconButtonSize size, IconButtonWidth width) {
+    return icon_button_width(icon_button_size(size), width);
+}
+
+struct IconButtonSet {
+    std::array<IconButtonSizeTokens, static_cast<std::size_t>(IconButtonSize::count)> sizes = icon_button_sizes;
+    std::array<IconButtonStyleTokens, static_cast<std::size_t>(IconButtonStyle::count)> styles = icon_button_styles;
+
+    const IconButtonSizeTokens& size(IconButtonSize s) const { return sizes[static_cast<std::size_t>(s)]; }
+    const IconButtonStyleTokens& style(IconButtonStyle s) const { return styles[static_cast<std::size_t>(s)]; }
+    double width(IconButtonSize s, IconButtonWidth w) const { return icon_button_width(size(s), w); }
+};
 
 }

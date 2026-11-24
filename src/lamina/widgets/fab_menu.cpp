@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/fab_menu.hpp"
 
 #include <algorithm>
@@ -13,33 +14,37 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::ToggleFabTokens& tf = tokens::toggle_fab_tokens;
-constexpr const tokens::FabMenuTokens& fm = tokens::fab_menu_tokens;
+const tokens::ToggleFabTokens& tf() {
+    return current_style().toggle_fab;
+}
+const tokens::FabMenuTokens& fm() {
+    return current_style().fab_menu;
+}
 
 double initial_icon(tokens::FabSize size) {
-    return tokens::fab_size(size).icon_size;
+    return current_style().fab.size(size).icon_size;
 }
 
 }
 
 ToggleFab::ToggleFab(ToggleFabOptions options)
-    : options_(std::move(options)), progress_(options_.checked ? 1.0 : 0.0, tf.progress), state_layer_(0.0, tokens::motion_scheme.fast_effects()) {
+    : options_(std::move(options)), progress_(options_.checked ? 1.0 : 0.0, tf().progress), state_layer_(0.0, tokens::motion_scheme.fast_effects()) {
     options_.accessible_name = required_name(std::move(options_.accessible_name), "A toggle FAB");
 }
 
 render::Rect ToggleFab::container() const {
     const double initial = width();
-    const double size = motion::lerp(initial, tf.final_size, progress_.value());
+    const double size = motion::lerp(initial, tf().final_size, progress_.value());
     return {origin_.x + initial - size, origin_.y, size, size};
 }
 
 double ToggleFab::corner_radius() const {
-    const double initial = tf.initial_corner[static_cast<std::size_t>(options_.size)];
-    return std::max(0.0, motion::lerp(initial, tf.final_size / 2.0, progress_.value()));
+    const double initial = tf().initial_corner[static_cast<std::size_t>(options_.size)];
+    return std::max(0.0, motion::lerp(initial, tf().final_size / 2.0, progress_.value()));
 }
 
 double ToggleFab::icon_size() const {
-    return motion::lerp(initial_icon(options_.size), tf.final_icon_size, progress_.value());
+    return motion::lerp(initial_icon(options_.size), tf().final_icon_size, progress_.value());
 }
 
 void ToggleFab::set_checked(bool checked) {
@@ -99,24 +104,24 @@ void ToggleFab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const double p = std::clamp(progress_.value(), 0.0, 1.0);
     const render::Rect r = container();
     const double radius = std::min(corner_radius(), std::min(r.width, r.height) / 2.0);
-    const color::Argb content = color::mix(scheme[tf.content], scheme[tf.checked_content], p);
-    const color::Argb fill = color::state_layer(color::mix(scheme[tf.container], scheme[tf.checked_container], p), content, state_layer_.value());
-    paint_surface(canvas, r, radius, fill, tokens::elevation_dp[tf.elevation], scheme[color::Role::shadow]);
+    const color::Argb content = color::mix(scheme[tf().content], scheme[tf().checked_content], p);
+    const color::Argb fill = color::state_layer(color::mix(scheme[tf().container], scheme[tf().checked_container], p), content, state_layer_.value());
+    paint_surface(canvas, r, radius, fill, tokens::elevation_dp[tf().elevation], scheme[color::Role::shadow]);
     focus_.paint(canvas, scheme, r, radius);
-    const icons::Icon& icon = progress_.value() > tf.icon_swap_progress ? options_.checked_icon : options_.icon;
+    const icons::Icon& icon = progress_.value() > tf().icon_swap_progress ? options_.checked_icon : options_.icon;
     icons::draw_centered(canvas, icon, r, icon_size(), content);
 }
 
 FabMenu::FabMenu(FabMenuOptions options, const text::FontStack& fonts)
-    : options_(std::move(options)), fonts_(fonts), button_(options_.button), stagger_(0.0, fm.stagger) {
-    const text::TextStyle style = tokens::text_style(tokens::type_style(fm.item_label));
+    : options_(std::move(options)), fonts_(fonts), button_(options_.button), stagger_(0.0, fm().stagger) {
+    const text::TextStyle style = tokens::text_style(tokens::type_style(fm().item_label));
     const bool open = options_.button.checked;
     for (FabMenuItem& spec : options_.items) {
         text::TextLine line = text::layout_line(fonts_, spec.label, style);
-        const double full = std::max(fm.item_min_width, fm.item_leading_space + fm.item_icon_size + fm.item_icon_label_space + line.width +
-                                                            fm.item_trailing_space);
+        const double full = std::max(fm().item_min_width, fm().item_leading_space + fm().item_icon_size + fm().item_icon_label_space + line.width +
+                                                            fm().item_trailing_space);
         items_.push_back(Item{std::move(spec), std::move(line), full, {}, {}, motion::Animated(0.0, tokens::motion_scheme.fast_effects()),
-                              motion::Animated(open ? 1.0 : 0.0, fm.item_width), motion::Animated(open ? 1.0 : 0.0, fm.item_alpha), open});
+                              motion::Animated(open ? 1.0 : 0.0, fm().item_width), motion::Animated(open ? 1.0 : 0.0, fm().item_alpha), open});
     }
     stagger_.snap_to(open ? static_cast<double>(items_.size()) : 0.0);
     place_button();
@@ -135,28 +140,28 @@ double FabMenu::items_height() const {
         return 0.0;
     }
     const double n = static_cast<double>(items_.size());
-    return n * fm.item_height + (n - 1.0) * fm.item_between_space + button_.height() + fm.button_padding_bottom + fm.close_button_between_space;
+    return n * fm().item_height + (n - 1.0) * fm().item_between_space + button_.height() + fm().button_padding_bottom + fm().close_button_between_space;
 }
 
 double FabMenu::width() const {
-    return 2.0 * fm.padding_horizontal + std::max(button_.width(), items_width());
+    return 2.0 * fm().padding_horizontal + std::max(button_.width(), items_width());
 }
 
 double FabMenu::height() const {
-    return std::max(button_.height() + fm.button_padding_bottom, items_height());
+    return std::max(button_.height() + fm().button_padding_bottom, items_height());
 }
 
 void FabMenu::place_button() {
     const double inner = std::max(button_.width(), items_width());
-    const double x = options_.alignment == FabMenuAlignment::end ? origin_.x + fm.padding_horizontal + inner - button_.width()
-                                                                 : origin_.x + fm.padding_horizontal;
-    button_.set_origin({x, origin_.y + height() - button_.height() - fm.button_padding_bottom});
+    const double x = options_.alignment == FabMenuAlignment::end ? origin_.x + fm().padding_horizontal + inner - button_.width()
+                                                                 : origin_.x + fm().padding_horizontal;
+    button_.set_origin({x, origin_.y + height() - button_.height() - fm().button_padding_bottom});
 }
 
 std::size_t FabMenu::visible_count() const {
     const double target = stagger_.target();
     const double v = stagger_.value();
-    if (std::abs(v - target) < fm.stagger_threshold) {
+    if (std::abs(v - target) < fm().stagger_threshold) {
         return static_cast<std::size_t>(std::lround(target));
     }
     return static_cast<std::size_t>(std::clamp(std::trunc(v), 0.0, static_cast<double>(items_.size())));
@@ -166,12 +171,12 @@ render::Rect FabMenu::item_rect(std::size_t index) const {
     const double inner = std::max(button_.width(), items_width());
     double y = origin_.y;
     for (std::size_t i = 0; i < index; ++i) {
-        y += fm.item_height + fm.item_between_space;
+        y += fm().item_height + fm().item_between_space;
     }
     const double w = items_[index].full_width * std::max(items_[index].width.value(), 0.0);
-    const double left = origin_.x + fm.padding_horizontal;
+    const double left = origin_.x + fm().padding_horizontal;
     const double x = options_.alignment == FabMenuAlignment::end ? left + inner - w : left;
-    return {x, y, w, fm.item_height};
+    return {x, y, w, fm().item_height};
 }
 
 void FabMenu::set_expanded(bool expanded) {
@@ -337,20 +342,20 @@ void FabMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
         if (alpha <= 0.0 || r.width <= 0.0) {
             continue;
         }
-        const double radius = tokens::corner_radius(fm.item_shape, r.width, r.height);
-        const color::Argb content = scheme[fm.item_content];
-        const color::Argb fill = color::state_layer(scheme[fm.item_container], content, item.state_layer.value());
+        const double radius = tokens::corner_radius(fm().item_shape, r.width, r.height);
+        const color::Argb content = scheme[fm().item_content];
+        const color::Argb fill = color::state_layer(scheme[fm().item_container], content, item.state_layer.value());
         const render::Path pill = render::rounded_rect_path(r, render::uniform_radii(radius));
         canvas.fill_path(pill, color::scale_alpha(fill, alpha));
         item.focus.paint(canvas, scheme, r, radius);
         canvas.save();
         canvas.push_clip(pill);
         const double content_x = options_.alignment == FabMenuAlignment::end ? r.x + r.width - item.full_width : r.x;
-        const double icon_x = content_x + fm.item_leading_space;
-        icons::draw_centered(canvas, item.spec.icon, render::Rect{icon_x, r.y, fm.item_icon_size, r.height}, fm.item_icon_size,
+        const double icon_x = content_x + fm().item_leading_space;
+        icons::draw_centered(canvas, item.spec.icon, render::Rect{icon_x, r.y, fm().item_icon_size, r.height}, fm().item_icon_size,
                              color::scale_alpha(content, alpha));
         text::draw_line(canvas, fonts_, item.label,
-                        {icon_x + fm.item_icon_size + fm.item_icon_label_space, r.y + (r.height - item.label.box_height()) / 2.0},
+                        {icon_x + fm().item_icon_size + fm().item_icon_label_space, r.y + (r.height - item.label.box_height()) / 2.0},
                         color::scale_alpha(content, alpha));
         canvas.pop_clip();
         canvas.restore();

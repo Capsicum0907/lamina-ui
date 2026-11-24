@@ -11,6 +11,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/fab_menu.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -32,7 +33,7 @@ class ToggleFab {
 public:
     explicit ToggleFab(ToggleFabOptions options);
 
-    double width() const { return tokens::fab_size(options_.size).size; }
+    double width() const { return current_style().fab.size(options_.size).size; }
     double height() const { return width(); }
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const { return {origin_.x, origin_.y, width(), height()}; }

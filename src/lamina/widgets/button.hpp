@@ -8,6 +8,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/density.hpp"
@@ -29,7 +30,7 @@ struct ButtonShapes {
     tokens::Corners shape;
     tokens::Corners pressed;
     std::optional<tokens::Corners> checked = std::nullopt;
-    motion::SpringSpec spring = tokens::toggle_button_motion.shape;
+    motion::SpringSpec spring = current_style().button.toggle_motion.shape;
 };
 
 struct ButtonToggle {

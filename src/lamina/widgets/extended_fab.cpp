@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 
 #include <algorithm>
@@ -12,17 +13,17 @@ namespace lamina::widgets {
 ExtendedFab::ExtendedFab(ExtendedFabOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      label_(text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(tokens::extended_fab_size(options_.size).label)))),
-      width_progress_(options_.expanded ? 1.0 : 0.0, tokens::extended_fab_motion.width),
-      label_alpha_(options_.expanded ? 1.0 : 0.0, tokens::extended_fab_motion.label_alpha),
+      label_(text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(current_style().fab.extended_size(options_.size).label)))),
+      width_progress_(options_.expanded ? 1.0 : 0.0, current_style().fab.extended_motion.width),
+      label_alpha_(options_.expanded ? 1.0 : 0.0, current_style().fab.extended_motion.label_alpha),
       state_layer_(0.0, tokens::motion_scheme.fast_effects()),
       elevation_(0.0, tokens::motion_scheme.default_effects()) {
     options_.label = required_name(std::move(options_.label), "An extended FAB");
-    elevation_.snap_to(state_elevation(tokens::fab_style(options_.style), press_));
+    elevation_.snap_to(state_elevation(current_style().fab.style(options_.style), press_));
 }
 
 double ExtendedFab::expanded_width() const {
-    const auto& s = tokens::extended_fab_size(options_.size);
+    const auto& s = current_style().fab.extended_size(options_.size);
     return std::max(s.height, s.leading_space + s.icon_size + s.icon_label_space + label_.width + s.trailing_space);
 }
 
@@ -38,7 +39,7 @@ void ExtendedFab::set_expanded(bool expanded) {
 
 void ExtendedFab::retarget() {
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
-    elevation_.animate_to(state_elevation(tokens::fab_style(options_.style), press_));
+    elevation_.animate_to(state_elevation(current_style().fab.style(options_.style), press_));
 }
 
 void ExtendedFab::set_focused(bool focused) {
@@ -75,8 +76,8 @@ bool ExtendedFab::animating() const {
 }
 
 void ExtendedFab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const auto& s = tokens::extended_fab_size(options_.size);
-    const auto& style = tokens::fab_style(options_.style);
+    const auto& s = current_style().fab.extended_size(options_.size);
+    const auto& style = current_style().fab.style(options_.style);
     const render::Rect r = bounds();
     const double radius = tokens::corner_radius(s.corner, r.width, r.height);
     const color::Argb content = scheme[style.content];

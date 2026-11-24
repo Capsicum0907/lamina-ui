@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/fab.hpp"
 
@@ -18,15 +19,15 @@ using tokens::motion_scheme;
 Fab::Fab(FabOptions options)
     : options_(std::move(options)), state_layer_(0.0, motion_scheme.fast_effects()), elevation_(0.0, motion_scheme.default_effects()) {
     options_.accessible_name = required_name(std::move(options_.accessible_name), "A FAB");
-    elevation_.snap_to(state_elevation(tokens::fab_style(options_.style), press_));
+    elevation_.snap_to(state_elevation(current_style().fab.style(options_.style), press_));
 }
 
 double Fab::width() const {
-    return tokens::fab_size(options_.size).size;
+    return current_style().fab.size(options_.size).size;
 }
 
 double Fab::height() const {
-    return tokens::fab_size(options_.size).size;
+    return current_style().fab.size(options_.size).size;
 }
 
 render::Rect Fab::bounds() const {
@@ -42,7 +43,7 @@ bool Fab::handle(const input::PointerEvent& e) {
     focus_.release_on_press(e);
     const bool clicked = press_.update(e, bounds());
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
-    elevation_.animate_to(state_elevation(tokens::fab_style(options_.style), press_));
+    elevation_.animate_to(state_elevation(current_style().fab.style(options_.style), press_));
     return clicked;
 }
 
@@ -53,7 +54,7 @@ bool Fab::handle(const input::KeyEvent& e) {
 void Fab::cancel_interaction() {
     press_ = {};
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
-    elevation_.animate_to(state_elevation(tokens::fab_style(options_.style), press_));
+    elevation_.animate_to(state_elevation(current_style().fab.style(options_.style), press_));
 }
 
 void Fab::step(double dt) {
@@ -67,8 +68,8 @@ bool Fab::animating() const {
 }
 
 void Fab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const auto& size = tokens::fab_size(options_.size);
-    const auto& style = tokens::fab_style(options_.style);
+    const auto& size = current_style().fab.size(options_.size);
+    const auto& style = current_style().fab.style(options_.style);
     const render::Rect r = bounds();
     const double radius = tokens::corner_radius(size.corner, r.width, r.height);
     const color::Argb content = scheme[style.content];

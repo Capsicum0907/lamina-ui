@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/icon_button.hpp"
 
@@ -29,8 +30,8 @@ IconButton::IconButton(IconButtonOptions options)
 }
 
 double IconButton::width() const {
-    const double removed = tokens::icon_button_size(options_.size).height - height();
-    return std::max(tokens::icon_button_size(options_.size).icon_size, tokens::icon_button_width(options_.size, options_.width) - removed);
+    const double removed = current_style().icon_button.size(options_.size).height - height();
+    return std::max(current_style().icon_button.size(options_.size).icon_size, current_style().icon_button.width(options_.size, options_.width) - removed);
 }
 
 double IconButton::height() const {
@@ -47,7 +48,7 @@ render::Rect IconButton::bounds() const {
 }
 
 double IconButton::target_corner() const {
-    const auto& size = tokens::icon_button_size(options_.size);
+    const auto& size = current_style().icon_button.size(options_.size);
     const bool round = options_.shape == tokens::ButtonShape::round;
     tokens::CornerSize corner = round ? tokens::CornerSize::full : size.square_corner;
     if (press_.pressed) {
@@ -147,14 +148,14 @@ bool IconButton::animating() const {
 }
 
 render::Rect IconButton::icon_rect() const {
-    const double s = tokens::icon_button_size(options_.size).icon_size;
+    const double s = current_style().icon_button.size(options_.size).icon_size;
     const render::Rect r = bounds();
     return {r.x + (r.width - s) / 2.0, r.y + (r.height - s) / 2.0, s, s};
 }
 
 void IconButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const auto& style = tokens::icon_button_style(options_.style);
-    const auto& size = tokens::icon_button_size(options_.size);
+    const auto& style = current_style().icon_button.style(options_.style);
+    const auto& size = current_style().icon_button.size(options_.size);
     const render::Rect r = bounds();
     const double radius = corner_.value();
     const tokens::IconButtonColors& from = options_.toggleable ? style.unchecked : style.plain;

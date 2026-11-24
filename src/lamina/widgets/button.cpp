@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/button.hpp"
 
@@ -20,15 +21,15 @@ using tokens::motion_scheme;
 }
 
 ButtonShapes toggle_button_shapes(tokens::ButtonSize size) {
-    return {tokens::toggle_button_rest_corners(size), tokens::toggle_button_pressed_corners(size), tokens::toggle_button_checked_corners(size),
-            tokens::toggle_button_motion.shape};
+    return {current_style().button.toggle_rest_corners(size), current_style().button.toggle_pressed_corners(size), current_style().button.toggle_checked_corners(size),
+            current_style().button.toggle_motion.shape};
 }
 
 Button::Button(ButtonOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
       label_(text::layout_line(fonts, options_.label,
-                               tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)))),
+                               tokens::text_style(tokens::type_style(current_style().button.size(options_.size).label)))),
       width_(0.0),
       height_(tokens::button_density(options_.size).at(options_.density)),
       enabled_(options_.enabled),
@@ -37,9 +38,9 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
       icon_fade_(1.0, motion_scheme.fast_effects()),
       state_layer_(0.0, motion_scheme.fast_effects()),
       elevation_(0.0, motion_scheme.default_effects()),
-      checked_amount_(options_.toggle && options_.toggle->checked ? 1.0 : 0.0, tokens::toggle_button_motion.colors),
-      border_(1.0, tokens::toggle_button_motion.border_width) {
-    if (options_.toggle && options_.toggle->checked_colors && !tokens::toggle_button_style(options_.style)) {
+      checked_amount_(options_.toggle && options_.toggle->checked ? 1.0 : 0.0, current_style().button.toggle_motion.colors),
+      border_(1.0, current_style().button.toggle_motion.border_width) {
+    if (options_.toggle && options_.toggle->checked_colors && !current_style().button.toggle_style(options_.style)) {
         throw std::invalid_argument("A text button cannot be a toggle button");
     }
     if (options_.toggle && !options_.shapes) {
@@ -63,7 +64,7 @@ double Button::content_width_for(double label_width) const {
     if (!options_.leading_icon) {
         return label_width * label_scale_;
     }
-    const auto& size = tokens::button_size(options_.size);
+    const auto& size = current_style().button.size(options_.size);
     const double gap = options_.label.empty() ? 0.0 : size.icon_label_space * label_scale_;
     return icon_size() * icon_scale_ + gap + label_width * label_scale_;
 }
@@ -74,7 +75,7 @@ double Button::content_width() const {
 
 double Button::intrinsic_width() const {
     const ButtonPadding pad = padding();
-    return std::max(options_.min_width.value_or(tokens::button_min_width), pad.leading + content_width_for(label_.width) + pad.trailing);
+    return std::max(options_.min_width.value_or(current_style().button.min_width), pad.leading + content_width_for(label_.width) + pad.trailing);
 }
 
 double Button::min_width() const {
@@ -83,7 +84,7 @@ double Button::min_width() const {
     }
     const ButtonPadding pad = padding();
     const double mark = text::layout_line(fonts_, tokens::ellipsis, label_.style).width;
-    return std::max(options_.min_width.value_or(tokens::button_min_width), pad.leading + content_width_for(std::min(label_.width, mark)) + pad.trailing);
+    return std::max(options_.min_width.value_or(current_style().button.min_width), pad.leading + content_width_for(std::min(label_.width, mark)) + pad.trailing);
 }
 
 void Button::fit_label() {
@@ -104,7 +105,7 @@ void Button::fit_label() {
 
 void Button::set_label(std::string label) {
     options_.label = std::move(label);
-    label_ = text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(tokens::button_size(options_.size).label)));
+    label_ = text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(current_style().button.size(options_.size).label)));
     ellipsized_ = false;
     label_room_ = -1.0;
     if (!sized_) {
@@ -180,12 +181,12 @@ void Button::set_shapes(ButtonShapes shapes) {
 }
 
 ButtonPadding Button::padding() const {
-    const auto& size = tokens::button_size(options_.size);
+    const auto& size = current_style().button.size(options_.size);
     return options_.padding.value_or(ButtonPadding{size.leading_space, size.trailing_space});
 }
 
 double Button::icon_size() const {
-    return options_.icon_size.value_or(tokens::button_size(options_.size).icon_size);
+    return options_.icon_size.value_or(current_style().button.size(options_.size).icon_size);
 }
 
 render::CornerRadii Button::corner_radii() const {
@@ -235,12 +236,12 @@ void Button::activate() {
 }
 
 double Button::rest_corner() const {
-    const double square = tokens::corner_radius(tokens::button_size(options_.size).square_corner, width_, height());
+    const double square = tokens::corner_radius(current_style().button.size(options_.size).square_corner, width_, height());
     return motion::lerp(height() / 2.0, square, squareness_.value());
 }
 
 double Button::pressed_corner() const {
-    return tokens::corner_radius(tokens::button_size(options_.size).pressed_corner, width_, height());
+    return tokens::corner_radius(current_style().button.size(options_.size).pressed_corner, width_, height());
 }
 
 double Button::corner() const {
@@ -253,7 +254,7 @@ double Button::target_state_layer() const {
 }
 
 double Button::target_elevation() const {
-    const auto& style = tokens::button_style(options_.style);
+    const auto& style = current_style().button.style(options_.style);
     return enabled() ? state_elevation(style, press_) : tokens::elevation_dp[style.disabled_elevation];
 }
 
@@ -338,12 +339,12 @@ bool Button::animating() const {
 }
 
 void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const auto& style = tokens::button_style(options_.style);
-    const auto& size = tokens::button_size(options_.size);
+    const auto& style = current_style().button.style(options_.style);
+    const auto& size = current_style().button.size(options_.size);
     const render::Rect r = bounds();
     const render::CornerRadii radii = corner_radii();
     const double k = std::clamp(checked_amount_.value(), 0.0, 1.0);
-    const bool toggle_colors = options_.toggle && options_.toggle->checked_colors && tokens::toggle_button_style(options_.style);
+    const bool toggle_colors = options_.toggle && options_.toggle->checked_colors && current_style().button.toggle_style(options_.style);
 
     std::optional<color::Role> container = options_.colors ? options_.colors->container : style.container;
     color::Argb enabled_label = scheme[options_.colors ? options_.colors->content : style.label];
@@ -351,7 +352,7 @@ void Button::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     color::Argb disabled_label = resolve(scheme, style.disabled_label);
     color::Argb disabled_container = resolve(scheme, style.disabled_container);
     if (toggle_colors) {
-        const tokens::ToggleButtonColorTokens& t = *tokens::toggle_button_style(options_.style);
+        const tokens::ToggleButtonColorTokens& t = *current_style().button.toggle_style(options_.style);
         const color::Argb rest = t.container ? scheme[*t.container] : color::with_alpha(scheme[t.checked_container], 0.0);
         enabled_container = color::mix(rest, scheme[t.checked_container], k);
         enabled_label = color::mix(scheme[t.content], scheme[t.checked_content], k);

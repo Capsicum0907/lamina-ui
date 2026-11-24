@@ -12,6 +12,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/button_group.hpp"
@@ -41,7 +42,7 @@ struct ButtonGroupOptions {
     bool connected = false;
     tokens::ButtonStyle style = tokens::ButtonStyle::filled;
     tokens::ButtonSize size = tokens::ButtonSize::small;
-    double expanded_ratio = tokens::button_group_tokens.expanded_ratio;
+    double expanded_ratio = current_style().button_group.expanded_ratio;
     bool animate_width = true;
     std::string accessible_name = {};
     bool enabled = true;

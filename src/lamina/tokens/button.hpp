@@ -122,4 +122,19 @@ constexpr Corners toggle_button_checked_corners(ButtonSize s) {
     return all_corners(button_size(s).square_corner);
 }
 
+struct ButtonSet {
+    std::array<ButtonSizeTokens, static_cast<std::size_t>(ButtonSize::count)> sizes = button_sizes;
+    double min_width = button_min_width;
+    std::array<ButtonStyleTokens, static_cast<std::size_t>(ButtonStyle::count)> styles = button_styles;
+    std::array<std::optional<ToggleButtonColorTokens>, static_cast<std::size_t>(ButtonStyle::count)> toggle_styles = toggle_button_styles;
+    ToggleButtonMotion toggle_motion = toggle_button_motion;
+
+    const ButtonSizeTokens& size(ButtonSize s) const { return sizes[static_cast<std::size_t>(s)]; }
+    const ButtonStyleTokens& style(ButtonStyle s) const { return styles[static_cast<std::size_t>(s)]; }
+    const std::optional<ToggleButtonColorTokens>& toggle_style(ButtonStyle s) const { return toggle_styles[static_cast<std::size_t>(s)]; }
+    Corners toggle_rest_corners(ButtonSize) const { return all_corners(CornerSize::full); }
+    Corners toggle_pressed_corners(ButtonSize s) const { return all_corners(size(s).pressed_corner); }
+    Corners toggle_checked_corners(ButtonSize s) const { return all_corners(size(s).square_corner); }
+};
+
 }

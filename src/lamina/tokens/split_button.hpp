@@ -65,4 +65,11 @@ constexpr Corners split_trailing_corners(CornerSize inner) {
     return {inner, CornerSize::full, CornerSize::full, inner};
 }
 
+struct SplitButtonSet {
+    std::array<SplitButtonSizeTokens, static_cast<std::size_t>(ButtonSize::count)> sizes = split_button_sizes;
+    SplitButtonTokens common = split_button_tokens;
+
+    const SplitButtonSizeTokens& size(ButtonSize s) const { return sizes[static_cast<std::size_t>(s)]; }
+};
+
 }

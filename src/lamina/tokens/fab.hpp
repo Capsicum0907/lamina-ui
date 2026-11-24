@@ -79,4 +79,15 @@ constexpr const FabStyleTokens& fab_style(FabStyle s) {
     return fab_styles[static_cast<std::size_t>(s)];
 }
 
+struct FabSet {
+    std::array<FabSizeTokens, static_cast<std::size_t>(FabSize::count)> sizes = fab_sizes;
+    std::array<FabStyleTokens, static_cast<std::size_t>(FabStyle::count)> styles = fab_styles;
+    std::array<ExtendedFabSizeTokens, static_cast<std::size_t>(ExtendedFabSize::count)> extended_sizes = extended_fab_sizes;
+    ExtendedFabMotion extended_motion = extended_fab_motion;
+
+    const FabSizeTokens& size(FabSize s) const { return sizes[static_cast<std::size_t>(s)]; }
+    const FabStyleTokens& style(FabStyle s) const { return styles[static_cast<std::size_t>(s)]; }
+    const ExtendedFabSizeTokens& extended_size(ExtendedFabSize s) const { return extended_sizes[static_cast<std::size_t>(s)]; }
+};
+
 }

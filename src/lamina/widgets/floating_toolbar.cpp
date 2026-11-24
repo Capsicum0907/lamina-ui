@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/floating_toolbar.hpp"
 
 #include <algorithm>
@@ -448,7 +449,7 @@ void FloatingToolbar::paint(render::Canvas& canvas, const color::ColorScheme& sc
         const color::Argb fill = color::state_layer(scheme[c.fab_container], scheme[c.fab_content], fab_state_layer_.value());
         paint_surface(canvas, *fab, radius, fill, fab_elevation_.value(), scheme[color::Role::shadow]);
         fab_focus_.paint(canvas, scheme, *fab, radius);
-        icons::draw_centered(canvas, options_.fab->icon, *fab, tokens::fab_size(tokens::FabSize::baseline).icon_size, content);
+        icons::draw_centered(canvas, options_.fab->icon, *fab, current_style().fab.size(tokens::FabSize::baseline).icon_size, content);
     }
 }
 

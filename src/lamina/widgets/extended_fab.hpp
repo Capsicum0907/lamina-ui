@@ -7,6 +7,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/fab.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -28,7 +29,7 @@ public:
     ExtendedFab(ExtendedFabOptions options, const text::FontStack& fonts);
 
     double width() const;
-    double height() const { return tokens::extended_fab_size(options_.size).height; }
+    double height() const { return current_style().fab.extended_size(options_.size).height; }
     double expanded_width() const;
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const { return {origin_.x, origin_.y, width(), height()}; }
