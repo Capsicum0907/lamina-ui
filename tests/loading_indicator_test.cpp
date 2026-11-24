@@ -152,3 +152,51 @@ TEST_CASE("a loading indicator can be drawn larger and scales its shape with it"
     CHECK(e.right - e.left > 90.0);
     CHECK(e.right - e.left <= 144.0);
 }
+
+namespace {
+
+int differing_pixels(const LoadingIndicator& a, const LoadingIndicator& b, int side) {
+    const color::ColorScheme scheme = color::spec_2021().build(color::default_scheme_options);
+    thorvg::Canvas first(side, side);
+    thorvg::Canvas second(side, side);
+    first.clear(0xffffffff);
+    second.clear(0xffffffff);
+    a.paint(first, scheme);
+    b.paint(second, scheme);
+    first.finish();
+    second.finish();
+    int n = 0;
+    for (int y = 0; y < side; ++y) {
+        for (int x = 0; x < side; ++x) {
+            const color::Argb p = first.pixel(x, y);
+            const color::Argb q = second.pixel(x, y);
+            const auto channel = [](color::Argb c, int s) { return static_cast<int>((c >> s) & 0xffu); };
+            for (int s = 0; s < 32; s += 8) {
+                if (std::abs(channel(p, s) - channel(q, s)) > 8) {
+                    ++n;
+                    break;
+                }
+            }
+        }
+    }
+    return n;
+}
+
+}
+
+TEST_CASE("a full determinate indicator that turns indeterminate keeps its shape, size and turn") {
+    constexpr double side = 144.0;
+    LoadingIndicator before({.progress = 1.0, .size = side});
+    LoadingIndicator after({.progress = 1.0, .size = side});
+    after.set_progress(std::nullopt);
+    CHECK(differing_pixels(before, after, static_cast<int>(side)) == 0);
+    CHECK(after.rotation_degrees() == doctest::Approx(before.rotation_degrees()));
+    LoadingIndicator moving({.progress = 1.0, .size = side});
+    moving.set_progress(std::nullopt);
+    LoadingIndicator previous = moving;
+    for (int i = 0; i < settle_frames; ++i) {
+        moving.step(frame_seconds);
+        CHECK(differing_pixels(previous, moving, static_cast<int>(side)) < static_cast<int>(side * side / 8.0));
+        previous = moving;
+    }
+}

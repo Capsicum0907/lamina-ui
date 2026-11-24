@@ -45,15 +45,19 @@ public:
     AccessibleNode accessible() const;
 
     void step(double dt_seconds);
-    bool animating() const { return !determinate(); }
+    bool animating() const { return !determinate() || !handoff_.settled(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
     void start_morph();
+    render::Point shape_centre() const;
+    std::vector<shapes::Cubic> shape_cubics() const;
 
     LoadingIndicatorOptions options_;
     render::Point origin_{0.0, 0.0};
     motion::Animated morph_;
+    motion::Animated handoff_;
+    render::Point handoff_shift_{0.0, 0.0};
     double morph_elapsed_ = 0.0;
     double morph_seconds_ = 0.0;
     bool morph_running_ = false;

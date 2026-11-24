@@ -95,7 +95,10 @@ double spring_finish_seconds(const motion::SpringSpec& spec, double threshold) {
 }
 
 LoadingIndicator::LoadingIndicator(LoadingIndicatorOptions options)
-    : options_(std::move(options)), morph_(0.0, t.morph_spring), turn_(t.morph_turn_degrees) {
+    : options_(std::move(options)),
+      morph_(0.0, t.morph_spring),
+      handoff_(0.0, t.handoff_spring),
+      turn_(t.morph_turn_degrees) {
     if (options_.progress) {
         options_.progress = std::clamp(*options_.progress, 0.0, 1.0);
     }
@@ -114,13 +117,21 @@ void LoadingIndicator::start_morph() {
 
 void LoadingIndicator::set_progress(std::optional<double> progress) {
     const bool was = determinate();
+    const double turned = rotation_degrees();
+    const render::Point centre = shape_centre();
     options_.progress = progress ? std::optional(std::clamp(*progress, 0.0, 1.0)) : std::nullopt;
     if (was && !determinate()) {
         morph_index_ = 0;
-        turn_ = t.morph_turn_degrees;
+        turn_ = turned;
         spin_ = 0.0;
         cycle_elapsed_ = 0.0;
         start_morph();
+        const render::Point now = shape_centre();
+        handoff_shift_ = {centre.x - now.x, centre.y - now.y};
+        handoff_.snap_to(1.0);
+        handoff_.animate_to(0.0);
+    } else if (determinate()) {
+        handoff_.snap_to(0.0);
     }
 }
 
@@ -148,31 +159,55 @@ double LoadingIndicator::rotation_degrees() const {
     return morph_.value() * t.morph_turn_degrees + turn_ + spin_;
 }
 
-render::Path LoadingIndicator::indicator_path() const {
+namespace {
+
+struct ControlBounds {
+    double left;
+    double top;
+    double right;
+    double bottom;
+};
+
+ControlBounds control_bounds(const std::vector<shapes::Cubic>& cubics) {
+    ControlBounds b{std::numeric_limits<double>::max(), std::numeric_limits<double>::max(), std::numeric_limits<double>::lowest(),
+                    std::numeric_limits<double>::lowest()};
+    for (const shapes::Cubic& c : cubics) {
+        const auto& pts = c.points();
+        for (std::size_t i = 0; i < pts.size(); i += 2) {
+            b.left = std::min(b.left, static_cast<double>(pts[i]));
+            b.right = std::max(b.right, static_cast<double>(pts[i]));
+            b.top = std::min(b.top, static_cast<double>(pts[i + 1]));
+            b.bottom = std::max(b.bottom, static_cast<double>(pts[i + 1]));
+        }
+    }
+    return b;
+}
+
+}
+
+std::vector<shapes::Cubic> LoadingIndicator::shape_cubics() const {
     const std::vector<shapes::Morph>& morphs = loading_indicator_morphs(determinate());
     std::size_t index = morph_index_;
     if (determinate()) {
         index = std::min(static_cast<std::size_t>(static_cast<double>(morphs.size()) * *options_.progress), morphs.size() - 1);
     }
+    return morphs[index].as_cubics(static_cast<float>(morph_progress()));
+}
+
+render::Point LoadingIndicator::shape_centre() const {
+    const ControlBounds b = control_bounds(shape_cubics());
+    return {(b.left + b.right) / 2.0, (b.top + b.bottom) / 2.0};
+}
+
+render::Path LoadingIndicator::indicator_path() const {
+    const std::vector<shapes::Cubic> cubics = shape_cubics();
+    const double h = determinate() ? 0.0 : handoff_.value();
     const double size = options_.size;
-    const double scale = size * loading_indicator_scale(determinate());
-    const std::vector<shapes::Cubic> cubics = morphs[index].as_cubics(static_cast<float>(morph_progress()));
-    double left = std::numeric_limits<double>::max();
-    double top = left;
-    double right = std::numeric_limits<double>::lowest();
-    double bottom = right;
-    for (const shapes::Cubic& c : cubics) {
-        const auto& pts = c.points();
-        for (std::size_t i = 0; i < pts.size(); i += 2) {
-            left = std::min(left, static_cast<double>(pts[i]));
-            right = std::max(right, static_cast<double>(pts[i]));
-            top = std::min(top, static_cast<double>(pts[i + 1]));
-            bottom = std::max(bottom, static_cast<double>(pts[i + 1]));
-        }
-    }
+    const double scale = size * (loading_indicator_scale(determinate()) + h * (loading_indicator_scale(true) - loading_indicator_scale(false)));
+    const ControlBounds b = control_bounds(cubics);
     const render::Point centre{origin_.x + size / 2.0, origin_.y + size / 2.0};
-    const double cx = (left + right) / 2.0;
-    const double cy = (top + bottom) / 2.0;
+    const double cx = (b.left + b.right) / 2.0 + h * handoff_shift_.x;
+    const double cy = (b.top + b.bottom) / 2.0 + h * handoff_shift_.y;
     const double a = radians(rotation_degrees());
     const double cs = std::cos(a);
     const double sn = std::sin(a);
@@ -190,6 +225,7 @@ AccessibleNode LoadingIndicator::accessible() const {
 }
 
 void LoadingIndicator::step(double dt) {
+    handoff_.step(dt);
     if (determinate()) {
         return;
     }

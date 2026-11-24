@@ -5,6 +5,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/motion/spring.hpp"
 #include "lamina/shapes/material_shapes.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/shape.hpp"
 
 namespace lamina::tokens {
@@ -17,6 +18,7 @@ struct LoadingIndicatorTokens {
     color::Role contained_indicator;
     color::Role contained_container;
     motion::SpringSpec morph_spring;
+    motion::SpringSpec handoff_spring;
     double morph_threshold;
     double morph_interval_seconds;
     double rotation_period_seconds;
@@ -35,6 +37,7 @@ inline constexpr LoadingIndicatorTokens loading_indicator_tokens{
     .contained_indicator = color::Role::on_primary_container,
     .contained_container = color::Role::primary_container,
     .morph_spring = {0.6, 200.0},
+    .handoff_spring = motion_scheme.default_effects(),
     .morph_threshold = 0.1,
     .morph_interval_seconds = 0.65,
     .rotation_period_seconds = 4.666,
