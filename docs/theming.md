@@ -50,7 +50,8 @@ The style holds the color spec rather than a built scheme for the same reason: t
 
 - `StyleScope scope(style)` installs a style until the end of the scope and then restores the one before it; scopes nest.
 - `set_current_style(style)` installs a style for the rest of the thread, for an app with one style.
-- `sdl3::Window::set_style(style)` gives a window its own style; `Window::style()` returns it, or the active style when none was set. `sdl3::run_app` installs the window's style around each frame's update and paint. An app with its own frame loop puts a `StyleScope` around its update and paint.
+- `sdl3::Window::set_style(style)` gives a window its own style; `Window::style()` returns it, or the active style when none was set. `sdl3::run_app` installs the window's style around each frame's update and paint. An app with its own frame loop puts a `StyleScope` around its update and paint. A per-window style needs the `run_app(Window&, update, paint)` overload, since the overload that takes `WindowOptions` creates its window itself.
+- Widgets built before the frame loop, as in the [minimal program](../README.md#a-minimal-program), read their construction-time values from the style active where they are built, not from the window's style. Build them under the same style too: inside a `StyleScope`, or after `set_current_style`.
 
 The style is held by reference: the caller keeps it alive while it is installed. A style is copied and changed like any struct:
 
