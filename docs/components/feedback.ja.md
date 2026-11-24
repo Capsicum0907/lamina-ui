@@ -12,11 +12,25 @@
 
 ## 読み込み中の表示
 
-`LoadingIndicator`（`lamina/widgets/loading_indicator.hpp`）は、進みが決まっていないあいだ、48 dp の入れ物の中で七つの Material の形を順に変えていきます。新しい変形は 650 ms ごとに始まります。進みが決まっているときは、0 から 1 に進むにつれて円から `SoftBurst` の形に変わります（`LoadingIndicatorOptions::progress`・`set_progress`）。`contained` で `primary-container` の上に置き、`size` で全体の大きさを変えます。値は[読み込み中の表示](../design-tokens.ja.md#読み込み中の表示)にあります。
+`LoadingIndicator`（`lamina/widgets/loading_indicator.hpp`）は、進みが決まっていないあいだ、48 dp の入れ物の中で七つの Material の形を順に変えていきます。新しい変形は 650 ms ごとに始まります。進みが決まっているときは、0 から 1 に進むにつれて円から `SoftBurst` の形に変わります（`LoadingIndicatorOptions::progress`・`set_progress`）。`contained` で `primary-container` の上に置き、`size` で全体の大きさを変えます。進み具合がいっぱいの表示を終わりの見えない形に変えると（`set_progress(std::nullopt)`）、回転はそのまま続き、大きさと中心は標準の効果のばねで終わりの見えない形のものへ移るので、形は跳びません。値は[読み込み中の表示](../design-tokens.ja.md#読み込み中の表示)にあります。
 
 ## 波のある進み具合の表示
 
 `LinearWavyProgressIndicator` と `CircularWavyProgressIndicator`（`lamina/widgets/wavy_progress.hpp`）は、Expressive の波打つ表示を描きます。既定の大きさは横長が 240 × 10 dp、円が 48 dp で、どちらも線の太さ 4 dp、下の線までの隙間 4 dp です。`WavyProgressOptions::progress` を渡さないと進みの決まらない表示になり、`set_progress` で、飛ばずに決まった値の表示へ移ります。0 と 1 の近くでは波が平らになります（`wavy_indicator_amplitude`）。値は[波のある進み具合の表示](../design-tokens.ja.md#波のある進み具合の表示)にあります。
+
+## 引っ張って更新
+
+`lamina/widgets/pull_to_refresh.hpp` の `PullToRefresh` は、Material の「引っ張って更新」を Expressive の読み込み中の表示で描きます。Compose の `PullToRefreshBox` と `PullToRefreshDefaults.LoadingIndicator` に当たります。リストそのものは持ちません。プログラムが、リストの表示範囲（`set_area`）、リストより先にポインターの出来事、リストが一番上にあるかどうかを渡し、リストのあとに描きます。
+
+- 引っ張り：リストが一番上にあるときに範囲の中で触れた指を見張ります（`handle(event, at_top)`。一番上から `top_tolerance` 以内なら一番上とみなします）。リストが一番上にあった位置から下へ `slop`（8 dp）より多く動き、真下から `max_angle_degrees`（45°）以内にあれば、引っ張りがその指を引き取ります。そのときの返り値は `claimed` で、プログラムはリストの押下とスクロールを取り消します。これでクリックも慣性のスクロールも起きません。それからは、その指の出来事にはすべて `consumed` が立ちます（`holds_pointer()` は真です）。スクロールのドラッグの途中でリストが一番上に着いたときは、その位置から数えます。一度のドラッグで一番上まで戻し、そのまま引っ張りに続けられます。上へのドラッグ、横へのドラッグ、一番上にないリスト、マウス、ペンでは何も起きません。lamina はマウスのドラッグでスクロールしないので、デスクトップでも引っ張りは指だけです。
+- 手応え：指の動きの半分（`drag_multiplier`）が引っ張りの量です。しきい値（`threshold`、80 dp）までは表示がそのまま付いてきます。越えた分は、しきい値に対する越えた割合 x を `x - x² / 4` で弱めるので、表示はだんだん遅くなり、しきい値の 3 倍引っ張ったところで、しきい値の 2 倍の位置に止まります（`pull_offset`。`pull_distance` はその逆です）。`distance_fraction()` は表示の位置をしきい値で割ったものです。
+- 表示：`primary-container` の 48 dp の円が、高さ 2 の影を付けて、範囲の上の端の向こうから入ってきます。上の端で切り抜きます。円の下の端は、上の端から `distance_fraction() × threshold` の位置です。中の形は読み込み中の表示の進み具合のある形（`on-primary-container`）で、割合が 0 から 1 へ進むにつれて円から SoftBurst に変わり、半回転逆に回り、`start_scale`（0.5）から元の大きさまで大きくなります。しきい値を越えると、しきい値ひとつ分の位置ごとに `overshoot_turn_degrees`（180°）だけ回り続けます。
+- 離したとき：しきい値を越えていれば、返り値に `refresh` が立ち、更新中になります（`refreshing()`）。形はその場で終わりの見えない形に移ります。回転・大きさ・位置はそのまま引き継ぎます（[読み込み中の表示](#読み込み中の表示)）。表示は標準の空間のばねでしきい値の位置に落ち着きます。越えていなければ、同じばねで上に戻り、更新はしません。指を失ったとき（離さずに `leave` が来たとき）、`cancel_interaction()`、`set_enabled(false)`、二本目の指（プログラムが取り消しとして渡したとき）も、更新せずに戻ります。
+- 更新中：プログラムは、作業が終わったら `set_refreshing(false)` を呼びます。表示は形を変えながら、ばねで上へ去ります。進み具合のある形に戻るのは、見えなくなってからです。`set_refreshing(true)` は、引っ張らずに表示を出します。キーやメニューから始めた更新に使います。更新中は引っ張りを始めないので、更新を二度求めることはありません。リストはふだんどおりスクロールします。
+- 表示が戻る途中で始めた引っ張りは、表示をそのときの位置から引き継ぎます。
+- 表示が出ているあいだ、`accessible()` は `accessible_name` を名前にした進み具合の表示のノードを返します。`animating()` は、表示が動いているか回っているあいだ真です。
+
+値は[引っ張って更新](../design-tokens.ja.md#引っ張って更新)にあります。部品の例の Progress のページに見本があります。
 
 ## ツールチップ
 
@@ -31,6 +45,7 @@
 - Material 3 の スナックバー：<https://m3.material.io/components/snackbar/overview>
 - Material 3 の 進み具合の表示：<https://m3.material.io/components/progress-indicators/overview>
 - Material 3 の 読み込み中の表示：<https://m3.material.io/components/loading-indicator/overview>
+- Material 3 の 引っ張って更新（進み具合の表示の中）：<https://m3.material.io/components/progress-indicators/overview>
 - Material 3 の ツールチップ：<https://m3.material.io/components/tooltips/overview>
 - Material 3 の バッジ：<https://m3.material.io/components/badges/overview>
 - 値ごとのソースのファイルとコミット：[デザイントークン](../design-tokens.ja.md)
