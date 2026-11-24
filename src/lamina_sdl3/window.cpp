@@ -758,12 +758,14 @@ bool Window::next_frame(Frame& frame, bool animating) {
     impl_->pending_redraws = std::max(0, impl_->pending_redraws - 1);
     double waited = 0.0;
     bool report = false;
+    bool paced = false;
     if (!animating && !redraw) {
         const Uint64 wait_start = SDL_GetTicksNS();
         if (impl_->probe.active()) {
+            paced = impl_->probe.paced_wake(impl_->wake_seconds);
             const double idle = impl_->probe.idle_wait_seconds();
-            const double first = impl_->wake_seconds >= 0.0 ? std::min(idle, impl_->wake_seconds) : idle;
-            if (!SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(first * milliseconds_per_second)))) {
+            const double first = paced ? impl_->wake_seconds : impl_->wake_seconds >= 0.0 ? std::min(idle, impl_->wake_seconds) : idle;
+            if (!SDL_WaitEventTimeout(nullptr, static_cast<Sint32>(std::ceil(first * milliseconds_per_second))) && !paced) {
                 report = impl_->end_gesture();
             }
         }
@@ -779,7 +781,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
         }
         waited = static_cast<double>(SDL_GetTicksNS() - wait_start) / nanoseconds_per_second;
     }
-    impl_->probe.begin_frame(waited, !report);
+    impl_->probe.begin_frame(waited, !report, paced);
     impl_->wake_seconds = -1.0;
     SDL_Event e;
     while (SDL_PollEvent(&e)) {

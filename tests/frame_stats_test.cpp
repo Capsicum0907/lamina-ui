@@ -198,3 +198,23 @@ TEST_CASE("the report has one line per stage and the log line joins the rows") {
     CHECK(line.find("paint 2.00") != std::string::npos);
     CHECK(line.find("software vsync 1") != std::string::npos);
 }
+
+TEST_CASE("frames the program paces with short wakes, such as a playing video, count as one run with their intervals") {
+    FrameProbe probe;
+    probe.set_switches({true, false});
+    probe.set_display({.refresh_hz = hz});
+    const double frame_wait = 0.04;
+    CHECK(probe.paced_wake(frame_wait));
+    CHECK_FALSE(probe.paced_wake(0.5));
+    CHECK_FALSE(probe.paced_wake(-1.0));
+    probe.begin_frame(0.0);
+    probe.end_frame();
+    for (int i = 0; i < 4; ++i) {
+        probe.begin_frame(frame_wait, true, true);
+        probe.end_frame();
+    }
+    CHECK(probe.recent().intervals == 4);
+    probe.begin_frame(frame_wait, true, false);
+    probe.end_frame();
+    CHECK(probe.recent().intervals == 4);
+}

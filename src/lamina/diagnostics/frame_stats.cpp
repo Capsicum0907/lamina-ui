@@ -326,7 +326,11 @@ double FrameProbe::idle_wait_seconds() const {
     return tokens_->idle_wait_refreshes / refresh_or_fallback(display_.refresh_hz, *tokens_);
 }
 
-void FrameProbe::begin_frame(double waited_seconds, bool recorded) {
+bool FrameProbe::paced_wake(double wake_seconds) const {
+    return wake_seconds >= 0.0 && wake_seconds <= tokens_->paced_wake_max_seconds;
+}
+
+void FrameProbe::begin_frame(double waited_seconds, bool recorded, bool paced) {
     if (!active()) {
         return;
     }
@@ -334,7 +338,7 @@ void FrameProbe::begin_frame(double waited_seconds, bool recorded) {
     if (recorded && waited_seconds > tokens_->run_gap_seconds) {
         run_frames_ = 0;
     }
-    continuous_ = last_end_.has_value() && waited_seconds <= idle_wait_seconds();
+    continuous_ = last_end_.has_value() && (waited_seconds <= idle_wait_seconds() || paced);
     current_ = {};
     current_.seconds[static_cast<std::size_t>(Stage::wait)] = continuous_ ? waited_seconds : 0.0;
     in_frame_ = true;

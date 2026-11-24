@@ -147,8 +147,9 @@ public:
     void set_switches(FrameStatsSwitches switches);
     const tokens::FrameStatsTokens& tokens() const { return *tokens_; }
 
-    void begin_frame(double waited_seconds, bool recorded = true);
+    void begin_frame(double waited_seconds, bool recorded = true, bool paced = false);
     double idle_wait_seconds() const;
+    bool paced_wake(double wake_seconds) const;
     Stage enter(Stage stage);
     void end_frame();
     bool in_frame() const { return in_frame_; }
