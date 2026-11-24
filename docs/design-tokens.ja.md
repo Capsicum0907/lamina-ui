@@ -280,6 +280,14 @@ ThorVG の描画面は、影の形を一度だけぼかしてキャッシュか�
 | `retained_min_scale` | 0.5 | どちらかの向きにこれより小さく描く身元のある画像は ThorVG で描く |
 | `image_texture_bytes` | 256 MiB | 身元のある画像のテクスチャの既定の上限（`WindowOptions::image_texture_bytes`） |
 | `image_texture_smooth` | true | そのテクスチャをバイリニアで補間する（false は最近傍） |
+| `damage_tracking` | true | 層 0 のうち変わったタイルだけを描き直して転送する（[差分の描き直し](app-structure.ja.md#差分の描き直し)）。`WindowOptions::damage_tracking` の既定 |
+| `damage_tile` | 64 | タイルの一辺（px） |
+| `damage_rects_max` | 1 | 1 フレームで描き直す長方形の上限。超えた分はまとめる。長方形ごとに ThorVG がすべての図形を準備し直すので、変わった最初の行から最後の行までの帯一つのほうが、いくつもの帯より安い |
+| `damage_merge_input_max` | 48 | 行のつながりがこれより多いと、一度に全体を囲む一つにする |
+| `damage_full_fraction` | 0.6 | 変わったタイルがこの割合以上なら全体を描き直す |
+| `damage_outset` | 2 | アンチエイリアスのために、描くものの外接する長方形の周りで触れたとみなす幅（px） |
+| `damage_pending_max` | 16 | 窓に渡すまで取っておく描き直した長方形の上限。超えたら一つにまとめる |
+| `full_repaint_environment` | `LAMINA_FULL_REPAINT` | すべての窓で差分の描き直しを切る環境変数の名前 |
 
 C の `tokens/StateTokens.kt`（`VERSION: v0_103`）の状態の重ねの不透明度：hover 0.08、focus 0.10、pressed 0.10、dragged 0.16。
 
