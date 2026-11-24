@@ -47,6 +47,7 @@ struct Frame {
     layout::Insets safe_area = {};
     layout::Insets gesture_insets = {};
     std::vector<input::FingerEvent> fingers = {};
+    bool new_intent = false;
 };
 
 bool client_title_bar_supported();

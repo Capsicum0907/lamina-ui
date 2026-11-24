@@ -18,5 +18,7 @@ void set_system_bars_hidden(bool hidden);
 bool is_system_back(SDL_Keycode key);
 void system_back();
 std::optional<SystemInsets> system_insets_pixels();
+void watch_new_intents();
+bool take_new_intent();
 
 }

@@ -110,7 +110,7 @@ lamina は `SDL_HINT_ANDROID_TRAP_BACK_BUTTON` を立てています。なので
 
 ## 新しいインテント
 
-マニフェストのアクティビティは `singleInstance` です。なので、アプリが動いている間に送られたインテント（共有、リンク、`adb shell am start`）は新しいアクティビティを始めません。Android は今あるアクティビティの `onNewIntent` を呼び、`getIntent()` は起動したときのインテントを返し続けます。`LaminaActivity.onNewIntent` は新しいインテントで `setIntent` を呼び、`intentSerial` で数えます。`getIntentSerial()` はその数を返します。最初の新しいインテントまでは 0 です。インテントを受けるアプリは、起動したときに JNI で `getIntent()` を読み、処理した番号を覚えておき、番号が変わったら `getIntent()` をもう一度読みます。Android は `onNewIntent` の前後でアクティビティを止めてまた動かすので、そのあと SDL が `SDL_EVENT_DID_ENTER_FOREGROUND` を送ります。そこで見るのがよい時機です。lamina 自身はインテントを読みません。
+マニフェストのアクティビティは `singleInstance` です。なので、アプリが動いている間に送られたインテント（共有、リンク、`adb shell am start`）は新しいアクティビティを始めません。Android は今あるアクティビティの `onNewIntent` を呼び、`getIntent()` は起動したときのインテントを返し続けます。`LaminaActivity.onNewIntent` は新しいインテントで `setIntent` を呼び、`intentSerial` で数えます。`getIntentSerial()` はその数を返します。最初の新しいインテントまでは 0 です。`onNewIntent` は、ネイティブの `nativeOnNewIntent` も呼びます。これは `Window` が作られるときにアクティビティのクラスに登録します（`RegisterNatives` なので、名前はアプリのパッケージによりません）。登録した関数は窓を起こすイベントを積み、次のフレームでは `Frame::new_intent` が立ちます。Android は `onNewIntent` の前後でアクティビティを止めてまた動かしますが、SDL 3.4.10 はこの一時停止では `SDL_EVENT_DID_ENTER_FOREGROUND` を送りません。なので、これがないと止まっている窓は起きません（API 37 のエミュレーターで、動いているアプリに `adb shell am start` でインテントを送って確かめました）。インテントを受けるアプリは、起動したときに JNI で `getIntent()` を読み、処理した番号を覚えておき、`new_intent` が立ったフレームで番号が変わっていれば `getIntent()` をもう一度読みます。窓ができる前に来た新しいインテントは、Java の側で捕まえて数えるだけにします。lamina 自身はインテントを読みません。
 
 ## 入れ方と動かし方
 

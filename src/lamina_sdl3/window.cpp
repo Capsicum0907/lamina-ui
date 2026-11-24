@@ -537,6 +537,7 @@ struct Window::Impl {
         }
         frame.maximized = (flags & SDL_WINDOW_MAXIMIZED) != 0;
         frame.active = (flags & SDL_WINDOW_INPUT_FOCUS) != 0;
+        frame.new_intent = detail::take_new_intent();
     }
 
     static bool SDLCALL watch(void* userdata, SDL_Event* e) {
@@ -705,6 +706,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
                                      &impl_->window, &impl_->renderer)) {
         fail("SDL_CreateWindowAndRenderer");
     }
+    detail::watch_new_intents();
     if (client_title_bar) {
         impl_->caption_pointer_event = SDL_RegisterEvents(1);
         if (impl_->caption_pointer_event != 0) {

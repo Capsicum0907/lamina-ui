@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowInsets;
@@ -36,7 +37,14 @@ public class LaminaActivity extends SDLActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         intentSerial++;
+        try {
+            nativeOnNewIntent();
+        } catch (UnsatisfiedLinkError e) {
+            Log.w("lamina", "new intent before the window was made");
+        }
     }
+
+    private static native void nativeOnNewIntent();
 
     public int getIntentSerial() {
         return intentSerial;

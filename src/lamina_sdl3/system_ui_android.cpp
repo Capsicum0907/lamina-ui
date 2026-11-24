@@ -1,6 +1,7 @@
 #include "lamina_sdl3/system_ui.hpp"
 
 #include <array>
+#include <atomic>
 #include <string>
 
 #include <jni.h>
@@ -19,6 +20,20 @@ constexpr const char* hidden_system_bars_method = "setSystemBarsHidden";
 constexpr const char* hidden_system_bars_signature = "(Z)V";
 constexpr const char* window_insets_method = "getWindowInsets";
 constexpr const char* window_insets_signature = "()[I";
+constexpr const char* new_intent_method = "nativeOnNewIntent";
+constexpr const char* new_intent_signature = "()V";
+
+std::atomic<bool> new_intent{false};
+std::atomic<Uint32> new_intent_event{0};
+
+void JNICALL on_new_intent(JNIEnv*, jclass) {
+    new_intent = true;
+    if (const Uint32 type = new_intent_event.load()) {
+        SDL_Event e{};
+        e.type = type;
+        SDL_PushEvent(&e);
+    }
+}
 constexpr jsize inset_edges = 4;
 constexpr jsize content_offset = 0;
 constexpr jsize gestures_offset = content_offset + inset_edges;
@@ -111,6 +126,30 @@ std::optional<SystemInsets> system_insets_pixels() {
     env->DeleteLocalRef(type);
     env->DeleteLocalRef(activity);
     return insets;
+}
+
+void watch_new_intents() {
+    if (new_intent_event.load() != 0) {
+        return;
+    }
+    auto* env = static_cast<JNIEnv*>(SDL_GetAndroidJNIEnv());
+    auto activity = static_cast<jobject>(SDL_GetAndroidActivity());
+    if (!env || !activity) {
+        return;
+    }
+    new_intent_event = SDL_RegisterEvents(1);
+    jclass type = env->GetObjectClass(activity);
+    const JNINativeMethod method{new_intent_method, new_intent_signature, reinterpret_cast<void*>(&on_new_intent)};
+    if (env->RegisterNatives(type, &method, 1) != JNI_OK) {
+        env->ExceptionClear();
+        report_error(std::string{"lamina: the activity has no "} + new_intent_method + "; new intents do not wake the window");
+    }
+    env->DeleteLocalRef(type);
+    env->DeleteLocalRef(activity);
+}
+
+bool take_new_intent() {
+    return new_intent.exchange(false);
 }
 
 }

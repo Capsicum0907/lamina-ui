@@ -16,4 +16,10 @@ std::optional<SystemInsets> system_insets_pixels() {
     return std::nullopt;
 }
 
+void watch_new_intents() {}
+
+bool take_new_intent() {
+    return false;
+}
+
 }
