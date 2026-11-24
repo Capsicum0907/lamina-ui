@@ -88,7 +88,7 @@ How the frame loop, input and widgets fit together is in [App structure](docs/ap
 | [Layout and adaptive layouts](docs/layout-and-adaptive.md) | rows and columns, window size classes, the navigation suite, pane scaffolds, split panes, density |
 | [Components](docs/components.md) | actions, selection, inputs, containers, navigation, feedback, menus, the data table, dates and times |
 | [Text and fonts](docs/text-and-fonts.md) | shaping and line breaking, typefaces, system fonts, icons, Japanese input |
-| [Theming and tokens](docs/theming.md) | color schemes, shape, type, elevation, motion and the spring model |
+| [Theming and tokens](docs/theming.md) | color schemes, shape, type, elevation, motion, the spring model and the runtime style |
 | [Resources](docs/resources.md) | `lamina_add_resources`, the generated header, embedded icons, files and text fonts |
 | [Testing](docs/testing.md) | the unit tests and the offscreen capture of the gallery |
 | [Differences from Material 3](docs/differences-from-m3.md) | where lamina-ui uses its own values or behaviour |

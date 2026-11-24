@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 | [レイアウトと幅への対応](docs/layout-and-adaptive.ja.md) | 行と列・窓の大きさの区分・ナビゲーションスイート・ペインの足場・分割ペイン・密度 |
 | [部品](docs/components.ja.md) | 操作・選択・入力・入れ物・ナビゲーション・知らせ・メニュー・データの表・日付と時刻 |
 | [文字とフォント](docs/text-and-fonts.ja.md) | 字形の並べ方と行の折り返し・書体・OS のフォント・アイコン・日本語の入力 |
-| [テーマとトークン](docs/theming.ja.md) | 配色・形・文字・高さ・動きとばねの模型 |
+| [テーマとトークン](docs/theming.ja.md) | 配色・形・文字・高さ・動きとばねの模型・実行時のスタイル |
 | [リソース](docs/resources.ja.md) | `lamina_add_resources`・生成されるヘッダー・アイコンとファイルと文字のフォントの埋め込み |
 | [テスト](docs/testing.ja.md) | 単体テストと、部品の一覧の窓なしの記録 |
 | [Material 3 との違い](docs/differences-from-m3.ja.md) | lamina-ui が自分の値やふるまいを使うところ |
