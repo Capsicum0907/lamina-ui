@@ -106,6 +106,7 @@ enum class Key {
     asterisk,
     slash,
     period,
+    comma,
     percent,
     equals,
     paren_left,
@@ -145,6 +146,7 @@ constexpr std::optional<Key> key_for_character(char32_t c) {
     case U'*': return Key::asterisk;
     case U'/': return Key::slash;
     case U'.': return Key::period;
+    case U',': return Key::comma;
     case U'%': return Key::percent;
     case U'=': return Key::equals;
     case U'(': return Key::paren_left;
@@ -169,6 +171,7 @@ constexpr std::optional<char32_t> character_for_key(Key key) {
     case Key::asterisk: return U'*';
     case Key::slash: return U'/';
     case Key::period: return U'.';
+    case Key::comma: return U',';
     case Key::percent: return U'%';
     case Key::equals: return U'=';
     case Key::paren_left: return U'(';
