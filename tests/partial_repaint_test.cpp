@@ -50,7 +50,64 @@ struct Report {
     std::int64_t repainted = 0;
     std::int64_t full_area = 0;
     int empty_frames = 0;
+    std::int64_t upper_stale = 0;
+    std::int64_t upper_uploaded = 0;
+    std::int64_t upper_area = 0;
     std::string first;
+};
+
+struct UpperTextures {
+    int width = 0;
+    int height = 0;
+    std::vector<std::vector<std::uint32_t>> layers;
+
+    void put(std::vector<std::uint32_t>& t, const render::UpperLayer& u, const PixelRect& r) {
+        for (int y = r.y; y < r.y + r.height; ++y) {
+            const auto* src = reinterpret_cast<const std::uint32_t*>(u.pixels.data + u.pixels.stride * (y - u.y)) + (r.x - u.x);
+            std::memcpy(t.data() + static_cast<std::size_t>(y) * width + r.x, src, static_cast<std::size_t>(r.width) * 4);
+        }
+    }
+
+    std::int64_t upload(const std::vector<render::UpperLayer>& uppers, int w, int h, Report& report) {
+        if (w != width || h != height) {
+            width = w;
+            height = h;
+            layers.clear();
+        }
+        std::int64_t stale = 0;
+        for (const render::UpperLayer& u : uppers) {
+            bool made = false;
+            if (layers.size() < u.layer) {
+                layers.resize(u.layer);
+            }
+            std::vector<std::uint32_t>& t = layers[u.layer - 1];
+            if (t.empty()) {
+                t.assign(static_cast<std::size_t>(w) * static_cast<std::size_t>(h), 0u);
+                made = true;
+            }
+            if (made) {
+                put(t, u, {u.x, u.y, u.pixels.width, u.pixels.height});
+                report.upper_uploaded += static_cast<std::int64_t>(u.pixels.width) * u.pixels.height;
+            } else {
+                for (const PixelRect& c : u.changed) {
+                    CHECK(c.x >= u.x);
+                    CHECK(c.y >= u.y);
+                    CHECK(c.x + c.width <= u.x + u.pixels.width);
+                    CHECK(c.y + c.height <= u.y + u.pixels.height);
+                    put(t, u, c);
+                    report.upper_uploaded += c.area();
+                }
+            }
+            report.upper_area += static_cast<std::int64_t>(u.pixels.width) * u.pixels.height;
+            for (int y = 0; y < u.pixels.height; ++y) {
+                const auto* row = reinterpret_cast<const std::uint32_t*>(u.pixels.data + u.pixels.stride * y);
+                for (int x = 0; x < u.pixels.width; ++x) {
+                    stale += t[static_cast<std::size_t>(y + u.y) * w + x + u.x] != row[x] ? 1 : 0;
+                }
+            }
+        }
+        return stale;
+    }
 };
 
 std::vector<std::uint32_t> copy_of(const render::PixelView& v) {
@@ -116,6 +173,7 @@ Report run(int frames, const std::function<Size(int)>& size, const Background& b
     tracked.set_retained_images(sink);
     REQUIRE(tracked.damage_tracking());
     std::vector<std::uint32_t> before;
+    UpperTextures textures;
     for (int f = 0; f < frames; ++f) {
         const Size s = size(f);
         step(f);
@@ -124,6 +182,7 @@ Report run(int frames, const std::function<Size(int)>& size, const Background& b
         paint(tracked, f);
         const std::vector<std::uint32_t> got = copy_of(tracked.finish());
         const std::vector<PixelRect> rects = tracked.take_changed_pixels();
+        report.upper_stale += textures.upload(tracked.upper_layers(), s.width, s.height, report);
 
         thorvg::Canvas full(s.width, s.height);
         full.set_damage_tracking(false);
@@ -177,6 +236,7 @@ void expect_identical(const Report& r) {
     CAPTURE(r.full_area);
     CHECK(r.differing == 0);
     CHECK(r.outside == 0);
+    CHECK(r.upper_stale == 0);
 }
 
 std::function<Size(int)> fixed(int w, int h) {
@@ -474,4 +534,68 @@ TEST_CASE("paint added after a finish in the same frame is repainted and reporte
     CHECK(inside(changed, 15, 15));
     CHECK(inside(changed, 75, 75));
     CHECK_FALSE(inside(changed, 50, 150));
+}
+TEST_CASE("layers above a video keep their pixels between frames and repaint only what changed in them") {
+    AcceptAll sink;
+    const render::Image photo = render::retained(gradient(64, 36));
+    const int frames = 24;
+    const Report r = run(
+        frames, fixed(480, 270), [](int) { return 0xff000000u; }, [](int) {},
+        [&](render::Canvas& c, int f) {
+            c.draw_image(photo, {0.0, 0.0, 480.0, 270.0});
+            c.fill_rect({0.0, 0.0, 480.0, 40.0}, 0xb3000000u);
+            c.fill_rect({0.0, 200.0, 480.0, 70.0}, 0xb3000000u);
+            c.fill_rounded_rect({210.0, 105.0, 60.0, 60.0}, render::uniform_radii(30.0), 0xff445566u);
+            const double thumb = 40.0 + std::floor(f / 3) * 2.0;
+            c.fill_rect({40.0, 218.0, 400.0, 4.0}, 0xff808080u);
+            c.fill_rounded_rect({thumb, 212.0, 4.0, 16.0}, render::uniform_radii(2.0), 0xffffffffu);
+        },
+        &sink);
+    expect_identical(r);
+    CAPTURE(r.upper_uploaded);
+    CAPTURE(r.upper_area);
+    CHECK(r.upper_area == static_cast<std::int64_t>(480) * 270 * frames);
+    CHECK(r.upper_uploaded < r.upper_area / 6);
+}
+
+TEST_CASE("an unchanged layer above a retained image repaints nothing, a change repaints its band, and moved bounds repaint the layer") {
+    AcceptAll sink;
+    const render::Image photo = render::retained(gradient(32, 32));
+    thorvg::Canvas canvas(200, 200);
+    canvas.set_retained_images(&sink);
+    lamina::diagnostics::FrameProbe probe;
+    probe.set_switches({false, true});
+    canvas.set_probe(&probe);
+    auto frame = [&](double label, double top) {
+        probe.begin_frame(0.0);
+        canvas.clear(0xffffffffu);
+        canvas.draw_image(photo, {0.0, 0.0, 200.0, 200.0});
+        canvas.fill_rect({0.0, top, 200.0, 20.0}, 0x80000000u);
+        canvas.fill_rect({0.0, 180.0, 200.0, 20.0}, 0x80000000u);
+        canvas.fill_rect({label, 184.0, 10.0, 10.0}, 0xffffffffu);
+        canvas.finish();
+        const lamina::diagnostics::FrameCounts counts = probe.counts();
+        const std::vector<render::UpperLayer> uppers = canvas.upper_layers();
+        canvas.take_changed_pixels();
+        probe.end_frame();
+        return std::pair{counts, uppers};
+    };
+    const auto first = frame(20.0, 0.0);
+    REQUIRE(first.second.size() == 1);
+    CHECK(first.first.repaint_pixels == 200 * 200 + 200 * 200);
+    const auto same = frame(20.0, 0.0);
+    CHECK(same.first.repaint_pixels == 0);
+    CHECK(same.second.front().changed.empty());
+    const auto label = frame(60.0, 0.0);
+    REQUIRE(label.second.front().changed.size() == 1);
+    const PixelRect band = label.second.front().changed.front();
+    CHECK(band.width == 200);
+    CHECK(band.y >= 128);
+    CHECK(band.y + band.height <= 200);
+    CHECK(label.first.repaint_pixels == band.area());
+    const auto moved = frame(60.0, 10.0);
+    REQUIRE(moved.second.front().changed.size() == 1);
+    CHECK(moved.second.front().changed.front() == PixelRect{0, 10, 200, 190});
+    canvas.set_probe(nullptr);
+    canvas.set_retained_images(nullptr);
 }

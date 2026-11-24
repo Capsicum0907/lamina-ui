@@ -51,6 +51,7 @@ struct UpperLayer {
     int x;
     int y;
     std::size_t layer;
+    std::vector<PixelRect> changed;
 };
 
 class RetainedImageSink {
@@ -111,9 +112,17 @@ public:
     std::vector<PixelRect> take_changed_pixels();
 
 protected:
+    struct UpperRepaint {
+        bool full = true;
+        std::vector<PixelRect> rects;
+        std::vector<PixelRect> changed;
+    };
+
     virtual bool tracks_damage() const { return false; }
     virtual bool repaints_whole_rows() const { return false; }
     std::vector<PixelRect> repaint_rects();
+    std::optional<PixelRect> upper_pixel_bounds(std::size_t layer) const;
+    UpperRepaint upper_repaint(std::size_t layer, const PixelRect& bounds);
     virtual void clear_device(color::Argb color) = 0;
     virtual void select_device_layer(std::size_t) {}
     std::optional<Rect> layer_bounds(std::size_t layer) const { return plan_.bounds(layer); }
@@ -136,6 +145,16 @@ private:
     bool retain(const Image& image, const Affine& m, double opacity, std::span<const Point> corners);
     bool retain_video(const VideoFrame& frame, const Affine& m, double opacity, std::span<const Point> corners);
     const Image& cpu_video(const VideoFrame& frame);
+
+    struct UpperDamage {
+        DamageGrid grid;
+        PixelRect bounds{0, 0, 0, 0};
+        bool drawn = false;
+        std::vector<PixelRect> changed;
+        std::vector<std::pair<Rect, std::uint64_t>> notes;
+    };
+
+    void add_changed(std::vector<PixelRect>& changed, const PixelRect& r) const;
 
     struct CpuVideo {
         const ImageIdentity* surface;
@@ -165,6 +184,7 @@ private:
     DamageGrid damage_;
     std::vector<std::uint64_t> clip_hashes_;
     std::vector<PixelRect> changed_;
+    std::vector<UpperDamage> uppers_;
     std::vector<std::unique_ptr<CpuVideo>> cpu_videos_;
 };
 

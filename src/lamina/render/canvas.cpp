@@ -91,6 +91,13 @@ void Canvas::clear(color::Argb color) {
     path_clips_ = 0;
     layer_ = 0;
     clip_hashes_.clear();
+    for (UpperDamage& u : uppers_) {
+        if (!u.drawn) {
+            u.grid.invalidate();
+        }
+        u.drawn = false;
+        u.notes.clear();
+    }
     if (tracks_damage() && damage_on_) {
         damage_.begin(width(), height(), tokens::raster.damage_tile);
         Fingerprint f = print_of(Command::background);
@@ -105,16 +112,19 @@ void Canvas::clear(color::Argb color) {
 void Canvas::set_damage_tracking(bool on) {
     if (on != damage_on_) {
         damage_on_ = on;
-        damage_.invalidate();
+        invalidate();
     }
 }
 
 void Canvas::invalidate() {
     damage_.invalidate();
+    for (UpperDamage& u : uppers_) {
+        u.grid.invalidate();
+    }
 }
 
 bool Canvas::fingerprinting() const {
-    return layer_ == 0 && damage_on_ && damage_.begun();
+    return damage_on_ && damage_.begun();
 }
 
 void Canvas::note(const Rect& device, Fingerprint print) {
@@ -128,7 +138,89 @@ void Canvas::note(const Rect& device, Fingerprint print) {
         return;
     }
     print.add(clip_hash());
-    damage_.add(area, print.value());
+    if (layer_ == 0) {
+        damage_.add(area, print.value());
+        return;
+    }
+    if (uppers_.size() < layer_) {
+        uppers_.resize(layer_);
+    }
+    uppers_[layer_ - 1].notes.emplace_back(area, print.value());
+}
+
+void Canvas::add_changed(std::vector<PixelRect>& changed, const PixelRect& r) const {
+    if (r.empty()) {
+        return;
+    }
+    changed.push_back(r);
+    if (changed.size() > tokens::raster.damage_pending_max) {
+        PixelRect all{0, 0, 0, 0};
+        for (const PixelRect& c : changed) {
+            all = pixel_union(all, c);
+        }
+        changed.assign(1, all);
+    }
+}
+
+std::optional<PixelRect> Canvas::upper_pixel_bounds(std::size_t layer) const {
+    const std::optional<Rect> b = layer_bounds(layer);
+    if (!b) {
+        return std::nullopt;
+    }
+    const int x0 = std::clamp(static_cast<int>(std::floor(b->x)), 0, width());
+    const int y0 = std::clamp(static_cast<int>(std::floor(b->y)), 0, height());
+    const int x1 = std::clamp(static_cast<int>(std::ceil(b->x + b->width)), 0, width());
+    const int y1 = std::clamp(static_cast<int>(std::ceil(b->y + b->height)), 0, height());
+    if (x1 <= x0 || y1 <= y0) {
+        return std::nullopt;
+    }
+    return PixelRect{x0, y0, x1 - x0, y1 - y0};
+}
+
+Canvas::UpperRepaint Canvas::upper_repaint(std::size_t layer, const PixelRect& bounds) {
+    if (uppers_.size() < layer) {
+        uppers_.resize(layer);
+    }
+    UpperDamage& u = uppers_[layer - 1];
+    const bool moved = u.bounds != bounds;
+    u.bounds = bounds;
+    u.drawn = true;
+    DamageGrid::Result result;
+    if (tracks_damage() && damage_on_ && damage_.begun()) {
+        if (moved) {
+            u.grid.invalidate();
+        }
+        u.grid.begin(bounds.width, bounds.height, tokens::raster.damage_tile);
+        for (const auto& [area, hash] : u.notes) {
+            u.grid.add({area.x - bounds.x, area.y - bounds.y, area.width, area.height}, hash);
+        }
+        DamageSettings settings = damage_settings();
+        settings.whole_rows = repaints_whole_rows();
+        result = u.grid.commit(settings);
+    } else {
+        u.grid.invalidate();
+        result.full = true;
+        result.tiles = tiles_across(bounds.width) * tiles_across(bounds.height);
+    }
+    UpperRepaint out;
+    out.full = result.full;
+    if (result.full) {
+        out.rects.assign(1, {0, 0, bounds.width, bounds.height});
+        u.changed.clear();
+    } else {
+        out.rects = std::move(result.rects);
+    }
+    std::uint64_t pixels = 0;
+    for (const PixelRect& r : out.rects) {
+        pixels += static_cast<std::uint64_t>(r.area());
+        add_changed(u.changed, {r.x + bounds.x, r.y + bounds.y, r.width, r.height});
+    }
+    out.changed = u.changed;
+    if (probe_ && probe_->counting()) {
+        probe_->counts().repaint_tiles += result.tiles;
+        probe_->counts().repaint_pixels += pixels;
+    }
+    return out;
 }
 
 std::vector<PixelRect> Canvas::repaint_rects() {
@@ -168,6 +260,9 @@ std::vector<PixelRect> Canvas::repaint_rects() {
 }
 
 std::vector<PixelRect> Canvas::take_changed_pixels() {
+    for (UpperDamage& u : uppers_) {
+        u.changed.clear();
+    }
     return std::exchange(changed_, {});
 }
 

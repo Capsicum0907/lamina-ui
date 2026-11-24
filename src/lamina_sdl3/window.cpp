@@ -421,7 +421,7 @@ struct Window::Impl {
         }
     }
 
-    SDL_Texture* upper_texture(std::size_t layer) {
+    SDL_Texture* upper_texture(std::size_t layer, bool* made = nullptr) {
         if (upper_textures.size() < layer) {
             upper_textures.resize(layer, nullptr);
         }
@@ -429,6 +429,9 @@ struct Window::Impl {
         if (t && (t->w != texture_w || t->h != texture_h)) {
             SDL_DestroyTexture(t);
             t = nullptr;
+        }
+        if (made) {
+            *made = !t;
         }
         if (!t) {
             t = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, texture_w, texture_h);
@@ -1020,11 +1023,23 @@ void Window::present() {
     {
         const diagnostics::StageScope stage(&m.probe, diagnostics::Stage::upload);
         m.ensure_texture(view.width, view.height);
+        const bool whole = m.upload_all;
         std::uint64_t uploaded = m.upload_canvas(view);
         for (const render::UpperLayer& u : uppers) {
-            const SDL_Rect r{u.x, u.y, u.pixels.width, u.pixels.height};
-            SDL_UpdateTexture(m.upper_texture(u.layer), &r, u.pixels.data, static_cast<int>(u.pixels.stride));
-            uploaded += static_cast<std::uint64_t>(u.pixels.width) * static_cast<std::uint64_t>(u.pixels.height);
+            bool made = false;
+            SDL_Texture* t = m.upper_texture(u.layer, &made);
+            if (whole || made) {
+                const SDL_Rect r{u.x, u.y, u.pixels.width, u.pixels.height};
+                SDL_UpdateTexture(t, &r, u.pixels.data, static_cast<int>(u.pixels.stride));
+                uploaded += static_cast<std::uint64_t>(u.pixels.width) * static_cast<std::uint64_t>(u.pixels.height);
+                continue;
+            }
+            for (const render::PixelRect& c : u.changed) {
+                const SDL_Rect r{c.x, c.y, c.width, c.height};
+                const std::uint8_t* from = u.pixels.data + u.pixels.stride * (c.y - u.y) + static_cast<std::intptr_t>(c.x - u.x) * static_cast<std::intptr_t>(sizeof(std::uint32_t));
+                SDL_UpdateTexture(t, &r, from, static_cast<int>(u.pixels.stride));
+                uploaded += static_cast<std::uint64_t>(c.area());
+            }
         }
         if (counting) {
             m.probe.counts().canvas_upload_pixels += uploaded;

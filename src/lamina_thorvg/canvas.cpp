@@ -193,6 +193,8 @@ struct Canvas::Impl {
         bool attached = false;
         tvg::SwCanvas* canvas = nullptr;
         std::vector<std::uint32_t> buffer;
+        int width = 0;
+        bool listed = false;
     };
 
     int width = 0;
@@ -334,33 +336,32 @@ struct Canvas::Impl {
             }
             u.root = nullptr;
             u.attached = false;
+            u.listed = false;
         }
         drawn.clear();
     }
 
-    std::vector<std::size_t> attach_uppers(const std::vector<std::pair<std::size_t, Rect>>& bounds) {
-        std::vector<std::size_t> out;
-        for (const auto& [l, b] : bounds) {
-            Upper& u = uppers[l - 1];
-            const int x0 = std::clamp(static_cast<int>(std::floor(b.x)), 0, width);
-            const int y0 = std::clamp(static_cast<int>(std::floor(b.y)), 0, height);
-            const int x1 = std::clamp(static_cast<int>(std::ceil(b.x + b.width)), 0, width);
-            const int y1 = std::clamp(static_cast<int>(std::ceil(b.y + b.height)), 0, height);
-            if (x1 <= x0 || y1 <= y0) {
-                continue;
-            }
-            const int w = x1 - x0;
-            const int h = y1 - y0;
-            u.buffer.resize(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
-            u.canvas->target(u.buffer.data(), static_cast<std::uint32_t>(w), static_cast<std::uint32_t>(w), static_cast<std::uint32_t>(h),
-                             tvg::ColorSpace::ARGB8888);
-            u.root->translate(static_cast<float>(-x0), static_cast<float>(-y0));
-            u.canvas->add(u.root);
-            u.attached = true;
-            drawn.push_back({{reinterpret_cast<const std::uint8_t*>(u.buffer.data()), w, h, static_cast<std::intptr_t>(w) * 4}, x0, y0, l});
-            out.push_back(l);
+    void fit_upper(Upper& u, const render::PixelRect& b) {
+        const std::size_t size = static_cast<std::size_t>(b.width) * static_cast<std::size_t>(b.height);
+        if (u.buffer.size() != size || u.width != b.width) {
+            u.buffer.assign(size, 0u);
+            u.width = b.width;
         }
-        return out;
+    }
+
+    void attach_upper(Upper& u, const render::PixelRect& b) {
+        u.canvas->target(u.buffer.data(), static_cast<std::uint32_t>(b.width), static_cast<std::uint32_t>(b.width), static_cast<std::uint32_t>(b.height),
+                         tvg::ColorSpace::ARGB8888);
+        u.root->translate(static_cast<float>(-b.x), static_cast<float>(-b.y));
+        u.canvas->add(u.root);
+        u.attached = true;
+    }
+
+    void zero_upper(Upper& u, const render::PixelRect& r) {
+        for (int y = r.y; y < r.y + r.height; ++y) {
+            std::uint32_t* row = u.buffer.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(u.width) + r.x;
+            std::fill(row, row + r.width, 0u);
+        }
     }
 };
 
@@ -397,13 +398,12 @@ void Canvas::select_device_layer(std::size_t layer) {
 
 PixelView Canvas::finish() {
     if (impl_->dirty) {
-        std::vector<std::pair<std::size_t, Rect>> bounds;
+        std::vector<std::pair<std::size_t, render::PixelRect>> bounds;
         for (std::size_t l = 1; l < layer_count() && l <= impl_->uppers.size(); ++l) {
-            if (const std::optional<Rect> b = layer_bounds(l); b && impl_->uppers[l - 1].root && !impl_->uppers[l - 1].attached) {
+            if (const std::optional<render::PixelRect> b = upper_pixel_bounds(l); b && impl_->uppers[l - 1].root && !impl_->uppers[l - 1].listed) {
                 bounds.emplace_back(l, *b);
             }
         }
-        const std::vector<std::size_t> attached = impl_->attach_uppers(bounds);
         const std::vector<render::PixelRect> rects = repaint_rects();
         tvg::SwCanvas* base = impl_->canvas;
         const bool painting = impl_->base && !rects.empty();
@@ -421,29 +421,7 @@ PixelView Canvas::finish() {
             }
             base->update();
         };
-        {
-            const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_update);
-            if (painting) {
-                pass(rects.front());
-            }
-            for (const std::size_t l : attached) {
-                impl_->uppers[l - 1].canvas->update();
-            }
-        }
-        {
-            const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_draw);
-            if (painting) {
-                base->draw(false);
-            }
-            for (const std::size_t l : attached) {
-                impl_->uppers[l - 1].canvas->draw(true);
-            }
-            base->sync();
-            for (const std::size_t l : attached) {
-                impl_->uppers[l - 1].canvas->sync();
-            }
-        }
-        for (std::size_t k = 1; painting && k < rects.size(); ++k) {
+        for (std::size_t k = 0; painting && k < rects.size(); ++k) {
             {
                 const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_update);
                 pass(rects[k]);
@@ -452,9 +430,35 @@ PixelView Canvas::finish() {
             base->draw(false);
             base->sync();
         }
+        std::size_t rasterized = 0;
+        for (const auto& [l, b] : bounds) {
+            const UpperRepaint repaint = upper_repaint(l, b);
+            Impl::Upper& u = impl_->uppers[l - 1];
+            impl_->fit_upper(u, b);
+            u.listed = true;
+            impl_->drawn.push_back({{reinterpret_cast<const std::uint8_t*>(u.buffer.data()), b.width, b.height, static_cast<std::intptr_t>(b.width) * 4}, b.x,
+                                    b.y, l, repaint.changed});
+            if (repaint.rects.empty()) {
+                continue;
+            }
+            impl_->attach_upper(u, b);
+            rasterized += 1;
+            for (const render::PixelRect& r : repaint.rects) {
+                impl_->zero_upper(u, r);
+                {
+                    const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_update);
+                    u.canvas->sync();
+                    u.canvas->viewport(r.x, r.y, r.width, r.height);
+                    u.canvas->update();
+                }
+                const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_draw);
+                u.canvas->draw(false);
+                u.canvas->sync();
+            }
+        }
         impl_->dirty = false;
         if (probe() && probe()->counting()) {
-            probe()->counts().layers = 1 + attached.size();
+            probe()->counts().layers = 1 + rasterized;
         }
     }
     return {reinterpret_cast<const std::uint8_t*>(impl_->buffer.data()), impl_->width, impl_->height,
