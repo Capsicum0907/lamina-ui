@@ -11,6 +11,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/chip.hpp"
@@ -21,8 +22,8 @@ struct ChipGroupOptions {
     std::vector<ChipOptions> chips;
     bool single_selection = false;
     std::string accessible_name = {};
-    double spacing = tokens::chip_tokens.group_spacing;
-    double line_spacing = tokens::chip_tokens.group_line_spacing;
+    double spacing = current_style().chip.common.group_spacing;
+    double line_spacing = current_style().chip.common.group_line_spacing;
 };
 
 struct ChipGroupResponse {

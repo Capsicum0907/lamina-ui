@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/radio_button.hpp"
 
@@ -8,11 +9,13 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::RadioButtonTokens& t = tokens::radio_button_tokens;
+const tokens::RadioButtonTokens& t() {
+    return current_style().radio_button;
+}
 using tokens::motion_scheme;
 
 double target_dot(bool selected) {
-    return selected ? t.dot_size / 2.0 : 0.0;
+    return selected ? t().dot_size / 2.0 : 0.0;
 }
 
 }
@@ -25,11 +28,11 @@ RadioButton::RadioButton(RadioButtonOptions options)
       state_layer_(0.0, motion_scheme.fast_effects()) {}
 
 double RadioButton::width() const {
-    return t.state_layer_size;
+    return t().state_layer_size;
 }
 
 double RadioButton::height() const {
-    return t.state_layer_size;
+    return t().state_layer_size;
 }
 
 render::Rect RadioButton::bounds() const {
@@ -104,21 +107,21 @@ void RadioButton::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const render::Rect r = bounds();
     const render::Point center{r.x + r.width / 2.0, r.y + r.height / 2.0};
     const double s = selected_.value();
-    const color::Argb c = enabled_.mix(color::mix(resolve(scheme, t.disabled_unselected), resolve(scheme, t.disabled_selected), s),
-                                       color::mix(scheme[t.unselected], scheme[t.selected], s));
-    const double outer = t.icon_size / 2.0;
+    const color::Argb c = enabled_.mix(color::mix(resolve(scheme, t().disabled_unselected), resolve(scheme, t().disabled_selected), s),
+                                       color::mix(scheme[t().unselected], scheme[t().selected], s));
+    const double outer = t().icon_size / 2.0;
     render::Path ring = render::circle_path(center, outer);
-    ring.append(render::circle_path(center, outer - t.stroke_width));
+    ring.append(render::circle_path(center, outer - t().stroke_width));
     canvas.fill_path(ring, c, render::FillRule::even_odd);
-    const double dot = dot_radius_.value() - t.stroke_width / 2.0;
+    const double dot = dot_radius_.value() - t().stroke_width / 2.0;
     if (dot > 0.0) {
         canvas.fill_path(render::circle_path(center, dot), c);
     }
     if (state_layer_.value() > 0.0) {
-        canvas.fill_path(render::circle_path(center, t.state_layer_size / 2.0),
-                         color::with_alpha(scheme[t.state_layer], state_layer_.value()));
+        canvas.fill_path(render::circle_path(center, t().state_layer_size / 2.0),
+                         color::with_alpha(scheme[t().state_layer], state_layer_.value()));
     }
-    focus_.paint_circle(canvas, scheme, center, t.state_layer_size / 2.0);
+    focus_.paint_circle(canvas, scheme, center, t().state_layer_size / 2.0);
 }
 
 }

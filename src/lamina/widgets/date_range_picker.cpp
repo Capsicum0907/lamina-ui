@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/date_range_picker.hpp"
 
 #include <algorithm>
@@ -11,20 +12,26 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::DatePickerTokens& t = tokens::date_picker_tokens;
-constexpr const tokens::DatePickerColors& k = tokens::date_picker_colors;
-constexpr const tokens::DatePickerMotion& m = tokens::date_picker_motion;
+const tokens::DatePickerTokens& t() {
+    return current_style().date_picker;
+}
+const tokens::DatePickerColors& k() {
+    return current_style().date_picker_colors;
+}
+const tokens::DatePickerMotion& m() {
+    return current_style().date_picker_motion;
+}
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
 }
 
 color::Argb dim(color::Argb c, double enabled) {
-    return color::mix(color::scale_alpha(c, k.disabled_opacity), c, enabled);
+    return color::mix(color::scale_alpha(c, k().disabled_opacity), c, enabled);
 }
 
 double field_width() {
-    return (t.container_width - t.input_start - t.input_end - t.range_input_spacing) / 2.0;
+    return (t().container_width - t().input_start - t().input_end - t().range_input_spacing) / 2.0;
 }
 
 }
@@ -35,13 +42,13 @@ DateRangePicker::DateRangePicker(DateRangePickerOptions options, const text::Fon
       icon_font_(icon_font),
       locale_(options_.locale ? options_.locale : &calendar::english_us()),
       mode_(options_.mode),
-      toggle_({{icon_font, options_.mode == DatePickerMode::picker ? t.input_mode_symbol : t.picker_mode_symbol},
+      toggle_({{icon_font, options_.mode == DatePickerMode::picker ? t().input_mode_symbol : t().picker_mode_symbol},
                options_.mode == DatePickerMode::picker ? locale_->strings.switch_to_input_mode : locale_->strings.switch_to_calendar_mode,
                tokens::IconButtonStyle::standard, tokens::IconButtonSize::small, tokens::ButtonShape::round, tokens::IconButtonWidth::uniform,
-               false, false, true, k.headline}),
-      state_layer_(0.0, m.state_layer),
-      mode_alpha_(1.0, m.range_crossfade),
-      selection_fade_(1.0, m.selection),
+               false, false, true, k().headline}),
+      state_layer_(0.0, m().state_layer),
+      mode_alpha_(1.0, m().range_crossfade),
+      selection_fade_(1.0, m().selection),
       enabled_(options_.enabled) {
     set_selection(options_.start, options_.end);
     focus_date_ = start_.value_or(options_.today);
@@ -97,7 +104,7 @@ void DateRangePicker::set_locale(const calendar::CalendarLocale& locale) {
 }
 
 double DateRangePicker::width() const {
-    return t.container_width;
+    return t().container_width;
 }
 
 void DateRangePicker::set_height(double height) {
@@ -107,8 +114,8 @@ void DateRangePicker::set_height(double height) {
 
 double DateRangePicker::header_height() const {
     const double slot = tokens::minimum_interactive_size;
-    const double row = std::max(style_of(t.range_headline_type).line_height + t.headline_bottom, slot + t.toggle_bottom);
-    return std::max(t.range_header_height, t.title_top + style_of(t.title_type).line_height + row) + t.divider_thickness;
+    const double row = std::max(style_of(t().range_headline_type).line_height + t().headline_bottom, slot + t().toggle_bottom);
+    return std::max(t().range_header_height, t().title_top + style_of(t().title_type).line_height + row) + t().divider_thickness;
 }
 
 double DateRangePicker::content_top() const {
@@ -116,12 +123,12 @@ double DateRangePicker::content_top() const {
 }
 
 double DateRangePicker::item_height() const {
-    return t.subhead_top + style_of(t.subhead_type).line_height + t.subhead_bottom + month_grid_height();
+    return t().subhead_top + style_of(t().subhead_type).line_height + t().subhead_bottom + month_grid_height();
 }
 
 render::Rect DateRangePicker::list_area() const {
-    const double top = content_top() + t.cell_size;
-    return {origin_.x, top, t.container_width, std::max(0.0, origin_.y + options_.height - top)};
+    const double top = content_top() + t().cell_size;
+    return {origin_.x, top, t().container_width, std::max(0.0, origin_.y + options_.height - top)};
 }
 
 int DateRangePicker::month_count() const {
@@ -139,7 +146,7 @@ calendar::YearMonth DateRangePicker::month_at(int index) const {
 render::Point DateRangePicker::grid_origin(int index) const {
     const render::Rect area = list_area();
     const double top = area.y + index * item_height() - list_.offset();
-    return {origin_.x + t.horizontal_padding, top + item_height() - month_grid_height()};
+    return {origin_.x + t().horizontal_padding, top + item_height() - month_grid_height()};
 }
 
 calendar::YearMonth DateRangePicker::first_visible_month() const {
@@ -159,8 +166,8 @@ void DateRangePicker::show_month(calendar::YearMonth month, bool animate) {
 render::Rect DateRangePicker::day_bounds(const calendar::Date& date) const {
     const render::Rect cell =
         day_rect(grid_origin(month_index(calendar::year_month(date))), calendar::cell_of(date, locale_->first_day_of_week));
-    const double inset = (t.cell_size - t.day_size) / 2.0;
-    return {cell.x + inset, cell.y + inset, t.day_size, t.day_size};
+    const double inset = (t().cell_size - t().day_size) / 2.0;
+    return {cell.x + inset, cell.y + inset, t().day_size, t().day_size};
 }
 
 void DateRangePicker::set_origin(render::Point origin) {
@@ -182,11 +189,11 @@ render::Rect DateRangePicker::bounds() const {
 
 void DateRangePicker::place_children() {
     const double slot = tokens::minimum_interactive_size;
-    const double row_top = origin_.y + header_height() - t.divider_thickness - slot - t.toggle_bottom;
-    const double cx = origin_.x + t.container_width - t.toggle_end - slot / 2.0;
+    const double row_top = origin_.y + header_height() - t().divider_thickness - slot - t().toggle_bottom;
+    const double cx = origin_.x + t().container_width - t().toggle_end - slot / 2.0;
     toggle_.set_origin({cx - toggle_.width() / 2.0, row_top + (slot - toggle_.height()) / 2.0});
-    fields_[0]->set_origin({origin_.x + t.input_start, content_top() + t.input_top});
-    fields_[1]->set_origin({origin_.x + t.input_start + field_width() + t.range_input_spacing, content_top() + t.input_top});
+    fields_[0]->set_origin({origin_.x + t().input_start, content_top() + t().input_top});
+    fields_[1]->set_origin({origin_.x + t().input_start + field_width() + t().range_input_spacing, content_top() + t().input_top});
     list_.set_viewport(list_area());
     list_.set_content_height(month_count() * item_height());
 }
@@ -230,7 +237,7 @@ void DateRangePicker::set_mode(DatePickerMode mode) {
         return;
     }
     mode_ = mode;
-    toggle_.set_icon({icon_font_, mode_ == DatePickerMode::picker ? t.input_mode_symbol : t.picker_mode_symbol});
+    toggle_.set_icon({icon_font_, mode_ == DatePickerMode::picker ? t().input_mode_symbol : t().picker_mode_symbol});
     toggle_.set_accessible_name(mode_ == DatePickerMode::picker ? locale_->strings.switch_to_input_mode : locale_->strings.switch_to_calendar_mode);
     mode_alpha_.snap_to(0.0);
     mode_alpha_.animate_to(1.0);
@@ -347,7 +354,7 @@ AccessibleNode DateRangePicker::accessible() const {
         node.children.push_back(fields_[1]->accessible());
         return node;
     }
-    for (AccessibleNode& w : weekday_accessible(*locale_, {origin_.x + t.horizontal_padding, content_top()})) {
+    for (AccessibleNode& w : weekday_accessible(*locale_, {origin_.x + t().horizontal_padding, content_top()})) {
         node.children.push_back(std::move(w));
     }
     const render::Rect area = list_area();
@@ -566,19 +573,19 @@ std::optional<double> DateRangePicker::next_wake_seconds() const {
 }
 
 void DateRangePicker::paint_picker(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    paint_weekdays(canvas, scheme, fonts_, *locale_, {origin_.x + t.horizontal_padding, content_top()}, enabled_.amount());
+    paint_weekdays(canvas, scheme, fonts_, *locale_, {origin_.x + t().horizontal_padding, content_top()}, enabled_.amount());
     const render::Rect area = list_area();
     canvas.push_clip(area);
     const MonthGridState s = grid_state(true);
     const int first = std::max(0, static_cast<int>(list_.offset() / item_height()));
     const int last = std::min(month_count() - 1, static_cast<int>((list_.offset() + area.height) / item_height()));
-    const text::TextStyle subhead = style_of(t.subhead_type);
+    const text::TextStyle subhead = style_of(t().subhead_type);
     for (int i = first; i <= last; ++i) {
         const calendar::YearMonth ym = month_at(i);
         const double top = area.y + i * item_height() - list_.offset();
         const text::TextLine line =
             text::layout_line(fonts_, calendar::format_date(locale_->year_month_pattern, calendar::first_day(ym), locale_->names), subhead);
-        text::draw_line(canvas, fonts_, line, {origin_.x + t.subhead_start, top + t.subhead_top}, dim(scheme[k.subhead], enabled_.amount()));
+        text::draw_line(canvas, fonts_, line, {origin_.x + t().subhead_start, top + t().subhead_top}, dim(scheme[k().subhead], enabled_.amount()));
         paint_month(canvas, scheme, fonts_, grid_origin(i), ym, s);
     }
     canvas.pop_clip();
@@ -592,23 +599,23 @@ void DateRangePicker::paint_inputs(render::Canvas& canvas, const color::ColorSch
 
 void DateRangePicker::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect b = bounds();
-    canvas.fill_rect(b, scheme[k.container]);
+    canvas.fill_rect(b, scheme[k().container]);
     const double e = enabled_.amount();
-    const double start = t.range_header_start;
-    const text::TextLine title_line = text::layout_line(fonts_, title(), style_of(t.title_type));
-    text::draw_line(canvas, fonts_, title_line, {origin_.x + start, origin_.y + t.title_top}, dim(scheme[k.title], e));
-    const text::TextLine headline_line = text::layout_line(fonts_, headline(), style_of(t.range_headline_type));
+    const double start = t().range_header_start;
+    const text::TextLine title_line = text::layout_line(fonts_, title(), style_of(t().title_type));
+    text::draw_line(canvas, fonts_, title_line, {origin_.x + start, origin_.y + t().title_top}, dim(scheme[k().title], e));
+    const text::TextLine headline_line = text::layout_line(fonts_, headline(), style_of(t().range_headline_type));
     const double slot = tokens::minimum_interactive_size;
-    const double row_top = origin_.y + header_height() - t.divider_thickness - slot - t.toggle_bottom;
-    const double headline_y = row_top + (slot + t.toggle_bottom - t.headline_bottom - headline_line.box_height()) / 2.0;
-    const double headline_width = t.container_width - start - t.header_end - (options_.show_mode_toggle ? slot : 0.0);
+    const double row_top = origin_.y + header_height() - t().divider_thickness - slot - t().toggle_bottom;
+    const double headline_y = row_top + (slot + t().toggle_bottom - t().headline_bottom - headline_line.box_height()) / 2.0;
+    const double headline_width = t().container_width - start - t().header_end - (options_.show_mode_toggle ? slot : 0.0);
     canvas.push_clip({origin_.x + start, origin_.y, headline_width, header_height()});
-    text::draw_line(canvas, fonts_, headline_line, {origin_.x + start, headline_y}, dim(scheme[k.headline], e));
+    text::draw_line(canvas, fonts_, headline_line, {origin_.x + start, headline_y}, dim(scheme[k().headline], e));
     canvas.pop_clip();
     if (options_.show_mode_toggle) {
         toggle_.paint(canvas, scheme);
     }
-    canvas.fill_rect({origin_.x, origin_.y + header_height() - t.divider_thickness, t.container_width, t.divider_thickness}, scheme[k.divider]);
+    canvas.fill_rect({origin_.x, origin_.y + header_height() - t().divider_thickness, t().container_width, t().divider_thickness}, scheme[k().divider]);
     const double a = std::clamp(mode_alpha_.value(), 0.0, 1.0);
     canvas.push_clip({b.x, content_top(), b.width, b.y + b.height - content_top()});
     const bool picker = mode_ == DatePickerMode::picker;

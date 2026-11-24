@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/docked_date_picker.hpp"
 
 #include <algorithm>
@@ -13,9 +14,15 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::DatePickerTokens& t = tokens::date_picker_tokens;
-constexpr const tokens::DatePickerColors& k = tokens::date_picker_colors;
-constexpr const tokens::DatePickerMotion& m = tokens::date_picker_motion;
+const tokens::DatePickerTokens& t() {
+    return current_style().date_picker;
+}
+const tokens::DatePickerColors& k() {
+    return current_style().date_picker_colors;
+}
+const tokens::DatePickerMotion& m() {
+    return current_style().date_picker_motion;
+}
 constexpr double closed_scale = tokens::dialog_tokens.closed_scale;
 
 const calendar::CalendarLocale& locale_or_default(const calendar::CalendarLocale* l) {
@@ -42,12 +49,12 @@ DockedDatePicker::DockedDatePicker(DockedDatePickerOptions options, const text::
       icon_font_(icon_font),
       locale_(&locale_or_default(options_.locale)),
       selected_(options_.selected),
-      open_button_({{icon_font, t.docked_symbol},
+      open_button_({{icon_font, t().docked_symbol},
                     options_.open_name.empty() ? locale_->strings.date_picker_title : options_.open_name,
                     tokens::IconButtonStyle::standard, tokens::IconButtonSize::small, tokens::ButtonShape::round,
                     tokens::IconButtonWidth::uniform, false, false, options_.enabled, color::Role::on_surface_variant}),
       picker_(picker_options(options_), fonts, icon_font),
-      popup_(closed_scale, m.popup_scale, m.popup_fade),
+      popup_(closed_scale, m().popup_scale, m().popup_fade),
       enabled_(options_.enabled) {
     rebuild_field();
     place();
@@ -62,10 +69,10 @@ void DockedDatePicker::rebuild_field() {
                        .accessible_name = locale_->strings.date_input_label + locale_->strings.list_separator + placeholder,
                        .filter = ascii_digit,
                        .mask = locale_->input.pattern,
-                       .min_width = t.container_width};
+                       .min_width = t().container_width};
     const bool had_focus = field_ && field_->focused();
     field_ = std::make_unique<TextField>(std::move(o), fonts_);
-    field_->set_width(t.container_width);
+    field_->set_width(t().container_width);
     sync_field();
     if (had_focus) {
         field_->set_focused(true);
@@ -88,7 +95,7 @@ void DockedDatePicker::set_locale(const calendar::CalendarLocale& locale) {
 }
 
 double DockedDatePicker::width() const {
-    return t.container_width;
+    return t().container_width;
 }
 
 double DockedDatePicker::height() const {
@@ -115,9 +122,9 @@ render::Rect DockedDatePicker::bounds() const {
 void DockedDatePicker::place() {
     field_->set_origin(origin_);
     const double field_h = field_->container_height();
-    open_button_.set_origin({origin_.x + t.container_width - t.docked_icon_inset - open_button_.width() / 2.0,
+    open_button_.set_origin({origin_.x + t().container_width - t().docked_icon_inset - open_button_.width() / 2.0,
                              origin_.y + (field_h - open_button_.height()) / 2.0});
-    picker_.set_origin({origin_.x, origin_.y + height() + t.docked_gap});
+    picker_.set_origin({origin_.x, origin_.y + height() + t().docked_gap});
 }
 
 render::Rect DockedDatePicker::popup_bounds() const {
@@ -378,8 +385,8 @@ void DockedDatePicker::paint_popup(render::Canvas& canvas, const color::ColorSch
     const color::ColorScheme faded = color::faded(scheme, a);
     canvas.save();
     popup_.scale_about(canvas, {b.x + b.width / 2.0, b.y});
-    const double radius = tokens::corner_radius(t.docked_corner, b.width, b.height);
-    paint_surface(canvas, b, radius, faded[k.container], t.docked_elevation, faded[color::Role::shadow]);
+    const double radius = tokens::corner_radius(t().docked_corner, b.width, b.height);
+    paint_surface(canvas, b, radius, faded[k().container], t().docked_elevation, faded[color::Role::shadow]);
     const render::Path shape = render::rounded_rect_path(b, render::uniform_radii(radius));
     canvas.push_clip(shape);
     picker_.paint(canvas, faded);

@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/text_field.hpp"
 
 #include <algorithm>
@@ -12,7 +13,7 @@ namespace lamina::widgets {
 
 namespace {
 
-const auto& t = tokens::outlined_text_field;
+const auto& t = current_style().text_field;
 using tokens::motion_scheme;
 
 text::TextStyle style_of(tokens::TypeRole role) {

@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/chip_group.hpp"
 
 #include <algorithm>
@@ -11,15 +12,17 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::ChipMotion& m = tokens::chip_motion;
+const tokens::ChipMotion& m() {
+    return current_style().chip.motion;
+}
 
 }
 
 ChipGroup::ChipGroup(ChipGroupOptions options, const text::FontStack& fonts) : options_(std::move(options)), fonts_(fonts) {
     for (ChipOptions& chip : options_.chips) {
         const bool allowed = chip.enabled;
-        entries_.push_back({std::make_unique<Chip>(std::move(chip), fonts_), motion::Animated(1.0, m.group_presence),
-                            motion::Animated(0.0, m.group_move), motion::Animated(0.0, m.group_move)});
+        entries_.push_back({std::make_unique<Chip>(std::move(chip), fonts_), motion::Animated(1.0, m().group_presence),
+                            motion::Animated(0.0, m().group_move), motion::Animated(0.0, m().group_move)});
         entries_.back().allowed = allowed;
     }
     options_.chips.clear();
@@ -90,8 +93,8 @@ std::vector<std::size_t> ChipGroup::selected() const {
 void ChipGroup::add(ChipOptions options) {
     const bool allowed = options.enabled;
     options.enabled = allowed && enabled_;
-    entries_.push_back({std::make_unique<Chip>(std::move(options), fonts_), motion::Animated(0.0, m.group_presence),
-                        motion::Animated(0.0, m.group_move), motion::Animated(0.0, m.group_move)});
+    entries_.push_back({std::make_unique<Chip>(std::move(options), fonts_), motion::Animated(0.0, m().group_presence),
+                        motion::Animated(0.0, m().group_move), motion::Animated(0.0, m().group_move)});
     entries_.back().allowed = allowed;
     entries_.back().presence.animate_to(1.0);
     if (options_.single_selection && entries_.back().chip->selected()) {
@@ -399,7 +402,7 @@ void ChipGroup::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
             continue;
         }
         const render::Rect b = e.chip->bounds();
-        const double margin = tokens::chip_tokens.group_clip_margin;
+        const double margin = current_style().chip.common.group_clip_margin;
         canvas.push_clip(render::Rect{b.x - margin, b.y - margin, b.width * k + margin, b.height + 2.0 * margin});
         e.chip->paint(canvas, color::faded(scheme, k));
         canvas.pop_clip();

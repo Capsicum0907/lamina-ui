@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/checkbox.hpp"
 
@@ -13,7 +14,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::CheckboxTokens& t = tokens::checkbox_tokens;
+const tokens::CheckboxTokens& t() {
+    return current_style().checkbox;
+}
 using tokens::motion_scheme;
 
 constexpr motion::SpringSpec box_in_spring = motion_scheme.default_effects();
@@ -69,11 +72,11 @@ render::Path check_mark_path(const render::Rect& box, double draw_fraction, doub
         return path;
     }
     const double g = center_gravitation;
-    const double c = t.indeterminate_center;
+    const double c = t().indeterminate_center;
     auto at = [&](double ux, double uy) { return render::Point{box.x + box.width * ux, box.y + box.width * uy}; };
-    const render::Point left = at(t.check_left.x, motion::lerp(t.check_left.y, c, g));
-    const render::Point cross = at(motion::lerp(t.check_cross.x, c, g), motion::lerp(t.check_cross.y, c, g));
-    const render::Point right = at(t.check_right.x, motion::lerp(t.check_right.y, c, g));
+    const render::Point left = at(t().check_left.x, motion::lerp(t().check_left.y, c, g));
+    const render::Point cross = at(motion::lerp(t().check_cross.x, c, g), motion::lerp(t().check_cross.y, c, g));
+    const render::Point right = at(t().check_right.x, motion::lerp(t().check_right.y, c, g));
 
     const double half = stroke_width / 2.0;
     const render::Point d1 = render::unit(cross - left);
@@ -100,11 +103,11 @@ Checkbox::Checkbox(CheckboxOptions options)
       state_layer_(0.0, motion_scheme.fast_effects()) {}
 
 double Checkbox::width() const {
-    return t.state_layer_size;
+    return t().state_layer_size;
 }
 
 double Checkbox::height() const {
-    return t.state_layer_size;
+    return t().state_layer_size;
 }
 
 render::Rect Checkbox::bounds() const {
@@ -113,7 +116,7 @@ render::Rect Checkbox::bounds() const {
 
 render::Rect Checkbox::box() const {
     const render::Rect r = bounds();
-    return {r.x + (r.width - t.box_size) / 2.0, r.y + (r.height - t.box_size) / 2.0, t.box_size, t.box_size};
+    return {r.x + (r.width - t().box_size) / 2.0, r.y + (r.height - t().box_size) / 2.0, t().box_size, t().box_size};
 }
 
 void Checkbox::set_state(tokens::CheckboxState next) {
@@ -124,7 +127,7 @@ void Checkbox::set_state(tokens::CheckboxState next) {
     options_.state = next;
     const double gravity = next == tokens::CheckboxState::indeterminate ? 1.0 : 0.0;
     if (next == tokens::CheckboxState::off) {
-        snap_off_in_ = t.uncheck_snap_delay_seconds;
+        snap_off_in_ = t().uncheck_snap_delay_seconds;
         checked_.set_spec(box_out_spring);
         checked_.animate_to(0.0);
         return;
@@ -215,34 +218,34 @@ bool Checkbox::animating() const {
 void Checkbox::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect b = box();
     const double p = checked_.value();
-    const color::Argb box_color = enabled_.mix(mix_resolved(scheme, std::nullopt, t.disabled_checked_box, p),
-                                               mix_optional(scheme, std::nullopt, t.checked_box, p));
+    const color::Argb box_color = enabled_.mix(mix_resolved(scheme, std::nullopt, t().disabled_checked_box, p),
+                                               mix_optional(scheme, std::nullopt, t().checked_box, p));
     const color::Argb border_color =
-        enabled_.mix(color::mix(resolve(scheme, t.disabled_unchecked_border), resolve(scheme, t.disabled_checked_box), p),
-                     color::mix(scheme[t.unchecked_border], scheme[t.checked_box], p));
-    const color::Argb check_color = enabled_.mix(mix_resolved(scheme, std::nullopt, t.disabled_checkmark, p),
-                                                 mix_optional(scheme, std::nullopt, t.checkmark, p));
+        enabled_.mix(color::mix(resolve(scheme, t().disabled_unchecked_border), resolve(scheme, t().disabled_checked_box), p),
+                     color::mix(scheme[t().unchecked_border], scheme[t().checked_box], p));
+    const color::Argb check_color = enabled_.mix(mix_resolved(scheme, std::nullopt, t().disabled_checkmark, p),
+                                                 mix_optional(scheme, std::nullopt, t().checkmark, p));
 
     if (box_color == border_color) {
-        canvas.fill_rounded_rect(b, render::uniform_radii(t.corner_radius), box_color);
+        canvas.fill_rounded_rect(b, render::uniform_radii(t().corner_radius), box_color);
     } else {
-        const render::Rect inner{b.x + t.stroke_width, b.y + t.stroke_width, b.width - 2 * t.stroke_width,
-                                 b.height - 2 * t.stroke_width};
+        const render::Rect inner{b.x + t().stroke_width, b.y + t().stroke_width, b.width - 2 * t().stroke_width,
+                                 b.height - 2 * t().stroke_width};
         if (color::alpha(box_color) != 0) {
-            canvas.fill_rounded_rect(inner, render::uniform_radii(std::max(0.0, t.corner_radius - t.stroke_width)), box_color);
+            canvas.fill_rounded_rect(inner, render::uniform_radii(std::max(0.0, t().corner_radius - t().stroke_width)), box_color);
         }
-        canvas.fill_path(render::ring_path(b, t.corner_radius, t.stroke_width), border_color, render::FillRule::even_odd);
+        canvas.fill_path(render::ring_path(b, t().corner_radius, t().stroke_width), border_color, render::FillRule::even_odd);
     }
     if (color::alpha(check_color) != 0) {
-        canvas.fill_path(check_mark_path(b, check_fraction_.value(), gravitation_.value(), t.stroke_width), check_color);
+        canvas.fill_path(check_mark_path(b, check_fraction_.value(), gravitation_.value(), t().stroke_width), check_color);
     }
     if (state_layer_.value() > 0.0) {
         const render::Rect r = bounds();
-        canvas.fill_path(render::circle_path({r.x + r.width / 2.0, r.y + r.height / 2.0}, t.state_layer_size / 2.0),
-                         color::with_alpha(scheme[t.state_layer], state_layer_.value()));
+        canvas.fill_path(render::circle_path({r.x + r.width / 2.0, r.y + r.height / 2.0}, t().state_layer_size / 2.0),
+                         color::with_alpha(scheme[t().state_layer], state_layer_.value()));
     }
     const render::Rect r = bounds();
-    focus_.paint_circle(canvas, scheme, {r.x + r.width / 2.0, r.y + r.height / 2.0}, t.state_layer_size / 2.0);
+    focus_.paint_circle(canvas, scheme, {r.x + r.width / 2.0, r.y + r.height / 2.0}, t().state_layer_size / 2.0);
 }
 
 }

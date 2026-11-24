@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/search_bar.hpp"
 
 #include <algorithm>
@@ -16,26 +17,28 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SearchTokens& t = tokens::search_tokens;
+const tokens::SearchTokens& t() {
+    return current_style().search;
+}
 
 double slot_padding() {
-    return t.icon_slot + (t.padding - t.icon_padding);
+    return t().icon_slot + (t().padding - t().icon_padding);
 }
 
 std::unique_ptr<IconButton> search_button(const SearchBarIcon& spec, color::Role content) {
     return std::make_unique<IconButton>(IconButtonOptions{.icon = spec.icon,
                                                           .accessible_name = spec.accessible_name,
                                                           .style = tokens::IconButtonStyle::standard,
-                                                          .size = t.icon_button_size,
+                                                          .size = t().icon_button_size,
                                                           .content = content});
 }
 
 render::Point leading_centre(const render::Rect& field) {
-    return {field.x + t.icon_slot / 2.0 + t.icon_offset, field.y + field.height / 2.0};
+    return {field.x + t().icon_slot / 2.0 + t().icon_offset, field.y + field.height / 2.0};
 }
 
 render::Point trailing_centre(const render::Rect& field) {
-    return {field.x + field.width - t.icon_slot / 2.0 - t.icon_offset, field.y + field.height / 2.0};
+    return {field.x + field.width - t().icon_slot / 2.0 - t().icon_offset, field.y + field.height / 2.0};
 }
 
 void centre_button(IconButton& b, render::Point c) {
@@ -54,12 +57,12 @@ SearchBar::SearchBar(SearchBarOptions options, const text::FontStack& fonts)
                               .min_width = 0.0,
                               .outlined = false,
                               .padding_start = slot_padding(),
-                              .padding_end = options_.trailing ? slot_padding() : t.padding},
+                              .padding_end = options_.trailing ? slot_padding() : t().padding},
              fonts),
-      back_(search_button(options_.back, t.leading_icon)),
-      trailing_(options_.trailing ? search_button(*options_.trailing, t.trailing_icon) : nullptr),
+      back_(search_button(options_.back, t().leading_icon)),
+      trailing_(options_.trailing ? search_button(*options_.trailing, t().trailing_icon) : nullptr),
       results_(ListViewOptions{.items = std::move(options_.results), .accessible_name = {}}, fonts),
-      progress_(0.0, tokens::search_motion.expand) {
+      progress_(0.0, current_style().search_motion.expand) {
     if (options_.accessible_name.empty()) {
         options_.accessible_name = options_.strings->search;
     }
@@ -72,9 +75,9 @@ SearchBar::SearchBar(SearchBarOptions options, const text::FontStack& fonts)
 }
 
 layout::Size SearchBar::measure(const layout::Constraints& c) const {
-    const double available = std::isfinite(c.max_width) ? c.max_width : t.min_width;
-    const double w = std::min(t.max_width, std::max(available, std::min(t.min_width, available)));
-    return c.constrain({w, t.height});
+    const double available = std::isfinite(c.max_width) ? c.max_width : t().min_width;
+    const double w = std::min(t().max_width, std::max(available, std::min(t().min_width, available)));
+    return c.constrain({w, t().height});
 }
 
 void SearchBar::arrange(const render::Rect& rect) {
@@ -101,7 +104,7 @@ bool SearchBar::full_screen() const {
 }
 
 bool SearchBar::showing_view() const {
-    return progress_.target() == 1.0 || progress_.value() > t.expanded_threshold;
+    return progress_.target() == 1.0 || progress_.value() > t().expanded_threshold;
 }
 
 bool SearchBar::is_open() const {
@@ -118,10 +121,10 @@ render::Rect SearchBar::surface() const {
         return {motion::lerp(c.x, area_.x, p), motion::lerp(c.y, area_.y, p), motion::lerp(c.width, area_.width, p),
                 motion::lerp(c.height, area_.height, p)};
     }
-    const double max_height = area_.height * t.docked_max_height_ratio;
+    const double max_height = area_.height * t().docked_max_height_ratio;
     const double limit = motion::lerp(c.height, std::max(c.height, max_height), std::max(0.0, progress_.value()));
     const double natural = c.height + tokens::divider_tokens.thickness + results_.content_height();
-    const double low = std::min(t.docked_min_height, limit);
+    const double low = std::min(t().docked_min_height, limit);
     return {c.x, c.y, c.width, std::clamp(natural, low, std::max(low, limit))};
 }
 
@@ -134,26 +137,26 @@ render::Rect SearchBar::field_rect() const {
     const double raw = progress_.value();
     const double width = motion::lerp(c.width, s.width, raw);
     const double centre = motion::lerp(c.x + c.width / 2.0, s.x + s.width / 2.0, raw);
-    const double top = s.y + motion::lerp(0.0, t.vertical_padding, progress());
+    const double top = s.y + motion::lerp(0.0, t().vertical_padding, progress());
     return {centre - width / 2.0, top, width, c.height};
 }
 
 render::Rect SearchBar::results_rect() const {
     const render::Rect s = surface();
     const render::Rect f = field_rect();
-    const double bottom_padding = full_screen() ? motion::lerp(0.0, t.vertical_padding, progress()) : 0.0;
+    const double bottom_padding = full_screen() ? motion::lerp(0.0, t().vertical_padding, progress()) : 0.0;
     const double top = f.y + f.height + bottom_padding + tokens::divider_tokens.thickness;
     return {s.x, top, s.width, std::max(0.0, s.y + s.height - top)};
 }
 
 double SearchBar::corner_radius() const {
     if (!showing_view()) {
-        return tokens::corner_radius(t.collapsed_shape, collapsed_.width, collapsed_.height);
+        return tokens::corner_radius(t().collapsed_shape, collapsed_.width, collapsed_.height);
     }
     if (full_screen()) {
-        return tokens::corner_radius(t.collapsed_shape, collapsed_.width, collapsed_.height) * (1.0 - progress());
+        return tokens::corner_radius(t().collapsed_shape, collapsed_.width, collapsed_.height) * (1.0 - progress());
     }
-    return tokens::corner_radius(t.docked_shape, collapsed_.width, collapsed_.height);
+    return tokens::corner_radius(t().docked_shape, collapsed_.width, collapsed_.height);
 }
 
 void SearchBar::place() {
@@ -170,7 +173,7 @@ void SearchBar::place() {
 void SearchBar::expand() {
     claim_focus_ = true;
     if (progress_.target() != 1.0) {
-        progress_.set_spec(tokens::search_motion.expand);
+        progress_.set_spec(current_style().search_motion.expand);
         progress_.animate_to(1.0);
         results_.scroll_area().jump_to(0.0);
     }
@@ -188,7 +191,7 @@ void SearchBar::collapse() {
     if (progress_.target() == 0.0) {
         return;
     }
-    progress_.set_spec(tokens::search_motion.collapse);
+    progress_.set_spec(current_style().search_motion.collapse);
     progress_.animate_to(0.0);
     const bool had_focus = focused();
     results_.set_focused(false);
@@ -514,8 +517,8 @@ void SearchBar::paint_field(render::Canvas& canvas, const color::ColorScheme& sc
     if (expanded_view) {
         back_->paint(canvas, scheme);
     } else {
-        const color::Argb icon = field_.enabled() ? scheme[t.leading_icon] : resolve(scheme, t.disabled_icon);
-        icons::draw_centered(canvas, options_.search_icon, leading_centre(f), t.icon_size, icon);
+        const color::Argb icon = field_.enabled() ? scheme[t().leading_icon] : resolve(scheme, t().disabled_icon);
+        icons::draw_centered(canvas, options_.search_icon, leading_centre(f), t().icon_size, icon);
     }
     field_.paint(canvas, scheme);
     if (trailing_) {
@@ -528,7 +531,7 @@ void SearchBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         return;
     }
     const double r = corner_radius();
-    paint_surface(canvas, collapsed_, render::uniform_radii(r), scheme[t.container], t.shadow_elevation, scheme[color::Role::shadow]);
+    paint_surface(canvas, collapsed_, render::uniform_radii(r), scheme[t().container], t().shadow_elevation, scheme[color::Role::shadow]);
     canvas.save();
     canvas.push_clip(render::rounded_rect_path(collapsed_, render::uniform_radii(r)));
     paint_field(canvas, scheme, collapsed_, false);
@@ -544,13 +547,13 @@ void SearchBar::paint_expanded(render::Canvas& canvas, const color::ColorScheme&
     const render::CornerRadii radii = render::uniform_radii(std::min(corner_radius(), std::min(s.width, s.height) / 2.0));
     canvas.save();
     canvas.push_clip(area_);
-    paint_surface(canvas, s, radii, scheme[t.container], t.shadow_elevation, scheme[color::Role::shadow]);
+    paint_surface(canvas, s, radii, scheme[t().container], t().shadow_elevation, scheme[color::Role::shadow]);
     canvas.push_clip(render::rounded_rect_path(s, radii));
     paint_field(canvas, scheme, field_rect(), true);
     const double alpha = full_screen() ? progress() : 1.0;
     const color::ColorScheme faded = color::faded(scheme, alpha);
     const render::Rect list = results_rect();
-    canvas.fill_rect({s.x, list.y - tokens::divider_tokens.thickness, s.width, tokens::divider_tokens.thickness}, faded[t.divider]);
+    canvas.fill_rect({s.x, list.y - tokens::divider_tokens.thickness, s.width, tokens::divider_tokens.thickness}, faded[t().divider]);
     results_.paint(canvas, faded);
     canvas.pop_clip();
     canvas.pop_clip();

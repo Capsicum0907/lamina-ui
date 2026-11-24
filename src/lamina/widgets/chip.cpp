@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/chip.hpp"
 
 #include <algorithm>
@@ -13,11 +14,15 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::ChipTokens& t = tokens::chip_tokens;
-constexpr const tokens::ChipMotion& m = tokens::chip_motion;
+const tokens::ChipTokens& t() {
+    return current_style().chip.common;
+}
+const tokens::ChipMotion& m() {
+    return current_style().chip.motion;
+}
 
 text::TextStyle label_style() {
-    return tokens::text_style(tokens::type_style(t.label));
+    return tokens::text_style(tokens::type_style(t().label));
 }
 
 bool is_selectable(const ChipOptions& o) {
@@ -31,11 +36,11 @@ Chip::Chip(ChipOptions options, const text::FontStack& fonts)
       fonts_(fonts),
       label_(text::layout_line(fonts_, options_.label, label_style())),
       enabled_(options_.enabled),
-      elevation_(tokens::chip_style(options_.kind, options_.elevated).elevation, options_.enabled),
-      selected_(options_.selected ? 1.0 : 0.0, m.colors),
-      state_layer_(0.0, m.state_layer),
-      leading_size_(0.0, m.slot_expand),
-      leading_alpha_(0.0, m.slot_fade_in) {
+      elevation_(current_style().chip.style(options_.kind, options_.elevated).elevation, options_.enabled),
+      selected_(options_.selected ? 1.0 : 0.0, m().colors),
+      state_layer_(0.0, m().state_layer),
+      leading_size_(0.0, m().slot_expand),
+      leading_alpha_(0.0, m().slot_fade_in) {
     if (options_.label.empty()) {
         options_.accessible_name = required_name(std::move(options_.accessible_name), "A chip without a label");
     }
@@ -70,29 +75,29 @@ bool Chip::has_leading() const {
 }
 
 double Chip::leading_width() const {
-    return options_.avatar ? t.avatar_size : t.icon_size;
+    return options_.avatar ? t().avatar_size : t().icon_size;
 }
 
 double Chip::start_padding() const {
     if (options_.kind != tokens::ChipKind::input) {
-        return t.padding;
+        return t().padding;
     }
-    return options_.avatar || !shown_leading() ? t.input_edge_padding : t.input_icon_padding;
+    return options_.avatar || !shown_leading() ? t().input_edge_padding : t().input_icon_padding;
 }
 
 double Chip::end_padding() const {
     if (options_.kind != tokens::ChipKind::input) {
-        return t.padding;
+        return t().padding;
     }
-    return options_.trailing_icon ? t.input_icon_padding : t.input_edge_padding;
+    return options_.trailing_icon ? t().input_icon_padding : t().input_edge_padding;
 }
 
 double Chip::trailing_width() const {
-    return options_.trailing_icon ? t.icon_size : 0.0;
+    return options_.trailing_icon ? t().icon_size : 0.0;
 }
 
 double Chip::content_width(double leading_fraction) const {
-    return start_padding() + leading_width() * std::max(0.0, leading_fraction) + t.element_spacing + label_.width + t.element_spacing +
+    return start_padding() + leading_width() * std::max(0.0, leading_fraction) + t().element_spacing + label_.width + t().element_spacing +
            trailing_width() + end_padding();
 }
 
@@ -125,7 +130,7 @@ std::optional<render::Rect> Chip::trailing_rect() const {
         return std::nullopt;
     }
     const render::Rect r = bounds();
-    return render::Rect{r.x + r.width - end_padding() - t.icon_size, r.y + (height() - t.icon_size) / 2.0, t.icon_size, t.icon_size};
+    return render::Rect{r.x + r.width - end_padding() - t().icon_size, r.y + (height() - t().icon_size) / 2.0, t().icon_size, t().icon_size};
 }
 
 std::optional<render::Rect> Chip::remove_target() const {
@@ -137,7 +142,7 @@ std::optional<render::Rect> Chip::remove_target(const render::Rect& target) cons
         return std::nullopt;
     }
     const render::Rect icon = *trailing_rect();
-    const double x = icon.x - t.element_spacing / 2.0;
+    const double x = icon.x - t().element_spacing / 2.0;
     return render::Rect{x, target.y, target.x + target.width - x, target.height};
 }
 
@@ -148,14 +153,14 @@ void Chip::update_leading() {
     }
     if (on) {
         exiting_leading_.reset();
-        leading_size_.set_spec(m.slot_expand);
-        leading_alpha_.set_spec(m.slot_fade_in);
+        leading_size_.set_spec(m().slot_expand);
+        leading_alpha_.set_spec(m().slot_fade_in);
         leading_size_.animate_to(1.0);
         leading_alpha_.animate_to(1.0);
         return;
     }
-    leading_size_.set_spec(m.slot_shrink);
-    leading_alpha_.set_spec(m.slot_fade_out);
+    leading_size_.set_spec(m().slot_shrink);
+    leading_alpha_.set_spec(m().slot_fade_out);
     leading_size_.animate_to(0.0);
     leading_alpha_.animate_to(0.0);
 }
@@ -287,9 +292,9 @@ bool Chip::animating() const {
 }
 
 void Chip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const tokens::ChipStyleTokens& s = tokens::chip_style(options_.kind, options_.elevated);
+    const tokens::ChipStyleTokens& s = current_style().chip.style(options_.kind, options_.elevated);
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(t.corner, r.width, r.height);
+    const double radius = tokens::corner_radius(t().corner, r.width, r.height);
     const double k = std::clamp(selected_.value(), 0.0, 1.0);
 
     const color::Argb label_color =
@@ -314,7 +319,7 @@ void Chip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
         const double unselected = is_selectable(options_) ? 1.0 - k : 1.0;
         const color::Argb outline = enabled_.mix(resolve(scheme, s.disabled_outline), scheme[*s.outline]);
         if (unselected > 0.0) {
-            canvas.fill_path(render::ring_path(r, radius, t.outline_width), color::scale_alpha(outline, unselected),
+            canvas.fill_path(render::ring_path(r, radius, t().outline_width), color::scale_alpha(outline, unselected),
                              render::FillRule::even_odd);
         }
     }
@@ -325,7 +330,7 @@ void Chip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
         const double alpha = std::clamp(leading_alpha_.value(), 0.0, 1.0);
         const double w = leading_width();
         if (options_.avatar) {
-            const double opacity = motion::lerp(t.disabled_avatar_opacity, 1.0, enabled_.amount()) * alpha;
+            const double opacity = motion::lerp(t().disabled_avatar_opacity, 1.0, enabled_.amount()) * alpha;
             const render::Rect full{lead->x, lead->y, w, w};
             canvas.push_clip(render::circle_path({full.x + w / 2.0, full.y + w / 2.0}, w / 2.0));
             canvas.draw_image(*options_.avatar, full, opacity);
@@ -339,15 +344,15 @@ void Chip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
             }
         }
     }
-    const double label_x = r.x + start_padding() + leading_width() * std::max(0.0, leading_size_.value()) + t.element_spacing;
+    const double label_x = r.x + start_padding() + leading_width() * std::max(0.0, leading_size_.value()) + t().element_spacing;
     text::draw_line(canvas, fonts_, label_, {label_x, r.y + (r.height - label_.box_height()) / 2.0}, label_color);
     if (const std::optional<render::Rect> trail = trailing_rect()) {
         const double opacity = remove_press_.state_layer_opacity();
         if (options_.removable && opacity > 0.0) {
             const render::Point c{trail->x + trail->width / 2.0, trail->y + trail->height / 2.0};
-            canvas.fill_path(render::circle_path(c, trail->width / 2.0 + t.input_edge_padding), color::with_alpha(trailing_color, opacity));
+            canvas.fill_path(render::circle_path(c, trail->width / 2.0 + t().input_edge_padding), color::with_alpha(trailing_color, opacity));
         }
-        options_.trailing_icon->font.draw(canvas, options_.trailing_icon->symbol, {trail->x, trail->y}, t.icon_size, trailing_color);
+        options_.trailing_icon->font.draw(canvas, options_.trailing_icon->symbol, {trail->x, trail->y}, t().icon_size, trailing_color);
     }
     canvas.pop_clip();
 }

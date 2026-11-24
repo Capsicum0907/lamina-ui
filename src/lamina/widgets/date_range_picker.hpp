@@ -14,6 +14,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/date_picker.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -38,7 +39,7 @@ struct DateRangePickerOptions {
     SelectableDates selectable = {};
     DatePickerMode mode = DatePickerMode::picker;
     bool show_mode_toggle = true;
-    double height = tokens::date_picker_tokens.range_picker_height;
+    double height = current_style().date_picker.range_picker_height;
     const calendar::CalendarLocale* locale = nullptr;
     input::Clipboard* clipboard = nullptr;
     bool enabled = true;

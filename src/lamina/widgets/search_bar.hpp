@@ -13,6 +13,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/search.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -38,7 +39,7 @@ struct SearchBarOptions {
     std::optional<SearchBarIcon> trailing = std::nullopt;
     std::vector<ListItemSpec> results = {};
     SearchViewMode mode = SearchViewMode::automatic;
-    double compact_width = tokens::search_tokens.compact_width;
+    double compact_width = current_style().search.compact_width;
     input::Clipboard* clipboard = nullptr;
     const PatternStrings* strings = &english_us_patterns();
     std::string accessible_name = {};

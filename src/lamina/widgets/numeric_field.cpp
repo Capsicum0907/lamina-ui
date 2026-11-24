@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/numeric_field.hpp"
 
 #include <algorithm>
@@ -16,7 +17,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::NumericFieldTokens& t = tokens::numeric_field_tokens;
+const tokens::NumericFieldTokens& t() {
+    return current_style().numeric_field;
+}
 
 std::optional<double> parse_double(std::string_view s) {
     double v = 0.0;
@@ -70,8 +73,8 @@ std::optional<char32_t> numeric_character(char32_t c) {
 NumericField::NumericField(NumericFieldOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      label_(text::layout_line(fonts_, options_.label, style_of(t.label_type))),
-      unit_(text::layout_line(fonts_, options_.unit, style_of(tokens::outlined_text_field.input_type))),
+      label_(text::layout_line(fonts_, options_.label, style_of(t().label_type))),
+      unit_(text::layout_line(fonts_, options_.unit, style_of(current_style().text_field.input_type))),
       editor_(TextFieldOptions{.clipboard = options_.clipboard,
                                .enabled = options_.enabled,
                                .accessible_name = options_.accessible_name.empty() ? options_.label : options_.accessible_name,
@@ -80,13 +83,13 @@ NumericField::NumericField(NumericFieldOptions options, const text::FontStack& f
                                .outlined = false,
                                .padding_start = 0.0,
                                .padding_end = 0.0,
-                               .density = t.editor_density},
+                               .density = t().editor_density},
               fonts_),
       value_(0.0),
       enabled_(options_.enabled),
-      hover_(0.0, t.color_spring),
-      focus_(0.0, t.color_spring),
-      error_amount_(0.0, t.color_spring) {
+      hover_(0.0, t().color_spring),
+      focus_(0.0, t().color_spring),
+      error_amount_(0.0, t().color_spring) {
     value_ = clamp(rounded(options_.value));
     show_value();
     place_editor();
@@ -100,23 +103,23 @@ double NumericField::label_space() const {
 }
 
 double NumericField::unit_space() const {
-    return options_.unit.empty() ? 0.0 : unit_.width + t.unit_gap;
+    return options_.unit.empty() ? 0.0 : unit_.width + t().unit_gap;
 }
 
 double NumericField::width() const {
-    const double field = options_.width.value_or(t.width);
+    const double field = options_.width.value_or(t().width);
     if (options_.label_position == NumericLabelPosition::start && !options_.label.empty()) {
-        return label_space() + t.label_gap + field;
+        return label_space() + t().label_gap + field;
     }
     return field;
 }
 
 double NumericField::height() const {
-    return t.height.at(options_.density);
+    return t().height.at(options_.density);
 }
 
 render::Rect NumericField::field_rect() const {
-    const double field = options_.width.value_or(t.width);
+    const double field = options_.width.value_or(t().width);
     return {origin_.x + width() - field, origin_.y, field, height()};
 }
 
@@ -128,16 +131,16 @@ render::Rect NumericField::label_rect() const {
         return {origin_.x, origin_.y, label_space(), height()};
     }
     const render::Rect f = field_rect();
-    return {f.x + t.padding, f.y, label_space(), f.height};
+    return {f.x + t().padding, f.y, label_space(), f.height};
 }
 
 void NumericField::place_editor() {
     const render::Rect f = field_rect();
-    double left = f.x + t.padding;
+    double left = f.x + t().padding;
     if (options_.label_position == NumericLabelPosition::inside && !options_.label.empty()) {
-        left += label_space() + t.inline_label_gap;
+        left += label_space() + t().inline_label_gap;
     }
-    const double right = f.x + f.width - t.padding - unit_space();
+    const double right = f.x + f.width - t().padding - unit_space();
     editor_.set_width(std::max(0.0, right - left));
     editor_.set_origin({left, f.y + (f.height - editor_.height()) / 2.0});
 }
@@ -303,11 +306,11 @@ NumericFieldResponse NumericField::handle(const input::PointerEvent& e) {
     }
     if (pressed_) {
         const double dx = e.x_dp - press_x_;
-        if (!scrubbing_ && std::abs(dx) > t.scrub_slop) {
+        if (!scrubbing_ && std::abs(dx) > t().scrub_slop) {
             scrubbing_ = true;
         }
         if (scrubbing_ && e.action != input::PointerAction::up) {
-            const double steps = std::trunc(dx / t.scrub_distance);
+            const double steps = std::trunc(dx / t().scrub_distance);
             r.changed = change_to(press_value_ + steps * options_.step);
         }
         if (e.action == input::PointerAction::up) {
@@ -418,26 +421,26 @@ bool NumericField::animating() const {
 
 void NumericField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect f = field_rect();
-    const double radius = tokens::corner_radius(t.corner, f.width, f.height);
+    const double radius = tokens::corner_radius(t().corner, f.width, f.height);
     const double focus = std::clamp(focus_.value(), 0.0, 1.0);
     const double err = std::clamp(error_amount_.value(), 0.0, 1.0);
     const double hover = std::clamp(hover_.value(), 0.0, 1.0);
-    const color::Argb idle = color::mix(scheme[t.outline], scheme[t.hover_outline], hover);
-    const color::Argb active = color::mix(color::mix(idle, scheme[t.focus_outline], focus), scheme[t.error], err);
-    const color::Argb outline = enabled_.mix(resolve(scheme, t.disabled_outline), active);
-    const double outline_width = motion::lerp(t.outline_width, t.focus_outline_width, std::max(focus, err));
+    const color::Argb idle = color::mix(scheme[t().outline], scheme[t().hover_outline], hover);
+    const color::Argb active = color::mix(color::mix(idle, scheme[t().focus_outline], focus), scheme[t().error], err);
+    const color::Argb outline = enabled_.mix(resolve(scheme, t().disabled_outline), active);
+    const double outline_width = motion::lerp(t().outline_width, t().focus_outline_width, std::max(focus, err));
     if (options_.label_position == NumericLabelPosition::inside) {
-        const color::Argb fill = color::source_over(color::scale_alpha(scheme[t.hover_outline], t.state_layer * hover * enabled_.amount()),
-                                                    scheme[t.inline_container]);
-        canvas.fill_path(render::rounded_rect_path(f, render::uniform_radii(radius)), enabled_.mix(resolve(scheme, t.disabled_outline), fill));
-        const double ring = motion::lerp(0.0, t.focus_outline_width, std::max(focus, err));
+        const color::Argb fill = color::source_over(color::scale_alpha(scheme[t().hover_outline], t().state_layer * hover * enabled_.amount()),
+                                                    scheme[t().inline_container]);
+        canvas.fill_path(render::rounded_rect_path(f, render::uniform_radii(radius)), enabled_.mix(resolve(scheme, t().disabled_outline), fill));
+        const double ring = motion::lerp(0.0, t().focus_outline_width, std::max(focus, err));
         if (ring > 0.0) {
             canvas.fill_path(render::ring_path(f, radius, ring), outline, render::FillRule::even_odd);
         }
     } else {
         canvas.fill_path(render::ring_path(f, radius, outline_width), outline, render::FillRule::even_odd);
     }
-    const color::Argb label = enabled_.mix(resolve(scheme, t.disabled_content), color::mix(scheme[t.label], scheme[t.error], err));
+    const color::Argb label = enabled_.mix(resolve(scheme, t().disabled_content), color::mix(scheme[t().label], scheme[t().error], err));
     if (!options_.label.empty()) {
         const render::Rect l = label_rect();
         canvas.save();
@@ -448,8 +451,8 @@ void NumericField::paint(render::Canvas& canvas, const color::ColorScheme& schem
     }
     editor_.paint(canvas, scheme);
     if (!options_.unit.empty()) {
-        const color::Argb unit = enabled_.mix(resolve(scheme, t.disabled_content), scheme[t.unit]);
-        text::draw_line(canvas, fonts_, unit_, {f.x + f.width - t.padding - unit_.width, f.y + (f.height - unit_.box_height()) / 2.0}, unit);
+        const color::Argb unit = enabled_.mix(resolve(scheme, t().disabled_content), scheme[t().unit]);
+        text::draw_line(canvas, fonts_, unit_, {f.x + f.width - t().padding - unit_.width, f.y + (f.height - unit_.box_height()) / 2.0}, unit);
     }
 }
 

@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/picker_dialog.hpp"
 
 #include <algorithm>
@@ -13,11 +14,13 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::PickerDialogTokens& t = tokens::picker_dialog_tokens;
+const tokens::PickerDialogTokens& t() {
+    return current_style().picker_dialog;
+}
 constexpr const tokens::DialogTokens& d = tokens::dialog_tokens;
 
 text::TextStyle title_style() {
-    return tokens::text_style(tokens::type_style(t.time_title_type));
+    return tokens::text_style(tokens::type_style(t().time_title_type));
 }
 
 }
@@ -26,8 +29,8 @@ PickerDialog::PickerDialog(PickerDialogOptions options, std::unique_ptr<DialogPa
     : options_(std::move(options)),
       pane_(std::move(pane)),
       fonts_(fonts),
-      confirm_({options_.confirm_label, t.action_style, t.action_size}, fonts),
-      dismiss_({options_.dismiss_label, t.action_style, t.action_size}, fonts),
+      confirm_({options_.confirm_label, t().action_style, t().action_size}, fonts),
+      dismiss_({options_.dismiss_label, t().action_style, t().action_size}, fonts),
       popup_(d.closed_scale, tokens::motion_scheme.default_spatial(), tokens::motion_scheme.default_effects()) {
     if (options_.leading) {
         leading_ = std::make_unique<IconButton>(IconButtonOptions{options_.leading->icon, options_.leading->accessible_name,
@@ -53,19 +56,19 @@ void PickerDialog::set_labels(std::string confirm, std::string dismiss) {
 }
 
 double PickerDialog::padding() const {
-    return options_.layout == PickerDialogLayout::time ? t.time_padding : 0.0;
+    return options_.layout == PickerDialogLayout::time ? t().time_padding : 0.0;
 }
 
 double PickerDialog::title_height() const {
     if (options_.layout != PickerDialogLayout::time || options_.title.empty()) {
         return 0.0;
     }
-    return title_style().line_height + t.time_title_bottom;
+    return title_style().line_height + t().time_title_bottom;
 }
 
 double PickerDialog::actions_height() const {
     const double buttons = std::max(confirm_.height(), leading_ ? leading_->height() : 0.0);
-    return options_.layout == PickerDialogLayout::date ? buttons + t.date_actions_bottom : buttons;
+    return options_.layout == PickerDialogLayout::date ? buttons + t().date_actions_bottom : buttons;
 }
 
 void PickerDialog::place() {
@@ -75,10 +78,10 @@ void PickerDialog::place() {
     surface_ = {area_.x + (area_.width - w) / 2.0, area_.y + (area_.height - h) / 2.0, w, h};
     pane_->set_origin({surface_.x + p, surface_.y + p + title_height()});
     const double actions_top = surface_.y + p + title_height() + pane_->height();
-    const double end = options_.layout == PickerDialogLayout::date ? surface_.x + w - t.date_actions_end : surface_.x + w - p;
+    const double end = options_.layout == PickerDialogLayout::date ? surface_.x + w - t().date_actions_end : surface_.x + w - p;
     const double row = std::max(confirm_.height(), leading_ ? leading_->height() : 0.0);
     confirm_.set_origin({end - confirm_.width(), actions_top + (row - confirm_.height()) / 2.0});
-    dismiss_.set_origin({end - confirm_.width() - t.actions_spacing - dismiss_.width(), actions_top + (row - dismiss_.height()) / 2.0});
+    dismiss_.set_origin({end - confirm_.width() - t().actions_spacing - dismiss_.width(), actions_top + (row - dismiss_.height()) / 2.0});
     if (leading_) {
         leading_->set_origin({surface_.x + p, actions_top + (row - leading_->height()) / 2.0});
     }
@@ -225,7 +228,7 @@ void PickerDialog::paint(render::Canvas& canvas, const color::ColorScheme& schem
     canvas.push_clip(shape);
     if (title_height() > 0.0) {
         const text::TextLine line = text::layout_line(fonts_, options_.title, title_style());
-        text::draw_line(canvas, fonts_, line, {surface_.x + padding(), surface_.y + padding()}, faded[t.time_title_color]);
+        text::draw_line(canvas, fonts_, line, {surface_.x + padding(), surface_.y + padding()}, faded[t().time_title_color]);
     }
     pane_->paint(canvas, faded);
     if (leading_) {

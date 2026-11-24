@@ -3,6 +3,9 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/button_group.hpp"
+#include "lamina/tokens/checkbox.hpp"
+#include "lamina/tokens/chip.hpp"
+#include "lamina/tokens/date_picker.hpp"
 #include "lamina/tokens/fab.hpp"
 #include "lamina/tokens/fab_menu.hpp"
 #include "lamina/tokens/floating_toolbar.hpp"
@@ -11,13 +14,21 @@
 #include "lamina/tokens/navigation_drawer.hpp"
 #include "lamina/tokens/navigation_rail.hpp"
 #include "lamina/tokens/navigation_suite.hpp"
+#include "lamina/tokens/numeric_field.hpp"
 #include "lamina/tokens/pager.hpp"
 #include "lamina/tokens/pane_scaffold.hpp"
+#include "lamina/tokens/picker_dialog.hpp"
+#include "lamina/tokens/radio_button.hpp"
+#include "lamina/tokens/search.hpp"
 #include "lamina/tokens/segmented_button.hpp"
 #include "lamina/tokens/side_navigation.hpp"
+#include "lamina/tokens/slider.hpp"
 #include "lamina/tokens/split_button.hpp"
 #include "lamina/tokens/split_pane.hpp"
+#include "lamina/tokens/switch.hpp"
 #include "lamina/tokens/tabs.hpp"
+#include "lamina/tokens/text_field.hpp"
+#include "lamina/tokens/time_picker.hpp"
 #include "lamina/tokens/title_bar.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
 
@@ -51,6 +62,23 @@ struct Style {
     tokens::PagerTokens pager = tokens::pager;
     tokens::FloatingToolbarTokens floating_toolbar = tokens::floating_toolbar_tokens;
     tokens::FlexibleBottomAppBarTokens flexible_bottom_app_bar = tokens::flexible_bottom_app_bar_tokens;
+    
+    tokens::OutlinedTextFieldTokens text_field = tokens::outlined_text_field;
+    tokens::NumericFieldTokens numeric_field = tokens::numeric_field_tokens;
+    tokens::CheckboxTokens checkbox = tokens::checkbox_tokens;
+    tokens::RadioButtonTokens radio_button = tokens::radio_button_tokens;
+    tokens::SwitchTokens switch_ = tokens::switch_tokens;
+    tokens::SliderTokens slider = tokens::slider_tokens;
+    tokens::ChipSet chip;
+    tokens::SearchTokens search = tokens::search_tokens;
+    tokens::SearchMotion search_motion = tokens::search_motion;
+    tokens::DatePickerTokens date_picker = tokens::date_picker_tokens;
+    tokens::DatePickerColors date_picker_colors = tokens::date_picker_colors;
+    tokens::DatePickerMotion date_picker_motion = tokens::date_picker_motion;
+    tokens::TimePickerTokens time_picker = tokens::time_picker_tokens;
+    tokens::TimePickerColors time_picker_colors = tokens::time_picker_colors;
+    tokens::TimePickerMotion time_picker_motion = tokens::time_picker_motion;
+    tokens::PickerDialogTokens picker_dialog = tokens::picker_dialog_tokens;
 };
 
 const Style& m3_expressive_style();

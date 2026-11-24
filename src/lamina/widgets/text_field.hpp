@@ -11,6 +11,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/edit_buffer.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/text/line_map.hpp"
@@ -38,7 +39,7 @@ struct TextFieldOptions {
     CharacterFilter filter = {};
     std::size_t max_length = 0;
     std::string mask = {};
-    double min_width = tokens::outlined_text_field.min_width;
+    double min_width = current_style().text_field.min_width;
     bool outlined = true;
     std::optional<double> padding_start = std::nullopt;
     std::optional<double> padding_end = std::nullopt;

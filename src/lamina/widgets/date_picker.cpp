@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/date_picker.hpp"
 
 #include <algorithm>
@@ -11,16 +12,22 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::DatePickerTokens& t = tokens::date_picker_tokens;
-constexpr const tokens::DatePickerColors& k = tokens::date_picker_colors;
-constexpr const tokens::DatePickerMotion& m = tokens::date_picker_motion;
+const tokens::DatePickerTokens& t() {
+    return current_style().date_picker;
+}
+const tokens::DatePickerColors& k() {
+    return current_style().date_picker_colors;
+}
+const tokens::DatePickerMotion& m() {
+    return current_style().date_picker_motion;
+}
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
 }
 
 color::Argb dim(color::Argb c, double enabled) {
-    return color::mix(color::scale_alpha(c, k.disabled_opacity), c, enabled);
+    return color::mix(color::scale_alpha(c, k().disabled_opacity), c, enabled);
 }
 
 const calendar::CalendarLocale& locale_or_default(const calendar::CalendarLocale* l) {
@@ -28,11 +35,11 @@ const calendar::CalendarLocale& locale_or_default(const calendar::CalendarLocale
 }
 
 double year_pitch() {
-    return t.year_height + t.year_row_spacing;
+    return t().year_height + t().year_row_spacing;
 }
 
 double year_cell_width() {
-    return month_grid_width() / t.year_columns;
+    return month_grid_width() / t().year_columns;
 }
 
 }
@@ -66,25 +73,25 @@ DatePicker::DatePicker(DatePickerOptions options, const text::FontStack& fonts, 
       today_(options_.today),
       selected_(options_.selected),
       mode_(options_.mode),
-      toggle_({{icon_font, options_.mode == DatePickerMode::picker ? t.input_mode_symbol : t.picker_mode_symbol},
+      toggle_({{icon_font, options_.mode == DatePickerMode::picker ? t().input_mode_symbol : t().picker_mode_symbol},
                options_.mode == DatePickerMode::picker ? locale_->strings.switch_to_input_mode : locale_->strings.switch_to_calendar_mode,
                tokens::IconButtonStyle::standard, tokens::IconButtonSize::small, tokens::ButtonShape::round, tokens::IconButtonWidth::uniform,
-               false, false, true, k.headline}),
-      previous_button_({{icon_font, t.previous_symbol}, locale_->strings.previous_month, tokens::IconButtonStyle::standard,
+               false, false, true, k().headline}),
+      previous_button_({{icon_font, t().previous_symbol}, locale_->strings.previous_month, tokens::IconButtonStyle::standard,
                         tokens::IconButtonSize::small, tokens::ButtonShape::round, tokens::IconButtonWidth::uniform, false, false, true,
-                        k.navigation}),
-      next_button_({{icon_font, t.next_symbol}, locale_->strings.next_month, tokens::IconButtonStyle::standard, tokens::IconButtonSize::small,
-                    tokens::ButtonShape::round, tokens::IconButtonWidth::uniform, false, false, true, k.navigation}),
-      menu_{{}, motion::Animated(0.0, m.state_layer), {}},
-      pointer_{{}, {}, {}, {}, motion::Animated(0.0, m.state_layer)},
-      slide_(0.0, m.month_scroll),
-      year_expand_(0.0, m.year_expand),
-      year_alpha_(0.0, m.year_fade_in),
-      mode_progress_(1.0, m.mode_slide),
-      incoming_alpha_(1.0, m.mode_fade_in),
-      outgoing_alpha_(0.0, m.mode_fade_out),
-      height_(0.0, m.mode_slide),
-      selection_fade_(1.0, m.selection),
+                        k().navigation}),
+      next_button_({{icon_font, t().next_symbol}, locale_->strings.next_month, tokens::IconButtonStyle::standard, tokens::IconButtonSize::small,
+                    tokens::ButtonShape::round, tokens::IconButtonWidth::uniform, false, false, true, k().navigation}),
+      menu_{{}, motion::Animated(0.0, m().state_layer), {}},
+      pointer_{{}, {}, {}, {}, motion::Animated(0.0, m().state_layer)},
+      slide_(0.0, m().month_scroll),
+      year_expand_(0.0, m().year_expand),
+      year_alpha_(0.0, m().year_fade_in),
+      mode_progress_(1.0, m().mode_slide),
+      incoming_alpha_(1.0, m().mode_fade_in),
+      outgoing_alpha_(0.0, m().mode_fade_out),
+      height_(0.0, m().mode_slide),
+      selection_fade_(1.0, m().selection),
       enabled_(options_.enabled) {
     if (selected_ && !options_.year_range.contains(selected_->year)) {
         selected_.reset();
@@ -119,7 +126,7 @@ void DatePicker::rebuild_input() {
                        .mask = locale_->input.pattern};
     const bool had_focus = input_ && input_->focused();
     input_ = std::make_unique<TextField>(std::move(o), fonts_);
-    input_->set_width(t.container_width - t.input_start - t.input_end);
+    input_->set_width(t().container_width - t().input_start - t().input_end);
     sync_input_from_selection();
     if (had_focus) {
         input_->set_focused(true);
@@ -143,19 +150,19 @@ void DatePicker::set_locale(const calendar::CalendarLocale& locale) {
 }
 
 double DatePicker::width() const {
-    return t.container_width;
+    return t().container_width;
 }
 
 double DatePicker::header_height() const {
-    return options_.show_header ? t.header_height + t.divider_thickness : 0.0;
+    return options_.show_header ? t().header_height + t().divider_thickness : 0.0;
 }
 
 double DatePicker::picker_height() const {
-    return t.navigation_height + t.cell_size + month_grid_height();
+    return t().navigation_height + t().cell_size + month_grid_height();
 }
 
 double DatePicker::input_height() const {
-    return t.input_top + input_->height() + t.input_bottom;
+    return t().input_top + input_->height() + t().input_bottom;
 }
 
 double DatePicker::content_height(DatePickerMode mode) const {
@@ -192,16 +199,16 @@ double DatePicker::content_top() const {
 }
 
 render::Point DatePicker::weekday_origin() const {
-    return {origin_.x + t.horizontal_padding, content_top() + t.navigation_height};
+    return {origin_.x + t().horizontal_padding, content_top() + t().navigation_height};
 }
 
 render::Point DatePicker::grid_origin() const {
-    return {origin_.x + t.horizontal_padding, content_top() + t.navigation_height + t.cell_size};
+    return {origin_.x + t().horizontal_padding, content_top() + t().navigation_height + t().cell_size};
 }
 
 render::Rect DatePicker::years_area() const {
     const render::Point w = weekday_origin();
-    return {w.x, w.y, month_grid_width(), t.cell_size * (t.rows + 1) - t.divider_thickness};
+    return {w.x, w.y, month_grid_width(), t().cell_size * (t().rows + 1) - t().divider_thickness};
 }
 
 render::Rect DatePicker::content_top_left() const {
@@ -213,44 +220,44 @@ std::string DatePicker::month_label() const {
 }
 
 render::Rect DatePicker::menu_button_rect() const {
-    const text::TextLine line = text::layout_line(fonts_, month_label(), style_of(t.month_button_type));
-    const double w = 2.0 * t.month_button_padding + line.width + t.month_button_icon_spacing + t.month_button_icon_size;
-    return {origin_.x + t.horizontal_padding, content_top() + (t.navigation_height - t.month_button_height) / 2.0, w, t.month_button_height};
+    const text::TextLine line = text::layout_line(fonts_, month_label(), style_of(t().month_button_type));
+    const double w = 2.0 * t().month_button_padding + line.width + t().month_button_icon_spacing + t().month_button_icon_size;
+    return {origin_.x + t().horizontal_padding, content_top() + (t().navigation_height - t().month_button_height) / 2.0, w, t().month_button_height};
 }
 
 void DatePicker::place_children() {
     const double slot = tokens::minimum_interactive_size;
-    const double right = origin_.x + t.container_width - t.horizontal_padding;
-    const double cy = content_top() + t.navigation_height / 2.0;
+    const double right = origin_.x + t().container_width - t().horizontal_padding;
+    const double cy = content_top() + t().navigation_height / 2.0;
     next_button_.set_origin({right - slot / 2.0 - next_button_.width() / 2.0, cy - next_button_.height() / 2.0});
     previous_button_.set_origin({right - 1.5 * slot - previous_button_.width() / 2.0, cy - previous_button_.height() / 2.0});
-    const double row_top = origin_.y + t.header_height - slot - t.toggle_bottom;
-    const double toggle_cx = origin_.x + t.container_width - t.toggle_end - slot / 2.0;
+    const double row_top = origin_.y + t().header_height - slot - t().toggle_bottom;
+    const double toggle_cx = origin_.x + t().container_width - t().toggle_end - slot / 2.0;
     toggle_.set_origin({toggle_cx - toggle_.width() / 2.0, row_top + (slot - toggle_.height()) / 2.0});
-    input_->set_origin({origin_.x + t.input_start, content_top() + t.input_top});
+    input_->set_origin({origin_.x + t().input_start, content_top() + t().input_top});
     layout_years();
 }
 
 void DatePicker::layout_years() {
-    const int rows = (options_.year_range.count() + t.year_columns - 1) / t.year_columns;
+    const int rows = (options_.year_range.count() + t().year_columns - 1) / t().year_columns;
     years_scroll_.set_viewport(years_area());
-    years_scroll_.set_content_height(rows * t.year_height + std::max(0, rows - 1) * t.year_row_spacing);
+    years_scroll_.set_content_height(rows * t().year_height + std::max(0, rows - 1) * t().year_row_spacing);
 }
 
 render::Rect DatePicker::day_bounds(const calendar::Date& date) const {
     const render::Rect cell = day_rect(grid_origin(), calendar::cell_of(date, locale_->first_day_of_week));
-    const double inset = (t.cell_size - t.day_size) / 2.0;
-    return {cell.x + inset, cell.y + inset, t.day_size, t.day_size};
+    const double inset = (t().cell_size - t().day_size) / 2.0;
+    return {cell.x + inset, cell.y + inset, t().day_size, t().day_size};
 }
 
 render::Rect DatePicker::year_bounds(int year) const {
     const int i = year - options_.year_range.first;
-    const int row = i / t.year_columns;
-    const int col = i % t.year_columns;
+    const int row = i / t().year_columns;
+    const int col = i % t().year_columns;
     const render::Rect area = years_area();
     const double cx = area.x + (col + 0.5) * year_cell_width();
     const double y = area.y + row * year_pitch() - years_scroll_.offset();
-    return {cx - t.year_width / 2.0, y, t.year_width, t.year_height};
+    return {cx - t().year_width / 2.0, y, t().year_width, t().year_height};
 }
 
 std::optional<calendar::Date> DatePicker::focused_day() const {
@@ -332,7 +339,7 @@ void DatePicker::set_mode(DatePickerMode mode) {
         year_expand_.snap_to(0.0);
         year_alpha_.snap_to(0.0);
     }
-    toggle_.set_icon({icon_font_, mode_ == DatePickerMode::picker ? t.input_mode_symbol : t.picker_mode_symbol});
+    toggle_.set_icon({icon_font_, mode_ == DatePickerMode::picker ? t().input_mode_symbol : t().picker_mode_symbol});
     toggle_.set_accessible_name(mode_ == DatePickerMode::picker ? locale_->strings.switch_to_input_mode : locale_->strings.switch_to_calendar_mode);
     mode_progress_.snap_to(0.0);
     mode_progress_.animate_to(1.0);
@@ -345,7 +352,7 @@ void DatePicker::set_mode(DatePickerMode mode) {
     year_focus_.set_focused(false);
     menu_.focus.set_focused(false);
     if (mode_ == DatePickerMode::input) {
-        input_focus_delay_ = t.input_focus_delay_seconds;
+        input_focus_delay_ = t().input_focus_delay_seconds;
     } else {
         input_->set_focused(false);
         input_focus_delay_ = -1.0;
@@ -360,17 +367,17 @@ void DatePicker::set_year_picker_open(bool open) {
     if (open) {
         year_expand_.snap_to(0.0);
         year_expand_.animate_to(1.0);
-        year_alpha_.set_spec(m.year_fade_in);
-        year_alpha_.snap_to(t.year_expand_from_alpha);
+        year_alpha_.set_spec(m().year_fade_in);
+        year_alpha_.snap_to(t().year_expand_from_alpha);
         year_alpha_.animate_to(1.0);
         layout_years();
-        const int first_item = std::max(0, displayed_.year - options_.year_range.first - t.year_columns);
-        years_scroll_.jump_to((first_item / t.year_columns) * year_pitch());
+        const int first_item = std::max(0, displayed_.year - options_.year_range.first - t().year_columns);
+        years_scroll_.jump_to((first_item / t().year_columns) * year_pitch());
         focus_year_ = displayed_.year;
         grid_focus_.set_focused(false);
     } else {
         year_expand_.animate_to(0.0);
-        year_alpha_.set_spec(m.year_fade_out);
+        year_alpha_.set_spec(m().year_fade_out);
         year_alpha_.animate_to(0.0);
         year_focus_.set_focused(false);
     }
@@ -448,7 +455,7 @@ void DatePicker::add_focus_stops(FocusManager& focus) {
                  focus_year_ = displayed_.year;
                  const render::Rect b = year_bounds(focus_year_);
                  const double top = b.y - years_area().y + years_scroll_.offset();
-                 years_scroll_.ensure_visible(top, top + t.year_height);
+                 years_scroll_.ensure_visible(top, top + t().year_height);
              }
              year_focus_.set_focused(f && enabled() && years_open_);
          },
@@ -506,7 +513,7 @@ AccessibleNode DatePicker::accessible() const {
             selected_ ? calendar::format_date(locale_->long_date_pattern, *selected_, locale_->names) : locale_->strings.no_selection_description;
         const std::string& tmpl = mode_ == DatePickerMode::picker ? locale_->strings.date_picker_headline_description
                                                                   : locale_->strings.date_input_headline_description;
-        node.children.push_back({AccessibleRole::status, headline(), {origin_.x, origin_.y, width(), t.header_height}, {}, {},
+        node.children.push_back({AccessibleRole::status, headline(), {origin_.x, origin_.y, width(), t().header_height}, {}, {},
                                  calendar::substitute(tmpl, verbose)});
         if (options_.show_mode_toggle) {
             node.children.push_back(toggle_.accessible());
@@ -537,7 +544,7 @@ AccessibleNode DatePicker::accessible() const {
     }
     node.children.push_back(previous_button_.accessible());
     node.children.push_back(next_button_.accessible());
-    AccessibleNode grid{AccessibleRole::group, month_label(), {grid_origin().x, weekday_origin().y, month_grid_width(), t.cell_size + month_grid_height()},
+    AccessibleNode grid{AccessibleRole::group, month_label(), {grid_origin().x, weekday_origin().y, month_grid_width(), t().cell_size + month_grid_height()},
                         {.enabled = enabled(), .focusable = enabled(), .focused = grid_focus_.focused()}};
     for (AccessibleNode& w : weekday_accessible(*locale_, weekday_origin())) {
         grid.children.push_back(std::move(w));
@@ -711,7 +718,7 @@ DatePickerResponse DatePicker::handle(const input::KeyEvent& e) {
             year_focus_.set_focused(true);
             const render::Rect b = year_bounds(focus_year_);
             const double top = b.y - years_area().y + years_scroll_.offset();
-            years_scroll_.ensure_visible(top, top + t.year_height);
+            years_scroll_.ensure_visible(top, top + t().year_height);
         }
         response.consumed = true;
         return response;
@@ -743,8 +750,8 @@ DatePickerResponse DatePicker::handle(const input::KeyEvent& e) {
         switch (e.key) {
         case input::Key::left: next -= 1; break;
         case input::Key::right: next += 1; break;
-        case input::Key::up: next -= t.year_columns; break;
-        case input::Key::down: next += t.year_columns; break;
+        case input::Key::up: next -= t().year_columns; break;
+        case input::Key::down: next += t().year_columns; break;
         case input::Key::home: next = options_.year_range.first; break;
         case input::Key::end: next = options_.year_range.last; break;
         default:
@@ -757,7 +764,7 @@ DatePickerResponse DatePicker::handle(const input::KeyEvent& e) {
         focus_year_ = std::clamp(next, options_.year_range.first, options_.year_range.last);
         const render::Rect b = year_bounds(focus_year_);
         const double top = b.y - years_area().y + years_scroll_.offset();
-        years_scroll_.ensure_visible(top, top + t.year_height);
+        years_scroll_.ensure_visible(top, top + t().year_height);
         response.consumed = true;
     }
     return response;
@@ -856,19 +863,19 @@ std::optional<double> DatePicker::next_wake_seconds() const {
 
 void DatePicker::paint_header(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const double e = enabled_.amount();
-    const text::TextLine title_line = text::layout_line(fonts_, title(), style_of(t.title_type));
-    text::draw_line(canvas, fonts_, title_line, {origin_.x + t.header_start, origin_.y + t.title_top}, dim(scheme[k.title], e));
-    const text::TextLine headline_line = text::layout_line(fonts_, headline(), style_of(t.headline_type));
+    const text::TextLine title_line = text::layout_line(fonts_, title(), style_of(t().title_type));
+    text::draw_line(canvas, fonts_, title_line, {origin_.x + t().header_start, origin_.y + t().title_top}, dim(scheme[k().title], e));
+    const text::TextLine headline_line = text::layout_line(fonts_, headline(), style_of(t().headline_type));
     const double slot = tokens::minimum_interactive_size;
-    const double row_top = origin_.y + t.header_height - slot - t.toggle_bottom;
-    const double headline_y = row_top + (slot + t.toggle_bottom - t.headline_bottom - headline_line.box_height()) / 2.0;
-    canvas.push_clip({origin_.x + t.header_start, origin_.y, t.container_width - t.header_start - t.header_end - slot, t.header_height});
-    text::draw_line(canvas, fonts_, headline_line, {origin_.x + t.header_start, headline_y}, dim(scheme[k.headline], e));
+    const double row_top = origin_.y + t().header_height - slot - t().toggle_bottom;
+    const double headline_y = row_top + (slot + t().toggle_bottom - t().headline_bottom - headline_line.box_height()) / 2.0;
+    canvas.push_clip({origin_.x + t().header_start, origin_.y, t().container_width - t().header_start - t().header_end - slot, t().header_height});
+    text::draw_line(canvas, fonts_, headline_line, {origin_.x + t().header_start, headline_y}, dim(scheme[k().headline], e));
     canvas.pop_clip();
     if (options_.show_mode_toggle) {
         toggle_.paint(canvas, scheme);
     }
-    canvas.fill_rect({origin_.x, origin_.y + t.header_height, t.container_width, t.divider_thickness}, scheme[k.divider]);
+    canvas.fill_rect({origin_.x, origin_.y + t().header_height, t().container_width, t().divider_thickness}, scheme[k().divider]);
 }
 
 void DatePicker::paint_picker(render::Canvas& canvas, const color::ColorScheme& scheme, double dy) const {
@@ -876,15 +883,15 @@ void DatePicker::paint_picker(render::Canvas& canvas, const color::ColorScheme& 
     canvas.save();
     canvas.translate(0.0, dy);
     const render::Rect menu = menu_button_rect();
-    const color::Argb nav = dim(scheme[k.navigation], e);
+    const color::Argb nav = dim(scheme[k().navigation], e);
     if (menu_.state_layer.value() > 0.0) {
         canvas.fill_path(render::rounded_rect_path(menu, render::uniform_radii(menu.height / 2.0)), color::with_alpha(nav, menu_.state_layer.value()));
     }
-    const text::TextLine label = text::layout_line(fonts_, month_label(), style_of(t.month_button_type));
-    text::draw_line(canvas, fonts_, label, {menu.x + t.month_button_padding, menu.y + (menu.height - label.box_height()) / 2.0}, nav);
-    icon_font_.draw(canvas, years_open_ ? t.menu_open_symbol : t.menu_symbol,
-                    {menu.x + t.month_button_padding + label.width + t.month_button_icon_spacing, menu.y + (menu.height - t.month_button_icon_size) / 2.0},
-                    t.month_button_icon_size, nav);
+    const text::TextLine label = text::layout_line(fonts_, month_label(), style_of(t().month_button_type));
+    text::draw_line(canvas, fonts_, label, {menu.x + t().month_button_padding, menu.y + (menu.height - label.box_height()) / 2.0}, nav);
+    icon_font_.draw(canvas, years_open_ ? t().menu_open_symbol : t().menu_symbol,
+                    {menu.x + t().month_button_padding + label.width + t().month_button_icon_spacing, menu.y + (menu.height - t().month_button_icon_size) / 2.0},
+                    t().month_button_icon_size, nav);
     menu_.focus.paint(canvas, scheme, menu, menu.height / 2.0);
     const double days_alpha = 1.0 - std::clamp(year_expand_.value(), 0.0, 1.0);
     if (!years_open_ || days_alpha > 0.0) {
@@ -917,19 +924,19 @@ void DatePicker::paint_picker(render::Canvas& canvas, const color::ColorScheme& 
 
 void DatePicker::paint_years(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect area = years_area();
-    const double full = area.height + t.divider_thickness;
+    const double full = area.height + t().divider_thickness;
     const double h = full * std::clamp(year_expand_.value(), 0.0, 1.0);
     if (h <= 0.0) {
         return;
     }
     const color::ColorScheme faded = color::faded(scheme, std::clamp(year_alpha_.value(), 0.0, 1.0));
-    canvas.push_clip({origin_.x, area.y, t.container_width, h});
+    canvas.push_clip({origin_.x, area.y, t().container_width, h});
     canvas.save();
     canvas.translate(0.0, h - full);
-    canvas.fill_rect({origin_.x, area.y, t.container_width, full}, faded[k.container]);
+    canvas.fill_rect({origin_.x, area.y, t().container_width, full}, faded[k().container]);
     canvas.push_clip(area);
     const double e = enabled_.amount();
-    const text::TextStyle style = style_of(t.year_type);
+    const text::TextStyle style = style_of(t().year_type);
     for (int y = options_.year_range.first; y <= options_.year_range.last; ++y) {
         const render::Rect b = year_bounds(y);
         if (b.y + b.height < area.y || b.y > area.y + area.height) {
@@ -939,13 +946,13 @@ void DatePicker::paint_years(render::Canvas& canvas, const color::ColorScheme& s
         const double ye = allowed ? e : 0.0;
         const bool selected = y == displayed_.year;
         const bool current = y == today_.year;
-        color::Argb content = selected ? faded[k.selected_year] : current ? faded[k.current_year] : faded[k.year];
+        color::Argb content = selected ? faded[k().selected_year] : current ? faded[k().current_year] : faded[k().year];
         content = dim(content, ye);
         const render::Path pill = render::rounded_rect_path(b, render::uniform_radii(b.height / 2.0));
         if (selected) {
-            canvas.fill_path(pill, dim(faded[k.selected_year_container], ye));
+            canvas.fill_path(pill, dim(faded[k().selected_year_container], ye));
         } else if (current) {
-            canvas.fill_path(render::ring_path(b, b.height / 2.0, t.today_outline), dim(faded[k.today_outline], ye), render::FillRule::even_odd);
+            canvas.fill_path(render::ring_path(b, b.height / 2.0, t().today_outline), dim(faded[k().today_outline], ye), render::FillRule::even_odd);
         }
         const bool hovered = (pointer_.pressed_year ? pointer_.pressed_year : pointer_.hovered_year) == y;
         if (hovered && allowed && pointer_.state_layer.value() > 0.0) {
@@ -958,7 +965,7 @@ void DatePicker::paint_years(render::Canvas& canvas, const color::ColorScheme& s
         }
     }
     canvas.pop_clip();
-    canvas.fill_rect({origin_.x, area.y + area.height, t.container_width, t.divider_thickness}, faded[k.divider]);
+    canvas.fill_rect({origin_.x, area.y + area.height, t().container_width, t().divider_thickness}, faded[k().divider]);
     canvas.restore();
     canvas.pop_clip();
 }
@@ -972,7 +979,7 @@ void DatePicker::paint_input(render::Canvas& canvas, const color::ColorScheme& s
 
 void DatePicker::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect b = bounds();
-    canvas.fill_rect(b, scheme[k.container]);
+    canvas.fill_rect(b, scheme[k().container]);
     if (options_.show_header) {
         paint_header(canvas, scheme);
     }
@@ -986,7 +993,7 @@ void DatePicker::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     if (out_alpha > 0.0) {
         const color::ColorScheme faded = color::faded(scheme, out_alpha);
         if (to_input) {
-            paint_picker(canvas, faded, -t.switch_parallax * p);
+            paint_picker(canvas, faded, -t().switch_parallax * p);
         } else {
             paint_input(canvas, faded, input_h * p);
         }
@@ -995,7 +1002,7 @@ void DatePicker::paint(render::Canvas& canvas, const color::ColorScheme& scheme)
     if (to_input) {
         paint_input(canvas, faded_in, input_h * (1.0 - p));
     } else {
-        paint_picker(canvas, faded_in, -t.switch_parallax * (1.0 - p));
+        paint_picker(canvas, faded_in, -t().switch_parallax * (1.0 - p));
     }
     canvas.pop_clip();
 }

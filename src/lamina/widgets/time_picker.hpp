@@ -12,6 +12,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/time_picker.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -83,7 +84,7 @@ public:
     render::Rect minute_selector_bounds() const;
     render::Rect period_bounds(bool pm) const;
     render::Point dial_center() const;
-    double dial_size() const { return tokens::time_picker_tokens.dial_size; }
+    double dial_size() const { return current_style().time_picker.dial_size; }
     std::vector<DialLabel> dial_labels() const;
     std::optional<render::Point> label_center(int value) const;
     const std::string& hour_text() const { return fields_[0].text; }

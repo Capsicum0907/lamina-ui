@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/slider_track.hpp"
 
 #include "lamina/tokens/typography.hpp"
@@ -6,7 +7,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SliderTokens& t = tokens::slider_tokens;
+const tokens::SliderTokens& t() {
+    return current_style().slider;
+}
 
 render::CornerRadii clamped(render::CornerRadii r, const render::Rect& rect) {
     const double cap = std::min(rect.width, rect.height) / 2.0;
@@ -17,9 +20,9 @@ render::CornerRadii clamped(render::CornerRadii r, const render::Rect& rect) {
 
 SliderPalette slider_palette(const color::ColorScheme& scheme, const Enablement& enabled) {
     auto of = [&](const tokens::StateColor& disabled, color::Role on) { return enabled.mix(resolve(scheme, disabled), scheme[on]); };
-    return {of(t.disabled_active_track, t.active_track),   of(t.disabled_inactive_track, t.inactive_track),
-            of(t.disabled_active_tick, t.active_tick),     of(t.disabled_inactive_tick, t.inactive_tick),
-            of(t.disabled_stop_indicator, t.stop_indicator), of(t.disabled_handle, t.handle)};
+    return {of(t().disabled_active_track, t().active_track),   of(t().disabled_inactive_track, t().inactive_track),
+            of(t().disabled_active_tick, t().active_tick),     of(t().disabled_inactive_tick, t().inactive_tick),
+            of(t().disabled_stop_indicator, t().stop_indicator), of(t().disabled_handle, t().handle)};
 }
 
 void paint_track(render::Canvas& canvas, const SliderAxis& axis, double thickness, const std::vector<TrackSegment>& segments,
@@ -35,7 +38,7 @@ void paint_track(render::Canvas& canvas, const SliderAxis& axis, double thicknes
 }
 
 void paint_stop(render::Canvas& canvas, const SliderAxis& axis, double along, const SliderPalette& palette) {
-    canvas.fill_path(render::circle_path(axis.point(along), t.stop_indicator_size / 2.0), palette.stop_indicator);
+    canvas.fill_path(render::circle_path(axis.point(along), t().stop_indicator_size / 2.0), palette.stop_indicator);
 }
 
 void paint_ticks(render::Canvas& canvas, const SliderAxis& axis, const std::vector<double>& ticks, const std::vector<TrackSegment>& segments,
@@ -47,7 +50,7 @@ void paint_ticks(render::Canvas& canvas, const SliderAxis& axis, const std::vect
         }
         const bool active = std::any_of(segments.begin(), segments.end(),
                                         [tick](const TrackSegment& s) { return s.active && tick >= s.from && tick <= s.to; });
-        canvas.fill_path(render::circle_path(axis.point(tick), t.tick_size / 2.0), active ? palette.active_tick : palette.inactive_tick);
+        canvas.fill_path(render::circle_path(axis.point(tick), t().tick_size / 2.0), active ? palette.active_tick : palette.inactive_tick);
     }
 }
 
@@ -98,9 +101,9 @@ double snap_value(double value, double min, double max, int steps) {
 
 SliderKeyStep slider_key_step(double min, double max, int steps) {
     const double range = std::abs(max - min);
-    const int intervals = steps > 0 ? steps + 1 : t.keyboard_steps_when_continuous;
+    const int intervals = steps > 0 ? steps + 1 : t().keyboard_steps_when_continuous;
     const double delta = range / intervals;
-    return {delta, std::clamp(intervals / t.keyboard_page_divisor, 1, t.keyboard_page_max_steps) * delta};
+    return {delta, std::clamp(intervals / t().keyboard_page_divisor, 1, t().keyboard_page_max_steps) * delta};
 }
 
 ValueIndicator::ValueIndicator() : scale_(0.0) {}
@@ -110,15 +113,15 @@ void ValueIndicator::set_shown(bool shown) {
         return;
     }
     shown_ = shown;
-    scale_.animate_to(shown ? 1.0 : 0.0, t.value_indicator_scale);
+    scale_.animate_to(shown ? 1.0 : 0.0, t().value_indicator_scale);
 }
 
 render::Rect ValueIndicator::rect(const text::FontStack& fonts, const std::string& text, const render::Rect& handle) const {
-    const text::TextLine line = text::layout_line(fonts, text, tokens::text_style(tokens::type_style(t.value_indicator_type)));
-    const double h = std::max(t.value_indicator_min_size, line.box_height() + 2.0 * t.value_indicator_padding);
-    const double w = std::max(h, line.width + 2.0 * t.value_indicator_padding);
+    const text::TextLine line = text::layout_line(fonts, text, tokens::text_style(tokens::type_style(t().value_indicator_type)));
+    const double h = std::max(t().value_indicator_min_size, line.box_height() + 2.0 * t().value_indicator_padding);
+    const double w = std::max(h, line.width + 2.0 * t().value_indicator_padding);
     const double cx = handle.x + handle.width / 2.0;
-    return {cx - w / 2.0, handle.y - t.value_indicator_bottom_space - h, w, h};
+    return {cx - w / 2.0, handle.y - t().value_indicator_bottom_space - h, w, h};
 }
 
 void ValueIndicator::paint(render::Canvas& canvas, const color::ColorScheme& scheme, const text::FontStack& fonts, const std::string& text,
@@ -127,15 +130,15 @@ void ValueIndicator::paint(render::Canvas& canvas, const color::ColorScheme& sch
     if (s <= 0.0 || text.empty()) {
         return;
     }
-    const text::TextLine line = text::layout_line(fonts, text, tokens::text_style(tokens::type_style(t.value_indicator_type)));
+    const text::TextLine line = text::layout_line(fonts, text, tokens::text_style(tokens::type_style(t().value_indicator_type)));
     const render::Rect r = rect(fonts, text, handle);
     canvas.save();
     canvas.translate(r.x + r.width / 2.0, r.y + r.height);
     canvas.scale(s);
     const render::Rect local{-r.width / 2.0, -r.height, r.width, r.height};
-    canvas.fill_path(render::rounded_rect_path(local, render::uniform_radii(r.height / 2.0)), scheme[t.value_indicator_container]);
+    canvas.fill_path(render::rounded_rect_path(local, render::uniform_radii(r.height / 2.0)), scheme[t().value_indicator_container]);
     text::draw_line(canvas, fonts, line, {-line.width / 2.0, -r.height + (r.height - line.box_height()) / 2.0},
-                    scheme[t.value_indicator_label]);
+                    scheme[t().value_indicator_label]);
     canvas.restore();
 }
 

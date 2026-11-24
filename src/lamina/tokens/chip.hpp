@@ -139,4 +139,16 @@ inline constexpr ChipMotion chip_motion{
     .group_presence = motion_scheme.default_effects(),
 };
 
+struct ChipSet {
+    ChipTokens common = chip_tokens;
+    std::array<ChipStyleTokens, static_cast<std::size_t>(ChipKind::count)> flat_styles = flat_chip_styles;
+    std::array<ChipStyleTokens, static_cast<std::size_t>(ChipKind::count)> elevated_styles = elevated_chip_styles;
+    ChipMotion motion = chip_motion;
+
+    const ChipStyleTokens& style(ChipKind kind, bool elevated) const {
+        const std::size_t i = static_cast<std::size_t>(kind);
+        return elevated && chip_has_elevated_variant(kind) ? elevated_styles[i] : flat_styles[i];
+    }
+};
+
 }

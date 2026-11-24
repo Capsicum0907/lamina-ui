@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/range_slider.hpp"
 
 #include <algorithm>
@@ -9,10 +10,12 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SliderTokens& t = tokens::slider_tokens;
+const tokens::SliderTokens& t() {
+    return current_style().slider;
+}
 
 double end_gap() {
-    return t.handle_width / 2.0 + t.handle_track_gap;
+    return t().handle_width / 2.0 + t().handle_track_gap;
 }
 
 }
@@ -46,28 +49,28 @@ RangeSlider::RangeSlider(RangeSliderOptions options, const text::FontStack& font
 }
 
 double RangeSlider::height() const {
-    return t.handle_height;
+    return t().handle_height;
 }
 
 layout::Size RangeSlider::measure(const layout::Constraints& c) const {
-    return {std::isfinite(c.max_width) ? c.max_width : width_, t.handle_height};
+    return {std::isfinite(c.max_width) ? c.max_width : width_, t().handle_height};
 }
 
 void RangeSlider::arrange(const render::Rect& r) {
     width_ = r.width;
-    origin_ = {r.x, r.y + (r.height - t.handle_height) / 2.0};
+    origin_ = {r.x, r.y + (r.height - t().handle_height) / 2.0};
 }
 
 render::Rect RangeSlider::bounds() const {
-    return {origin_.x, origin_.y, width_, t.handle_height};
+    return {origin_.x, origin_.y, width_, t().handle_height};
 }
 
 SliderAxis RangeSlider::axis() const {
-    return {bounds(), false, false, t.handle_width};
+    return {bounds(), false, false, t().handle_width};
 }
 
 double RangeSlider::corner() const {
-    return t.track_height / 2.0;
+    return t().track_height / 2.0;
 }
 
 double RangeSlider::fraction(double v) const {
@@ -100,19 +103,19 @@ void RangeSlider::move(RangeThumb thumb, double value) {
 
 double RangeSlider::handle_width(RangeThumb thumb) const {
     const bool narrowed = dragging_ == thumb || focused(thumb);
-    return narrowed ? t.pressed_handle_width : t.handle_width;
+    return narrowed ? t().pressed_handle_width : t().handle_width;
 }
 
 render::Rect RangeSlider::handle_rect(RangeThumb thumb) const {
     const render::Point c = axis().point(along(thumb));
     const double w = handle_width(thumb);
-    return {c.x - w / 2.0, c.y - t.handle_height / 2.0, w, t.handle_height};
+    return {c.x - w / 2.0, c.y - t().handle_height / 2.0, w, t().handle_height};
 }
 
 std::vector<TrackSegment> RangeSlider::segments() const {
     const double l = axis().length();
     const double c = corner();
-    const double inside = t.track_inside_corner;
+    const double inside = t().track_inside_corner;
     const double vs = along(RangeThumb::start);
     const double ve = along(RangeThumb::end);
     const double gap = end_gap();
@@ -209,7 +212,7 @@ bool RangeSlider::handle(const input::PointerEvent& e) {
             const double ds = std::abs(ps - e.x_dp);
             const double de = std::abs(pe - e.x_dp);
             press_x_ = e.x_dp;
-            choosing_by_direction_ = std::abs(ps - pe) < t.handle_width && ds < t.handle_width;
+            choosing_by_direction_ = std::abs(ps - pe) < t().handle_width && ds < t().handle_width;
             const bool start = ds != de ? ds < de : ps > e.x_dp;
             dragging_ = start ? RangeThumb::start : RangeThumb::end;
             if (!choosing_by_direction_) {
@@ -291,7 +294,7 @@ void RangeSlider::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const SliderAxis a = axis();
     const SliderPalette palette = slider_palette(scheme, enabled_);
     const std::vector<TrackSegment> segs = segments();
-    paint_track(canvas, a, t.track_height, segs, palette);
+    paint_track(canvas, a, t().track_height, segs, palette);
     const double l = a.length();
     const double c = corner();
     for (const TrackSegment& s : segs) {

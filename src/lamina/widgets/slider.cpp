@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/slider.hpp"
 
 #include <algorithm>
@@ -9,10 +10,12 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SliderTokens& t = tokens::slider_tokens;
+const tokens::SliderTokens& t() {
+    return current_style().slider;
+}
 
 double end_gap() {
-    return t.handle_width / 2.0 + t.handle_track_gap;
+    return t().handle_width / 2.0 + t().handle_track_gap;
 }
 
 }
@@ -26,11 +29,11 @@ Slider::Slider(SliderOptions options, const text::FontStack& fonts) : Slider(std
 }
 
 double Slider::width() const {
-    return vertical() ? t.handle_height : length_;
+    return vertical() ? t().handle_height : length_;
 }
 
 double Slider::height() const {
-    return vertical() ? length_ : t.handle_height;
+    return vertical() ? length_ : t().handle_height;
 }
 
 void Slider::set_width(double width) {
@@ -41,18 +44,18 @@ void Slider::set_width(double width) {
 
 layout::Size Slider::measure(const layout::Constraints& c) const {
     if (vertical()) {
-        return {t.handle_height, std::isfinite(c.max_height) ? c.max_height : length_};
+        return {t().handle_height, std::isfinite(c.max_height) ? c.max_height : length_};
     }
-    return {std::isfinite(c.max_width) ? c.max_width : length_, t.handle_height};
+    return {std::isfinite(c.max_width) ? c.max_width : length_, t().handle_height};
 }
 
 void Slider::arrange(const render::Rect& r) {
     if (vertical()) {
         length_ = r.height;
-        origin_ = {r.x + (r.width - t.handle_height) / 2.0, r.y};
+        origin_ = {r.x + (r.width - t().handle_height) / 2.0, r.y};
     } else {
         length_ = r.width;
-        origin_ = {r.x, r.y + (r.height - t.handle_height) / 2.0};
+        origin_ = {r.x, r.y + (r.height - t().handle_height) / 2.0};
     }
 }
 
@@ -61,11 +64,11 @@ render::Rect Slider::bounds() const {
 }
 
 SliderAxis Slider::axis() const {
-    return {bounds(), vertical(), vertical() && !options_.top_to_bottom, t.handle_width};
+    return {bounds(), vertical(), vertical() && !options_.top_to_bottom, t().handle_width};
 }
 
 double Slider::corner() const {
-    return options_.track_corner.value_or(t.track_height / 2.0);
+    return options_.track_corner.value_or(t().track_height / 2.0);
 }
 
 void Slider::set_value(double value) {
@@ -85,7 +88,7 @@ double Slider::value_along() const {
 }
 
 double Slider::handle_width() const {
-    return narrowed_ ? t.pressed_handle_width : t.handle_width;
+    return narrowed_ ? t().pressed_handle_width : t().handle_width;
 }
 
 render::Point Slider::handle_center() const {
@@ -100,9 +103,9 @@ render::Rect Slider::handle_rect() const {
     const render::Point c = handle_center();
     const double along = handle_width();
     if (vertical()) {
-        return {c.x - t.handle_height / 2.0, c.y - along / 2.0, t.handle_height, along};
+        return {c.x - t().handle_height / 2.0, c.y - along / 2.0, t().handle_height, along};
     }
-    return {c.x - along / 2.0, c.y - t.handle_height / 2.0, along, t.handle_height};
+    return {c.x - along / 2.0, c.y - t().handle_height / 2.0, along, t().handle_height};
 }
 
 std::vector<double> Slider::tick_centers() const {
@@ -118,7 +121,7 @@ std::vector<double> Slider::tick_centers() const {
 std::vector<TrackSegment> Slider::segments() const {
     const double l = axis().length();
     const double c = corner();
-    const double inside = t.track_inside_corner;
+    const double inside = t().track_inside_corner;
     const double v = value_along();
     const double gap = end_gap();
     const bool shrinking = (options_.track_corner.has_value() || vertical() || options_.centered) && options_.steps == 0;
@@ -134,7 +137,7 @@ std::vector<TrackSegment> Slider::segments() const {
         return out;
     }
     const double mid = l / 2.0;
-    const double side_gap = t.handle_track_gap;
+    const double side_gap = t().handle_track_gap;
     const double active_threshold = shrinking ? 0.0 : inside;
     double left_end = 0.0;
     double right_start = 0.0;
@@ -289,7 +292,7 @@ void Slider::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const SliderAxis a = axis();
     const SliderPalette palette = slider_palette(scheme, enabled_);
     const std::vector<TrackSegment> segs = segments();
-    paint_track(canvas, a, t.track_height, segs, palette);
+    paint_track(canvas, a, t().track_height, segs, palette);
     const double l = a.length();
     const double c = corner();
     const bool start_shown = std::any_of(segs.begin(), segs.end(), [](const TrackSegment& s) { return !s.active && s.from == 0.0; });
