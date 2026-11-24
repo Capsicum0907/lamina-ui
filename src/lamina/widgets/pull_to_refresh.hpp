@@ -40,6 +40,7 @@ public:
 
     void set_refreshing(bool refreshing);
     bool refreshing() const { return refreshing_; }
+    bool spinning() const { return refreshing_ || holding_; }
     bool pulling() const { return pulling_; }
     bool holds_pointer() const { return pulling_; }
     bool tracking() const { return touch_.has_value(); }
@@ -73,12 +74,16 @@ private:
     void follow(double y);
     void release(bool commit, PullToRefreshResponse& response);
     void sync_indicator();
+    void start_refreshing();
+    void leave();
 
     PullToRefreshOptions options_;
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     std::optional<Touch> touch_;
     bool pulling_ = false;
     bool refreshing_ = false;
+    bool holding_ = false;
+    double refresh_seconds_ = 0.0;
     motion::Animated distance_;
     LoadingIndicator indicator_;
     double turn_ = 0.0;

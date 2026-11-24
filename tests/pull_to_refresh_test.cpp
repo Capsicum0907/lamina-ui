@@ -312,3 +312,57 @@ TEST_CASE("the container comes in from behind the top of the area and is cut the
     const render::Rect c = p.container_rect();
     CHECK(full.pixel(static_cast<int>(c.x + 3.0), static_cast<int>(c.y + c.height / 2.0)) == s[t.container]);
 }
+
+TEST_CASE("a refresh that ends at once keeps the indicator spinning at the threshold for the minimum time, then it leaves") {
+    PullToRefresh p = make();
+    p.handle(touch(PointerAction::down, x, top), true);
+    drag_to(p, top, finger_for(1.3));
+    REQUIRE(p.handle(touch(PointerAction::up, x, finger_for(1.3)), true).refresh);
+    p.step(frame_seconds);
+    p.set_refreshing(false);
+    CHECK_FALSE(p.refreshing());
+    CHECK(p.spinning());
+    CHECK(p.shown());
+    CHECK_FALSE(p.indicator().determinate());
+    double held = frame_seconds;
+    while (held + frame_seconds < t.min_refresh_seconds) {
+        p.step(frame_seconds);
+        held += frame_seconds;
+        CHECK(p.spinning());
+        CHECK(p.animating());
+    }
+    CHECK(p.distance_fraction() == doctest::Approx(1.0).epsilon(1e-2));
+    p.handle(touch(PointerAction::down, x, top), true);
+    CHECK_FALSE(drag_to(p, top, finger_for(1.5)).claimed);
+    p.handle(touch(PointerAction::up, x, finger_for(1.5)), true);
+    p.step(2.0 * frame_seconds);
+    CHECK_FALSE(p.spinning());
+    settle(p);
+    CHECK_FALSE(p.shown());
+    CHECK(p.indicator().determinate());
+}
+
+TEST_CASE("a refresh longer than the minimum leaves as soon as it ends, and one started by the program is held as well") {
+    PullToRefresh p = make();
+    p.set_refreshing(true);
+    for (double s = 0.0; s < 2.0 * t.min_refresh_seconds; s += frame_seconds) {
+        p.step(frame_seconds);
+    }
+    p.set_refreshing(false);
+    CHECK_FALSE(p.spinning());
+    p.step(frame_seconds);
+    CHECK(p.distance_fraction() < 1.0);
+    settle(p);
+    CHECK_FALSE(p.shown());
+
+    p.set_refreshing(true);
+    p.set_refreshing(false);
+    CHECK(p.spinning());
+    p.set_refreshing(true);
+    CHECK(p.refreshing());
+    for (double s = 0.0; s < 2.0 * t.min_refresh_seconds; s += frame_seconds) {
+        p.step(frame_seconds);
+    }
+    CHECK(p.spinning());
+    CHECK(p.shown());
+}

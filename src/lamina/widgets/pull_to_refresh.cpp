@@ -42,7 +42,28 @@ PullToRefresh::PullToRefresh(PullToRefreshOptions options)
       indicator_(LoadingIndicatorOptions{.progress = 0.0, .contained = true, .size = options_.tokens->container_size}) {}
 
 bool PullToRefresh::shown() const {
-    return refreshing_ || distance_.value() > 0.0;
+    return spinning() || distance_.value() > 0.0;
+}
+
+void PullToRefresh::start_refreshing() {
+    refreshing_ = true;
+    holding_ = false;
+    refresh_seconds_ = 0.0;
+    if (indicator_.determinate()) {
+        indicator_.set_progress(std::nullopt);
+    }
+    distance_.animate_to(1.0);
+}
+
+void PullToRefresh::leave() {
+    if (refresh_seconds_ < t().min_refresh_seconds) {
+        holding_ = true;
+        return;
+    }
+    holding_ = false;
+    if (!pulling_) {
+        distance_.animate_to(0.0);
+    }
 }
 
 void PullToRefresh::set_enabled(bool enabled) {
@@ -82,12 +103,12 @@ void PullToRefresh::follow(double y) {
 
 void PullToRefresh::release(bool commit, PullToRefreshResponse& response) {
     pulling_ = false;
-    if (commit && !refreshing_ && distance_.value() >= 1.0) {
-        refreshing_ = true;
+    if (commit && !spinning() && distance_.value() >= 1.0) {
         response.refresh = true;
-        indicator_.set_progress(std::nullopt);
+        start_refreshing();
+        return;
     }
-    distance_.animate_to(refreshing_ ? 1.0 : 0.0);
+    distance_.animate_to(spinning() ? 1.0 : 0.0);
 }
 
 PullToRefreshResponse PullToRefresh::handle(const input::PointerEvent& e, bool at_top) {
@@ -133,7 +154,7 @@ PullToRefreshResponse PullToRefresh::handle(const input::PointerEvent& e, bool a
         const double dy = e.y_dp - *touch_->anchor_y;
         const double dx = std::abs(e.x_dp - touch_->anchor_x);
         const double limit = std::tan(t().max_angle_degrees * std::numbers::pi / 180.0);
-        if (refreshing_ || dy <= t().slop || dx > dy * limit) {
+        if (spinning() || dy <= t().slop || dx > dy * limit) {
             return r;
         }
         if (distance_.value() > 0.0) {
@@ -171,19 +192,19 @@ void PullToRefresh::set_refreshing(bool refreshing) {
     if (refreshing == refreshing_) {
         return;
     }
-    refreshing_ = refreshing;
     if (refreshing) {
         pulling_ = false;
         touch_.reset();
-        if (indicator_.determinate()) {
-            indicator_.set_progress(std::nullopt);
+        if (holding_) {
+            refreshing_ = true;
+            holding_ = false;
+            return;
         }
-        distance_.animate_to(1.0);
+        start_refreshing();
         return;
     }
-    if (!pulling_) {
-        distance_.animate_to(0.0);
-    }
+    refreshing_ = false;
+    leave();
 }
 
 std::optional<AccessibleNode> PullToRefresh::accessible() const {
@@ -198,12 +219,18 @@ std::optional<AccessibleNode> PullToRefresh::accessible() const {
 }
 
 void PullToRefresh::step(double dt) {
+    if (spinning()) {
+        refresh_seconds_ += dt;
+    }
+    if (holding_ && refresh_seconds_ >= t().min_refresh_seconds) {
+        leave();
+    }
     distance_.step(dt);
     indicator_.step(dt);
     if (!pulling_) {
         sync_indicator();
     }
-    if (!refreshing_ && !pulling_ && distance_.settled() && distance_.value() <= 0.0) {
+    if (!spinning() && !pulling_ && distance_.settled() && distance_.value() <= 0.0) {
         if (!indicator_.determinate()) {
             indicator_ = LoadingIndicator(LoadingIndicatorOptions{.progress = 0.0, .contained = true, .size = t().container_size});
         }

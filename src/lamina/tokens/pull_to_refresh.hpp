@@ -23,6 +23,7 @@ struct PullToRefreshTokens {
     double slop;
     double max_angle_degrees;
     double top_tolerance;
+    double min_refresh_seconds;
     color::Role container;
     color::Role indicator;
     color::Role shadow;
@@ -41,6 +42,7 @@ inline constexpr PullToRefreshTokens pull_to_refresh_tokens{
     .slop = touch_slop,
     .max_angle_degrees = 45.0,
     .top_tolerance = 0.5,
+    .min_refresh_seconds = 0.6,
     .container = loading_indicator_tokens.contained_container,
     .indicator = loading_indicator_tokens.contained_indicator,
     .shadow = color::Role::shadow,
