@@ -4,6 +4,7 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/widgets/interaction.hpp"
 
@@ -17,7 +18,7 @@ void paint_surface(render::Canvas& canvas, const render::Rect& rect, const rende
 template <typename Style>
 double state_elevation(const Style& style, const PressState& press) {
     const std::size_t level = press.pressed ? style.pressed_elevation : press.hovered ? style.hovered_elevation : style.elevation;
-    return tokens::elevation_dp[level];
+    return current_style().elevation.levels[level];
 }
 
 }

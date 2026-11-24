@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/label.hpp"
 
 #include <cmath>
@@ -6,7 +7,7 @@ namespace lamina::widgets {
 
 Label::Label(LabelOptions options, const text::FontStack& fonts)
     : text_(std::move(options.text)),
-      style_(tokens::text_style(tokens::type_style(options.type))),
+      style_(current_style().type.text(options.type)),
       color_(options.color),
       fonts_(fonts),
       wrap_(options.wrap) {}

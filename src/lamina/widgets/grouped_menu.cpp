@@ -18,10 +18,9 @@ namespace {
 const tokens::GroupedMenuTokens& t() {
     return current_style().grouped_menu;
 }
-using tokens::motion_scheme;
 
 motion::AnimatedRadii corner_springs() {
-    return motion::AnimatedRadii(render::uniform_radii(0.0), motion_scheme.fast_spatial());
+    return motion::AnimatedRadii(render::uniform_radii(0.0), current_style().motion.fast_spatial());
 }
 
 }
@@ -48,9 +47,9 @@ tokens::Corners menu_item_corners(std::size_t index, std::size_t count) {
 
 GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(options.accessible_name),
-      popup_(t().closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
-    const auto item_style = tokens::text_style(tokens::type_style(t().label));
-    const auto group_label_style = tokens::text_style(tokens::type_style(t().group_label));
+      popup_(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects()) {
+    const auto item_style = current_style().type.text(t().label);
+    const auto group_label_style = current_style().type.text(t().group_label);
     double content = 0.0;
     double y = 0.0;
     for (std::size_t g = 0; g < options.groups.size(); ++g) {
@@ -98,7 +97,7 @@ GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& font
             access_keys_.push_back(key);
             group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
                                    std::move(item.trailing_icon), std::move(access), item.selected, gy, height, {},
-                                   motion::Animated(0.0, motion_scheme.fast_effects()), motion::Animated(on, motion_scheme.fast_effects()),
+                                   motion::Animated(0.0, current_style().motion.fast_effects()), motion::Animated(on, current_style().motion.fast_effects()),
                                    corner_springs(), Enablement(item.enabled), item.label});
             gy += height;
         }
@@ -149,18 +148,18 @@ render::CornerRadii GroupedMenu::group_target(std::size_t group) const {
     const Group& g = groups_[group];
     const render::Rect r = group_rect(group);
     if (g.has_been_hovered && !g.hovered) {
-        return tokens::corner_radii(tokens::all_corners(t().inactive_group), r.width, r.height);
+        return current_style().shape.radii(tokens::all_corners(t().inactive_group), r.width, r.height);
     }
-    return tokens::corner_radii(menu_group_corners(group, groups_.size()), r.width, r.height);
+    return current_style().shape.radii(menu_group_corners(group, groups_.size()), r.width, r.height);
 }
 
 render::CornerRadii GroupedMenu::item_target(std::size_t group, std::size_t item) const {
     const Group& g = groups_[group];
     const render::Rect r = item_rect(group, item);
     if (g.items[item].selected) {
-        return tokens::corner_radii(tokens::all_corners(t().selected_item), r.width, r.height);
+        return current_style().shape.radii(tokens::all_corners(t().selected_item), r.width, r.height);
     }
-    return tokens::corner_radii(menu_item_corners(item, g.items.size()), r.width, r.height);
+    return current_style().shape.radii(menu_item_corners(item, g.items.size()), r.width, r.height);
 }
 
 void GroupedMenu::retarget_group(std::size_t group) {
@@ -444,7 +443,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const color::ColorScheme s = color::faded(scheme, a);
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const render::Rect gr = group_rect(g);
-        paint_surface(canvas, gr, group_radii(g), s[t().group_container], tokens::elevation_dp[t().elevation], s[color::Role::shadow]);
+        paint_surface(canvas, gr, group_radii(g), s[t().group_container], current_style().elevation.levels[t().elevation], s[color::Role::shadow]);
     }
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const Group& group = groups_[g];

@@ -29,7 +29,7 @@ constexpr double hour_step = full_turn / labels_per_ring;
 constexpr double minute_step = full_turn / 60.0;
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 color::Argb dim(color::Argb c, double enabled) {
@@ -834,7 +834,7 @@ void TimePicker::paint_period(render::Canvas& canvas, const color::ColorScheme& 
 void TimePicker::paint_display(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const double e = enabled_.amount();
     const text::TextStyle style = style_of(t().selector_type);
-    const double corner = tokens::corner_radius(t().selector_corner, t().selector_width, t().selector_height);
+    const double corner = current_style().shape.radius(t().selector_corner, t().selector_width, t().selector_height);
     const std::string texts[2] = {two_digits(display_hour()), two_digits(minute_)};
     for (int i = 0; i < 2; ++i) {
         const render::Rect r = field_bounds(i);
@@ -902,7 +902,7 @@ void TimePicker::paint_dial(render::Canvas& canvas, const color::ColorScheme& sc
 void TimePicker::paint_inputs(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const double e = enabled_.amount();
     const text::TextStyle style = style_of(t().input_type);
-    const double corner = tokens::corner_radius(t().input_field_corner, t().input_field_width, t().input_field_height);
+    const double corner = current_style().shape.radius(t().input_field_corner, t().input_field_width, t().input_field_height);
     const bool valid[2] = {hour_valid(), minute_valid()};
     const std::string supporting[2] = {valid[0] ? locale_->strings.hour : hour_error(), valid[1] ? locale_->strings.minute : minute_error()};
     for (int i = 0; i < 2; ++i) {

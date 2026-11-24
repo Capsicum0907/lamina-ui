@@ -14,10 +14,9 @@ namespace lamina::widgets {
 namespace {
 
 const auto& t = current_style().text_field;
-using tokens::motion_scheme;
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 void append_segments(render::Path& out, const render::Path& contour) {
@@ -107,13 +106,13 @@ TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
       label_large_(text::layout_line(fonts, options_.label, style_of(t.label_type))),
       label_small_(text::layout_line(fonts, options_.label, style_of(t.minimized_label_type))),
       placeholder_(text::layout_line(fonts, options_.placeholder, style_of(t.input_type))),
-      label_progress_(0.0, motion_scheme.fast_spatial()),
-      focus_(0.0, motion_scheme.fast_effects()),
-      hover_(0.0, motion_scheme.fast_effects()),
-      placeholder_opacity_(0.0, motion_scheme.fast_effects()),
+      label_progress_(0.0, current_style().motion.fast_spatial()),
+      focus_(0.0, current_style().motion.fast_effects()),
+      hover_(0.0, current_style().motion.fast_effects()),
+      placeholder_opacity_(0.0, current_style().motion.fast_effects()),
       enabled_(options_.enabled),
       supporting_(text::layout_line(fonts, options_.supporting_text, style_of(t.supporting_type))),
-      error_amount_(0.0, motion_scheme.default_effects()) {
+      error_amount_(0.0, current_style().motion.default_effects()) {
     if (masked()) {
         options_.multiline = false;
     }
@@ -138,7 +137,7 @@ void TextField::update_phase() {
     }
     const bool slow = (phase_ == InputPhase::unfocused_empty && next == InputPhase::focused) ||
                       (phase_ == InputPhase::unfocused_not_empty && next == InputPhase::unfocused_empty);
-    placeholder_opacity_.set_spec(slow ? motion_scheme.slow_effects() : motion_scheme.fast_effects());
+    placeholder_opacity_.set_spec(slow ? current_style().motion.slow_effects() : current_style().motion.fast_effects());
     phase_ = next;
     switch (next) {
     case InputPhase::focused:
@@ -168,7 +167,7 @@ void TextField::set_enabled(bool enabled) {
 }
 
 double TextField::rest_height() const {
-    return tokens::density_tokens.text_field.at(options_.density);
+    return current_style().density.text_field.at(options_.density);
 }
 
 double TextField::container_height() const {
@@ -669,7 +668,7 @@ render::Rect TextField::caret_area() const {
 
 void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(t.corner, r.width, r.height);
+    const double radius = current_style().shape.radius(t.corner, r.width, r.height);
     const double f = focus_.value();
     const double outline_width = t.outline_width + (t.focus_outline_width - t.outline_width) * f;
     const color::Argb idle_outline = color::mix(scheme[t.outline], scheme[t.hover_outline], hover_.value());

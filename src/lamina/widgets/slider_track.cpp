@@ -117,7 +117,7 @@ void ValueIndicator::set_shown(bool shown) {
 }
 
 render::Rect ValueIndicator::rect(const text::FontStack& fonts, const std::string& text, const render::Rect& handle) const {
-    const text::TextLine line = text::layout_line(fonts, text, tokens::text_style(tokens::type_style(t().value_indicator_type)));
+    const text::TextLine line = text::layout_line(fonts, text, current_style().type.text(t().value_indicator_type));
     const double h = std::max(t().value_indicator_min_size, line.box_height() + 2.0 * t().value_indicator_padding);
     const double w = std::max(h, line.width + 2.0 * t().value_indicator_padding);
     const double cx = handle.x + handle.width / 2.0;
@@ -130,7 +130,7 @@ void ValueIndicator::paint(render::Canvas& canvas, const color::ColorScheme& sch
     if (s <= 0.0 || text.empty()) {
         return;
     }
-    const text::TextLine line = text::layout_line(fonts, text, tokens::text_style(tokens::type_style(t().value_indicator_type)));
+    const text::TextLine line = text::layout_line(fonts, text, current_style().type.text(t().value_indicator_type));
     const render::Rect r = rect(fonts, text, handle);
     canvas.save();
     canvas.translate(r.x + r.width / 2.0, r.y + r.height);

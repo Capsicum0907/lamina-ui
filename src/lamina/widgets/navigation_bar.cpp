@@ -16,7 +16,6 @@ namespace {
 const tokens::NavigationBarTokens& t() {
     return current_style().navigation_bar;
 }
-using tokens::motion_scheme;
 
 double label_height(const text::TextLine& line) {
     return line.style.line_height;
@@ -25,28 +24,28 @@ double label_height(const text::TextLine& line) {
 }
 
 NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack& fonts)
-    : options_(std::move(options)), fonts_(fonts), badges_(options_.items, fonts_), labels_(options_.labels ? 1.0 : 0.0, motion_scheme.default_spatial()) {
+    : options_(std::move(options)), fonts_(fonts), badges_(options_.items, fonts_), labels_(options_.labels ? 1.0 : 0.0, current_style().motion.default_spatial()) {
     name_navigation_items(options_.items);
-    const auto style = tokens::text_style(tokens::type_style(t().label));
+    const auto style = current_style().type.text(t().label);
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         std::optional<text::TextLine> label;
         if (!options_.items[i].label.empty()) {
             label = text::layout_line(fonts_, options_.items[i].label, style);
         }
         const double on = i == options_.selected ? 1.0 : 0.0;
-        items_.push_back({std::move(label), {}, motion::Animated(0.0, motion_scheme.fast_effects()),
-                          motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(on, motion_scheme.default_effects()),
+        items_.push_back({std::move(label), {}, motion::Animated(0.0, current_style().motion.fast_effects()),
+                          motion::Animated(on, current_style().motion.default_spatial()), motion::Animated(on, current_style().motion.default_effects()),
                           Enablement(options_.items[i].enabled), options_.items[i].enabled});
     }
 }
 
 double NavigationBar::item_padding() const {
-    const tokens::DenseLength& l = tokens::density_tokens.navigation_bar;
+    const tokens::DenseLength& l = current_style().density.navigation_bar;
     return std::max(0.0, t().item_vertical_padding - (l.base - l.at(options_.density)) / 2.0);
 }
 
 double NavigationBar::labelled_height() const {
-    double content = tokens::density_tokens.navigation_bar.at(options_.density);
+    double content = current_style().density.navigation_bar.at(options_.density);
     for (const Item& item : items_) {
         if (item.label) {
             content = std::max(content, 2.0 * item_padding() + t().indicator_height + t().indicator_to_label_space + label_height(*item.label));

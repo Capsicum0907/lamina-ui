@@ -23,7 +23,7 @@ const tokens::DatePickerMotion& m() {
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 color::Argb dim(color::Argb c, double enabled) {
@@ -113,7 +113,7 @@ void DateRangePicker::set_height(double height) {
 }
 
 double DateRangePicker::header_height() const {
-    const double slot = tokens::minimum_interactive_size;
+    const double slot = current_style().interaction.minimum_interactive_size;
     const double row = std::max(style_of(t().range_headline_type).line_height + t().headline_bottom, slot + t().toggle_bottom);
     return std::max(t().range_header_height, t().title_top + style_of(t().title_type).line_height + row) + t().divider_thickness;
 }
@@ -188,7 +188,7 @@ render::Rect DateRangePicker::bounds() const {
 }
 
 void DateRangePicker::place_children() {
-    const double slot = tokens::minimum_interactive_size;
+    const double slot = current_style().interaction.minimum_interactive_size;
     const double row_top = origin_.y + header_height() - t().divider_thickness - slot - t().toggle_bottom;
     const double cx = origin_.x + t().container_width - t().toggle_end - slot / 2.0;
     toggle_.set_origin({cx - toggle_.width() / 2.0, row_top + (slot - toggle_.height()) / 2.0});
@@ -453,7 +453,7 @@ DatePickerResponse DateRangePicker::handle(const input::PointerEvent& e) {
         case input::PointerAction::move:
             break;
         }
-        state_layer_.animate_to(pressed_ ? tokens::state_layer_opacity::pressed : over ? tokens::state_layer_opacity::hover : 0.0);
+        state_layer_.animate_to(pressed_ ? current_style().state_layer.pressed : over ? current_style().state_layer.hover : 0.0);
         if (contains(area, pe.x_dp, pe.y_dp)) {
             response.consumed = true;
         }
@@ -605,7 +605,7 @@ void DateRangePicker::paint(render::Canvas& canvas, const color::ColorScheme& sc
     const text::TextLine title_line = text::layout_line(fonts_, title(), style_of(t().title_type));
     text::draw_line(canvas, fonts_, title_line, {origin_.x + start, origin_.y + t().title_top}, dim(scheme[k().title], e));
     const text::TextLine headline_line = text::layout_line(fonts_, headline(), style_of(t().range_headline_type));
-    const double slot = tokens::minimum_interactive_size;
+    const double slot = current_style().interaction.minimum_interactive_size;
     const double row_top = origin_.y + header_height() - t().divider_thickness - slot - t().toggle_bottom;
     const double headline_y = row_top + (slot + t().toggle_bottom - t().headline_bottom - headline_line.box_height()) / 2.0;
     const double headline_width = t().container_width - start - t().header_end - (options_.show_mode_toggle ? slot : 0.0);

@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "lamina/input/events.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 
 namespace lamina::widgets {
@@ -80,7 +81,7 @@ template <typename Items>
 void retarget_state_layers(Items& items, std::optional<std::size_t> focused) {
     for (std::size_t i = 0; i < items.size(); ++i) {
         const double pointer = items[i].press.state_layer_opacity();
-        items[i].state_layer.animate_to(focused == i ? std::max(pointer, tokens::state_layer_opacity::focus) : pointer);
+        items[i].state_layer.animate_to(focused == i ? std::max(pointer, current_style().state_layer.focus) : pointer);
     }
 }
 

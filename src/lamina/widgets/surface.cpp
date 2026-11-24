@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/surface.hpp"
 
 #include "lamina/color/mix.hpp"
@@ -16,7 +17,7 @@ void paint_layer(render::Canvas& canvas, const render::Rect& r, const render::Co
     const render::Rect grown{r.x - g, r.y - g, r.width + 2 * g, r.height + 2 * g};
     const render::Path path = render::rounded_rect_path(
         grown, {radii.top_left + g, radii.top_right + g, radii.bottom_right + g, radii.bottom_left + g});
-    canvas.fill_shadow(path, {0.0, layer.offset_y, layer.blur / tokens::css_blur_per_sigma,
+    canvas.fill_shadow(path, {0.0, layer.offset_y, layer.blur / current_style().elevation.blur_per_sigma,
                               color::scale_alpha(shadow_color, layer.opacity)});
 }
 
@@ -29,10 +30,10 @@ void paint_surface(render::Canvas& canvas, const render::Rect& rect, double radi
 
 void paint_surface(render::Canvas& canvas, const render::Rect& rect, const render::CornerRadii& radii, color::Argb fill,
                    double elevation_dp, color::Argb shadow_color) {
-    const double level = tokens::level_for_elevation(elevation_dp);
+    const double level = current_style().elevation.level_for(elevation_dp);
     if (level > 0.0) {
-        paint_layer(canvas, rect, radii, tokens::ambient_shadow(level), shadow_color);
-        paint_layer(canvas, rect, radii, tokens::key_shadow(level), shadow_color);
+        paint_layer(canvas, rect, radii, current_style().elevation.ambient_shadow(level), shadow_color);
+        paint_layer(canvas, rect, radii, current_style().elevation.key_shadow(level), shadow_color);
     }
     canvas.fill_path(render::rounded_rect_path(rect, radii), fill);
 }

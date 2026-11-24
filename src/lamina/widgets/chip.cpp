@@ -22,7 +22,7 @@ const tokens::ChipMotion& m() {
 }
 
 text::TextStyle label_style() {
-    return tokens::text_style(tokens::type_style(t().label));
+    return current_style().type.text(t().label);
 }
 
 bool is_selectable(const ChipOptions& o) {
@@ -110,7 +110,7 @@ double Chip::target_width() const {
 }
 
 double Chip::height() const {
-    return tokens::density_tokens.chip.at(options_.density);
+    return current_style().density.chip.at(options_.density);
 }
 
 render::Rect Chip::bounds() const {
@@ -134,7 +134,7 @@ std::optional<render::Rect> Chip::trailing_rect() const {
 }
 
 std::optional<render::Rect> Chip::remove_target() const {
-    return remove_target(touch_target(bounds(), tokens::minimum_target(options_.density)));
+    return remove_target(touch_target(bounds(), current_style().minimum_target(options_.density)));
 }
 
 std::optional<render::Rect> Chip::remove_target(const render::Rect& target) const {
@@ -224,7 +224,7 @@ void Chip::activate(ChipResponse& response) {
 }
 
 std::optional<TargetHit> Chip::target_hit(const input::PointerEvent& e) const {
-    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, tokens::minimum_target(options_.density));
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, current_style().minimum_target(options_.density));
 }
 
 ChipResponse Chip::handle(const input::PointerEvent& e) {
@@ -233,7 +233,7 @@ ChipResponse Chip::handle(const input::PointerEvent& e) {
     if (!enabled()) {
         return response;
     }
-    const render::Rect area = hit_area(e, bounds(), tokens::minimum_target(options_.density));
+    const render::Rect area = hit_area(e, bounds(), current_style().minimum_target(options_.density));
     const std::optional<render::Rect> remove = remove_target(area);
     const bool over_remove = remove && e.action != input::PointerAction::leave && contains(*remove, e.x_dp, e.y_dp);
     if (remove && remove_press_.update(e, *remove)) {
@@ -294,7 +294,7 @@ bool Chip::animating() const {
 void Chip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const tokens::ChipStyleTokens& s = current_style().chip.style(options_.kind, options_.elevated);
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(t().corner, r.width, r.height);
+    const double radius = current_style().shape.radius(t().corner, r.width, r.height);
     const double k = std::clamp(selected_.value(), 0.0, 1.0);
 
     const color::Argb label_color =

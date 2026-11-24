@@ -74,13 +74,13 @@ void SheetDragHandle::step(double dt) {
 
 void SheetDragHandle::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const double layer = std::clamp(state_layer_.value(), 0.0, 1.0);
-    const double radius = tokens::corner_radius(tokens::CornerSize::full, bounds_.width, bounds_.height);
+    const double radius = current_style().shape.radius(tokens::CornerSize::full, bounds_.width, bounds_.height);
     if (layer > 0.0) {
         canvas.fill_path(render::rounded_rect_path(bounds_, render::uniform_radii(radius)),
                          color::with_alpha(scheme[t().drag_handle_state_layer], layer));
     }
     const render::Rect h = handle_rect();
-    canvas.fill_path(render::rounded_rect_path(h, render::uniform_radii(std::min(tokens::corner_radius(t().drag_handle_corner, h.width, h.height),
+    canvas.fill_path(render::rounded_rect_path(h, render::uniform_radii(std::min(current_style().shape.radius(t().drag_handle_corner, h.width, h.height),
                                                                                   h.height / 2.0))),
                      scheme[t().drag_handle]);
     focus_.paint(canvas, scheme, bounds_, radius);
@@ -541,7 +541,7 @@ void BottomSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme
         overflow = *top - drag_.offset();
     }
     const render::Rect container{s.x, s.y, s.width, s.height + overflow};
-    const render::CornerRadii radii = tokens::corner_radii(t().shape, container.width, container.height);
+    const render::CornerRadii radii = current_style().shape.radii(t().shape, container.width, container.height);
     paint_surface(canvas, container, radii, scheme[t().container], modal() ? t().modal_shadow_elevation : t().standard_shadow_elevation,
                   scheme[color::Role::shadow]);
     canvas.push_clip(render::rounded_rect_path(container, radii));

@@ -252,7 +252,7 @@ void LoadingIndicator::step(double dt) {
 
 void LoadingIndicator::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(t().container_shape, r.width, r.height);
+    const double radius = current_style().shape.radius(t().container_shape, r.width, r.height);
     const render::Path container = render::rounded_rect_path(r, render::uniform_radii(radius));
     if (options_.contained) {
         canvas.fill_path(container, scheme[t().contained_container]);

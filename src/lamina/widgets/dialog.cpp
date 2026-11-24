@@ -20,7 +20,6 @@ namespace {
 const tokens::DialogTokens& t() {
     return current_style().dialog;
 }
-using tokens::motion_scheme;
 
 ButtonOptions action(std::string label) {
     return {std::move(label), t().action_style, t().action_size};
@@ -37,7 +36,7 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
       confirm_(action(options.confirm_label), fonts),
       icon_(std::move(options.icon)),
       content_(std::move(options.content)),
-      popup_(t().closed_scale, motion_scheme.default_spatial(), motion_scheme.default_effects()),
+      popup_(t().closed_scale, current_style().motion.default_spatial(), current_style().motion.default_effects()),
       default_action_(options.default_action) {
     if (!options.dismiss_label.empty()) {
         dismiss_.emplace(action(options.dismiss_label), fonts);
@@ -46,7 +45,7 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
     if (dismiss_) {
         buttons.push_back(node(*dismiss_));
     }
-    const double touch_slack = std::max(0.0, tokens::minimum_interactive_size - confirm_.height());
+    const double touch_slack = std::max(0.0, current_style().interaction.minimum_interactive_size - confirm_.height());
     actions_ = layout::flow(std::move(buttons));
     actions_->spacing(t().button_space)
         .line_spacing(std::clamp(t().button_line_space - touch_slack, 0.0, t().button_line_space) + touch_slack)
@@ -493,7 +492,7 @@ void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     const color::ColorScheme s = color::faded(scheme, a);
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});
-    const double radius = tokens::corner_radius(t().corner, surface_.width, surface_.height);
+    const double radius = current_style().shape.radius(t().corner, surface_.width, surface_.height);
     canvas.fill_path(render::rounded_rect_path(surface_, render::uniform_radii(radius)), s[t().container]);
     if (icon_) {
         icon_->font.draw(canvas, icon_->symbol, icon_origin_, t().icon_size, s[t().icon_color]);

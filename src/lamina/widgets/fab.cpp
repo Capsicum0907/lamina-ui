@@ -12,12 +12,11 @@ namespace lamina::widgets {
 
 namespace {
 
-using tokens::motion_scheme;
 
 }
 
 Fab::Fab(FabOptions options)
-    : options_(std::move(options)), state_layer_(0.0, motion_scheme.fast_effects()), elevation_(0.0, motion_scheme.default_effects()) {
+    : options_(std::move(options)), state_layer_(0.0, current_style().motion.fast_effects()), elevation_(0.0, current_style().motion.default_effects()) {
     options_.accessible_name = required_name(std::move(options_.accessible_name), "A FAB");
     elevation_.snap_to(state_elevation(current_style().fab.style(options_.style), press_));
 }
@@ -71,7 +70,7 @@ void Fab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const 
     const auto& size = current_style().fab.size(options_.size);
     const auto& style = current_style().fab.style(options_.style);
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(size.corner, r.width, r.height);
+    const double radius = current_style().shape.radius(size.corner, r.width, r.height);
     const color::Argb content = scheme[style.content];
     const color::Argb fill = color::state_layer(scheme[style.container], content, state_layer_.value());
     paint_surface(canvas, r, radius, fill, elevation_.value(), scheme[color::Role::shadow]);

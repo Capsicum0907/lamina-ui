@@ -18,21 +18,24 @@ namespace {
 const tokens::TabTokens& t() {
     return current_style().tabs.common;
 }
-using tokens::motion_scheme;
 
-constexpr motion::SpringSpec fade_in_spring = motion_scheme.default_effects();
-constexpr motion::SpringSpec fade_out_spring = motion_scheme.fast_effects();
+motion::SpringSpec fade_in_spring() {
+    return current_style().motion.default_effects();
+}
+motion::SpringSpec fade_out_spring() {
+    return current_style().motion.fast_effects();
+}
 
 }
 
 TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      indicator_offset_(0.0, motion_scheme.default_spatial()),
-      indicator_width_(0.0, motion_scheme.default_spatial()),
-      scroll_(0.0, motion_scheme.default_spatial()),
+      indicator_offset_(0.0, current_style().motion.default_spatial()),
+      indicator_width_(0.0, current_style().motion.default_spatial()),
+      scroll_(0.0, current_style().motion.default_spatial()),
       fling_(fling_decay()) {
-    const auto style = tokens::text_style(tokens::type_style(t().label));
+    const auto style = current_style().type.text(t().label);
     bool stacked = false;
     for (std::size_t i = 0; i < options_.tabs.size(); ++i) {
         TabItem& item = options_.tabs[i];
@@ -45,8 +48,8 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
         }
         stacked = stacked || (label && item.icon && options_.icon_position == TabIconPosition::top);
         const double on = i == options_.selected ? 1.0 : 0.0;
-        tabs_.push_back({std::move(label), item.icon, {}, motion::Animated(0.0, motion_scheme.fast_effects()),
-                         motion::Animated(on, fade_in_spring), Enablement(item.enabled), item.enabled});
+        tabs_.push_back({std::move(label), item.icon, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
+                         motion::Animated(on, fade_in_spring()), Enablement(item.enabled), item.enabled});
     }
     stacked_ = stacked;
     for (const Tab& tab : tabs_) {
@@ -56,7 +59,7 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
 }
 
 void TabRow::update_height() {
-    height_ = (stacked_ ? tokens::density_tokens.tab_with_icon : tokens::density_tokens.tab).at(options_.density);
+    height_ = (stacked_ ? current_style().density.tab_with_icon : current_style().density.tab).at(options_.density);
 }
 
 void TabRow::set_density(tokens::Density density) {
@@ -203,10 +206,10 @@ void TabRow::select(std::size_t index) {
         return;
     }
     Tab& old_tab = tabs_[options_.selected];
-    old_tab.selected.set_spec(fade_out_spring);
+    old_tab.selected.set_spec(fade_out_spring());
     old_tab.selected.animate_to(0.0);
     Tab& new_tab = tabs_[index];
-    new_tab.selected.set_spec(fade_in_spring);
+    new_tab.selected.set_spec(fade_in_spring());
     new_tab.selected.animate_to(1.0);
     options_.selected = index;
     retarget_indicator();

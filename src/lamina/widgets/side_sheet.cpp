@@ -42,7 +42,7 @@ std::unique_ptr<IconButton> header_button(const std::optional<SideSheetIcon>& sp
 SideSheet::SideSheet(SideSheetOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      headline_(text::layout_line(fonts, options_.headline, tokens::text_style(tokens::type_style(t().headline_type)))),
+      headline_(text::layout_line(fonts, options_.headline, current_style().type.text(t().headline_type))),
       close_(header_button(options_.close)),
       back_(header_button(options_.back)),
       content_(options_.content),
@@ -414,7 +414,7 @@ void SideSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         paint_scrim(canvas, area_, scheme, progress());
     }
     const render::Rect s = bounds();
-    const double r = tokens::corner_radius(t().corner, s.width, s.height);
+    const double r = current_style().shape.radius(t().corner, s.width, s.height);
     render::CornerRadii radii = render::uniform_radii(options_.detached ? r : 0.0);
     if (modal() && !options_.detached) {
         radii = options_.edge == SideSheetEdge::end ? render::CornerRadii{r, 0.0, 0.0, r} : render::CornerRadii{0.0, r, r, 0.0};

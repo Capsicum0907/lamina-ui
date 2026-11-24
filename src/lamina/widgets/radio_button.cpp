@@ -12,7 +12,6 @@ namespace {
 const tokens::RadioButtonTokens& t() {
     return current_style().radio_button;
 }
-using tokens::motion_scheme;
 
 double target_dot(bool selected) {
     return selected ? t().dot_size / 2.0 : 0.0;
@@ -23,9 +22,9 @@ double target_dot(bool selected) {
 RadioButton::RadioButton(RadioButtonOptions options)
     : options_(options),
       enabled_(options_.enabled),
-      dot_radius_(target_dot(options_.selected), motion_scheme.fast_spatial()),
-      selected_(options_.selected ? 1.0 : 0.0, motion_scheme.default_effects()),
-      state_layer_(0.0, motion_scheme.fast_effects()) {}
+      dot_radius_(target_dot(options_.selected), current_style().motion.fast_spatial()),
+      selected_(options_.selected ? 1.0 : 0.0, current_style().motion.default_effects()),
+      state_layer_(0.0, current_style().motion.fast_effects()) {}
 
 double RadioButton::width() const {
     return t().state_layer_size;

@@ -28,7 +28,7 @@ constexpr bool activates(const input::KeyEvent& e, KeyActivation keys) {
 
 class FocusIndicator {
 public:
-    FocusIndicator() : amount_(0.0, tokens::motion_scheme.fast_effects()) {}
+    FocusIndicator() : amount_(0.0, current_style().motion.fast_effects()) {}
 
     void set_color(std::optional<color::Role> role) { color_ = role; }
 
@@ -44,7 +44,7 @@ public:
     }
     bool activates(const input::KeyEvent& e, KeyActivation keys) const { return focused_ && widgets::activates(e, keys); }
     double state_layer_opacity(double pointer_opacity) const {
-        return focused_ ? std::max(pointer_opacity, tokens::state_layer_opacity::focus) : pointer_opacity;
+        return focused_ ? std::max(pointer_opacity, current_style().state_layer.focus) : pointer_opacity;
     }
 
     void step(double dt_seconds) { amount_.step(dt_seconds); }

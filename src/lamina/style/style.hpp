@@ -10,20 +10,24 @@
 #include "lamina/tokens/checkbox.hpp"
 #include "lamina/tokens/chip.hpp"
 #include "lamina/tokens/date_picker.hpp"
+#include "lamina/tokens/density.hpp"
 #include "lamina/tokens/dialog.hpp"
 #include "lamina/tokens/divider.hpp"
 #include "lamina/tokens/drag.hpp"
 #include "lamina/tokens/drag_handle.hpp"
+#include "lamina/tokens/elevation.hpp"
 #include "lamina/tokens/fab.hpp"
 #include "lamina/tokens/fab_menu.hpp"
 #include "lamina/tokens/floating_toolbar.hpp"
 #include "lamina/tokens/focus.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/tokens/icon_button.hpp"
+#include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/list.hpp"
 #include "lamina/tokens/loading_indicator.hpp"
 #include "lamina/tokens/menu.hpp"
 #include "lamina/tokens/menu_bar.hpp"
+#include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/navigation_bar.hpp"
 #include "lamina/tokens/navigation_drawer.hpp"
 #include "lamina/tokens/navigation_rail.hpp"
@@ -39,6 +43,7 @@
 #include "lamina/tokens/scroll_area.hpp"
 #include "lamina/tokens/search.hpp"
 #include "lamina/tokens/segmented_button.hpp"
+#include "lamina/tokens/shape.hpp"
 #include "lamina/tokens/side_navigation.hpp"
 #include "lamina/tokens/side_sheet.hpp"
 #include "lamina/tokens/slider.hpp"
@@ -53,6 +58,7 @@
 #include "lamina/tokens/title_bar.hpp"
 #include "lamina/tokens/tooltip.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
+#include "lamina/tokens/typography.hpp"
 #include "lamina/tokens/wavy_progress.hpp"
 #include "lamina/tokens/zoom.hpp"
 
@@ -86,7 +92,7 @@ struct Style {
     tokens::PagerTokens pager = tokens::pager;
     tokens::FloatingToolbarTokens floating_toolbar = tokens::floating_toolbar_tokens;
     tokens::FlexibleBottomAppBarTokens flexible_bottom_app_bar = tokens::flexible_bottom_app_bar_tokens;
-    
+
     tokens::OutlinedTextFieldTokens text_field = tokens::outlined_text_field;
     tokens::NumericFieldTokens numeric_field = tokens::numeric_field_tokens;
     tokens::CheckboxTokens checkbox = tokens::checkbox_tokens;
@@ -103,7 +109,7 @@ struct Style {
     tokens::TimePickerColors time_picker_colors = tokens::time_picker_colors;
     tokens::TimePickerMotion time_picker_motion = tokens::time_picker_motion;
     tokens::PickerDialogTokens picker_dialog = tokens::picker_dialog_tokens;
-    
+
     tokens::BottomSheetTokens bottom_sheet = tokens::bottom_sheet_tokens;
     tokens::SheetMotion bottom_sheet_motion = tokens::bottom_sheet_motion;
     tokens::SideSheetTokens side_sheet = tokens::side_sheet_tokens;
@@ -119,14 +125,14 @@ struct Style {
     tokens::SnackbarTokens snackbar = tokens::snackbar_tokens;
     tokens::DragHandleTokens drag_handle = tokens::drag_handle_tokens;
     tokens::AccessKeyTokens access_key = tokens::access_key_tokens;
-    
+
     tokens::ListTokens list = tokens::list_tokens;
     tokens::TableTokens table = tokens::table_tokens;
     tokens::DividerTokens divider = tokens::divider_tokens;
     tokens::CardSet card;
     tokens::BadgeTokens badge = tokens::badge_tokens;
     tokens::ScrollAreaTokens scroll_area = tokens::scroll_area_tokens;
-    
+
     tokens::CircularProgressTokens circular_progress = tokens::circular_progress_tokens;
     tokens::CircularIndeterminateTokens circular_indeterminate = tokens::circular_indeterminate;
     tokens::LinearIndeterminateTokens linear_indeterminate = tokens::linear_indeterminate;
@@ -135,10 +141,20 @@ struct Style {
     tokens::LoadingIndicatorSet loading_indicator;
     tokens::PullToRefreshTokens pull_to_refresh = tokens::pull_to_refresh_tokens;
     tokens::PullArrowTokens pull_arrow = tokens::pull_arrow_tokens;
-    
+
     tokens::FocusIndicatorTokens focus_indicator = tokens::focus_indicator;
     tokens::GestureTokens gesture;
     tokens::ZoomTokens zoom = tokens::zoom;
+
+    tokens::ShapeTokens shape = tokens::shape_tokens;
+    tokens::TypeTokens type = tokens::type_tokens;
+    tokens::MotionScheme motion = tokens::motion_scheme;
+    tokens::ElevationTokens elevation = tokens::elevation_tokens;
+    tokens::StateLayerTokens state_layer;
+    tokens::InteractionTokens interaction;
+    tokens::DensityTokens density = tokens::density_tokens;
+
+    double minimum_target(tokens::Density d) const { return density.minimum_target(d, interaction.minimum_interactive_size); }
 };
 
 const Style& m3_expressive_style();

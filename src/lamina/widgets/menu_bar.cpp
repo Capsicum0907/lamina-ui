@@ -14,7 +14,6 @@ namespace {
 const tokens::MenuBarTokens& t() {
     return current_style().menu_bar;
 }
-using tokens::motion_scheme;
 
 }
 
@@ -41,7 +40,7 @@ void sync_commands(Menu& menu, const ShortcutRegistry& commands) {
 MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(required_name(options.accessible_name, "a menu bar")), commands_(options.commands),
       density_(options.density) {
-    const auto style = tokens::text_style(tokens::type_style(t().label));
+    const auto style = current_style().type.text(t().label);
     double x = t().start_padding;
     for (MenuBarMenu& spec : options.menus) {
         text::TextLine label = text::layout_line(fonts_, spec.label, style);
@@ -59,15 +58,15 @@ MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
             MenuOptions{std::move(spec.items), spec.label, density_, options.icon_font, options.shortcut_format}, fonts_));
         names_.push_back(spec.label);
         access_keys_.push_back(key);
-        items_.push_back({std::move(label), std::move(access), x, w, {}, motion::Animated(0.0, motion_scheme.fast_effects()),
-                          motion::Animated(0.0, motion_scheme.default_effects())});
+        items_.push_back({std::move(label), std::move(access), x, w, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
+                          motion::Animated(0.0, current_style().motion.default_effects())});
         x += w;
     }
     width_ = x + t().start_padding;
 }
 
 double MenuBar::height() const {
-    return tokens::density_tokens.menu_bar.at(density_);
+    return current_style().density.menu_bar.at(density_);
 }
 
 render::Rect MenuBar::item_rect(std::size_t index) const {
@@ -124,7 +123,7 @@ void MenuBar::retarget() {
     for (std::size_t i = 0; i < items_.size(); ++i) {
         double target = items_[i].press.state_layer_opacity();
         if (active_ && !open_ && highlight_ == i) {
-            target = std::max(target, tokens::state_layer_opacity::focus);
+            target = std::max(target, current_style().state_layer.focus);
         }
         items_[i].state_layer.animate_to(target);
         items_[i].open.animate_to(open_ == i ? 1.0 : 0.0);
@@ -382,7 +381,7 @@ void MenuBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const render::Rect r = item_rect(i);
-        const render::CornerRadii radii = render::uniform_radii(tokens::corner_radius(t().item_corner, r.width, r.height));
+        const render::CornerRadii radii = render::uniform_radii(current_style().shape.radius(t().item_corner, r.width, r.height));
         const double open = std::clamp(item.open.value(), 0.0, 1.0);
         if (open > 0.0) {
             canvas.fill_path(render::rounded_rect_path(r, radii), color::with_alpha(scheme[t().open_container], open));

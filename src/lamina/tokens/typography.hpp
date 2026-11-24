@@ -96,20 +96,37 @@ inline constexpr std::array<int, base_type_role_count> emphasized_weight{
     font_weight::bold, font_weight::bold, font_weight::bold,
 };
 
-constexpr TypeStyle type_style(TypeRole role, bool emphasized = false) {
-    const auto i = static_cast<std::size_t>(base_role(role));
-    TypeStyle style = type_scale[i];
-    if (emphasized || is_emphasized(role)) {
-        style.weight = emphasized_weight[i];
-    }
-    return style;
-}
-
 inline constexpr double tab_width_spaces = 4.0;
 inline constexpr std::string_view ellipsis = "\xe2\x80\xa6";
 
+struct TypeTokens {
+    std::array<TypeStyle, base_type_role_count> scale = type_scale;
+    std::array<int, base_type_role_count> emphasized_weights = emphasized_weight;
+    double tab_width = tab_width_spaces;
+    std::string_view ellipsis = tokens::ellipsis;
+
+    constexpr TypeStyle style(TypeRole role, bool emphasized = false) const {
+        const auto i = static_cast<std::size_t>(base_role(role));
+        TypeStyle s = scale[i];
+        if (emphasized || is_emphasized(role)) {
+            s.weight = emphasized_weights[i];
+        }
+        return s;
+    }
+
+    constexpr text::TextStyle text_style(const TypeStyle& t) const { return {t.size_sp, t.line_height_sp, t.weight, t.tracking_sp, tab_width}; }
+
+    constexpr text::TextStyle text(TypeRole role) const { return text_style(style(role)); }
+};
+
+inline constexpr TypeTokens type_tokens{};
+
+constexpr TypeStyle type_style(TypeRole role, bool emphasized = false) {
+    return type_tokens.style(role, emphasized);
+}
+
 constexpr text::TextStyle text_style(const TypeStyle& t) {
-    return {t.size_sp, t.line_height_sp, t.weight, t.tracking_sp, tab_width_spaces};
+    return type_tokens.text_style(t);
 }
 
 }

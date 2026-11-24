@@ -16,19 +16,19 @@ const tokens::ListTokens& t() {
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 const tokens::DenseLength& line_density(ListLines lines) {
     switch (lines) {
     case ListLines::three:
-        return tokens::density_tokens.list_three_line;
+        return current_style().density.list_three_line;
     case ListLines::two:
-        return tokens::density_tokens.list_two_line;
+        return current_style().density.list_two_line;
     case ListLines::one:
         break;
     }
-    return tokens::density_tokens.list_one_line;
+    return current_style().density.list_one_line;
 }
 
 double min_height(ListLines lines, tokens::Density density) {
@@ -258,7 +258,7 @@ double ListItem::target_corner() const {
     } else if (interactive() && spec_.selected) {
         c = t().selected_corner;
     }
-    return tokens::corner_radius_dp[static_cast<std::size_t>(c)];
+    return current_style().shape.radius_dp[static_cast<std::size_t>(c)];
 }
 
 void ListItem::retarget() {
@@ -402,7 +402,7 @@ void ListItem::paint_slot(render::Canvas& canvas, const color::ColorScheme& sche
     }
     case ListSlotKind::image: {
         const double fade = enabled_.amount() + (1.0 - enabled_.amount()) * t().disabled_content.opacity;
-        canvas.push_clip(render::rounded_rect_path(r, render::uniform_radii(tokens::corner_radius(t().image_corner, r.width, r.height))));
+        canvas.push_clip(render::rounded_rect_path(r, render::uniform_radii(current_style().shape.radius(t().image_corner, r.width, r.height))));
         canvas.draw_image(*s.image, r, fade);
         canvas.pop_clip();
         return;

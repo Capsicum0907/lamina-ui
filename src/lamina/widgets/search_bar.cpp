@@ -151,12 +151,12 @@ render::Rect SearchBar::results_rect() const {
 
 double SearchBar::corner_radius() const {
     if (!showing_view()) {
-        return tokens::corner_radius(t().collapsed_shape, collapsed_.width, collapsed_.height);
+        return current_style().shape.radius(t().collapsed_shape, collapsed_.width, collapsed_.height);
     }
     if (full_screen()) {
-        return tokens::corner_radius(t().collapsed_shape, collapsed_.width, collapsed_.height) * (1.0 - progress());
+        return current_style().shape.radius(t().collapsed_shape, collapsed_.width, collapsed_.height) * (1.0 - progress());
     }
-    return tokens::corner_radius(t().docked_shape, collapsed_.width, collapsed_.height);
+    return current_style().shape.radius(t().docked_shape, collapsed_.width, collapsed_.height);
 }
 
 void SearchBar::place() {

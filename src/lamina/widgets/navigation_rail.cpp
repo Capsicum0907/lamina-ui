@@ -17,7 +17,6 @@ namespace {
 const tokens::NavigationRailTokens& t() {
     return current_style().navigation_rail;
 }
-using tokens::motion_scheme;
 
 }
 
@@ -25,22 +24,22 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
     : options_(std::move(options)),
       fonts_(fonts),
       badges_(options_.items, fonts_),
-      min_width_(options_.expanded ? t().expanded_min_width : collapsed_width(), motion_scheme.default_spatial()),
-      full_width_(options_.expanded ? t().expanded_max_width : collapsed_width(), motion_scheme.default_spatial()),
-      item_space_(options_.expanded ? t().expanded_item_space : t().collapsed_item_space, motion_scheme.default_spatial()),
-      item_min_height_(item_min_height(options_.expanded), motion_scheme.default_spatial()),
-      labels_(options_.labels ? 1.0 : 0.0, motion_scheme.default_spatial()),
+      min_width_(options_.expanded ? t().expanded_min_width : collapsed_width(), current_style().motion.default_spatial()),
+      full_width_(options_.expanded ? t().expanded_max_width : collapsed_width(), current_style().motion.default_spatial()),
+      item_space_(options_.expanded ? t().expanded_item_space : t().collapsed_item_space, current_style().motion.default_spatial()),
+      item_min_height_(item_min_height(options_.expanded), current_style().motion.default_spatial()),
+      labels_(options_.labels ? 1.0 : 0.0, current_style().motion.default_spatial()),
       max_width_(t().expanded_max_width) {
-    const auto top_style = tokens::text_style(tokens::type_style(t().top_label));
-    const auto start_style = tokens::text_style(tokens::type_style(t().start_label));
+    const auto top_style = current_style().type.text(t().top_label);
+    const auto start_style = current_style().type.text(t().start_label);
     const double mode = options_.expanded ? 1.0 : 0.0;
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         const double on = i == options_.selected ? 1.0 : 0.0;
         items_.push_back({text::layout_line(fonts_, options_.items[i].label, top_style),
                           text::layout_line(fonts_, options_.items[i].label, start_style), {},
-                          motion::Animated(0.0, motion_scheme.fast_effects()),
-                          motion::Animated(on, motion_scheme.default_spatial()), motion::Animated(mode, motion_scheme.default_spatial()),
-                          motion::Animated(on, motion_scheme.default_effects()), motion::Animated(mode, motion_scheme.default_effects()),
+                          motion::Animated(0.0, current_style().motion.fast_effects()),
+                          motion::Animated(on, current_style().motion.default_spatial()), motion::Animated(mode, current_style().motion.default_spatial()),
+                          motion::Animated(on, current_style().motion.default_effects()), motion::Animated(mode, current_style().motion.default_effects()),
                           Enablement(options_.items[i].enabled), options_.items[i].enabled});
     }
     update_width();
@@ -48,14 +47,14 @@ NavigationRail::NavigationRail(NavigationRailOptions options, const text::FontSt
 
 double NavigationRail::item_min_height(bool expanded) const {
     if (expanded) {
-        return std::min(t().expanded_item_min_height, tokens::density_tokens.rail_expanded_item.at(options_.density));
+        return std::min(t().expanded_item_min_height, current_style().density.rail_expanded_item.at(options_.density));
     }
-    return tokens::density_tokens.rail_collapsed_item.at(options_.density);
+    return current_style().density.rail_collapsed_item.at(options_.density);
 }
 
 double NavigationRail::icon_only_item_min_height() const {
-    const tokens::DenseLength& l = tokens::density_tokens.rail_collapsed_item;
-    return std::max(tokens::minimum_interactive_size, t().icon_only_item_min_height - (l.base - l.at(options_.density)));
+    const tokens::DenseLength& l = current_style().density.rail_collapsed_item;
+    return std::max(current_style().interaction.minimum_interactive_size, t().icon_only_item_min_height - (l.base - l.at(options_.density)));
 }
 
 double NavigationRail::collapsed_width() const {
@@ -84,7 +83,7 @@ NavigationRail::Geometry NavigationRail::geometry(std::size_t index, double item
     const double top_label_h = shown * (t().top_icon_label_space + lh);
 
     const double pad_h = motion::lerp((t().top_indicator_width - icon) / 2.0, t().start_indicator_leading_space, pd);
-    const double start_indicator = tokens::density_tokens.rail_expanded_item.at(options_.density);
+    const double start_indicator = current_style().density.rail_expanded_item.at(options_.density);
     const double pad_v = motion::lerp((t().top_indicator_height - icon) / 2.0, (start_indicator - icon) / 2.0, pd);
     const double ripple_w = motion::lerp(icon, icon + lw + t().start_icon_label_space, p) + 2.0 * pad_h;
     const double ripple_h = motion::lerp(icon, std::max(icon, lh), p) + 2.0 * pad_v;

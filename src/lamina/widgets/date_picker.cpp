@@ -23,7 +23,7 @@ const tokens::DatePickerMotion& m() {
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 color::Argb dim(color::Argb c, double enabled) {
@@ -226,7 +226,7 @@ render::Rect DatePicker::menu_button_rect() const {
 }
 
 void DatePicker::place_children() {
-    const double slot = tokens::minimum_interactive_size;
+    const double slot = current_style().interaction.minimum_interactive_size;
     const double right = origin_.x + t().container_width - t().horizontal_padding;
     const double cy = content_top() + t().navigation_height / 2.0;
     next_button_.set_origin({right - slot / 2.0 - next_button_.width() / 2.0, cy - next_button_.height() / 2.0});
@@ -629,8 +629,8 @@ DatePickerResponse DatePicker::handle(const input::PointerEvent& e) {
             } else if (pe.action == input::PointerAction::leave) {
                 pointer_.pressed_year.reset();
             }
-            pointer_.state_layer.animate_to(pointer_.pressed_year ? tokens::state_layer_opacity::pressed
-                                            : over                ? tokens::state_layer_opacity::hover
+            pointer_.state_layer.animate_to(pointer_.pressed_year ? current_style().state_layer.pressed
+                                            : over                ? current_style().state_layer.hover
                                                                   : 0.0);
             if (contains(area, pe.x_dp, pe.y_dp)) {
                 response.consumed = true;
@@ -680,8 +680,8 @@ DatePickerResponse DatePicker::handle(const input::PointerEvent& e) {
     case input::PointerAction::move:
         break;
     }
-    pointer_.state_layer.animate_to(pointer_.pressed_day ? tokens::state_layer_opacity::pressed
-                                    : over               ? tokens::state_layer_opacity::hover
+    pointer_.state_layer.animate_to(pointer_.pressed_day ? current_style().state_layer.pressed
+                                    : over               ? current_style().state_layer.hover
                                                          : 0.0);
     if (over) {
         response.consumed = true;
@@ -866,7 +866,7 @@ void DatePicker::paint_header(render::Canvas& canvas, const color::ColorScheme& 
     const text::TextLine title_line = text::layout_line(fonts_, title(), style_of(t().title_type));
     text::draw_line(canvas, fonts_, title_line, {origin_.x + t().header_start, origin_.y + t().title_top}, dim(scheme[k().title], e));
     const text::TextLine headline_line = text::layout_line(fonts_, headline(), style_of(t().headline_type));
-    const double slot = tokens::minimum_interactive_size;
+    const double slot = current_style().interaction.minimum_interactive_size;
     const double row_top = origin_.y + t().header_height - slot - t().toggle_bottom;
     const double headline_y = row_top + (slot + t().toggle_bottom - t().headline_bottom - headline_line.box_height()) / 2.0;
     canvas.push_clip({origin_.x + t().header_start, origin_.y, t().container_width - t().header_start - t().header_end - slot, t().header_height});

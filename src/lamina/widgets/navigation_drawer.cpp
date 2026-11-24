@@ -27,7 +27,7 @@ const tokens::DrawerMotion& motion_spec() {
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 constexpr input::PointerEvent left{input::PointerAction::leave, 0.0, 0.0};
@@ -39,7 +39,7 @@ motion::DragThresholds drawer_thresholds() {
 double entry_height(DrawerEntryKind kind, tokens::Density density) {
     switch (kind) {
     case DrawerEntryKind::item:
-        return tokens::density_tokens.drawer_item.at(density);
+        return current_style().density.drawer_item.at(density);
     case DrawerEntryKind::headline:
         return t().headline_height;
     case DrawerEntryKind::divider:
@@ -64,7 +64,7 @@ DrawerSheet::DrawerSheet(DrawerSheetOptions options, const text::FontStack& font
                 0.0,
                 entry_height(e.kind, options_.density),
                 {},
-                motion::Animated(0.0, tokens::motion_scheme.fast_effects()),
+                motion::Animated(0.0, current_style().motion.fast_effects()),
                 motion::Animated(selected ? 1.0 : 0.0, motion_spec().colors),
                 Enablement(e.enabled),
                 e.enabled};
@@ -200,7 +200,7 @@ void DrawerSheet::retarget() {
     for (std::size_t i = 0; i < rows_.size(); ++i) {
         Row& r = rows_[i];
         const double pointer = row_enabled(i) ? r.press.state_layer_opacity() : 0.0;
-        r.state_layer.animate_to(focused() && focus_index_ == i ? std::max(pointer, tokens::state_layer_opacity::focus) : pointer);
+        r.state_layer.animate_to(focused() && focus_index_ == i ? std::max(pointer, current_style().state_layer.focus) : pointer);
     }
 }
 
@@ -326,7 +326,7 @@ void DrawerSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme
 
 void DrawerSheet::paint_container(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& c) const {
     const bool modal = options_.style == DrawerSheetStyle::modal;
-    const render::CornerRadii radii = modal ? tokens::corner_radii(t().modal_shape, c.width, c.height) : render::uniform_radii(0.0);
+    const render::CornerRadii radii = modal ? current_style().shape.radii(t().modal_shape, c.width, c.height) : render::uniform_radii(0.0);
     paint_surface(canvas, c, radii, scheme[modal ? t().modal_container : t().standard_container],
                   modal ? t().modal_elevation : t().standard_elevation, scheme[color::Role::shadow]);
 }
@@ -352,7 +352,7 @@ void DrawerSheet::paint_entries(render::Canvas& canvas, const color::ColorScheme
             continue;
         }
         const render::Rect ir = item_rect(i);
-        const double radius = tokens::corner_radius(t().item_shape, ir.width, ir.height);
+        const double radius = current_style().shape.radius(t().item_shape, ir.width, ir.height);
         const render::CornerRadii radii = render::uniform_radii(radius);
         const double sel = std::clamp(r.selection.value(), 0.0, 1.0);
         if (sel > 0.0) {

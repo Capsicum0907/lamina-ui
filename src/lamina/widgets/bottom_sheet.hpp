@@ -58,7 +58,7 @@ private:
     bool shown_ = false;
     PressState press_;
     FocusIndicator focus_;
-    motion::Animated state_layer_{0.0, tokens::motion_scheme.fast_effects()};
+    motion::Animated state_layer_{0.0, current_style().motion.fast_effects()};
 };
 
 struct BottomSheetOptions {

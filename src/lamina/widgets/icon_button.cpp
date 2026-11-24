@@ -14,17 +14,16 @@ namespace lamina::widgets {
 
 namespace {
 
-using tokens::motion_scheme;
 
 }
 
 IconButton::IconButton(IconButtonOptions options)
     : options_(std::move(options)),
       enabled_(options_.enabled),
-      corner_(0.0, motion_scheme.default_effects()),
-      state_layer_(0.0, motion_scheme.fast_effects()),
-      checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()),
-      icon_fade_(1.0, motion_scheme.fast_effects()) {
+      corner_(0.0, current_style().motion.default_effects()),
+      state_layer_(0.0, current_style().motion.fast_effects()),
+      checked_(options_.checked ? 1.0 : 0.0, current_style().motion.default_effects()),
+      icon_fade_(1.0, current_style().motion.fast_effects()) {
     options_.accessible_name = required_name(std::move(options_.accessible_name), "An icon button");
     corner_.snap_to(target_corner());
 }
@@ -35,7 +34,7 @@ double IconButton::width() const {
 }
 
 double IconButton::height() const {
-    return tokens::icon_button_density(options_.size).at(options_.density);
+    return current_style().density.icon_button_length(options_.size).at(options_.density);
 }
 
 void IconButton::set_density(tokens::Density density) {
@@ -56,7 +55,7 @@ double IconButton::target_corner() const {
     } else if (options_.toggleable && options_.checked) {
         corner = round ? size.selected_round_corner : size.selected_square_corner;
     }
-    return tokens::corner_radius(corner, width(), height());
+    return current_style().shape.radius(corner, width(), height());
 }
 
 void IconButton::retarget() {
@@ -97,11 +96,11 @@ void IconButton::set_enabled(bool enabled) {
 }
 
 std::optional<TargetHit> IconButton::target_hit(const input::PointerEvent& e) const {
-    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, tokens::minimum_target(options_.density));
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, current_style().minimum_target(options_.density));
 }
 
 bool IconButton::hits(const input::PointerEvent& e) const {
-    return contains(hit_area(e, bounds(), tokens::minimum_target(options_.density)), e.x_dp, e.y_dp);
+    return contains(hit_area(e, bounds(), current_style().minimum_target(options_.density)), e.x_dp, e.y_dp);
 }
 
 bool IconButton::handle(const input::PointerEvent& e) {
@@ -109,7 +108,7 @@ bool IconButton::handle(const input::PointerEvent& e) {
     if (!enabled()) {
         return false;
     }
-    const bool clicked = press_.update(e, hit_area(e, bounds(), tokens::minimum_target(options_.density)));
+    const bool clicked = press_.update(e, hit_area(e, bounds(), current_style().minimum_target(options_.density)));
     if (clicked && options_.toggleable) {
         options_.checked = !options_.checked;
     }

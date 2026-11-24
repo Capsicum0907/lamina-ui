@@ -64,6 +64,10 @@ struct DensityTokens {
     DenseLength table_row;
     DenseLength table_header;
     double dense_minimum_target;
+
+    constexpr double minimum_target(Density d, double minimum_interactive) const { return d.dense() ? dense_minimum_target : minimum_interactive; }
+    constexpr const DenseLength& button_length(ButtonSize s) const { return button[static_cast<std::size_t>(s)]; }
+    constexpr const DenseLength& icon_button_length(IconButtonSize s) const { return icon_button[static_cast<std::size_t>(s)]; }
 };
 
 inline constexpr DensityTokens density_tokens{
@@ -102,15 +106,15 @@ inline constexpr DensityTokens density_tokens{
 };
 
 constexpr double minimum_target(Density d) {
-    return d.dense() ? density_tokens.dense_minimum_target : minimum_interactive_size;
+    return density_tokens.minimum_target(d, minimum_interactive_size);
 }
 
 constexpr const DenseLength& button_density(ButtonSize s) {
-    return density_tokens.button[static_cast<std::size_t>(s)];
+    return density_tokens.button_length(s);
 }
 
 constexpr const DenseLength& icon_button_density(IconButtonSize s) {
-    return density_tokens.icon_button[static_cast<std::size_t>(s)];
+    return density_tokens.icon_button_length(s);
 }
 
 }

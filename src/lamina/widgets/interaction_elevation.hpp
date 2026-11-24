@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "lamina/motion/tween.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/elevation.hpp"
 
 namespace lamina::widgets {
@@ -40,7 +41,7 @@ public:
         if (now == before) {
             return;
         }
-        const tokens::ElevationTweens& t = tokens::elevation_tweens;
+        const tokens::ElevationTweens& t = current_style().elevation.tweens;
         if (now) {
             elevation_.animate_to(target(), t.incoming);
         } else if (before) {

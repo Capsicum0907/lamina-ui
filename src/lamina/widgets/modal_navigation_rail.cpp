@@ -224,7 +224,7 @@ void ModalNavigationRail::paint(render::Canvas& canvas, const color::ColorScheme
     const render::Rect b = rail_.bounds();
     const double stretch = options_.hide_on_collapse ? std::max(0.0, b.x - slot_.x) : 0.0;
     const render::Rect container{b.x - stretch, b.y, b.width + stretch, b.height};
-    const double radius = tokens::corner_radius(t().expanded_shape, container.width, container.height);
+    const double radius = current_style().shape.radius(t().expanded_shape, container.width, container.height);
     canvas.fill_path(render::rounded_rect_path(container, render::uniform_radii(radius)), scheme[t().container]);
     rail_.paint_items(canvas, scheme);
     canvas.pop_clip();

@@ -12,6 +12,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
 #include "lamina/tokens/menu_bar.hpp"
@@ -119,7 +120,7 @@ private:
     std::size_t ring_ = 0;
     bool active_ = false;
     bool drag_open_ = false;
-    motion::Animated access_keys_fade_{0.0, tokens::motion_scheme.fast_effects()};
+    motion::Animated access_keys_fade_{0.0, current_style().motion.fast_effects()};
     FocusIndicator focus_;
     Enablement enabled_;
     tokens::Density density_{};

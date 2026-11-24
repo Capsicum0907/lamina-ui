@@ -16,7 +16,6 @@ namespace lamina::widgets {
 
 namespace {
 
-using tokens::motion_scheme;
 
 }
 
@@ -29,15 +28,15 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
       label_(text::layout_line(fonts, options_.label,
-                               tokens::text_style(tokens::type_style(current_style().button.size(options_.size).label)))),
+                               current_style().type.text(current_style().button.size(options_.size).label))),
       width_(0.0),
-      height_(tokens::button_density(options_.size).at(options_.density)),
+      height_(current_style().density.button_length(options_.size).at(options_.density)),
       enabled_(options_.enabled),
-      press_amount_(0.0, motion_scheme.default_effects()),
-      squareness_(options_.shape == tokens::ButtonShape::square ? 1.0 : 0.0, motion_scheme.fast_spatial()),
-      icon_fade_(1.0, motion_scheme.fast_effects()),
-      state_layer_(0.0, motion_scheme.fast_effects()),
-      elevation_(0.0, motion_scheme.default_effects()),
+      press_amount_(0.0, current_style().motion.default_effects()),
+      squareness_(options_.shape == tokens::ButtonShape::square ? 1.0 : 0.0, current_style().motion.fast_spatial()),
+      icon_fade_(1.0, current_style().motion.fast_effects()),
+      state_layer_(0.0, current_style().motion.fast_effects()),
+      elevation_(0.0, current_style().motion.default_effects()),
       checked_amount_(options_.toggle && options_.toggle->checked ? 1.0 : 0.0, current_style().button.toggle_motion.colors),
       border_(1.0, current_style().button.toggle_motion.border_width) {
     if (options_.toggle && options_.toggle->checked_colors && !current_style().button.toggle_style(options_.style)) {
@@ -83,7 +82,7 @@ double Button::min_width() const {
         return intrinsic_width();
     }
     const ButtonPadding pad = padding();
-    const double mark = text::layout_line(fonts_, tokens::ellipsis, label_.style).width;
+    const double mark = text::layout_line(fonts_, current_style().type.ellipsis, label_.style).width;
     return std::max(options_.min_width.value_or(current_style().button.min_width), pad.leading + content_width_for(std::min(label_.width, mark)) + pad.trailing);
 }
 
@@ -99,13 +98,13 @@ void Button::fit_label() {
     label_room_ = room;
     ellipsized_ = width_ < pad.leading + content_width_for(label_.width) + pad.trailing;
     if (ellipsized_) {
-        shown_ = text::ellipsize_line(fonts_, options_.label, label_.style, room, tokens::ellipsis);
+        shown_ = text::ellipsize_line(fonts_, options_.label, label_.style, room, current_style().type.ellipsis);
     }
 }
 
 void Button::set_label(std::string label) {
     options_.label = std::move(label);
-    label_ = text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(current_style().button.size(options_.size).label)));
+    label_ = text::layout_line(fonts_, options_.label, current_style().type.text(current_style().button.size(options_.size).label));
     ellipsized_ = false;
     label_room_ = -1.0;
     if (!sized_) {
@@ -152,7 +151,7 @@ void Button::set_size(double width, double height) {
 void Button::set_density(tokens::Density density) {
     options_.density = density;
     if (!sized_) {
-        height_ = tokens::button_density(options_.size).at(density);
+        height_ = current_style().density.button_length(options_.size).at(density);
     }
 }
 
@@ -236,12 +235,12 @@ void Button::activate() {
 }
 
 double Button::rest_corner() const {
-    const double square = tokens::corner_radius(current_style().button.size(options_.size).square_corner, width_, height());
+    const double square = current_style().shape.radius(current_style().button.size(options_.size).square_corner, width_, height());
     return motion::lerp(height() / 2.0, square, squareness_.value());
 }
 
 double Button::pressed_corner() const {
-    return tokens::corner_radius(current_style().button.size(options_.size).pressed_corner, width_, height());
+    return current_style().shape.radius(current_style().button.size(options_.size).pressed_corner, width_, height());
 }
 
 double Button::corner() const {
@@ -255,7 +254,7 @@ double Button::target_state_layer() const {
 
 double Button::target_elevation() const {
     const auto& style = current_style().button.style(options_.style);
-    return enabled() ? state_elevation(style, press_) : tokens::elevation_dp[style.disabled_elevation];
+    return enabled() ? state_elevation(style, press_) : current_style().elevation.levels[style.disabled_elevation];
 }
 
 void Button::retarget() {
@@ -284,11 +283,11 @@ void Button::set_enabled(bool enabled) {
 }
 
 std::optional<TargetHit> Button::target_hit(const input::PointerEvent& e) const {
-    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, tokens::minimum_target(options_.density));
+    return widgets::target_hit(bounds(), e.x_dp, e.y_dp, current_style().minimum_target(options_.density));
 }
 
 bool Button::hits(const input::PointerEvent& e) const {
-    return contains(hit_area(e, bounds(), tokens::minimum_target(options_.density)), e.x_dp, e.y_dp);
+    return contains(hit_area(e, bounds(), current_style().minimum_target(options_.density)), e.x_dp, e.y_dp);
 }
 
 bool Button::handle(const input::PointerEvent& e) {
@@ -296,7 +295,7 @@ bool Button::handle(const input::PointerEvent& e) {
     if (!enabled()) {
         return false;
     }
-    const bool clicked = press_.update(e, hit_area(e, bounds(), tokens::minimum_target(options_.density)));
+    const bool clicked = press_.update(e, hit_area(e, bounds(), current_style().minimum_target(options_.density)));
     if (clicked) {
         activate();
     }

@@ -32,7 +32,7 @@ Table::Table(TableOptions options, const text::FontStack& fonts)
     if (!cell_) {
         throw std::invalid_argument("a table needs a cell function");
     }
-    const auto style = tokens::text_style(tokens::type_style(t().header_label));
+    const auto style = current_style().type.text(t().header_label);
     for (TableColumn& c : options.columns) {
         if (c.sortable && !icon_font_) {
             throw std::invalid_argument("a table with a sortable column needs an icon font for the sort arrow");
@@ -44,11 +44,11 @@ Table::Table(TableOptions options, const text::FontStack& fonts)
 }
 
 double Table::row_height() const {
-    return tokens::density_tokens.table_row.at(density_);
+    return current_style().density.table_row.at(density_);
 }
 
 double Table::header_height() const {
-    return tokens::density_tokens.table_header.at(density_);
+    return current_style().density.table_header.at(density_);
 }
 
 render::Rect Table::header_rect() const {
@@ -329,7 +329,7 @@ Table::RowState& Table::row_state(std::size_t model_row) {
 void Table::retarget_rows() {
     for (auto& [model, state] : rows_) {
         state.selected.animate_to(selected_[model] ? 1.0 : 0.0);
-        state.state_layer.animate_to(hovered_model_ == model ? tokens::state_layer_opacity::hover : 0.0);
+        state.state_layer.animate_to(hovered_model_ == model ? current_style().state_layer.hover : 0.0);
     }
 }
 
@@ -340,7 +340,7 @@ std::size_t Table::page_rows() const {
 const std::vector<text::TextLine>& Table::cells(std::size_t model_row) const {
     auto it = cache_.find(model_row);
     if (it == cache_.end()) {
-        const auto style = tokens::text_style(tokens::type_style(t().cell_label));
+        const auto style = current_style().type.text(t().cell_label);
         std::vector<text::TextLine> lines;
         for (std::size_t c = 0; c < columns_.size(); ++c) {
             lines.push_back(text::layout_line(fonts_, cell_(model_row, c), style));

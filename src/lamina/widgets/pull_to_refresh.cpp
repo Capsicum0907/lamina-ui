@@ -374,7 +374,7 @@ void PullToRefresh::paint(render::Canvas& canvas, const color::ColorScheme& sche
     canvas.push_clip(area_);
     if (options_.style == PullIndicatorStyle::arrow) {
         const tokens::PullArrowTokens& k = *options_.arrow_tokens;
-        paint_surface(canvas, r, tokens::corner_radius(t().container_shape, size, size), scheme[k.container], tokens::elevation_dp[k.elevation_level],
+        paint_surface(canvas, r, current_style().shape.radius(t().container_shape, size, size), scheme[k.container], current_style().elevation.levels[k.elevation_level],
                       scheme[t().shadow]);
         canvas.translate(r.x, r.y);
         const double mix = std::clamp(spinner_mix_.value(), 0.0, 1.0);
@@ -388,8 +388,8 @@ void PullToRefresh::paint(render::Canvas& canvas, const color::ColorScheme& sche
         canvas.restore();
         return;
     }
-    paint_surface(canvas, r, tokens::corner_radius(t().container_shape, size, size), scheme[t().container],
-                  tokens::elevation_dp[t().elevation_level], scheme[t().shadow]);
+    paint_surface(canvas, r, current_style().shape.radius(t().container_shape, size, size), scheme[t().container],
+                  current_style().elevation.levels[t().elevation_level], scheme[t().shadow]);
     canvas.translate(r.x + size / 2.0, r.y + size / 2.0);
     canvas.rotate(turn_ * std::numbers::pi / 180.0);
     canvas.scale(indicator_scale());

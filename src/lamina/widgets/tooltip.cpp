@@ -23,14 +23,13 @@ const tokens::PlainTooltipTokens& plain() {
 const tokens::RichTooltipTokens& rich() {
     return current_style().rich_tooltip;
 }
-using tokens::motion_scheme;
 
 double fit(double v, double lo, double hi) {
     return std::clamp(v, lo, std::max(lo, hi));
 }
 
 double lines_height(const Label& label, tokens::TypeRole role) {
-    return static_cast<double>(std::max<std::size_t>(1, label.line_count())) * tokens::type_style(role).line_height_sp;
+    return static_cast<double>(std::max<std::size_t>(1, label.line_count())) * current_style().type.style(role).line_height_sp;
 }
 
 ButtonOptions action_options(std::string label) {
@@ -82,7 +81,7 @@ Tooltip::Tooltip(TooltipOptions options, const text::FontStack& fonts)
              options_.kind == TooltipKind::rich ? rich().text_color : plain().content, true},
             fonts),
       title_({options_.title, rich().title, rich().title_color, true}, fonts),
-      popup_(t().closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+      popup_(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects()) {
     if (options_.kind == TooltipKind::rich && !options_.action_label.empty()) {
         action_.emplace(action_options(options_.action_label), fonts);
     }
@@ -355,9 +354,9 @@ void Tooltip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
     popup_.scale_about(canvas, {r.x + r.width / 2.0, r.y + r.height / 2.0});
     const bool is_rich = options_.kind == TooltipKind::rich;
     const color::Argb container = s[is_rich ? rich().container : plain().container];
-    const double radius = tokens::corner_radius(is_rich ? rich().corner : plain().corner, r.width, r.height);
+    const double radius = current_style().shape.radius(is_rich ? rich().corner : plain().corner, r.width, r.height);
     if (is_rich) {
-        paint_surface(canvas, r, radius, container, tokens::elevation_dp[rich().elevation], s[color::Role::shadow]);
+        paint_surface(canvas, r, radius, container, current_style().elevation.levels[rich().elevation], s[color::Role::shadow]);
     } else {
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), container);
     }

@@ -14,16 +14,15 @@ namespace lamina::widgets {
 
 namespace {
 
-using tokens::motion_scheme;
 
 constexpr std::array<TitleBarAction, 3> button_order{TitleBarAction::minimize, TitleBarAction::toggle_maximize, TitleBarAction::close};
 
 double resting_corner() {
-    return tokens::corner_radius(current_style().title_bar.indicator_corner, current_style().title_bar.indicator_width, current_style().title_bar.indicator_height);
+    return current_style().shape.radius(current_style().title_bar.indicator_corner, current_style().title_bar.indicator_width, current_style().title_bar.indicator_height);
 }
 
 double pressed_corner() {
-    return tokens::corner_radius(current_style().title_bar.pressed_corner, current_style().title_bar.indicator_width, current_style().title_bar.indicator_height);
+    return current_style().shape.radius(current_style().title_bar.pressed_corner, current_style().title_bar.indicator_width, current_style().title_bar.indicator_height);
 }
 
 }
@@ -32,11 +31,11 @@ TitleBar::TitleBar(TitleBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       title_({options_.title, current_style().title_bar.title, current_style().title_bar.title_color, false}, fonts),
       buttons_{{
-          {button_order[0], {}, {0.0, motion_scheme.fast_effects()}, {0.0, motion_scheme.fast_effects()}, {resting_corner(), motion_scheme.fast_spatial()}},
-          {button_order[1], {}, {0.0, motion_scheme.fast_effects()}, {0.0, motion_scheme.fast_effects()}, {resting_corner(), motion_scheme.fast_spatial()}},
-          {button_order[2], {}, {0.0, motion_scheme.fast_effects()}, {0.0, motion_scheme.fast_effects()}, {resting_corner(), motion_scheme.fast_spatial()}},
+          {button_order[0], {}, {0.0, current_style().motion.fast_effects()}, {0.0, current_style().motion.fast_effects()}, {resting_corner(), current_style().motion.fast_spatial()}},
+          {button_order[1], {}, {0.0, current_style().motion.fast_effects()}, {0.0, current_style().motion.fast_effects()}, {resting_corner(), current_style().motion.fast_spatial()}},
+          {button_order[2], {}, {0.0, current_style().motion.fast_effects()}, {0.0, current_style().motion.fast_effects()}, {resting_corner(), current_style().motion.fast_spatial()}},
       }},
-      active_(1.0, motion_scheme.default_effects()) {}
+      active_(1.0, current_style().motion.default_effects()) {}
 
 AccessibleNode TitleBar::accessible() const {
     AccessibleNode bar{AccessibleRole::title_bar, title_.text(), bounds()};
@@ -144,7 +143,7 @@ void TitleBar::paint_button(render::Canvas& canvas, const color::ColorScheme& sc
         content = color::mix(content, scheme[current_style().title_bar.close_icon], k);
         fill = color::scale_alpha(scheme[current_style().title_bar.close_container], k);
         if (b.press.pressed) {
-            fill = color::state_layer(fill, scheme[current_style().title_bar.close_icon], tokens::state_layer_opacity::pressed);
+            fill = color::state_layer(fill, scheme[current_style().title_bar.close_icon], current_style().state_layer.pressed);
         }
     } else {
         fill = color::state_layer(0, scheme[current_style().title_bar.state_layer], b.state_layer.value());

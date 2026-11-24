@@ -15,7 +15,7 @@ const tokens::BadgeTokens& t() {
 }
 
 text::TextStyle label_style() {
-    return tokens::text_style(tokens::type_style(t().label));
+    return current_style().type.text(t().label);
 }
 
 }

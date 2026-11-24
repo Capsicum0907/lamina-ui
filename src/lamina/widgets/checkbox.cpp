@@ -17,10 +17,13 @@ namespace {
 const tokens::CheckboxTokens& t() {
     return current_style().checkbox;
 }
-using tokens::motion_scheme;
 
-constexpr motion::SpringSpec box_in_spring = motion_scheme.default_effects();
-constexpr motion::SpringSpec box_out_spring = motion_scheme.fast_effects();
+motion::SpringSpec box_in_spring() {
+    return current_style().motion.default_effects();
+}
+motion::SpringSpec box_out_spring() {
+    return current_style().motion.fast_effects();
+}
 
 template <std::size_t N>
 void add_polygon(render::Path& path, std::array<render::Point, N> pts) {
@@ -97,10 +100,10 @@ render::Path check_mark_path(const render::Rect& box, double draw_fraction, doub
 Checkbox::Checkbox(CheckboxOptions options)
     : options_(options),
       enabled_(options_.enabled),
-      check_fraction_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, motion_scheme.default_spatial()),
-      gravitation_(options_.state == tokens::CheckboxState::indeterminate ? 1.0 : 0.0, motion_scheme.default_spatial()),
-      checked_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, box_in_spring),
-      state_layer_(0.0, motion_scheme.fast_effects()) {}
+      check_fraction_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, current_style().motion.default_spatial()),
+      gravitation_(options_.state == tokens::CheckboxState::indeterminate ? 1.0 : 0.0, current_style().motion.default_spatial()),
+      checked_(options_.state == tokens::CheckboxState::off ? 0.0 : 1.0, box_in_spring()),
+      state_layer_(0.0, current_style().motion.fast_effects()) {}
 
 double Checkbox::width() const {
     return t().state_layer_size;
@@ -128,12 +131,12 @@ void Checkbox::set_state(tokens::CheckboxState next) {
     const double gravity = next == tokens::CheckboxState::indeterminate ? 1.0 : 0.0;
     if (next == tokens::CheckboxState::off) {
         snap_off_in_ = t().uncheck_snap_delay_seconds;
-        checked_.set_spec(box_out_spring);
+        checked_.set_spec(box_out_spring());
         checked_.animate_to(0.0);
         return;
     }
     snap_off_in_ = -1.0;
-    checked_.set_spec(box_in_spring);
+    checked_.set_spec(box_in_spring());
     checked_.animate_to(1.0);
     check_fraction_.animate_to(1.0);
     if (prev == tokens::CheckboxState::off) {

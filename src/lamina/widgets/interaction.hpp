@@ -6,6 +6,7 @@
 
 #include "lamina/input/events.hpp"
 #include "lamina/render/geometry.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 
 namespace lamina::widgets {
@@ -14,13 +15,13 @@ constexpr bool contains(const render::Rect& r, double x, double y) {
     return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
 }
 
-constexpr render::Rect touch_target(const render::Rect& r, double minimum = tokens::minimum_interactive_size) {
+constexpr render::Rect touch_target(const render::Rect& r, double minimum = current_style().interaction.minimum_interactive_size) {
     const double w = std::max(r.width, minimum);
     const double h = std::max(r.height, minimum);
     return {r.x - (w - r.width) / 2.0, r.y - (h - r.height) / 2.0, w, h};
 }
 
-constexpr render::Rect hit_area(const input::PointerEvent& e, const render::Rect& r, double minimum = tokens::minimum_interactive_size) {
+constexpr render::Rect hit_area(const input::PointerEvent& e, const render::Rect& r, double minimum = current_style().interaction.minimum_interactive_size) {
     return e.margin_claimed ? r : touch_target(r, minimum);
 }
 
@@ -48,7 +49,7 @@ constexpr std::optional<TargetHit> target_hit(const render::Rect& r, const rende
     return TargetHit{false, dx * dx + dy * dy};
 }
 
-constexpr std::optional<TargetHit> target_hit(const render::Rect& r, double x, double y, double minimum = tokens::minimum_interactive_size) {
+constexpr std::optional<TargetHit> target_hit(const render::Rect& r, double x, double y, double minimum = current_style().interaction.minimum_interactive_size) {
     return target_hit(r, touch_target(r, minimum), x, y);
 }
 
@@ -136,9 +137,9 @@ struct PressState {
 
     double state_layer_opacity() const {
         if (pressed) {
-            return tokens::state_layer_opacity::pressed;
+            return current_style().state_layer.pressed;
         }
-        return hovered ? tokens::state_layer_opacity::hover : 0.0;
+        return hovered ? current_style().state_layer.hover : 0.0;
     }
 };
 

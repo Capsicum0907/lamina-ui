@@ -38,8 +38,8 @@ layout::Size Card::measure(const layout::Constraints& c) {
         s = options_.content->measure(c);
     }
     if (options_.clickable) {
-        s.width = std::max(s.width, tokens::minimum_interactive_size);
-        s.height = std::max(s.height, tokens::minimum_interactive_size);
+        s.width = std::max(s.width, current_style().interaction.minimum_interactive_size);
+        s.height = std::max(s.height, current_style().interaction.minimum_interactive_size);
     }
     return c.constrain(s);
 }
@@ -52,7 +52,7 @@ void Card::arrange(const render::Rect& r) {
 }
 
 double Card::radius() const {
-    return tokens::corner_radius(t().corner, rect_.width, rect_.height);
+    return current_style().shape.radius(t().corner, rect_.width, rect_.height);
 }
 
 AccessibleNode Card::accessible() const {

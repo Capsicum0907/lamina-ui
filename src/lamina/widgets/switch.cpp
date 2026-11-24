@@ -15,7 +15,6 @@ namespace {
 const tokens::SwitchTokens& t() {
     return current_style().switch_;
 }
-using tokens::motion_scheme;
 
 double travel() {
     return t().track_width - t().track_height;
@@ -26,10 +25,10 @@ double travel() {
 Switch::Switch(SwitchOptions options)
     : options_(std::move(options)),
       enabled_(options_.enabled),
-      offset_(options_.checked ? travel() : 0.0, motion_scheme.fast_spatial()),
-      thumb_size_(0.0, motion_scheme.fast_spatial()),
-      state_layer_(0.0, motion_scheme.fast_effects()),
-      checked_(options_.checked ? 1.0 : 0.0, motion_scheme.default_effects()) {
+      offset_(options_.checked ? travel() : 0.0, current_style().motion.fast_spatial()),
+      thumb_size_(0.0, current_style().motion.fast_spatial()),
+      state_layer_(0.0, current_style().motion.fast_effects()),
+      checked_(options_.checked ? 1.0 : 0.0, current_style().motion.default_effects()) {
     thumb_size_.snap_to(target_thumb_size());
 }
 

@@ -13,11 +13,11 @@ namespace lamina::widgets {
 ExtendedFab::ExtendedFab(ExtendedFabOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
-      label_(text::layout_line(fonts_, options_.label, tokens::text_style(tokens::type_style(current_style().fab.extended_size(options_.size).label)))),
+      label_(text::layout_line(fonts_, options_.label, current_style().type.text(current_style().fab.extended_size(options_.size).label))),
       width_progress_(options_.expanded ? 1.0 : 0.0, current_style().fab.extended_motion.width),
       label_alpha_(options_.expanded ? 1.0 : 0.0, current_style().fab.extended_motion.label_alpha),
-      state_layer_(0.0, tokens::motion_scheme.fast_effects()),
-      elevation_(0.0, tokens::motion_scheme.default_effects()) {
+      state_layer_(0.0, current_style().motion.fast_effects()),
+      elevation_(0.0, current_style().motion.default_effects()) {
     options_.label = required_name(std::move(options_.label), "An extended FAB");
     elevation_.snap_to(state_elevation(current_style().fab.style(options_.style), press_));
 }
@@ -79,7 +79,7 @@ void ExtendedFab::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const auto& s = current_style().fab.extended_size(options_.size);
     const auto& style = current_style().fab.style(options_.style);
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(s.corner, r.width, r.height);
+    const double radius = current_style().shape.radius(s.corner, r.width, r.height);
     const color::Argb content = scheme[style.content];
     paint_surface(canvas, r, radius, color::state_layer(scheme[style.container], content, state_layer_.value()), elevation_.value(),
                   scheme[color::Role::shadow]);

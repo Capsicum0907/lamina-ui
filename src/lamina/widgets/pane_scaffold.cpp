@@ -853,7 +853,7 @@ void ThreePaneScaffold::paint(render::Canvas& canvas, const color::ColorScheme& 
     }
     if (handle_) {
         const render::Point centre{handle_->x + handle_->width / 2.0, handle_->y + handle_->height / 2.0};
-        handle_painter_.paint(canvas, scheme, centre, enabled_.amount() * (1.0 - tokens::disabled_alpha) + tokens::disabled_alpha);
+        handle_painter_.paint(canvas, scheme, centre, enabled_.amount() * (1.0 - current_style().interaction.disabled_alpha) + current_style().interaction.disabled_alpha);
         const render::Rect pill = handle_painter_.rect(centre);
         focus_.paint(canvas, scheme, pill, handle_painter_.radius(pill));
     }

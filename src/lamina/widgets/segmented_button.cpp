@@ -36,7 +36,7 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
     if (options_.segments.empty()) {
         throw std::invalid_argument("A segmented button row needs at least one segment");
     }
-    const text::TextStyle style = tokens::text_style(tokens::type_style(t().label));
+    const text::TextStyle style = current_style().type.text(t().label);
     bool seen_selected = false;
     segments_.reserve(options_.segments.size());
     for (Segment& spec : options_.segments) {
@@ -61,7 +61,7 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
                                  motion::Animated(shows_icon ? 0.0 : hidden_offset(), m().label_shift), Enablement(allowed && enabled_),
                                  allowed});
     }
-    const double mark = text::layout_line(fonts_, tokens::ellipsis, style).width;
+    const double mark = text::layout_line(fonts_, current_style().type.ellipsis, style).width;
     double widest = t().min_width;
     double narrowest = t().min_width;
     for (const Item& item : segments_) {
@@ -83,7 +83,7 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
 }
 
 void SegmentedButtonRow::update_height() {
-    const tokens::DenseLength& l = tokens::density_tokens.segmented_button;
+    const tokens::DenseLength& l = current_style().density.segmented_button;
     const double removed = l.base - l.at(options_.density);
     height_ = std::max(l.at(options_.density), tallest_ + 2.0 * std::max(0.0, t().vertical_padding - removed / 2.0));
 }
@@ -132,7 +132,7 @@ void SegmentedButtonRow::fit_labels() {
         return;
     }
     label_room_ = room;
-    const text::TextStyle style = tokens::text_style(tokens::type_style(t().label));
+    const text::TextStyle style = current_style().type.text(t().label);
     for (Item& item : segments_) {
         const bool fits = item.spec.label.empty() || 2.0 * t().horizontal_padding + icon_slot() + item.label.width <= segment_width_;
         if (fits) {
@@ -142,7 +142,7 @@ void SegmentedButtonRow::fit_labels() {
             }
             continue;
         }
-        item.shown = text::ellipsize_line(fonts_, item.spec.label, style, room, tokens::ellipsis);
+        item.shown = text::ellipsize_line(fonts_, item.spec.label, style, room, current_style().type.ellipsis);
         item.ellipsized = true;
     }
 }
@@ -305,7 +305,7 @@ std::optional<TargetHit> SegmentedButtonRow::target_hit(const input::PointerEven
     std::optional<TargetHit> best;
     for (std::size_t i = 0; i < segments_.size(); ++i) {
         const render::Rect hit = segment_hit(i);
-        const render::Rect target = touch_target(hit, tokens::minimum_target(options_.density));
+        const render::Rect target = touch_target(hit, current_style().minimum_target(options_.density));
         best = best_hit(best, widgets::target_hit(hit, {hit.x, target.y, hit.width, target.height}, e.x_dp, e.y_dp));
     }
     return best;
@@ -320,7 +320,7 @@ SegmentedButtonResponse SegmentedButtonRow::handle(const input::PointerEvent& e)
             continue;
         }
         const render::Rect hit = segment_hit(i);
-        const render::Rect target = hit_area(e, hit, tokens::minimum_target(options_.density));
+        const render::Rect target = hit_area(e, hit, current_style().minimum_target(options_.density));
         if (item.press.update(e, {hit.x, target.y, hit.width, target.height})) {
             activate(i, response);
         }
@@ -391,7 +391,7 @@ int SegmentedButtonRow::z_of(std::size_t index) const {
 void SegmentedButtonRow::paint_segment(render::Canvas& canvas, const color::ColorScheme& scheme, std::size_t index) const {
     const Item& item = segments_[index];
     const render::Rect r = segment_bounds(index);
-    const double full = tokens::corner_radius(t().corner, r.width, r.height);
+    const double full = current_style().shape.radius(t().corner, r.width, r.height);
     const bool first = index == 0;
     const bool last = index + 1 == segments_.size();
     const render::CornerRadii radii{first ? full : 0.0, last ? full : 0.0, last ? full : 0.0, first ? full : 0.0};

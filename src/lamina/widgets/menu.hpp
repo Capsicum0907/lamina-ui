@@ -11,6 +11,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/text/layout.hpp"
@@ -142,7 +143,7 @@ private:
     std::vector<std::optional<input::Key>> access_keys_;
     std::optional<icons::IconFont> icon_font_;
     bool access_keys_shown_ = false;
-    motion::Animated access_keys_fade_{0.0, tokens::motion_scheme.fast_effects()};
+    motion::Animated access_keys_fade_{0.0, current_style().motion.fast_effects()};
     std::optional<std::size_t> active_;
     std::optional<std::size_t> open_child_;
     std::optional<std::size_t> hover_target_;

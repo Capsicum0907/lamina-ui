@@ -36,7 +36,7 @@ SideNavigation::SideNavigation(SideNavigationOptions options, const text::FontSt
       expansion_(options_.expanded ? 1.0 : 0.0, t().expansion),
       drawer_(options_.drawer ? 1.0 : 0.0, t().expansion),
       max_width_(std::numeric_limits<double>::infinity()) {
-    const auto style = tokens::text_style(tokens::type_style(t().label));
+    const auto style = current_style().type.text(t().label);
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         const double on = i == options_.selected ? 1.0 : 0.0;
         items_.push_back({text::layout_line(fonts_, options_.items[i].label, style), {}, motion::Animated(0.0, t().state_layer_spring),
@@ -60,7 +60,7 @@ double SideNavigation::label_opacity() const {
 }
 
 double SideNavigation::row_height() const {
-    return tokens::density_tokens.drawer_item.at(options_.density);
+    return current_style().density.drawer_item.at(options_.density);
 }
 
 double SideNavigation::hug_width(std::size_t index) const {

@@ -13,7 +13,6 @@ namespace lamina::widgets {
 
 namespace {
 
-using tokens::motion_scheme;
 
 constexpr double tau = 2.0 * std::numbers::pi;
 constexpr double quarter_turn = std::numbers::pi / 2.0;
@@ -25,9 +24,9 @@ CircularProgressIndicator::CircularProgressIndicator(CircularProgressOptions opt
       previous_colors_(options.colors),
       width_(options.diameter),
       height_(options.diameter),
-      offset_(0.0, motion_scheme.default_spatial()),
-      amplitude_(0.0, motion_scheme.slow_effects()),
-      color_mix_(1.0, motion_scheme.default_effects()) {}
+      offset_(0.0, current_style().motion.default_spatial()),
+      amplitude_(0.0, current_style().motion.slow_effects()),
+      color_mix_(1.0, current_style().motion.default_effects()) {}
 
 void CircularProgressIndicator::set_size(double width, double height) {
     width_ = width;

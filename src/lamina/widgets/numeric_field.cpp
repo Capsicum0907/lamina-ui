@@ -44,7 +44,7 @@ std::optional<double> parse_double(std::string_view s) {
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 std::optional<char32_t> numeric_character(char32_t c) {
@@ -421,7 +421,7 @@ bool NumericField::animating() const {
 
 void NumericField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect f = field_rect();
-    const double radius = tokens::corner_radius(t().corner, f.width, f.height);
+    const double radius = current_style().shape.radius(t().corner, f.width, f.height);
     const double focus = std::clamp(focus_.value(), 0.0, 1.0);
     const double err = std::clamp(error_amount_.value(), 0.0, 1.0);
     const double hover = std::clamp(hover_.value(), 0.0, 1.0);

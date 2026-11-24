@@ -48,8 +48,8 @@ public:
     double radius(const render::Rect& r) const {
         const tokens::DragHandleTokens& t = current_style().drag_handle;
         const double a = std::clamp(active_.value(), 0.0, 1.0);
-        const double rest = tokens::corner_radius(t.shape, r.width, r.height);
-        const double pressed = tokens::corner_radius(t.pressed_shape, r.width, r.height);
+        const double rest = current_style().shape.radius(t.shape, r.width, r.height);
+        const double pressed = current_style().shape.radius(t.pressed_shape, r.width, r.height);
         return std::min(rest + (pressed - rest) * a, std::min(r.width, r.height) / 2.0);
     }
 

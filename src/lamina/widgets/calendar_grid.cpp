@@ -19,7 +19,7 @@ const tokens::DatePickerColors& k() {
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 color::Argb dim(color::Argb c, double enabled) {

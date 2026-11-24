@@ -16,7 +16,7 @@ const tokens::TopAppBarTokens& t() {
 }
 
 text::TextStyle style_of(tokens::TypeRole role) {
-    return tokens::text_style(tokens::type_style(role));
+    return current_style().type.text(role);
 }
 
 bool takes_subtitle(tokens::TopAppBarKind kind) {
@@ -54,7 +54,7 @@ TopAppBar::TopAppBar(TopAppBarOptions options, const text::FontStack& fonts)
 
 text::TextLine TopAppBar::title_line(const std::string& s, tokens::TypeRole role) const {
     if (options_.ellipsize && width_ > 0.0) {
-        return text::ellipsize_line(fonts_, s, style_of(role), text_room(), tokens::ellipsis);
+        return text::ellipsize_line(fonts_, s, style_of(role), text_room(), current_style().type.ellipsis);
     }
     return text::layout_line(fonts_, s, style_of(role));
 }
@@ -93,7 +93,7 @@ double TopAppBar::expanded_height() const {
 }
 
 double TopAppBar::collapsed_height() const {
-    return tokens::density_tokens.top_app_bar.at(options_.density);
+    return current_style().density.top_app_bar.at(options_.density);
 }
 
 void TopAppBar::set_density(tokens::Density density) {

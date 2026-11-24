@@ -8,6 +8,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/motion/lerp.hpp"
 #include "lamina/render/geometry.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/shape.hpp"
 
 namespace lamina::widgets {
@@ -85,7 +86,7 @@ private:
         if (size == tokens::CornerSize::full) {
             return {0.0, 0.5};
         }
-        return {tokens::corner_radius(size, 0.0, 0.0), 0.0};
+        return {current_style().shape.radius(size, 0.0, 0.0), 0.0};
     }
     static Shape linear(const tokens::Corners& c) {
         return {linear(c.top_start), linear(c.top_end), linear(c.bottom_end), linear(c.bottom_start)};

@@ -25,13 +25,6 @@ inline constexpr std::array<double, static_cast<std::size_t>(CornerSize::count) 
     0.0, 4.0, 8.0, 12.0, 16.0, 20.0, 28.0, 32.0, 48.0,
 };
 
-constexpr double corner_radius(CornerSize size, double width, double height) {
-    if (size == CornerSize::full) {
-        return (width < height ? width : height) / 2.0;
-    }
-    return corner_radius_dp[static_cast<std::size_t>(size)];
-}
-
 struct Corners {
     CornerSize top_start;
     CornerSize top_end;
@@ -45,9 +38,30 @@ constexpr Corners all_corners(CornerSize size) {
     return {size, size, size, size};
 }
 
+struct ShapeTokens {
+    std::array<double, static_cast<std::size_t>(CornerSize::count) - 1> radius_dp = corner_radius_dp;
+
+    constexpr double radius(CornerSize size, double width, double height) const {
+        if (size == CornerSize::full) {
+            return (width < height ? width : height) / 2.0;
+        }
+        return radius_dp[static_cast<std::size_t>(size)];
+    }
+
+    constexpr render::CornerRadii radii(const Corners& c, double width, double height) const {
+        return {radius(c.top_start, width, height), radius(c.top_end, width, height), radius(c.bottom_end, width, height),
+                radius(c.bottom_start, width, height)};
+    }
+};
+
+inline constexpr ShapeTokens shape_tokens{};
+
+constexpr double corner_radius(CornerSize size, double width, double height) {
+    return shape_tokens.radius(size, width, height);
+}
+
 constexpr render::CornerRadii corner_radii(const Corners& c, double width, double height) {
-    return {corner_radius(c.top_start, width, height), corner_radius(c.top_end, width, height),
-            corner_radius(c.bottom_end, width, height), corner_radius(c.bottom_start, width, height)};
+    return shape_tokens.radii(c, width, height);
 }
 
 namespace corners {

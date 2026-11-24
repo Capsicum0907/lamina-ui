@@ -6,6 +6,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/motion.hpp"
 
@@ -36,7 +37,7 @@ inline color::Argb mix_resolved(const color::ColorScheme& scheme, const std::opt
 class Enablement {
 public:
     explicit Enablement(bool enabled = true)
-        : enabled_(enabled), amount_(enabled ? 1.0 : 0.0, tokens::motion_scheme.default_effects()) {}
+        : enabled_(enabled), amount_(enabled ? 1.0 : 0.0, current_style().motion.default_effects()) {}
 
     bool enabled() const { return enabled_; }
     bool set(bool enabled) {

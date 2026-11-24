@@ -64,8 +64,8 @@ FloatingToolbar::FloatingToolbar(FloatingToolbarOptions options, const icons::Ic
       content_{{}, motion::Animated(1.0, t().expand)},
       trailing_{{}, motion::Animated(options_.expanded ? 1.0 : 0.0, t().expand)},
       progress_(options_.expanded ? 1.0 : 0.0, t().expand),
-      fab_state_layer_(0.0, tokens::motion_scheme.fast_effects()),
-      fab_elevation_(tokens::elevation_dp[t().fab_elevation], tokens::motion_scheme.default_effects()) {
+      fab_state_layer_(0.0, current_style().motion.fast_effects()),
+      fab_elevation_(current_style().elevation.levels[t().fab_elevation], current_style().motion.default_effects()) {
     if (options_.fab && (!options_.leading.empty() || !options_.trailing.empty())) {
         throw std::invalid_argument("A floating toolbar with a FAB has no leading or trailing content");
     }
@@ -338,7 +338,7 @@ FloatingToolbarResponse FloatingToolbar::handle(const input::PointerEvent& e) {
             }
             fab_state_layer_.animate_to(fab_focus_.state_layer_opacity(fab_press_.state_layer_opacity()));
             const std::size_t level = fab_press_.hovered && !fab_press_.pressed ? t().fab_hovered_elevation : t().fab_elevation;
-            fab_elevation_.animate_to(tokens::elevation_dp[level]);
+            fab_elevation_.animate_to(current_style().elevation.levels[level]);
         }
     }
     const bool over = contains(toolbar_rect(), e.x_dp, e.y_dp) || (has_fab() && contains(*fab_rect(), e.x_dp, e.y_dp));
@@ -415,11 +415,11 @@ void FloatingToolbar::paint(render::Canvas& canvas, const color::ColorScheme& sc
     const render::Rect bar = toolbar_rect();
     const tokens::ToolbarColorTokens& c = colors();
     if (bar.width > 0.0 && bar.height > 0.0) {
-        const double radius = tokens::corner_radius(t().shape, bar.width, bar.height);
+        const double radius = current_style().shape.radius(t().shape, bar.width, bar.height);
         const double p = std::clamp(progress_.value(), 0.0, 1.0);
         const double elevation =
-            has_fab() ? motion::lerp(tokens::elevation_dp[t().collapsed_elevation_with_fab], tokens::elevation_dp[t().expanded_elevation_with_fab], p)
-                      : motion::lerp(tokens::elevation_dp[t().collapsed_elevation], tokens::elevation_dp[t().expanded_elevation], p);
+            has_fab() ? motion::lerp(current_style().elevation.levels[t().collapsed_elevation_with_fab], current_style().elevation.levels[t().expanded_elevation_with_fab], p)
+                      : motion::lerp(current_style().elevation.levels[t().collapsed_elevation], current_style().elevation.levels[t().expanded_elevation], p);
         paint_surface(canvas, bar, radius, scheme[c.container], elevation, scheme[color::Role::shadow]);
         canvas.save();
         canvas.push_clip(render::rounded_rect_path(bar, render::uniform_radii(radius)));
@@ -446,8 +446,8 @@ void FloatingToolbar::paint(render::Canvas& canvas, const color::ColorScheme& sc
         canvas.restore();
     }
     if (const auto fab = fab_rect()) {
-        const double radius = std::min(tokens::corner_radius(t().fab_shape, fab->width, fab->height), fab->width / 2.0);
-        const color::Argb content = enabled_.mix(color::scale_alpha(scheme[c.fab_content], tokens::disabled_alpha), scheme[c.fab_content]);
+        const double radius = std::min(current_style().shape.radius(t().fab_shape, fab->width, fab->height), fab->width / 2.0);
+        const color::Argb content = enabled_.mix(color::scale_alpha(scheme[c.fab_content], current_style().interaction.disabled_alpha), scheme[c.fab_content]);
         const color::Argb fill = color::state_layer(scheme[c.fab_container], scheme[c.fab_content], fab_state_layer_.value());
         paint_surface(canvas, *fab, radius, fill, fab_elevation_.value(), scheme[color::Role::shadow]);
         fab_focus_.paint(canvas, scheme, *fab, radius);

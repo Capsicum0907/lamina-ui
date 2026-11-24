@@ -387,7 +387,7 @@ void DockedDatePicker::paint_popup(render::Canvas& canvas, const color::ColorSch
     const color::ColorScheme faded = color::faded(scheme, a);
     canvas.save();
     popup_.scale_about(canvas, {b.x + b.width / 2.0, b.y});
-    const double radius = tokens::corner_radius(t().docked_corner, b.width, b.height);
+    const double radius = current_style().shape.radius(t().docked_corner, b.width, b.height);
     paint_surface(canvas, b, radius, faded[k().container], t().docked_elevation, faded[color::Role::shadow]);
     const render::Path shape = render::rounded_rect_path(b, render::uniform_radii(radius));
     canvas.push_clip(shape);

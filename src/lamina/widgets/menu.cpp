@@ -19,7 +19,6 @@ namespace {
 const tokens::MenuTokens& t() {
     return current_style().menu;
 }
-using tokens::motion_scheme;
 
 template <std::size_t N>
 double pick(const std::array<double, N>& candidates, double size, double space, double margin) {
@@ -112,10 +111,10 @@ render::Point submenu_position(const render::Rect& item, layout::Size window, la
 
 Menu::Menu(MenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(options.accessible_name), icon_font_(options.icon_font),
-      popup_(t().closed_scale, motion_scheme.fast_spatial(), motion_scheme.fast_effects()) {
+      popup_(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects()) {
     density_ = options.density;
     const tokens::ShortcutFormat& format = options.shortcut_format ? *options.shortcut_format : tokens::default_shortcut_format();
-    const auto style = tokens::text_style(tokens::type_style(t().label));
+    const auto style = current_style().type.text(t().label);
     double content = 0.0;
     for (auto& item : options.items) {
         std::optional<text::TextLine> label;
@@ -153,7 +152,7 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
         access_keys_.push_back(key);
         children_.push_back(std::move(child));
         items_.push_back({std::move(label), std::move(item.leading_icon), std::move(access), std::move(shortcut), {},
-                          motion::Animated(0.0, motion_scheme.fast_effects()), Enablement(item.enabled), item.divider_before});
+                          motion::Animated(0.0, current_style().motion.fast_effects()), Enablement(item.enabled), item.divider_before});
     }
     width_ = std::clamp(content, t().item_min_width, t().item_max_width);
 }
@@ -168,7 +167,7 @@ void Menu::set_density(tokens::Density density) {
 }
 
 double Menu::item_height() const {
-    return tokens::density_tokens.menu_item.at(density_);
+    return current_style().density.menu_item.at(density_);
 }
 
 double Menu::divider_height() const {
@@ -364,10 +363,10 @@ void Menu::retarget() {
     for (std::size_t i = 0; i < items_.size(); ++i) {
         double target = items_[i].press.state_layer_opacity();
         if (open_child_ == i) {
-            target = std::max(target, tokens::state_layer_opacity::hover);
+            target = std::max(target, current_style().state_layer.hover);
         }
         if (active_ == i) {
-            target = std::max(target, tokens::state_layer_opacity::focus);
+            target = std::max(target, current_style().state_layer.focus);
         }
         items_[i].state_layer.animate_to(target);
     }
@@ -582,11 +581,11 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     }
     const double a = opacity();
     const render::Rect r = bounds();
-    const double radius = tokens::corner_radius(t().corner, r.width, r.height);
+    const double radius = current_style().shape.radius(t().corner, r.width, r.height);
     canvas.save();
     popup_.scale_about(canvas, pivot_);
     const color::ColorScheme s = color::faded(scheme, a);
-    paint_surface(canvas, r, radius, s[t().container], tokens::elevation_dp[t().elevation], s[color::Role::shadow]);
+    paint_surface(canvas, r, radius, s[t().container], current_style().elevation.levels[t().elevation], s[color::Role::shadow]);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const color::Argb label_color = item.enabled.mix(resolve(s, t().disabled_label), s[t().label_color]);

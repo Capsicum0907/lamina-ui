@@ -19,6 +19,19 @@ inline constexpr double dragged = 0.16;
 
 inline constexpr double disabled_alpha = 0.38;
 
+struct StateLayerTokens {
+    double hover = state_layer_opacity::hover;
+    double focus = state_layer_opacity::focus;
+    double pressed = state_layer_opacity::pressed;
+    double dragged = state_layer_opacity::dragged;
+};
+
+struct InteractionTokens {
+    double minimum_interactive_size = tokens::minimum_interactive_size;
+    double touch_echo_tolerance_pixels = tokens::touch_echo_tolerance_pixels;
+    double disabled_alpha = tokens::disabled_alpha;
+};
+
 struct StateColor {
     color::Role role;
     double opacity = 1.0;
