@@ -108,6 +108,10 @@ What the platform then does, read in the SDK sources `sources/android-36.1/andro
 
 The gallery counts Back as used when a page or the base widgets say they used the key, and when a text field had the focus before the key. The capture check covers the menu and the dialog on Basics, the modal bottom sheet and a focused text field, which each take the first Back, and every page with nothing open, where the first Back is handed on; the other overlays of the pages (side sheets, drawers, search views, pickers) were not checked one by one. A text field drops its focus on Escape but returns false, because `TextField::handle` returns whether the text was submitted, not whether it used the key. An auto-repeated Back is never handed on.
 
+## New intents
+
+The manifest's activity is `singleInstance`, so an intent sent while the app runs (a share, a link, `adb shell am start`) does not start a new activity: Android calls `onNewIntent` on the one there is, and `getIntent()` would go on returning the intent that started it. `LaminaActivity.onNewIntent` calls `setIntent` with the new intent and counts it in `intentSerial`; `getIntentSerial()` returns the count, 0 until the first new intent. An app that takes intents reads `getIntent()` at start through JNI, keeps the serial it has handled, and reads `getIntent()` again when the serial has changed. Android pauses and resumes the activity around `onNewIntent`, so SDL sends `SDL_EVENT_DID_ENTER_FOREGROUND` after it, which is a good moment to look. lamina itself does not read intents.
+
 ## Install and run
 
 ```
