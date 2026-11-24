@@ -26,7 +26,10 @@ struct WindowOptions {
     diagnostics::FrameStatsSwitches frame_stats = {};
     bool gpu_images = true;
     std::size_t image_texture_bytes = tokens::raster.image_texture_bytes;
+    bool damage_tracking = tokens::raster.damage_tracking;
 };
+
+bool full_repaint_requested();
 
 struct Frame {
     double dt_seconds;
@@ -69,6 +72,8 @@ public:
     void set_gpu_images(bool on);
     bool gpu_images() const;
     void set_image_texture_budget(std::size_t bytes);
+    void set_damage_tracking(bool on);
+    bool damage_tracking() const;
 
     bool client_title_bar() const;
     void set_caption_regions(input::CaptionRegions regions);

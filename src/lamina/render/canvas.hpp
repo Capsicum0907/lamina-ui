@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "lamina/color/argb.hpp"
+#include "lamina/render/damage.hpp"
 #include "lamina/render/geometry.hpp"
 #include "lamina/render/image.hpp"
 #include "lamina/render/layer_plan.hpp"
@@ -99,7 +100,15 @@ public:
     void set_probe(diagnostics::FrameProbe* probe) { probe_ = probe; }
     diagnostics::FrameProbe* probe() const { return probe_; }
 
+    void set_damage_tracking(bool on);
+    bool damage_tracking() const { return damage_on_; }
+    void invalidate();
+    std::vector<PixelRect> take_changed_pixels();
+
 protected:
+    virtual bool tracks_damage() const { return false; }
+    virtual bool repaints_whole_rows() const { return false; }
+    std::vector<PixelRect> repaint_rects();
     virtual void clear_device(color::Argb color) = 0;
     virtual void select_device_layer(std::size_t) {}
     std::optional<Rect> layer_bounds(std::size_t layer) const { return plan_.bounds(layer); }
@@ -116,6 +125,9 @@ private:
     double covered(std::span<const Point> device_points);
     void push_clip_bounds(const Rect& device);
     void place_paint(const Rect& device);
+    bool fingerprinting() const;
+    void note(const Rect& device, Fingerprint print);
+    std::uint64_t clip_hash() const { return clip_hashes_.empty() ? 0 : clip_hashes_.back(); }
     bool retain(const Image& image, const Affine& m, double opacity, std::span<const Point> corners);
 
     struct Saved {
@@ -134,6 +146,11 @@ private:
     LayerPlan plan_{tokens::raster.layers_max};
     std::vector<std::vector<RetainedDraw>> batches_;
     std::vector<const Image*> prefetched_;
+    std::size_t layer_ = 0;
+    bool damage_on_ = tokens::raster.damage_tracking;
+    DamageGrid damage_;
+    std::vector<std::uint64_t> clip_hashes_;
+    std::vector<PixelRect> changed_;
 };
 
 }

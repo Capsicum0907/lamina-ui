@@ -225,6 +225,7 @@ struct Window::Impl {
     std::vector<SDL_Texture*> upper_textures;
     std::vector<std::uint32_t> staging;
     std::uint64_t frame_number = 0;
+    bool upload_all = true;
 
     bool accepts(const render::Image& image) const {
         return gpu_wanted && gpu_capable && textures && image.width <= max_texture && image.height <= max_texture && !textures->refused(image);
@@ -478,8 +479,32 @@ struct Window::Impl {
         }
         texture_w = w;
         texture_h = h;
+        upload_all = true;
+    }
+
+    std::uint64_t upload_canvas(const render::PixelView& view) {
+        std::vector<render::PixelRect> changed = canvas->take_changed_pixels();
+        if (upload_all) {
+            changed.assign(1, {0, 0, view.width, view.height});
+            upload_all = false;
+        }
+        std::uint64_t pixels = 0;
+        for (const render::PixelRect& r : changed) {
+            if (r.empty()) {
+                continue;
+            }
+            const SDL_Rect rect{r.x, r.y, r.width, r.height};
+            SDL_UpdateTexture(texture, &rect, view.data + view.stride * r.y + static_cast<std::intptr_t>(r.x) * static_cast<std::intptr_t>(sizeof(std::uint32_t)), static_cast<int>(view.stride));
+            pixels += static_cast<std::uint64_t>(r.area());
+        }
+        return pixels;
     }
 };
+
+bool full_repaint_requested() {
+    const char* value = SDL_getenv(std::string(tokens::raster.full_repaint_environment).c_str());
+    return value && *value && std::string_view(value) != "0";
+}
 
 bool client_title_bar_supported() {
     return detail::caption_frame_supported();
@@ -494,6 +519,7 @@ Window::Window(const WindowOptions& options, std::unique_ptr<render::Canvas> can
     impl_->probe.set_switches(options.frame_stats);
     impl_->gpu_wanted = options.gpu_images;
     impl_->texture_budget = options.image_texture_bytes;
+    impl_->canvas->set_damage_tracking(options.damage_tracking && !full_repaint_requested());
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
     SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
@@ -692,6 +718,11 @@ bool Window::next_frame(Frame& frame, bool animating) {
             break;
         case SDL_EVENT_WINDOW_RESTORED:
             impl_->pending_redraws = redraws_after_restore;
+            impl_->upload_all = true;
+            break;
+        case SDL_EVENT_DID_ENTER_FOREGROUND:
+        case SDL_EVENT_RENDER_TARGETS_RESET:
+            impl_->upload_all = true;
             break;
         case SDL_EVENT_RENDER_DEVICE_RESET:
             impl_->drop_texture();
@@ -699,6 +730,7 @@ bool Window::next_frame(Frame& frame, bool animating) {
             if (impl_->textures) {
                 impl_->textures->clear();
             }
+            impl_->upload_all = true;
             break;
         default:
             break;
@@ -837,10 +869,14 @@ void Window::present() {
     {
         const diagnostics::StageScope stage(&m.probe, diagnostics::Stage::upload);
         m.ensure_texture(view.width, view.height);
-        SDL_UpdateTexture(m.texture, nullptr, view.data, static_cast<int>(view.stride));
+        std::uint64_t uploaded = m.upload_canvas(view);
         for (const render::UpperLayer& u : uppers) {
             const SDL_Rect r{u.x, u.y, u.pixels.width, u.pixels.height};
             SDL_UpdateTexture(m.upper_texture(u.layer), &r, u.pixels.data, static_cast<int>(u.pixels.stride));
+            uploaded += static_cast<std::uint64_t>(u.pixels.width) * static_cast<std::uint64_t>(u.pixels.height);
+        }
+        if (counting) {
+            m.probe.counts().canvas_upload_pixels += uploaded;
         }
         auto count_upload = [&](const Impl::Textures::Lookup& found) {
             if (found.made && counting) {
@@ -915,6 +951,14 @@ void Window::set_image_texture_budget(std::size_t bytes) {
     if (impl_->textures) {
         impl_->textures->set_budget(bytes);
     }
+}
+
+void Window::set_damage_tracking(bool on) {
+    impl_->canvas->set_damage_tracking(on);
+}
+
+bool Window::damage_tracking() const {
+    return impl_->canvas->damage_tracking();
 }
 
 void Window::set_frame_stats(diagnostics::FrameStatsSwitches switches) {

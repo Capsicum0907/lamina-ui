@@ -20,6 +20,8 @@ public:
     std::vector<render::UpperLayer> upper_layers() const override;
 
 protected:
+    bool tracks_damage() const override { return true; }
+    bool repaints_whole_rows() const override { return true; }
     void clear_device(color::Argb color) override;
     void select_device_layer(std::size_t layer) override;
     void fill_device_path(const render::Path& path, color::Argb color, render::FillRule rule) override;

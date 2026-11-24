@@ -199,6 +199,9 @@ struct Canvas::Impl {
     int height = 0;
     std::vector<std::uint32_t> buffer;
     tvg::SwCanvas* canvas = nullptr;
+    tvg::Scene* base = nullptr;
+    bool base_attached = false;
+    bool opaque = false;
     bool dirty = false;
     std::vector<ClipLevel> clips;
     std::vector<Upper> uppers;
@@ -210,7 +213,7 @@ struct Canvas::Impl {
 
     Impl(int w, int h) {
         tvg::Initializer::init(worker_threads());
-        canvas = tvg::SwCanvas::gen();
+        canvas = tvg::SwCanvas::gen(tvg::EngineOption::None);
         shadow_canvas = tvg::SwCanvas::gen();
         retarget(w, h);
     }
@@ -227,6 +230,7 @@ struct Canvas::Impl {
     ~Impl() {
         drop_clips();
         drop_uppers();
+        drop_base();
         delete canvas;
         for (Upper& u : uppers) {
             delete u.canvas;
@@ -249,9 +253,29 @@ struct Canvas::Impl {
         return u;
     }
 
+    void drop_base() {
+        canvas->sync();
+        canvas->remove();
+        if (base && !base_attached) {
+            tvg::Paint::rel(base);
+        }
+        base = nullptr;
+        base_attached = false;
+    }
+
+    void zero(const render::PixelRect& r) {
+        for (int y = r.y; y < r.y + r.height; ++y) {
+            std::uint32_t* row = buffer.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + r.x;
+            std::fill(row, row + r.width, 0u);
+        }
+    }
+
     void add_to_root(std::size_t l, tvg::Paint* paint) {
         if (l == 0) {
-            canvas->add(paint);
+            if (!base) {
+                base = tvg::Scene::gen();
+            }
+            base->add(paint);
         } else {
             upper(l).root->add(paint);
         }
@@ -354,9 +378,9 @@ int Canvas::height() const {
 
 void Canvas::clear_device(color::Argb color) {
     impl_->drop_clips();
-    impl_->canvas->sync();
-    impl_->canvas->remove();
+    impl_->drop_base();
     impl_->drop_uppers();
+    impl_->opaque = (color >> 24) == 0xffu;
     impl_->layer = 0;
     impl_->frame += 1;
     impl_->shadows.trim(rt.shadow_cache_bytes, impl_->frame);
@@ -380,21 +404,53 @@ PixelView Canvas::finish() {
             }
         }
         const std::vector<std::size_t> attached = impl_->attach_uppers(bounds);
+        const std::vector<render::PixelRect> rects = repaint_rects();
+        tvg::SwCanvas* base = impl_->canvas;
+        const bool painting = impl_->base && !rects.empty();
+        if (!impl_->opaque || !impl_->base) {
+            for (const render::PixelRect& r : rects) {
+                impl_->zero(r);
+            }
+        }
+        auto pass = [&](const render::PixelRect& r) {
+            base->sync();
+            base->viewport(r.x, r.y, r.width, r.height);
+            if (!impl_->base_attached) {
+                base->add(impl_->base);
+                impl_->base_attached = true;
+            }
+            base->update();
+        };
         {
             const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_update);
-            impl_->canvas->update();
+            if (painting) {
+                pass(rects.front());
+            }
             for (const std::size_t l : attached) {
                 impl_->uppers[l - 1].canvas->update();
             }
         }
-        const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_draw);
-        impl_->canvas->draw(true);
-        for (const std::size_t l : attached) {
-            impl_->uppers[l - 1].canvas->draw(true);
+        {
+            const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_draw);
+            if (painting) {
+                base->draw(false);
+            }
+            for (const std::size_t l : attached) {
+                impl_->uppers[l - 1].canvas->draw(true);
+            }
+            base->sync();
+            for (const std::size_t l : attached) {
+                impl_->uppers[l - 1].canvas->sync();
+            }
         }
-        impl_->canvas->sync();
-        for (const std::size_t l : attached) {
-            impl_->uppers[l - 1].canvas->sync();
+        for (std::size_t k = 1; painting && k < rects.size(); ++k) {
+            {
+                const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_update);
+                pass(rects[k]);
+            }
+            const diagnostics::StageScope stage(probe(), diagnostics::Stage::raster_draw);
+            base->draw(false);
+            base->sync();
         }
         impl_->dirty = false;
         if (probe() && probe()->counting()) {
@@ -413,6 +469,7 @@ void Canvas::resize(int width, int height) {
     if (width != impl_->width || height != impl_->height) {
         impl_->canvas->sync();
         impl_->retarget(width, height);
+        invalidate();
     }
 }
 

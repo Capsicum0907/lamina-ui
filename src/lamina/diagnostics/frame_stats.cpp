@@ -12,7 +12,7 @@ constexpr std::array<std::string_view, stage_count> stage_names{"wait",         
                                                                 "raster update", "raster draw", "upload", "present"};
 constexpr std::array<std::string_view, count_field_count> count_names{
     "paths", "offscreen", "points", "shadows", "shadow new", "clips", "images", "image MB", "image Mpx", "loads", "load MB", "cover Mpx",
-    "layers", "gpu images", "uploads", "upload MB", "textures", "texture MB"};
+    "layers", "gpu images", "uploads", "upload MB", "textures", "texture MB", "repaint tiles", "repaint Mpx", "canvas up Mpx"};
 
 std::string format(const char* pattern, double value) {
     std::array<char, 32> out{};
@@ -69,6 +69,9 @@ double count_value(const FrameCounts& c, CountField field) {
     case CountField::gpu_upload_bytes: return static_cast<double>(c.gpu_upload_bytes);
     case CountField::gpu_textures: return static_cast<double>(c.gpu_textures);
     case CountField::gpu_texture_bytes: return static_cast<double>(c.gpu_texture_bytes);
+    case CountField::repaint_tiles: return static_cast<double>(c.repaint_tiles);
+    case CountField::repaint_pixels: return static_cast<double>(c.repaint_pixels);
+    case CountField::canvas_upload_pixels: return static_cast<double>(c.canvas_upload_pixels);
     case CountField::count: break;
     }
     return 0.0;
@@ -185,7 +188,7 @@ std::vector<ReportRow> report_rows(const FrameSummary& s, const DisplayInfo& d, 
         if (f == CountField::image_bytes || f == CountField::load_bytes || f == CountField::gpu_upload_bytes || f == CountField::gpu_texture_bytes) {
             return format("%.1f", v / t.bytes_per_megabyte);
         }
-        if (f == CountField::image_pixels || f == CountField::covered_pixels) {
+        if (f == CountField::image_pixels || f == CountField::covered_pixels || f == CountField::repaint_pixels || f == CountField::canvas_upload_pixels) {
             return format("%.2f", v / t.pixels_per_megapixel);
         }
         return format("%.0f", v);

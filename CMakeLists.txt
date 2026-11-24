@@ -319,6 +319,7 @@ if(LAMINA_BUILD_TESTS)
         tests/calendar_test.cpp
         tests/canvas_test.cpp
         tests/damage_test.cpp
+        tests/partial_repaint_test.cpp
         tests/layer_plan_test.cpp
         tests/retained_textures_test.cpp
         tests/card_test.cpp
