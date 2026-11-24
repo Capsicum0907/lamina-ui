@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(lamina-ui VERSION 0.2.0 LANGUAGES CXX)
+project(lamina-ui VERSION 0.3.0 LANGUAGES CXX)
 
 option(LAMINA_BUILD_TESTS "Build the unit tests" OFF)
 option(LAMINA_BUILD_THORVG "Build the ThorVG canvas (lamina::thorvg)" ON)
