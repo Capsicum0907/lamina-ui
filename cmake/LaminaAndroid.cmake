@@ -88,7 +88,7 @@ file(GLOB lamina_android_sdl_java_files "${lamina_android_sdl_java_dir}/*.java")
 set(LAMINA_ANDROID_SDL_JAVA_FILES "${lamina_android_sdl_java_files}" CACHE INTERNAL "SDL Java sources that go into every APK")
 
 function(lamina_android_apk target)
-    cmake_parse_arguments(PARSE_ARGV 1 arg "" "PACKAGE;LABEL;OUTPUT_NAME;MANIFEST;RES" "EXTRA_RES")
+    cmake_parse_arguments(PARSE_ARGV 1 arg "" "PACKAGE;LABEL;OUTPUT_NAME;MANIFEST;RES" "EXTRA_RES;EXTRA_JAVA")
     set(root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/..")
     if(NOT arg_MANIFEST)
         set(arg_MANIFEST "${root}/android/AndroidManifest.xml.in")
@@ -104,7 +104,7 @@ function(lamina_android_apk target)
     configure_file("${root}/android/LaminaActivity.java.in" "${dir}/LaminaActivity.java.in" @ONLY)
     file(GENERATE OUTPUT "${dir}/java/LaminaActivity.java" INPUT "${dir}/LaminaActivity.java.in")
 
-    set(java ${LAMINA_ANDROID_SDL_JAVA_FILES} "${dir}/java/LaminaActivity.java")
+    set(java ${LAMINA_ANDROID_SDL_JAVA_FILES} "${dir}/java/LaminaActivity.java" ${arg_EXTRA_JAVA})
     add_custom_command(OUTPUT "${dir}/classes.dex"
         COMMAND "${CMAKE_COMMAND}" -E rm -rf "${dir}/classes" "${dir}/dex"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "${dir}/classes" "${dir}/dex"
