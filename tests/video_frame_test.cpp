@@ -127,3 +127,15 @@ TEST_CASE("a window that cannot take a video gets its frames as images, one per 
     CHECK(d.image->identity != nullptr);
     CHECK(d.image->width == video_w);
 }
+
+TEST_CASE("a video drawn at a quarter of its size still goes to the GPU, where an image would not") {
+    thorvg::Canvas canvas(320, 220);
+    AcceptVideo sink;
+    canvas.set_retained_images(&sink);
+    canvas.clear(0xff000000u);
+    const render::VideoFrame f = flat(100, 128, 128, 1, render::video_surface());
+    canvas.draw_video(f, {0.0, 0.0, video_w / 4.0, video_h / 4.0});
+    canvas.finish();
+    REQUIRE(canvas.retained_draws().size() == 1);
+    CHECK(canvas.retained_draws()[0][0].video != nullptr);
+}

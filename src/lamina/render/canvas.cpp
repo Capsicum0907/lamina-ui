@@ -206,11 +206,7 @@ bool Canvas::retain(const Image& image, const Affine& m, double opacity, std::sp
 }
 
 bool Canvas::retain_video(const VideoFrame& frame, const Affine& m, double opacity, std::span<const Point> corners) {
-    if (!sink_ || !frame.surface || path_clips_ > 0) {
-        return false;
-    }
-    const double min_scale = minified_ ? 0.0 : tokens::raster.retained_min_scale;
-    if (std::hypot(m.a, m.b) < min_scale || std::hypot(m.c, m.d) < min_scale || !sink_->accepts_video(frame)) {
+    if (!sink_ || !frame.surface || path_clips_ > 0 || !sink_->accepts_video(frame)) {
         return false;
     }
     const Rect visible = visible_bounds();
