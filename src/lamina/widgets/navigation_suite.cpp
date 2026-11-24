@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/navigation_suite.hpp"
 
 #include <algorithm>
@@ -9,7 +10,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::NavigationSuiteTokens& t = tokens::navigation_suite_tokens;
+const tokens::NavigationSuiteTokens& t() {
+    return current_style().navigation_suite;
+}
 
 bool side_type(NavigationSuiteType type) {
     return type == NavigationSuiteType::wide_navigation_rail_collapsed || type == NavigationSuiteType::wide_navigation_rail_expanded ||
@@ -46,8 +49,8 @@ NavigationSuiteScaffold::NavigationSuiteScaffold(NavigationSuiteScaffoldOptions 
                                          options.accessible_name.empty() ? options.strings->navigation_menu : options.accessible_name,
                                          options.density},
                    fonts),
-      bar_(is_bar(options.type) ? 1.0 : 0.0, t.spring),
-      side_(side_type(options.type) ? 1.0 : 0.0, t.spring),
+      bar_(is_bar(options.type) ? 1.0 : 0.0, t().spring),
+      side_(side_type(options.type) ? 1.0 : 0.0, t().spring),
       labels_(options.labels),
       density_(options.density) {}
 

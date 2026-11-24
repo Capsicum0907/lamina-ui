@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/pane_navigator.hpp"
 
 #include <utility>
@@ -8,7 +9,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::PaneScaffoldTokens& t = tokens::pane_scaffold_tokens;
+const tokens::PaneScaffoldTokens& t() {
+    return current_style().pane_scaffold;
+}
 
 std::size_t at(PaneRole role) {
     return static_cast<std::size_t>(role);
@@ -33,28 +36,28 @@ PaneScaffoldDirective calculate_pane_scaffold_directive(const WindowAdaptiveInfo
     case layout::WindowWidthClass::medium:
         d.max_horizontal_partitions = 1;
         d.horizontal_partition_spacer = 0.0;
-        d.default_pane_preferred_width = t.preferred_width;
+        d.default_pane_preferred_width = t().preferred_width;
         break;
     case layout::WindowWidthClass::expanded:
         d.max_horizontal_partitions = 2;
-        d.horizontal_partition_spacer = t.partition_spacer;
-        d.default_pane_preferred_width = t.preferred_width;
+        d.horizontal_partition_spacer = t().partition_spacer;
+        d.default_pane_preferred_width = t().preferred_width;
         break;
     default:
         d.max_horizontal_partitions = 3;
-        d.horizontal_partition_spacer = t.partition_spacer;
-        d.default_pane_preferred_width = t.preferred_width_extra_large;
+        d.horizontal_partition_spacer = t().partition_spacer;
+        d.default_pane_preferred_width = t().preferred_width_extra_large;
         break;
     }
     const bool tall = info.window_size_class.height_class() == layout::WindowHeightClass::expanded;
     if (info.tabletop || (d.max_horizontal_partitions == 1 && tall)) {
         d.max_vertical_partitions = 2;
-        d.vertical_partition_spacer = t.partition_spacer;
+        d.vertical_partition_spacer = t().partition_spacer;
     } else {
         d.max_vertical_partitions = 1;
         d.vertical_partition_spacer = 0.0;
     }
-    d.default_pane_preferred_height = t.preferred_height;
+    d.default_pane_preferred_height = t().preferred_height;
     return d;
 }
 
@@ -62,7 +65,7 @@ PaneScaffoldDirective calculate_pane_scaffold_directive_with_two_panes_on_medium
     PaneScaffoldDirective d = calculate_pane_scaffold_directive(info);
     if (info.window_size_class.width_class() == layout::WindowWidthClass::medium) {
         d.max_horizontal_partitions = 2;
-        d.horizontal_partition_spacer = t.partition_spacer;
+        d.horizontal_partition_spacer = t().partition_spacer;
         if (!info.tabletop) {
             d.max_vertical_partitions = 1;
             d.vertical_partition_spacer = 0.0;

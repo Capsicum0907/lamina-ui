@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/modal_navigation_rail.hpp"
 
 #include <algorithm>
@@ -12,8 +13,12 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::NavigationRailTokens& rail_t = tokens::navigation_rail_tokens;
-constexpr const tokens::ModalNavigationRailTokens& t = tokens::modal_navigation_rail_tokens;
+const tokens::NavigationRailTokens& rail_t() {
+    return current_style().navigation_rail;
+}
+const tokens::ModalNavigationRailTokens& t() {
+    return current_style().modal_navigation_rail;
+}
 
 NavigationRailOptions rail_options(NavigationRailOptions o, bool hide) {
     if (hide) {
@@ -27,12 +32,12 @@ NavigationRailOptions rail_options(NavigationRailOptions o, bool hide) {
 ModalNavigationRail::ModalNavigationRail(ModalNavigationRailOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       rail_(rail_options(options_.rail, options_.hide_on_collapse), fonts),
-      slide_(RailValue::collapsed, {[](double distance) { return distance * t.positional_fraction; }, t.velocity_threshold},
+      slide_(RailValue::collapsed, {[](double distance) { return distance * t().positional_fraction; }, t().velocity_threshold},
              tokens::drag_gesture),
-      scrim_(0.0, t.scrim) {}
+      scrim_(0.0, t().scrim) {}
 
 layout::Size ModalNavigationRail::measure(const layout::Constraints& c) {
-    const double reserved = options_.hide_on_collapse ? 0.0 : rail_t.collapsed_width;
+    const double reserved = options_.hide_on_collapse ? 0.0 : rail_t().collapsed_width;
     return c.constrain({reserved, std::isfinite(c.max_height) ? c.max_height : c.min_height});
 }
 
@@ -62,13 +67,13 @@ bool ModalNavigationRail::showing() const {
     if (options_.hide_on_collapse) {
         return slide_.positioned() && (slide_.target_value() == RailValue::expanded || !slide_.idle() || slide_.offset() > -rail_.width());
     }
-    return target_expanded_ || rail_.width() > rail_t.collapsed_width + 0.5 || scrim_.value() > 0.0;
+    return target_expanded_ || rail_.width() > rail_t().collapsed_width + 0.5 || scrim_.value() > 0.0;
 }
 
 void ModalNavigationRail::expand(input::InputSource source) {
     target_expanded_ = true;
     if (options_.hide_on_collapse) {
-        slide_.animate_to(RailValue::expanded, t.slide);
+        slide_.animate_to(RailValue::expanded, t().slide);
     } else {
         rail_.set_expanded(true);
     }
@@ -82,7 +87,7 @@ void ModalNavigationRail::collapse() {
     target_expanded_ = false;
     claim_focus_ = false;
     if (options_.hide_on_collapse) {
-        slide_.animate_to(RailValue::collapsed, t.slide);
+        slide_.animate_to(RailValue::collapsed, t().slide);
         rail_.set_focused(false);
     } else {
         rail_.set_expanded(false);
@@ -125,7 +130,7 @@ ModalRailResponse ModalNavigationRail::handle(const input::PointerEvent& e) {
         tracking_ = false;
         if (slide_.dragging()) {
             const std::optional<double> v = slide_.release(e.time_seconds);
-            if (slide_.fling(v.value_or(0.0), t.slide) == RailValue::collapsed) {
+            if (slide_.fling(v.value_or(0.0), t().slide) == RailValue::collapsed) {
                 target_expanded_ = false;
                 rail_.set_focused(false);
                 r.collapsed = true;
@@ -178,7 +183,7 @@ void ModalNavigationRail::cancel_interaction() {
     rail_.cancel_interaction();
     if (slide_.dragging()) {
         slide_.cancel_press();
-        slide_.fling(0.0, t.slide);
+        slide_.fling(0.0, t().slide);
     }
     slide_.cancel_press();
     tracking_ = false;
@@ -211,7 +216,7 @@ void ModalNavigationRail::paint(render::Canvas& canvas, const color::ColorScheme
         return;
     }
     if (!options_.hide_on_collapse) {
-        canvas.fill_rect({slot_.x, slot_.y, rail_t.collapsed_width, slot_.height}, scheme[rail_t.container]);
+        canvas.fill_rect({slot_.x, slot_.y, rail_t().collapsed_width, slot_.height}, scheme[rail_t().container]);
     }
     canvas.save();
     canvas.push_clip(area_);
@@ -219,8 +224,8 @@ void ModalNavigationRail::paint(render::Canvas& canvas, const color::ColorScheme
     const render::Rect b = rail_.bounds();
     const double stretch = options_.hide_on_collapse ? std::max(0.0, b.x - slot_.x) : 0.0;
     const render::Rect container{b.x - stretch, b.y, b.width + stretch, b.height};
-    const double radius = tokens::corner_radius(t.expanded_shape, container.width, container.height);
-    canvas.fill_path(render::rounded_rect_path(container, render::uniform_radii(radius)), scheme[t.container]);
+    const double radius = tokens::corner_radius(t().expanded_shape, container.width, container.height);
+    canvas.fill_path(render::rounded_rect_path(container, render::uniform_radii(radius)), scheme[t().container]);
     rail_.paint_items(canvas, scheme);
     canvas.pop_clip();
     canvas.restore();

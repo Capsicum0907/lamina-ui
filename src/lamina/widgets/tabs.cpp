@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/tabs.hpp"
 
@@ -14,7 +15,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::TabTokens& t = tokens::tab_tokens;
+const tokens::TabTokens& t() {
+    return current_style().tabs.common;
+}
 using tokens::motion_scheme;
 
 constexpr motion::SpringSpec fade_in_spring = motion_scheme.default_effects();
@@ -29,7 +32,7 @@ TabRow::TabRow(TabRowOptions options, const text::FontStack& fonts)
       indicator_width_(0.0, motion_scheme.default_spatial()),
       scroll_(0.0, motion_scheme.default_spatial()),
       fling_(fling_decay()) {
-    const auto style = tokens::text_style(tokens::type_style(t.label));
+    const auto style = tokens::text_style(tokens::type_style(t().label));
     bool stacked = false;
     for (std::size_t i = 0; i < options_.tabs.size(); ++i) {
         TabItem& item = options_.tabs[i];
@@ -127,33 +130,33 @@ render::Rect TabRow::tab_rect(std::size_t index) const {
 }
 
 double TabRow::natural_width(const Tab& tab) const {
-    const double padding = 2.0 * t.horizontal_text_padding;
+    const double padding = 2.0 * t().horizontal_text_padding;
     const double text_width = tab.label ? tab.label->width : 0.0;
-    const double icon_width = tab.icon ? t.icon_size : 0.0;
+    const double icon_width = tab.icon ? t().icon_size : 0.0;
     double intrinsic = 0.0;
     if (options_.icon_position == TabIconPosition::leading && tab.icon && tab.label) {
-        intrinsic = padding + icon_width + t.leading_icon_text_space + text_width;
+        intrinsic = padding + icon_width + t().leading_icon_text_space + text_width;
     } else {
         intrinsic = std::max(tab.label ? text_width + padding : 0.0, icon_width + padding);
     }
-    return std::max(intrinsic, t.scrollable_min_tab_width);
+    return std::max(intrinsic, t().scrollable_min_tab_width);
 }
 
 double TabRow::content_width(const Tab& tab, double slot) const {
-    const double padding = 2.0 * t.horizontal_text_padding;
+    const double padding = 2.0 * t().horizontal_text_padding;
     const double text_width = tab.label ? tab.label->width : 0.0;
-    const double icon_width = tab.icon ? t.icon_size : 0.0;
+    const double icon_width = tab.icon ? t().icon_size : 0.0;
     double intrinsic = 0.0;
     if (options_.icon_position == TabIconPosition::leading && tab.icon && tab.label) {
-        intrinsic = padding + icon_width + t.leading_icon_text_space + text_width;
+        intrinsic = padding + icon_width + t().leading_icon_text_space + text_width;
     } else {
         intrinsic = std::max(tab.label ? text_width + padding : 0.0, icon_width);
     }
-    return std::max(std::min(intrinsic, slot) - padding, t.indicator_min_width);
+    return std::max(std::min(intrinsic, slot) - padding, t().indicator_min_width);
 }
 
 double TabRow::indicator_width_for(std::size_t index) const {
-    if (tokens::tab_style(options_.style).indicator_matches_content) {
+    if (current_style().tabs.style(options_.style).indicator_matches_content) {
         return content_width(tabs_[index], slot_width(index));
     }
     return slot_width(index);
@@ -214,7 +217,7 @@ void TabRow::select(std::size_t index) {
 }
 
 render::Rect TabRow::indicator_rect() const {
-    const auto& style = tokens::tab_style(options_.style);
+    const auto& style = current_style().tabs.style(options_.style);
     const double w = std::max(0.0, indicator_width_.value());
     const double x = origin_.x + indicator_offset_.value() - scroll_.value() - w / 2.0;
     return {x, origin_.y + height_ - style.indicator_height, w, style.indicator_height};
@@ -399,35 +402,35 @@ bool TabRow::animating() const {
 }
 
 void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme, const Tab& tab, const render::Rect& r) const {
-    const auto& style = tokens::tab_style(options_.style);
+    const auto& style = current_style().tabs.style(options_.style);
     const color::Argb active = scheme[style.active_content];
     if (tab.state_layer.value() > 0.0) {
         canvas.fill_rect(r, color::with_alpha(active, tab.state_layer.value()));
     }
     const color::Argb content =
         color::scale_alpha(color::mix(scheme[style.inactive_content], active, tab.selected.value()),
-                           motion::lerp(t.disabled_content_opacity, 1.0, tab.enabled.amount()));
+                           motion::lerp(t().disabled_content_opacity, 1.0, tab.enabled.amount()));
     const double cx = r.x + r.width / 2.0;
     const double cy = r.y + r.height / 2.0;
 
     if (tab.label && tab.icon && options_.icon_position == TabIconPosition::top) {
-        const double removed = t.icon_and_label_height - r.height;
-        const double baseline = r.y + r.height - (t.text_baseline_with_icon - removed / 2.0) - style.indicator_height;
-        const double icon_top = baseline - t.icon_distance_from_baseline - t.icon_size;
-        tab.icon->font.draw(canvas, tab.icon->symbol, {cx - t.icon_size / 2.0, icon_top}, t.icon_size, content);
+        const double removed = t().icon_and_label_height - r.height;
+        const double baseline = r.y + r.height - (t().text_baseline_with_icon - removed / 2.0) - style.indicator_height;
+        const double icon_top = baseline - t().icon_distance_from_baseline - t().icon_size;
+        tab.icon->font.draw(canvas, tab.icon->symbol, {cx - t().icon_size / 2.0, icon_top}, t().icon_size, content);
         text::draw_line(canvas, fonts_, *tab.label, {cx - tab.label->width / 2.0, baseline - tab.label->baseline}, content);
         return;
     }
     if (tab.label && tab.icon) {
-        const double total = t.icon_size + t.leading_icon_text_space + tab.label->width;
+        const double total = t().icon_size + t().leading_icon_text_space + tab.label->width;
         const double x = cx - total / 2.0;
-        tab.icon->font.draw(canvas, tab.icon->symbol, {x, cy - t.icon_size / 2.0}, t.icon_size, content);
-        text::draw_line(canvas, fonts_, *tab.label, {x + t.icon_size + t.leading_icon_text_space, cy - tab.label->box_height() / 2.0},
+        tab.icon->font.draw(canvas, tab.icon->symbol, {x, cy - t().icon_size / 2.0}, t().icon_size, content);
+        text::draw_line(canvas, fonts_, *tab.label, {x + t().icon_size + t().leading_icon_text_space, cy - tab.label->box_height() / 2.0},
                         content);
         return;
     }
     if (tab.icon) {
-        icons::draw_centered(canvas, *tab.icon, render::Point{cx, cy}, t.icon_size, content);
+        icons::draw_centered(canvas, *tab.icon, render::Point{cx, cy}, t().icon_size, content);
     }
     if (tab.label) {
         text::draw_line(canvas, fonts_, *tab.label, {cx - tab.label->width / 2.0, cy - tab.label->box_height() / 2.0}, content);
@@ -435,7 +438,7 @@ void TabRow::paint_tab(render::Canvas& canvas, const color::ColorScheme& scheme,
 }
 
 void TabRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const auto& style = tokens::tab_style(options_.style);
+    const auto& style = current_style().tabs.style(options_.style);
     const render::Rect r = bounds();
     canvas.fill_rect(r, scheme[style.container]);
     canvas.push_clip(r);
@@ -443,11 +446,11 @@ void TabRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
         paint_tab(canvas, scheme, tabs_[i], tab_rect(i));
     }
     canvas.pop_clip();
-    const render::Rect divider{r.x, r.y + r.height - t.divider_thickness, r.width, t.divider_thickness};
-    canvas.fill_rect(divider, scheme[t.divider]);
+    const render::Rect divider{r.x, r.y + r.height - t().divider_thickness, r.width, t().divider_thickness};
+    canvas.fill_rect(divider, scheme[t().divider]);
     canvas.push_clip(r);
     if (!tabs_.empty()) {
-        focus_.paint_inward(canvas, scheme, tab_rect(options_.selected), t.focus_ring_corner);
+        focus_.paint_inward(canvas, scheme, tab_rect(options_.selected), t().focus_ring_corner);
     }
     const render::Rect indicator = indicator_rect();
     canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(style.indicator_corner)), scheme[style.indicator]);

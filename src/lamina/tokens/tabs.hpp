@@ -66,4 +66,11 @@ inline constexpr TabTokens tab_tokens{
     .scrollable_edge_padding = 52.0,
 };
 
+struct TabSet {
+    std::array<TabStyleTokens, static_cast<std::size_t>(TabStyle::count)> styles = tab_styles;
+    TabTokens common = tab_tokens;
+
+    const TabStyleTokens& style(TabStyle s) const { return styles[static_cast<std::size_t>(s)]; }
+};
+
 }

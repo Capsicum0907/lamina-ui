@@ -14,7 +14,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::FloatingToolbarTokens& t = tokens::floating_toolbar_tokens;
+const tokens::FloatingToolbarTokens& t() {
+    return current_style().floating_toolbar;
+}
 
 }
 
@@ -58,12 +60,12 @@ std::optional<bool> ToolbarScrollExpansion::scrolled_to(double offset) {
 
 FloatingToolbar::FloatingToolbar(FloatingToolbarOptions options, const icons::IconFont&)
     : options_(std::move(options)),
-      leading_{{}, motion::Animated(options_.expanded ? 1.0 : 0.0, t.expand)},
-      content_{{}, motion::Animated(1.0, t.expand)},
-      trailing_{{}, motion::Animated(options_.expanded ? 1.0 : 0.0, t.expand)},
-      progress_(options_.expanded ? 1.0 : 0.0, t.expand),
+      leading_{{}, motion::Animated(options_.expanded ? 1.0 : 0.0, t().expand)},
+      content_{{}, motion::Animated(1.0, t().expand)},
+      trailing_{{}, motion::Animated(options_.expanded ? 1.0 : 0.0, t().expand)},
+      progress_(options_.expanded ? 1.0 : 0.0, t().expand),
       fab_state_layer_(0.0, tokens::motion_scheme.fast_effects()),
-      fab_elevation_(tokens::elevation_dp[t.fab_elevation], tokens::motion_scheme.default_effects()) {
+      fab_elevation_(tokens::elevation_dp[t().fab_elevation], tokens::motion_scheme.default_effects()) {
     if (options_.fab && (!options_.leading.empty() || !options_.trailing.empty())) {
         throw std::invalid_argument("A floating toolbar with a FAB has no leading or trailing content");
     }
@@ -85,7 +87,7 @@ FloatingToolbar::FloatingToolbar(FloatingToolbarOptions options, const icons::Ic
 }
 
 const tokens::ToolbarColorTokens& FloatingToolbar::colors() const {
-    return options_.colors == ToolbarColorStyle::vibrant ? t.vibrant : t.standard;
+    return options_.colors == ToolbarColorStyle::vibrant ? t().vibrant : t().standard;
 }
 
 FloatingToolbar::Group& FloatingToolbar::group(ToolbarSlot slot) {
@@ -109,31 +111,31 @@ const IconButton& FloatingToolbar::action(ToolbarSlot slot, std::size_t index) c
 }
 
 double FloatingToolbar::extent(const Group& g) const {
-    return static_cast<double>(g.buttons.size()) * t.item_slot * std::max(0.0, g.shown.value());
+    return static_cast<double>(g.buttons.size()) * t().item_slot * std::max(0.0, g.shown.value());
 }
 
 double FloatingToolbar::full_main() const {
-    return 2.0 * t.content_padding + static_cast<double>(content_.buttons.size()) * t.item_slot;
+    return 2.0 * t().content_padding + static_cast<double>(content_.buttons.size()) * t().item_slot;
 }
 
 double FloatingToolbar::fab_size() const {
-    return motion::lerp(t.fab_min_size, t.fab_max_size, 1.0 - progress_.value());
+    return motion::lerp(t().fab_min_size, t().fab_max_size, 1.0 - progress_.value());
 }
 
 double FloatingToolbar::width() const {
     if (has_fab()) {
-        return horizontal() ? full_main() + t.toolbar_to_fab_gap + t.fab_min_size : t.fab_max_size;
+        return horizontal() ? full_main() + t().toolbar_to_fab_gap + t().fab_min_size : t().fab_max_size;
     }
-    const double main = 2.0 * t.content_padding + extent(leading_) + extent(content_) + extent(trailing_);
-    return horizontal() ? main : t.container_size;
+    const double main = 2.0 * t().content_padding + extent(leading_) + extent(content_) + extent(trailing_);
+    return horizontal() ? main : t().container_size;
 }
 
 double FloatingToolbar::height() const {
     if (has_fab()) {
-        return horizontal() ? t.fab_max_size : full_main() + t.toolbar_to_fab_gap + t.fab_min_size;
+        return horizontal() ? t().fab_max_size : full_main() + t().toolbar_to_fab_gap + t().fab_min_size;
     }
-    const double main = 2.0 * t.content_padding + extent(leading_) + extent(content_) + extent(trailing_);
-    return horizontal() ? t.container_size : main;
+    const double main = 2.0 * t().content_padding + extent(leading_) + extent(content_) + extent(trailing_);
+    return horizontal() ? t().container_size : main;
 }
 
 render::Rect FloatingToolbar::toolbar_rect() const {
@@ -142,14 +144,14 @@ render::Rect FloatingToolbar::toolbar_rect() const {
     }
     const double full = full_main();
     const double shown = full * std::clamp(progress_.value(), 0.0, 1.0);
-    const double cross = (t.fab_max_size - t.container_size) / 2.0;
+    const double cross = (t().fab_max_size - t().container_size) / 2.0;
     const bool end = options_.fab_position == ToolbarFabPosition::end;
-    const double total = full + t.toolbar_to_fab_gap + t.fab_min_size;
+    const double total = full + t().toolbar_to_fab_gap + t().fab_min_size;
     const double main = end ? full - shown : total - full;
     if (horizontal()) {
-        return {origin_.x + main, origin_.y + cross, shown, t.container_size};
+        return {origin_.x + main, origin_.y + cross, shown, t().container_size};
     }
-    return {origin_.x + cross, origin_.y + main, t.container_size, shown};
+    return {origin_.x + cross, origin_.y + main, t().container_size, shown};
 }
 
 std::optional<render::Rect> FloatingToolbar::fab_rect() const {
@@ -171,9 +173,9 @@ void FloatingToolbar::set_origin(render::Point origin) {
 
 void FloatingToolbar::place() {
     const render::Rect bar = toolbar_rect();
-    const double slot = t.item_slot;
+    const double slot = t().item_slot;
     const double cross = horizontal() ? bar.y + (bar.height - slot) / 2.0 : bar.x + (bar.width - slot) / 2.0;
-    double main = (horizontal() ? bar.x : bar.y) + t.content_padding;
+    double main = (horizontal() ? bar.x : bar.y) + t().content_padding;
     auto lay = [&](Group& g, bool anchor_end) {
         const double full = static_cast<double>(g.buttons.size()) * slot;
         const double shown = extent(g);
@@ -335,7 +337,7 @@ FloatingToolbarResponse FloatingToolbar::handle(const input::PointerEvent& e) {
                 response.consumed = true;
             }
             fab_state_layer_.animate_to(fab_focus_.state_layer_opacity(fab_press_.state_layer_opacity()));
-            const std::size_t level = fab_press_.hovered && !fab_press_.pressed ? t.fab_hovered_elevation : t.fab_elevation;
+            const std::size_t level = fab_press_.hovered && !fab_press_.pressed ? t().fab_hovered_elevation : t().fab_elevation;
             fab_elevation_.animate_to(tokens::elevation_dp[level]);
         }
     }
@@ -413,17 +415,17 @@ void FloatingToolbar::paint(render::Canvas& canvas, const color::ColorScheme& sc
     const render::Rect bar = toolbar_rect();
     const tokens::ToolbarColorTokens& c = colors();
     if (bar.width > 0.0 && bar.height > 0.0) {
-        const double radius = tokens::corner_radius(t.shape, bar.width, bar.height);
+        const double radius = tokens::corner_radius(t().shape, bar.width, bar.height);
         const double p = std::clamp(progress_.value(), 0.0, 1.0);
         const double elevation =
-            has_fab() ? motion::lerp(tokens::elevation_dp[t.collapsed_elevation_with_fab], tokens::elevation_dp[t.expanded_elevation_with_fab], p)
-                      : motion::lerp(tokens::elevation_dp[t.collapsed_elevation], tokens::elevation_dp[t.expanded_elevation], p);
+            has_fab() ? motion::lerp(tokens::elevation_dp[t().collapsed_elevation_with_fab], tokens::elevation_dp[t().expanded_elevation_with_fab], p)
+                      : motion::lerp(tokens::elevation_dp[t().collapsed_elevation], tokens::elevation_dp[t().expanded_elevation], p);
         paint_surface(canvas, bar, radius, scheme[c.container], elevation, scheme[color::Role::shadow]);
         canvas.save();
         canvas.push_clip(render::rounded_rect_path(bar, render::uniform_radii(radius)));
         const render::Rect inner = horizontal()
-                                       ? render::Rect{bar.x + t.content_padding, bar.y, std::max(0.0, bar.width - 2.0 * t.content_padding), bar.height}
-                                       : render::Rect{bar.x, bar.y + t.content_padding, bar.width, std::max(0.0, bar.height - 2.0 * t.content_padding)};
+                                       ? render::Rect{bar.x + t().content_padding, bar.y, std::max(0.0, bar.width - 2.0 * t().content_padding), bar.height}
+                                       : render::Rect{bar.x, bar.y + t().content_padding, bar.width, std::max(0.0, bar.height - 2.0 * t().content_padding)};
         if (has_fab()) {
             canvas.push_clip(inner);
             paint_group(canvas, scheme, content_);
@@ -444,7 +446,7 @@ void FloatingToolbar::paint(render::Canvas& canvas, const color::ColorScheme& sc
         canvas.restore();
     }
     if (const auto fab = fab_rect()) {
-        const double radius = std::min(tokens::corner_radius(t.fab_shape, fab->width, fab->height), fab->width / 2.0);
+        const double radius = std::min(tokens::corner_radius(t().fab_shape, fab->width, fab->height), fab->width / 2.0);
         const color::Argb content = enabled_.mix(color::scale_alpha(scheme[c.fab_content], tokens::disabled_alpha), scheme[c.fab_content]);
         const color::Argb fill = color::state_layer(scheme[c.fab_container], scheme[c.fab_content], fab_state_layer_.value());
         paint_surface(canvas, *fab, radius, fill, fab_elevation_.value(), scheme[color::Role::shadow]);

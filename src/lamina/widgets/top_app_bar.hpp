@@ -10,6 +10,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
@@ -88,7 +89,7 @@ public:
 private:
     template <typename Offer>
     void offer_targets(const input::PointerEvent& event, Offer offer) const;
-    const tokens::TopAppBarKindTokens& kind() const { return tokens::top_app_bar_kind(options_.kind); }
+    const tokens::TopAppBarKindTokens& kind() const { return current_style().top_app_bar.kind(options_.kind); }
     bool two_rows() const { return kind().two_rows; }
     bool has_subtitle() const { return !options_.subtitle.empty(); }
     TitleAlignment alignment() const;

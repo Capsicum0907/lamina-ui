@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "lamina/motion/animated.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
 
 namespace lamina::widgets {
@@ -13,7 +14,7 @@ enum class TopAppBarScroll { pinned, enter_always, exit_until_collapsed };
 class TopAppBarState {
 public:
     explicit TopAppBarState(TopAppBarScroll behavior = TopAppBarScroll::pinned)
-        : behavior_(behavior), settle_(0.0, tokens::top_app_bar_tokens.snap_spring) {}
+        : behavior_(behavior), settle_(0.0, current_style().top_app_bar.common.snap_spring) {}
 
     TopAppBarScroll behavior() const { return behavior_; }
     double height_offset_limit() const { return limit_; }
@@ -71,7 +72,7 @@ public:
             return false;
         }
         const double f = collapsed_fraction();
-        return f >= tokens::top_app_bar_tokens.settle_threshold && f < 1.0 && height_offset_ > limit_ && height_offset_ < 0.0;
+        return f >= current_style().top_app_bar.common.settle_threshold && f < 1.0 && height_offset_ > limit_ && height_offset_ < 0.0;
     }
     void settle() {
         if (!needs_settle()) {
@@ -79,7 +80,7 @@ public:
         }
         settling_ = true;
         settle_.snap_to(height_offset_);
-        settle_.animate_to(collapsed_fraction() < tokens::top_app_bar_tokens.settle_midpoint ? 0.0 : limit_);
+        settle_.animate_to(collapsed_fraction() < current_style().top_app_bar.common.settle_midpoint ? 0.0 : limit_);
     }
     void cancel_settle() {
         settling_ = false;

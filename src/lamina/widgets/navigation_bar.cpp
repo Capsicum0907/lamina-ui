@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
 
@@ -12,7 +13,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::NavigationBarTokens& t = tokens::navigation_bar_tokens;
+const tokens::NavigationBarTokens& t() {
+    return current_style().navigation_bar;
+}
 using tokens::motion_scheme;
 
 double label_height(const text::TextLine& line) {
@@ -24,7 +27,7 @@ double label_height(const text::TextLine& line) {
 NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)), fonts_(fonts), badges_(options_.items, fonts_), labels_(options_.labels ? 1.0 : 0.0, motion_scheme.default_spatial()) {
     name_navigation_items(options_.items);
-    const auto style = tokens::text_style(tokens::type_style(t.label));
+    const auto style = tokens::text_style(tokens::type_style(t().label));
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         std::optional<text::TextLine> label;
         if (!options_.items[i].label.empty()) {
@@ -39,30 +42,30 @@ NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack
 
 double NavigationBar::item_padding() const {
     const tokens::DenseLength& l = tokens::density_tokens.navigation_bar;
-    return std::max(0.0, t.item_vertical_padding - (l.base - l.at(options_.density)) / 2.0);
+    return std::max(0.0, t().item_vertical_padding - (l.base - l.at(options_.density)) / 2.0);
 }
 
 double NavigationBar::labelled_height() const {
     double content = tokens::density_tokens.navigation_bar.at(options_.density);
     for (const Item& item : items_) {
         if (item.label) {
-            content = std::max(content, 2.0 * item_padding() + t.indicator_height + t.indicator_to_label_space + label_height(*item.label));
+            content = std::max(content, 2.0 * item_padding() + t().indicator_height + t().indicator_to_label_space + label_height(*item.label));
         }
     }
     return content;
 }
 
 double NavigationBar::height() const {
-    const double icon_only = std::max(t.icon_only_min_height, 2.0 * item_padding() + t.indicator_height);
+    const double icon_only = std::max(t().icon_only_min_height, 2.0 * item_padding() + t().indicator_height);
     return motion::lerp(icon_only, labelled_height(), std::clamp(labels_.value(), 0.0, 1.0));
 }
 
 double NavigationBar::label_space(const Item& item) const {
-    return item.label ? std::clamp(labels_.value(), 0.0, 1.0) * (t.indicator_to_label_space + label_height(*item.label)) : 0.0;
+    return item.label ? std::clamp(labels_.value(), 0.0, 1.0) * (t().indicator_to_label_space + label_height(*item.label)) : 0.0;
 }
 
 double NavigationBar::label_opacity() const {
-    const double hide = std::clamp((labels_.value() - t.label_hide_progress) / (1.0 - t.label_hide_progress), 0.0, 1.0);
+    const double hide = std::clamp((labels_.value() - t().label_hide_progress) / (1.0 - t().label_hide_progress), 0.0, 1.0);
     return hide * hide;
 }
 
@@ -93,20 +96,20 @@ double NavigationBar::content_top(std::size_t index) const {
     const render::Rect r = item_rect(index);
     const Item& item = items_[index];
     if (!item.label) {
-        return r.y + (r.height - t.indicator_height) / 2.0;
+        return r.y + (r.height - t().indicator_height) / 2.0;
     }
-    const double content = 2.0 * item_padding() + t.indicator_height + label_space(item);
+    const double content = 2.0 * item_padding() + t().indicator_height + label_space(item);
     return r.y + (r.height - content) / 2.0 + item_padding();
 }
 
 render::Rect NavigationBar::full_indicator_rect(std::size_t index) const {
     const render::Rect r = item_rect(index);
-    return {r.x + (r.width - t.indicator_width) / 2.0, content_top(index), t.indicator_width, t.indicator_height};
+    return {r.x + (r.width - t().indicator_width) / 2.0, content_top(index), t().indicator_width, t().indicator_height};
 }
 
 render::Rect NavigationBar::indicator_rect(std::size_t index) const {
     const render::Rect full = full_indicator_rect(index);
-    const double w = t.indicator_width * std::max(0.0, items_[index].indicator.value());
+    const double w = t().indicator_width * std::max(0.0, items_[index].indicator.value());
     return {full.x + (full.width - w) / 2.0, full.y, w, full.height};
 }
 
@@ -202,7 +205,7 @@ bool NavigationBar::animating() const {
 }
 
 void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    canvas.fill_rect(bounds(), scheme[t.container]);
+    canvas.fill_rect(bounds(), scheme[t().container]);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const NavigationItem& spec = options_.items[i];
@@ -210,24 +213,24 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
         const render::Rect indicator = indicator_rect(i);
         if (progress > 0.0 && indicator.width > 0.0) {
             canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(indicator.height / 2.0)),
-                             color::with_alpha(scheme[t.indicator], std::clamp(progress, 0.0, 1.0)));
+                             color::with_alpha(scheme[t().indicator], std::clamp(progress, 0.0, 1.0)));
         }
         const render::Rect full = full_indicator_rect(i);
         if (item.state_layer.value() > 0.0) {
             canvas.fill_path(render::rounded_rect_path(full, render::uniform_radii(full.height / 2.0)),
-                             color::with_alpha(scheme[t.state_layer], item.state_layer.value()));
+                             color::with_alpha(scheme[t().state_layer], item.state_layer.value()));
         }
         const double k = item.color.value();
-        icons::draw_centered(canvas, spec.icon, full, t.icon_size,
-                             item.enabled.mix(resolve(scheme, t.disabled_icon), color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k)),
+        icons::draw_centered(canvas, spec.icon, full, t().icon_size,
+                             item.enabled.mix(resolve(scheme, t().disabled_icon), color::mix(scheme[t().inactive_icon], scheme[t().active_icon], k)),
                              icons::mix(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
         badges_.paint(canvas, scheme, i,
-                      {full.x + (full.width - t.icon_size) / 2.0, full.y + (full.height - t.icon_size) / 2.0, t.icon_size, t.icon_size},
+                      {full.x + (full.width - t().icon_size) / 2.0, full.y + (full.height - t().icon_size) / 2.0, t().icon_size, t().icon_size},
                       item_rect(i));
         if (item.label && label_opacity() > 0.0) {
             const double x = full.x + (full.width - item.label->width) / 2.0;
-            const color::Argb c = item.enabled.mix(resolve(scheme, t.disabled_label), color::mix(scheme[t.inactive_label], scheme[t.active_label], k));
-            text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t.indicator_to_label_space}, color::scale_alpha(c, label_opacity()));
+            const color::Argb c = item.enabled.mix(resolve(scheme, t().disabled_label), color::mix(scheme[t().inactive_label], scheme[t().active_label], k));
+            text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t().indicator_to_label_space}, color::scale_alpha(c, label_opacity()));
         }
     }
     if (!items_.empty()) {

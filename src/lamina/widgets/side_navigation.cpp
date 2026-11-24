@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/side_navigation.hpp"
 
 #include <algorithm>
@@ -14,7 +15,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SideNavigationTokens& t = tokens::side_navigation_tokens;
+const tokens::SideNavigationTokens& t() {
+    return current_style().side_navigation;
+}
 
 double unit(double v) {
     return std::clamp(v, 0.0, 1.0);
@@ -30,14 +33,14 @@ SideNavigation::SideNavigation(SideNavigationOptions options, const text::FontSt
     : options_(std::move(options)),
       fonts_(fonts),
       badges_(options_.items, fonts_),
-      expansion_(options_.expanded ? 1.0 : 0.0, t.expansion),
-      drawer_(options_.drawer ? 1.0 : 0.0, t.expansion),
+      expansion_(options_.expanded ? 1.0 : 0.0, t().expansion),
+      drawer_(options_.drawer ? 1.0 : 0.0, t().expansion),
       max_width_(std::numeric_limits<double>::infinity()) {
-    const auto style = tokens::text_style(tokens::type_style(t.label));
+    const auto style = tokens::text_style(tokens::type_style(t().label));
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
         const double on = i == options_.selected ? 1.0 : 0.0;
-        items_.push_back({text::layout_line(fonts_, options_.items[i].label, style), {}, motion::Animated(0.0, t.state_layer_spring),
-                          motion::Animated(on, t.selection), motion::Animated(on, t.colors), Enablement(options_.items[i].enabled),
+        items_.push_back({text::layout_line(fonts_, options_.items[i].label, style), {}, motion::Animated(0.0, t().state_layer_spring),
+                          motion::Animated(on, t().selection), motion::Animated(on, t().colors), Enablement(options_.items[i].enabled),
                           options_.items[i].enabled});
     }
     update_width();
@@ -52,7 +55,7 @@ double SideNavigation::drawer_amount() const {
 }
 
 double SideNavigation::label_opacity() const {
-    const double a = unit((expansion() - t.label_fade_start) / (1.0 - t.label_fade_start));
+    const double a = unit((expansion() - t().label_fade_start) / (1.0 - t().label_fade_start));
     return a * a;
 }
 
@@ -61,24 +64,24 @@ double SideNavigation::row_height() const {
 }
 
 double SideNavigation::hug_width(std::size_t index) const {
-    return 2.0 * t.indicator_padding + t.icon_size + t.icon_label_space + items_[index].label.width;
+    return 2.0 * t().indicator_padding + t().icon_size + t().icon_label_space + items_[index].label.width;
 }
 
 double SideNavigation::rail_width() const {
     double widest = 0.0;
     for (std::size_t i = 0; i < items_.size(); ++i) {
-        widest = std::max(widest, hug_width(i) + 2.0 * t.item_inset);
+        widest = std::max(widest, hug_width(i) + 2.0 * t().item_inset);
     }
-    return std::min(std::clamp(widest, t.expanded_min_width, t.expanded_max_width), max_width_);
+    return std::min(std::clamp(widest, t().expanded_min_width, t().expanded_max_width), max_width_);
 }
 
 double SideNavigation::drawer_width() const {
-    return std::min(t.drawer_width, max_width_);
+    return std::min(t().drawer_width, max_width_);
 }
 
 double SideNavigation::width_at(double expansion, double drawer) const {
     const double open = motion::lerp(rail_width(), drawer_width(), unit(drawer));
-    return std::min(motion::lerp(t.collapsed_width, open, unit(expansion)), max_width_);
+    return std::min(motion::lerp(t().collapsed_width, open, unit(expansion)), max_width_);
 }
 
 void SideNavigation::update_width() {
@@ -88,7 +91,7 @@ void SideNavigation::update_width() {
 layout::Size SideNavigation::measure(const layout::Constraints& c) {
     max_width_ = std::isfinite(c.max_width) ? c.max_width : std::numeric_limits<double>::infinity();
     update_width();
-    const double content = t.top_space + row_height() * static_cast<double>(items_.size());
+    const double content = t().top_space + row_height() * static_cast<double>(items_.size());
     return {width_, std::isfinite(c.max_height) ? c.max_height : content};
 }
 
@@ -128,7 +131,7 @@ void SideNavigation::select(std::size_t index) {
 }
 
 double SideNavigation::row_top(std::size_t index) const {
-    return origin_.y + t.top_space + row_height() * static_cast<double>(index);
+    return origin_.y + t().top_space + row_height() * static_cast<double>(index);
 }
 
 render::Rect SideNavigation::item_rect(std::size_t index) const {
@@ -138,11 +141,11 @@ render::Rect SideNavigation::item_rect(std::size_t index) const {
 render::Rect SideNavigation::shape_rect(std::size_t index) const {
     const double e = expansion();
     const double d = drawer_amount();
-    const double row = motion::lerp(rail_width(), drawer_width(), d) - 2.0 * t.item_inset;
+    const double row = motion::lerp(rail_width(), drawer_width(), d) - 2.0 * t().item_inset;
     const double open = motion::lerp(std::min(hug_width(index), row), row, d);
-    const double w = motion::lerp(t.collapsed_indicator_width, open, e);
-    const double h = motion::lerp(t.collapsed_indicator_height, row_height(), e);
-    return {origin_.x + t.item_inset, row_top(index) + (row_height() - h) / 2.0, std::max(0.0, w), h};
+    const double w = motion::lerp(t().collapsed_indicator_width, open, e);
+    const double h = motion::lerp(t().collapsed_indicator_height, row_height(), e);
+    return {origin_.x + t().item_inset, row_top(index) + (row_height() - h) / 2.0, std::max(0.0, w), h};
 }
 
 render::Rect SideNavigation::indicator_rect(std::size_t index) const {
@@ -151,14 +154,14 @@ render::Rect SideNavigation::indicator_rect(std::size_t index) const {
 }
 
 render::Rect SideNavigation::icon_rect(std::size_t index) const {
-    return {origin_.x + t.item_inset + t.indicator_padding, row_top(index) + (row_height() - t.icon_size) / 2.0, t.icon_size, t.icon_size};
+    return {origin_.x + t().item_inset + t().indicator_padding, row_top(index) + (row_height() - t().icon_size) / 2.0, t().icon_size, t().icon_size};
 }
 
 render::Rect SideNavigation::label_rect(std::size_t index) const {
     const render::Rect icon = icon_rect(index);
     const text::TextLine& line = items_[index].label;
     const double h = line.style.line_height;
-    return {icon.x + icon.width + t.icon_label_space, row_top(index) + (row_height() - h) / 2.0, line.width, h};
+    return {icon.x + icon.width + t().icon_label_space, row_top(index) + (row_height() - h) / 2.0, line.width, h};
 }
 
 AccessibleNode SideNavigation::accessible() const {
@@ -260,7 +263,7 @@ bool SideNavigation::animating() const {
 
 void SideNavigation::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect b = bounds();
-    canvas.fill_rect(b, scheme[t.container]);
+    canvas.fill_rect(b, scheme[t().container]);
     canvas.push_clip(b);
     const double labels = label_opacity();
     for (std::size_t i = 0; i < items_.size(); ++i) {
@@ -270,25 +273,25 @@ void SideNavigation::paint(render::Canvas& canvas, const color::ColorScheme& sch
         const render::Rect indicator = indicator_rect(i);
         if (progress > 0.0 && indicator.width > 0.0) {
             canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(std::min(indicator.width, indicator.height) / 2.0)),
-                             color::with_alpha(scheme[t.indicator], progress));
+                             color::with_alpha(scheme[t().indicator], progress));
         }
         const render::Rect shape = shape_rect(i);
         if (item.state_layer.value() > 0.0) {
             canvas.fill_path(render::rounded_rect_path(shape, render::uniform_radii(std::min(shape.width, shape.height) / 2.0)),
-                             color::with_alpha(scheme[t.state_layer], item.state_layer.value()));
+                             color::with_alpha(scheme[t().state_layer], item.state_layer.value()));
         }
         const double k = unit(item.color.value());
         const render::Rect icon = icon_rect(i);
-        spec.icon.font.draw(canvas, spec.icon.symbol, {icon.x, icon.y}, t.icon_size,
-                            item.enabled.mix(resolve(scheme, t.disabled_icon), color::mix(scheme[t.inactive_icon], scheme[t.active_icon], k)),
+        spec.icon.font.draw(canvas, spec.icon.symbol, {icon.x, icon.y}, t().icon_size,
+                            item.enabled.mix(resolve(scheme, t().disabled_icon), color::mix(scheme[t().inactive_icon], scheme[t().active_icon], k)),
                             icons::mix(spec.style, spec.selected_style, k));
         badges_.paint(canvas, scheme, i, icon, item_rect(i));
         if (labels > 0.0) {
             const render::Rect label = label_rect(i);
             const render::Rect row = item_rect(i);
-            const double end = row.x + row.width - t.item_inset;
+            const double end = row.x + row.width - t().item_inset;
             const text::TextLine& line = item.label;
-            const color::Argb c = item.enabled.mix(resolve(scheme, t.disabled_label), color::mix(scheme[t.inactive_label], scheme[t.active_label], k));
+            const color::Argb c = item.enabled.mix(resolve(scheme, t().disabled_label), color::mix(scheme[t().inactive_label], scheme[t().active_label], k));
             canvas.push_clip({label.x, row.y, std::max(0.0, end - label.x), row.height});
             text::draw_line(canvas, fonts_, line, {label.x, label.y + (label.height - line.box_height()) / 2.0}, color::scale_alpha(c, labels));
             canvas.pop_clip();

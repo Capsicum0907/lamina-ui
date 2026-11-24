@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/navigation_drawer.hpp"
 
 #include <algorithm>
@@ -18,8 +19,12 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::NavigationDrawerTokens& t = tokens::navigation_drawer_tokens;
-constexpr const tokens::DrawerMotion& motion_spec = tokens::navigation_drawer_motion;
+const tokens::NavigationDrawerTokens& t() {
+    return current_style().navigation_drawer;
+}
+const tokens::DrawerMotion& motion_spec() {
+    return current_style().navigation_drawer_motion;
+}
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
@@ -28,7 +33,7 @@ text::TextStyle style_of(tokens::TypeRole role) {
 constexpr input::PointerEvent left{input::PointerAction::leave, 0.0, 0.0};
 
 motion::DragThresholds drawer_thresholds() {
-    return {[](double distance) { return distance * t.positional_fraction; }, t.velocity_threshold};
+    return {[](double distance) { return distance * t().positional_fraction; }, t().velocity_threshold};
 }
 
 double entry_height(DrawerEntryKind kind, tokens::Density density) {
@@ -36,9 +41,9 @@ double entry_height(DrawerEntryKind kind, tokens::Density density) {
     case DrawerEntryKind::item:
         return tokens::density_tokens.drawer_item.at(density);
     case DrawerEntryKind::headline:
-        return t.headline_height;
+        return t().headline_height;
     case DrawerEntryKind::divider:
-        return t.divider_top_space + tokens::divider_tokens.thickness + t.divider_bottom_space;
+        return t().divider_top_space + tokens::divider_tokens.thickness + t().divider_bottom_space;
     }
     return 0.0;
 }
@@ -51,16 +56,16 @@ DrawerSheet::DrawerSheet(DrawerSheetOptions options, const text::FontStack& font
     }
     for (std::size_t i = 0; i < options_.entries.size(); ++i) {
         const DrawerEntry& e = options_.entries[i];
-        const tokens::TypeRole role = e.kind == DrawerEntryKind::headline ? t.headline_type : t.label_type;
+        const tokens::TypeRole role = e.kind == DrawerEntryKind::headline ? t().headline_type : t().label_type;
         const bool selected = options_.selected == i && e.kind == DrawerEntryKind::item;
         Row row{text::layout_line(fonts_, e.label, style_of(role)),
-                e.badge && !e.badge->text.empty() ? std::optional<text::TextLine>(text::layout_line(fonts_, e.badge->text, style_of(t.badge_type)))
+                e.badge && !e.badge->text.empty() ? std::optional<text::TextLine>(text::layout_line(fonts_, e.badge->text, style_of(t().badge_type)))
                                                   : std::nullopt,
                 0.0,
                 entry_height(e.kind, options_.density),
                 {},
                 motion::Animated(0.0, tokens::motion_scheme.fast_effects()),
-                motion::Animated(selected ? 1.0 : 0.0, motion_spec.colors),
+                motion::Animated(selected ? 1.0 : 0.0, motion_spec().colors),
                 Enablement(e.enabled),
                 e.enabled};
         rows_.push_back(std::move(row));
@@ -78,7 +83,7 @@ void DrawerSheet::set_density(tokens::Density density) {
 }
 
 void DrawerSheet::layout_rows() {
-    double y = t.top_space;
+    double y = t().top_space;
     for (Row& r : rows_) {
         r.top = y;
         y += r.height;
@@ -86,15 +91,15 @@ void DrawerSheet::layout_rows() {
 }
 
 double DrawerSheet::content_height() const {
-    return rows_.empty() ? t.top_space : rows_.back().top + rows_.back().height;
+    return rows_.empty() ? t().top_space : rows_.back().top + rows_.back().height;
 }
 
 double DrawerSheet::width_for(double available) const {
-    return std::min(t.max_width, std::max(std::min(t.min_width, available), available));
+    return std::min(t().max_width, std::max(std::min(t().min_width, available), available));
 }
 
 layout::Size DrawerSheet::measure(const layout::Constraints& c) const {
-    const double w = std::isfinite(c.max_width) ? width_for(c.max_width) : t.max_width;
+    const double w = std::isfinite(c.max_width) ? width_for(c.max_width) : t().max_width;
     const double h = std::isfinite(c.max_height) ? c.max_height : content_height();
     return c.constrain({w, h});
 }
@@ -112,7 +117,7 @@ render::Rect DrawerSheet::entry_rect(std::size_t i) const {
 
 render::Rect DrawerSheet::item_rect(std::size_t i) const {
     const render::Rect e = entry_rect(i);
-    return {e.x + t.item_inset, e.y, e.width - 2.0 * t.item_inset, e.height};
+    return {e.x + t().item_inset, e.y, e.width - 2.0 * t().item_inset, e.height};
 }
 
 void DrawerSheet::select(std::size_t index) {
@@ -148,7 +153,7 @@ void DrawerSheet::set_item_badge(std::size_t index, std::optional<BadgeSpec> bad
     }
     options_.entries[index].badge = badge;
     rows_[index].badge = badge && !badge->text.empty()
-                             ? std::optional<text::TextLine>(text::layout_line(fonts_, badge->text, style_of(t.badge_type)))
+                             ? std::optional<text::TextLine>(text::layout_line(fonts_, badge->text, style_of(t().badge_type)))
                              : std::nullopt;
 }
 
@@ -321,9 +326,9 @@ void DrawerSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme
 
 void DrawerSheet::paint_container(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& c) const {
     const bool modal = options_.style == DrawerSheetStyle::modal;
-    const render::CornerRadii radii = modal ? tokens::corner_radii(t.modal_shape, c.width, c.height) : render::uniform_radii(0.0);
-    paint_surface(canvas, c, radii, scheme[modal ? t.modal_container : t.standard_container],
-                  modal ? t.modal_elevation : t.standard_elevation, scheme[color::Role::shadow]);
+    const render::CornerRadii radii = modal ? tokens::corner_radii(t().modal_shape, c.width, c.height) : render::uniform_radii(0.0);
+    paint_surface(canvas, c, radii, scheme[modal ? t().modal_container : t().standard_container],
+                  modal ? t().modal_elevation : t().standard_elevation, scheme[color::Role::shadow]);
 }
 
 void DrawerSheet::paint_entries(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -337,43 +342,43 @@ void DrawerSheet::paint_entries(render::Canvas& canvas, const color::ColorScheme
             continue;
         }
         if (e.kind == DrawerEntryKind::divider) {
-            canvas.fill_rect({er.x + t.divider_inset, er.y + t.divider_top_space, er.width - 2.0 * t.divider_inset, tokens::divider_tokens.thickness},
+            canvas.fill_rect({er.x + t().divider_inset, er.y + t().divider_top_space, er.width - 2.0 * t().divider_inset, tokens::divider_tokens.thickness},
                              scheme[tokens::divider_tokens.color]);
             continue;
         }
         if (e.kind == DrawerEntryKind::headline) {
-            text::draw_line(canvas, fonts_, r.label, {er.x + t.headline_padding, er.y + (er.height - r.label.box_height()) / 2.0},
-                            scheme[t.headline]);
+            text::draw_line(canvas, fonts_, r.label, {er.x + t().headline_padding, er.y + (er.height - r.label.box_height()) / 2.0},
+                            scheme[t().headline]);
             continue;
         }
         const render::Rect ir = item_rect(i);
-        const double radius = tokens::corner_radius(t.item_shape, ir.width, ir.height);
+        const double radius = tokens::corner_radius(t().item_shape, ir.width, ir.height);
         const render::CornerRadii radii = render::uniform_radii(radius);
         const double sel = std::clamp(r.selection.value(), 0.0, 1.0);
         if (sel > 0.0) {
-            canvas.fill_path(render::rounded_rect_path(ir, radii), color::scale_alpha(scheme[t.selected_container], sel));
+            canvas.fill_path(render::rounded_rect_path(ir, radii), color::scale_alpha(scheme[t().selected_container], sel));
         }
         const double layer = std::clamp(r.state_layer.value(), 0.0, 1.0);
         if (layer > 0.0) {
-            const color::Argb c = color::mix(scheme[t.unselected_state_layer], scheme[t.selected_state_layer], sel);
+            const color::Argb c = color::mix(scheme[t().unselected_state_layer], scheme[t().selected_state_layer], sel);
             canvas.fill_path(render::rounded_rect_path(ir, radii), color::with_alpha(c, layer));
         }
-        const color::Argb disabled = resolve(scheme, t.disabled_content);
+        const color::Argb disabled = resolve(scheme, t().disabled_content);
         auto content = [&](color::Role off, color::Role on) { return r.enabled.mix(disabled, color::mix(scheme[off], scheme[on], sel)); };
-        double x = ir.x + t.item_padding_start;
+        double x = ir.x + t().item_padding_start;
         if (e.icon) {
-            icons::draw_centered(canvas, *e.icon, render::Rect{x, ir.y + (ir.height - t.icon_size) / 2.0, t.icon_size, t.icon_size}, t.icon_size,
-                                 content(t.unselected_icon, t.selected_icon));
-            x += t.icon_size + t.icon_label_space;
+            icons::draw_centered(canvas, *e.icon, render::Rect{x, ir.y + (ir.height - t().icon_size) / 2.0, t().icon_size, t().icon_size}, t().icon_size,
+                                 content(t().unselected_icon, t().selected_icon));
+            x += t().icon_size + t().icon_label_space;
         }
-        double end = ir.x + ir.width - t.item_padding_end;
+        double end = ir.x + ir.width - t().item_padding_end;
         if (r.badge) {
             text::draw_line(canvas, fonts_, *r.badge, {end - r.badge->width, ir.y + (ir.height - r.badge->box_height()) / 2.0},
-                            content(t.unselected_badge, t.selected_badge));
-            end -= r.badge->width + t.badge_space;
+                            content(t().unselected_badge, t().selected_badge));
+            end -= r.badge->width + t().badge_space;
         }
         canvas.push_clip({x, ir.y, std::max(0.0, end - x), ir.height});
-        text::draw_line(canvas, fonts_, r.label, {x, ir.y + (ir.height - r.label.box_height()) / 2.0}, content(t.unselected_label, t.selected_label));
+        text::draw_line(canvas, fonts_, r.label, {x, ir.y + (ir.height - r.label.box_height()) / 2.0}, content(t().unselected_label, t().selected_label));
         canvas.pop_clip();
         if (focused() && focus_index_ == i) {
             focus_.paint(canvas, scheme, ir, radius);
@@ -403,22 +408,22 @@ bool DrawerSlide::shown() const {
 }
 
 void DrawerSlide::open() {
-    drag_.animate_to(DrawerValue::open, motion_spec.open);
+    drag_.animate_to(DrawerValue::open, motion_spec().open);
 }
 
 void DrawerSlide::close() {
-    drag_.animate_to(DrawerValue::closed, motion_spec.close);
+    drag_.animate_to(DrawerValue::closed, motion_spec().close);
 }
 
 DrawerValue DrawerSlide::release(double time_seconds) {
     const std::optional<double> v = drag_.release(time_seconds);
-    return drag_.fling(v.value_or(0.0), motion_spec.settle);
+    return drag_.fling(v.value_or(0.0), motion_spec().settle);
 }
 
 void DrawerSlide::cancel() {
     if (drag_.dragging()) {
         drag_.cancel_press();
-        drag_.fling(0.0, motion_spec.settle);
+        drag_.fling(0.0, motion_spec().settle);
     }
     drag_.cancel_press();
 }

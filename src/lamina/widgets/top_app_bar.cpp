@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
 
 #include <algorithm>
@@ -10,7 +11,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::TopAppBarTokens& t = tokens::top_app_bar_tokens;
+const tokens::TopAppBarTokens& t() {
+    return current_style().top_app_bar.common;
+}
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
@@ -33,17 +36,17 @@ TopAppBar::TopAppBar(TopAppBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
       fonts_(fonts),
       title_(text::layout_line(fonts_, options_.title, style_of(options_.title_type.value_or(kind().title)))),
-      small_title_(text::layout_line(fonts_, options_.title, style_of(options_.title_type.value_or(t.collapsed_title)))),
+      small_title_(text::layout_line(fonts_, options_.title, style_of(options_.title_type.value_or(t().collapsed_title)))),
       state_(options_.scroll),
-      container_(0.0, t.container_spring) {
+      container_(0.0, t().container_spring) {
     if (!takes_subtitle(options_.kind)) {
         options_.subtitle.clear();
     }
     if (options_.navigation) {
-        navigation_.emplace(with_content(*options_.navigation, t.navigation_icon));
+        navigation_.emplace(with_content(*options_.navigation, t().navigation_icon));
     }
     for (const IconButtonOptions& a : options_.actions) {
-        actions_.emplace_back(with_content(a, t.action_icon));
+        actions_.emplace_back(with_content(a, t().action_icon));
     }
     layout_titles();
     state_.set_height_offset_limit(two_rows() ? collapsed_height() - expanded_height() : -collapsed_height());
@@ -58,12 +61,12 @@ text::TextLine TopAppBar::title_line(const std::string& s, tokens::TypeRole role
 
 void TopAppBar::layout_titles() {
     title_ = title_line(options_.title, options_.title_type.value_or(kind().title));
-    small_title_ = title_line(options_.title, options_.title_type.value_or(t.collapsed_title));
+    small_title_ = title_line(options_.title, options_.title_type.value_or(t().collapsed_title));
     subtitle_.reset();
     small_subtitle_.reset();
     if (has_subtitle()) {
         subtitle_ = title_line(options_.subtitle, options_.subtitle_type.value_or(kind().subtitle));
-        small_subtitle_ = title_line(options_.subtitle, options_.subtitle_type.value_or(t.collapsed_subtitle));
+        small_subtitle_ = title_line(options_.subtitle, options_.subtitle_type.value_or(t().collapsed_subtitle));
     }
 }
 
@@ -85,7 +88,7 @@ TitleAlignment TopAppBar::alignment() const {
 }
 
 double TopAppBar::expanded_height() const {
-    const double removed = t.collapsed_height - collapsed_height();
+    const double removed = t().collapsed_height - collapsed_height();
     return (has_subtitle() ? kind().expanded_height_with_subtitle : kind().expanded_height) - removed;
 }
 
@@ -118,16 +121,16 @@ void TopAppBar::arrange(const render::Rect& r) {
 }
 
 double TopAppBar::text_room() const {
-    return std::max(0.0, width_ - title_start() - actions_width() - 2.0 * t.horizontal_padding);
+    return std::max(0.0, width_ - title_start() - actions_width() - 2.0 * t().horizontal_padding);
 }
 
 double TopAppBar::title_start() const {
-    const double nav = navigation_ ? t.horizontal_padding + t.icon_slot : 0.0;
-    return std::max(t.title_inset, nav);
+    const double nav = navigation_ ? t().horizontal_padding + t().icon_slot : 0.0;
+    return std::max(t().title_inset, nav);
 }
 
 double TopAppBar::actions_width() const {
-    return actions_.empty() ? 0.0 : static_cast<double>(actions_.size()) * t.icon_slot + t.horizontal_padding;
+    return actions_.empty() ? 0.0 : static_cast<double>(actions_.size()) * t().icon_slot + t().horizontal_padding;
 }
 
 double TopAppBar::title_x(double box_width, double start, double end) const {
@@ -148,13 +151,13 @@ void TopAppBar::place_buttons() {
     const double row = two_rows() ? collapsed_height() : height();
     const double cy = origin_.y + row / 2.0;
     if (navigation_) {
-        const double slot = origin_.x + t.horizontal_padding;
-        navigation_->set_origin({slot + (t.icon_slot - navigation_->width()) / 2.0, cy - navigation_->height() / 2.0});
+        const double slot = origin_.x + t().horizontal_padding;
+        navigation_->set_origin({slot + (t().icon_slot - navigation_->width()) / 2.0, cy - navigation_->height() / 2.0});
     }
-    double x = origin_.x + width_ - t.horizontal_padding - static_cast<double>(actions_.size()) * t.icon_slot;
+    double x = origin_.x + width_ - t().horizontal_padding - static_cast<double>(actions_.size()) * t().icon_slot;
     for (IconButton& a : actions_) {
-        a.set_origin({x + (t.icon_slot - a.width()) / 2.0, cy - a.height() / 2.0});
-        x += t.icon_slot;
+        a.set_origin({x + (t().icon_slot - a.width()) / 2.0, cy - a.height() / 2.0});
+        x += t().icon_slot;
     }
 }
 
@@ -163,18 +166,18 @@ double TopAppBar::title_opacity() const {
 }
 
 double TopAppBar::collapsed_title_opacity() const {
-    return two_rows() ? motion::ease(t.top_title_alpha, state_.collapsed_fraction()) : 0.0;
+    return two_rows() ? motion::ease(t().top_title_alpha, state_.collapsed_fraction()) : 0.0;
 }
 
 double TopAppBar::container_amount() const {
     if (two_rows()) {
-        return motion::ease(t.container_easing, state_.collapsed_fraction());
+        return motion::ease(t().container_easing, state_.collapsed_fraction());
     }
     return std::clamp(container_.value(), 0.0, 1.0);
 }
 
 render::Rect TopAppBar::title_rect() const {
-    const double pad = t.horizontal_padding;
+    const double pad = t().horizontal_padding;
     const double start = title_start();
     const double end = actions_width();
     if (!two_rows()) {
@@ -191,7 +194,7 @@ render::Rect TopAppBar::title_rect() const {
         from_bottom -= from_bottom + h - row_max;
     }
     const double bottom = origin_.y + height();
-    return {title_x(w + 2.0 * pad, t.title_inset, 0.0) + pad, bottom - h - std::max(0.0, from_bottom), w, h};
+    return {title_x(w + 2.0 * pad, t().title_inset, 0.0) + pad, bottom - h - std::max(0.0, from_bottom), w, h};
 }
 
 void TopAppBar::follow(ScrollArea& scroll) {
@@ -210,7 +213,7 @@ void TopAppBar::follow(ScrollArea& scroll) {
         state_.settle();
         driven_offset_ = scroll.offset();
     }
-    container_.animate_to(state_.overlapped_fraction() > t.overlap_threshold ? 1.0 : 0.0);
+    container_.animate_to(state_.overlapped_fraction() > t().overlap_threshold ? 1.0 : 0.0);
     place_buttons();
 }
 
@@ -232,9 +235,9 @@ AccessibleNode TopAppBar::accessible() const {
     }
     AccessibleNode title{AccessibleRole::label, options_.title, title_rect()};
     title.description = options_.subtitle;
-    if (two_rows() && state_.collapsed_fraction() >= t.settle_midpoint) {
+    if (two_rows() && state_.collapsed_fraction() >= t().settle_midpoint) {
         const double cy = origin_.y + collapsed_height() / 2.0;
-        title.bounds = {title_x(small_title_.width + 2.0 * t.horizontal_padding, title_start(), actions_width()) + t.horizontal_padding,
+        title.bounds = {title_x(small_title_.width + 2.0 * t().horizontal_padding, title_start(), actions_width()) + t().horizontal_padding,
                         cy - small_title_.box_height() / 2.0, small_title_.width, small_title_.box_height()};
     }
     node.children.push_back(std::move(title));
@@ -325,9 +328,9 @@ void TopAppBar::paint_title(render::Canvas& canvas, const text::TextLine& title,
     if (opacity <= 0.0) {
         return;
     }
-    text::draw_line(canvas, fonts_, title, at, color::scale_alpha(scheme[t.title], opacity));
+    text::draw_line(canvas, fonts_, title, at, color::scale_alpha(scheme[t().title], opacity));
     if (subtitle) {
-        text::draw_line(canvas, fonts_, *subtitle, {at.x, at.y + title.box_height()}, color::scale_alpha(scheme[t.subtitle], opacity));
+        text::draw_line(canvas, fonts_, *subtitle, {at.x, at.y + title.box_height()}, color::scale_alpha(scheme[t().subtitle], opacity));
     }
 }
 
@@ -338,9 +341,9 @@ void TopAppBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     }
     canvas.push_clip(r);
     if (options_.container) {
-        canvas.fill_rect(r, color::mix(scheme[t.container], scheme[t.scrolled_container], container_amount()));
+        canvas.fill_rect(r, color::mix(scheme[t().container], scheme[t().scrolled_container], container_amount()));
     }
-    const double pad = t.horizontal_padding;
+    const double pad = t().horizontal_padding;
     const double start = title_start();
     const double end = actions_width();
     const double room = text_room();

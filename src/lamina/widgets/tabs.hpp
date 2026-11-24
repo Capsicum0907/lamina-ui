@@ -11,6 +11,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/motion/spline_decay.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
 #include "lamina/tokens/tabs.hpp"
@@ -39,7 +40,7 @@ struct TabRowOptions {
     std::string accessible_name = {};
     tokens::Density density = {};
     bool scrollable = false;
-    double edge_padding = tokens::tab_tokens.scrollable_edge_padding;
+    double edge_padding = current_style().tabs.common.scrollable_edge_padding;
 };
 
 class TabRow {

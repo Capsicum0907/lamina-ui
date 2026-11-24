@@ -78,4 +78,11 @@ constexpr const TopAppBarKindTokens& top_app_bar_kind(TopAppBarKind kind) {
     return top_app_bar_kinds[static_cast<std::size_t>(kind)];
 }
 
+struct TopAppBarSet {
+    std::array<TopAppBarKindTokens, static_cast<std::size_t>(TopAppBarKind::count)> kinds = top_app_bar_kinds;
+    TopAppBarTokens common = top_app_bar_tokens;
+
+    const TopAppBarKindTokens& kind(TopAppBarKind k) const { return kinds[static_cast<std::size_t>(k)]; }
+};
+
 }

@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/pane_scaffold.hpp"
 
 #include <algorithm>
@@ -13,17 +14,19 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::PaneScaffoldTokens& t = tokens::pane_scaffold_tokens;
+const tokens::PaneScaffoldTokens& t() {
+    return current_style().pane_scaffold;
+}
 constexpr input::PointerEvent left_event{input::PointerAction::leave, 0.0, 0.0};
 constexpr input::PointerEvent pressed_elsewhere{input::PointerAction::down, -std::numeric_limits<double>::infinity(),
                                                 -std::numeric_limits<double>::infinity()};
 
 double spring_seconds(const motion::SpringSpec& spec, double distance) {
     const double rate = spec.damping_ratio * std::sqrt(spec.stiffness);
-    if (rate <= 0.0 || distance <= t.settle_distance) {
+    if (rate <= 0.0 || distance <= t().settle_distance) {
         return 0.0;
     }
-    return std::log(distance / t.settle_distance) / rate;
+    return std::log(distance / t().settle_distance) / rate;
 }
 
 enum class Motion { none, bounds, enter_left, enter_right, enter_left_delayed, enter_right_delayed, enter_expand, exit_left, exit_right, exit_shrink };
@@ -210,10 +213,10 @@ std::size_t PaneExpansionState::closest(double position, double velocity) const 
     for (std::size_t i = 0; i < anchors_.size(); ++i) {
         const double p = anchors_[i].position_in(width_);
         double distance = 0.0;
-        if (velocity >= t.anchoring_velocity_threshold) {
+        if (velocity >= t().anchoring_velocity_threshold) {
             const double delta = p - position;
             distance = delta < 0.0 ? width_ - delta : delta;
-        } else if (velocity <= -t.anchoring_velocity_threshold) {
+        } else if (velocity <= -t().anchoring_velocity_threshold) {
             const double delta = position - p;
             distance = delta < 0.0 ? width_ - delta : delta;
         } else {
@@ -231,7 +234,7 @@ void PaneExpansionState::step(double dt) {
     if (!settling_ || !offset_) {
         return;
     }
-    const motion::SpringState s = motion::advance(t.anchoring, {*offset_, velocity_}, target_, dt);
+    const motion::SpringState s = motion::advance(t().anchoring, {*offset_, velocity_}, target_, dt);
     offset_ = std::clamp(s.value, 0.0, width_);
     velocity_ = s.velocity;
     if (motion::is_settled(s, target_)) {
@@ -245,9 +248,9 @@ ThreePaneScaffold::ThreePaneScaffold(ThreePaneScaffoldOptions options, ThreePane
     : options_(std::move(options)),
       navigator_(navigator),
       expansion_(options_.anchors, options_.initial_anchor),
-      panes_{Pane{{0.0, t.motion}, {0.0, t.motion}, {0.0, t.motion}, {0.0, t.motion}},
-             Pane{{0.0, t.motion}, {0.0, t.motion}, {0.0, t.motion}, {0.0, t.motion}},
-             Pane{{0.0, t.motion}, {0.0, t.motion}, {0.0, t.motion}, {0.0, t.motion}}} {
+      panes_{Pane{{0.0, t().motion}, {0.0, t().motion}, {0.0, t().motion}, {0.0, t().motion}},
+             Pane{{0.0, t().motion}, {0.0, t().motion}, {0.0, t().motion}, {0.0, t().motion}},
+             Pane{{0.0, t().motion}, {0.0, t().motion}, {0.0, t().motion}, {0.0, t().motion}}} {
     const std::array<const std::string*, pane_count> defaults{&options_.strings->primary_pane, &options_.strings->secondary_pane,
                                                               &options_.strings->tertiary_pane};
     for (std::size_t i = 0; i < pane_count; ++i) {
@@ -358,7 +361,7 @@ void ThreePaneScaffold::compute_targets(std::array<render::Rect, pane_count>& ou
         if (allocatable > total) {
             std::size_t best = 0;
             for (std::size_t i = 1; i < expanded.size(); ++i) {
-                if (t.priorities[index(expanded[i])] > t.priorities[index(expanded[best])]) {
+                if (t().priorities[index(expanded[i])] > t().priorities[index(expanded[best])]) {
                     best = i;
                 }
             }
@@ -385,7 +388,7 @@ void ThreePaneScaffold::compute_targets(std::array<render::Rect, pane_count>& ou
         }
         centre = std::clamp(centre, left + spacer / 2.0, std::max(left + spacer / 2.0, right - spacer / 2.0));
         const tokens::DragHandleTokens& h = tokens::drag_handle_tokens;
-        const double size = t.handle_touch_target;
+        const double size = t().handle_touch_target;
         handle_ = render::Rect{centre - std::max(h.container_width, size) / 2.0, rect_.y + rect_.height / 2.0 - size / 2.0,
                                std::max(h.container_width, size), size};
     }
@@ -510,7 +513,7 @@ void ThreePaneScaffold::apply(const PaneScaffoldValue& value, bool animate) {
             p.height.snap_to(r.height);
             p.x.animate_to(r.x);
             if (motions[k] == Motion::enter_right_delayed || motions[k] == Motion::enter_left_delayed) {
-                p.delay = t.delayed_ratio * spring_seconds(t.motion, std::abs(p.x.value() - r.x));
+                p.delay = t().delayed_ratio * spring_seconds(t().motion, std::abs(p.x.value() - r.x));
             }
             break;
         }
@@ -725,7 +728,7 @@ PaneScaffoldResponse ThreePaneScaffold::handle(const input::KeyEvent& e) {
     }
     if (focused() && handle_) {
         if (e.key == input::Key::left || e.key == input::Key::right) {
-            expansion_.nudge(e.key == input::Key::right ? t.keyboard_step : -t.keyboard_step);
+            expansion_.nudge(e.key == input::Key::right ? t().keyboard_step : -t().keyboard_step);
             r.consumed = true;
             return r;
         }

@@ -10,6 +10,7 @@
 #include "lamina/motion/spring.hpp"
 #include "lamina/motion/velocity_tracker.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/pager.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
@@ -21,7 +22,7 @@ struct PagerOptions {
     std::size_t page = 0;
     std::string accessible_name = {};
     bool mouse_drag = true;
-    const tokens::PagerTokens* tokens = &tokens::pager;
+    const tokens::PagerTokens* tokens = &current_style().pager;
 };
 
 class Pager {

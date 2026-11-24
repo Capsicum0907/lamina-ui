@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/flexible_bottom_app_bar.hpp"
 
 #include <algorithm>
@@ -6,11 +7,13 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::FlexibleBottomAppBarTokens& t = tokens::flexible_bottom_app_bar_tokens;
+const tokens::FlexibleBottomAppBarTokens& t() {
+    return current_style().flexible_bottom_app_bar;
+}
 
 }
 
-BottomAppBarState::BottomAppBarState(bool exit_always) : exit_always_(exit_always), settle_(0.0, t.snap) {}
+BottomAppBarState::BottomAppBarState(bool exit_always) : exit_always_(exit_always), settle_(0.0, t().snap) {}
 
 void BottomAppBarState::set_height_offset_limit(double limit) {
     limit_ = std::min(0.0, limit);
@@ -32,7 +35,7 @@ bool BottomAppBarState::needs_settle() const {
         return false;
     }
     const double f = collapsed_fraction();
-    return f >= t.settle_threshold && f < 1.0 && height_offset_ < 0.0 && height_offset_ > limit_;
+    return f >= t().settle_threshold && f < 1.0 && height_offset_ < 0.0 && height_offset_ > limit_;
 }
 
 void BottomAppBarState::settle() {
@@ -41,7 +44,7 @@ void BottomAppBarState::settle() {
     }
     settling_ = true;
     settle_.snap_to(height_offset_);
-    settle_.animate_to(collapsed_fraction() < t.settle_midpoint ? 0.0 : limit_);
+    settle_.animate_to(collapsed_fraction() < t().settle_midpoint ? 0.0 : limit_);
 }
 
 void BottomAppBarState::step(double dt) {
@@ -61,14 +64,14 @@ FlexibleBottomAppBar::FlexibleBottomAppBar(FlexibleBottomAppBarOptions options)
     for (const ToolbarAction& a : options_.actions) {
         IconButtonOptions o{a.icon, a.accessible_name, tokens::IconButtonStyle::standard};
         o.enabled = a.enabled;
-        o.content = t.content;
+        o.content = t().content;
         actions_.push_back(std::make_unique<IconButton>(std::move(o)));
     }
-    state_.set_height_offset_limit(-t.height);
+    state_.set_height_offset_limit(-t().height);
 }
 
 double FlexibleBottomAppBar::height() const {
-    return std::max(0.0, t.height + state_.height_offset());
+    return std::max(0.0, t().height + state_.height_offset());
 }
 
 void FlexibleBottomAppBar::set_width(double width) {
@@ -99,10 +102,10 @@ void FlexibleBottomAppBar::place() {
     if (bottom_) {
         origin_.y = *bottom_ - height();
     }
-    const double slot = t.item_slot;
+    const double slot = t().item_slot;
     const double n = static_cast<double>(actions_.size());
-    const double inner = width_ - t.leading_space - t.trailing_space;
-    double x = origin_.x + t.leading_space;
+    const double inner = width_ - t().leading_space - t().trailing_space;
+    double x = origin_.x + t().leading_space;
     double gap = 0.0;
     if (options_.arrangement == BottomBarArrangement::space_between) {
         gap = n > 1.0 ? std::max(0.0, (inner - n * slot) / (n - 1.0)) : 0.0;
@@ -110,10 +113,10 @@ void FlexibleBottomAppBar::place() {
             x += (inner - slot) / 2.0;
         }
     } else {
-        gap = t.fixed_spacing;
+        gap = t().fixed_spacing;
         x += std::max(0.0, (inner - n * slot - (n - 1.0) * gap) / 2.0);
     }
-    const double y = origin_.y + (t.height - slot) / 2.0;
+    const double y = origin_.y + (t().height - slot) / 2.0;
     for (auto& b : actions_) {
         b->set_origin({x + (slot - b->width()) / 2.0, y + (slot - b->height()) / 2.0});
         x += slot + gap;
@@ -214,7 +217,7 @@ void FlexibleBottomAppBar::paint(render::Canvas& canvas, const color::ColorSchem
     }
     canvas.save();
     canvas.push_clip(r);
-    canvas.fill_rect(r, scheme[t.container]);
+    canvas.fill_rect(r, scheme[t().container]);
     for (const auto& b : actions_) {
         b->paint(canvas, scheme);
     }

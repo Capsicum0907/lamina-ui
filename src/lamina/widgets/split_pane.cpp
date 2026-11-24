@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/split_pane.hpp"
 
 #include <algorithm>
@@ -8,7 +9,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::SplitPaneTokens& t = tokens::split_pane_tokens;
+const tokens::SplitPaneTokens& t() {
+    return current_style().split_pane;
+}
 
 }
 
@@ -16,7 +19,7 @@ SplitPane::SplitPane(SplitPaneOptions options)
     : options_(std::move(options)),
       enabled_(options_.enabled),
       handle_painter_(options_.axis),
-      handle_shown_(0.0, t.handle_fade) {
+      handle_shown_(0.0, t().handle_fade) {
     if (options_.first_size) {
         first_ = *options_.first_size;
         sized_ = true;
@@ -33,7 +36,7 @@ layout::Size SplitPane::measure(const layout::Constraints& c) {
 }
 
 double SplitPane::available() const {
-    return std::max(0.0, main(rect_) - t.divider_thickness);
+    return std::max(0.0, main(rect_) - t().divider_thickness);
 }
 
 double SplitPane::min_first() const {
@@ -59,7 +62,7 @@ void SplitPane::arrange(const render::Rect& rect) {
 
 void SplitPane::place() {
     const double first = clamp_first(first_);
-    const double divider = t.divider_thickness;
+    const double divider = t().divider_thickness;
     if (options_.axis == layout::Axis::horizontal) {
         first_rect_ = {rect_.x, rect_.y, first, rect_.height};
         second_rect_ = {rect_.x + first + divider, rect_.y, std::max(0.0, rect_.width - first - divider), rect_.height};
@@ -80,18 +83,18 @@ void SplitPane::place() {
 render::Rect SplitPane::divider_rect() const {
     const double first = clamp_first(first_);
     if (options_.axis == layout::Axis::horizontal) {
-        return {rect_.x + first, rect_.y, t.divider_thickness, rect_.height};
+        return {rect_.x + first, rect_.y, t().divider_thickness, rect_.height};
     }
-    return {rect_.x, rect_.y + first, rect_.width, t.divider_thickness};
+    return {rect_.x, rect_.y + first, rect_.width, t().divider_thickness};
 }
 
 render::Rect SplitPane::handle_rect() const {
     const render::Rect d = divider_rect();
-    const double grow = (t.hit_thickness - t.divider_thickness) / 2.0;
+    const double grow = (t().hit_thickness - t().divider_thickness) / 2.0;
     if (options_.axis == layout::Axis::horizontal) {
-        return {d.x - grow, d.y, t.hit_thickness, d.height};
+        return {d.x - grow, d.y, t().hit_thickness, d.height};
     }
-    return {d.x, d.y - grow, d.width, t.hit_thickness};
+    return {d.x, d.y - grow, d.width, t().hit_thickness};
 }
 
 void SplitPane::set_first_size(double size) {
@@ -182,9 +185,9 @@ bool SplitPane::handle(const input::KeyEvent& e) {
     const input::Key forward = horizontal ? input::Key::right : input::Key::down;
     const double now = clamp_first(first_);
     if (e.key == back || e.key == forward) {
-        set_first_size(now + (e.key == forward ? t.keyboard_step : -t.keyboard_step));
+        set_first_size(now + (e.key == forward ? t().keyboard_step : -t().keyboard_step));
     } else if (e.key == input::Key::page_up || e.key == input::Key::page_down) {
-        set_first_size(now + (e.key == input::Key::page_down ? t.page_step : -t.page_step));
+        set_first_size(now + (e.key == input::Key::page_down ? t().page_step : -t().page_step));
     } else if (e.key == input::Key::home) {
         set_first_size(min_first());
     } else if (e.key == input::Key::end) {
@@ -224,7 +227,7 @@ bool SplitPane::animating() const {
 
 void SplitPane::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect d = divider_rect();
-    canvas.fill_rect(d, scheme[t.divider]);
+    canvas.fill_rect(d, scheme[t().divider]);
     const render::Point centre{d.x + d.width / 2.0, d.y + d.height / 2.0};
     const double shown = std::clamp(handle_shown_.value(), 0.0, 1.0) * enabled_.amount();
     handle_painter_.paint(canvas, scheme, centre, shown);

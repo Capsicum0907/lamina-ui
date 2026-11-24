@@ -11,6 +11,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/floating_toolbar.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/enablement.hpp"
@@ -64,7 +65,7 @@ struct FloatingToolbarResponse {
 
 class ToolbarScrollExpansion {
 public:
-    explicit ToolbarScrollExpansion(bool expanded = true, double threshold = tokens::floating_toolbar_tokens.scroll_threshold);
+    explicit ToolbarScrollExpansion(bool expanded = true, double threshold = current_style().floating_toolbar.scroll_threshold);
 
     std::optional<bool> scrolled_to(double offset);
     void set_expanded(bool expanded);
