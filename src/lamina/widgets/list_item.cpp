@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/list_item.hpp"
 
 #include <algorithm>
@@ -10,7 +11,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::ListTokens& t = tokens::list_tokens;
+const tokens::ListTokens& t() {
+    return current_style().list;
+}
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return tokens::text_style(tokens::type_style(role));
@@ -62,9 +65,9 @@ ListItem::ListItem(ListItemSpec spec, const text::FontStack& fonts)
     : spec_(std::move(spec)),
       fonts_(fonts),
       enabled_(spec_.enabled),
-      selected_(spec_.selected ? 1.0 : 0.0, t.color_spring),
-      corner_(0.0, t.shape_spring),
-      state_layer_(0.0, t.state_layer_spring) {
+      selected_(spec_.selected ? 1.0 : 0.0, t().color_spring),
+      corner_(0.0, t().shape_spring),
+      state_layer_(0.0, t().state_layer_spring) {
     if (spec_.headline.empty()) {
         spec_.accessible_name = required_name(std::move(spec_.accessible_name), "A list item without a headline");
     }
@@ -73,7 +76,7 @@ ListItem::ListItem(ListItemSpec spec, const text::FontStack& fonts)
         selected_.snap_to(0.0);
     }
     if (!spec_.overline.empty()) {
-        overline_ = text::layout_line(fonts_, spec_.overline, style_of(t.overline));
+        overline_ = text::layout_line(fonts_, spec_.overline, style_of(t().overline));
     }
     build_slot(leading_, spec_.leading);
     build_slot(trailing_, spec_.trailing);
@@ -96,11 +99,11 @@ void ListItem::build_slot(Slot& slot, const ListSlot& spec) {
         break;
     case ListSlotKind::avatar:
         if (!spec.image) {
-            slot.text = text::layout_line(fonts_, spec.text, style_of(t.avatar_label));
+            slot.text = text::layout_line(fonts_, spec.text, style_of(t().avatar_label));
         }
         break;
     case ListSlotKind::text:
-        slot.text = text::layout_line(fonts_, spec.text, style_of(t.trailing_text));
+        slot.text = text::layout_line(fonts_, spec.text, style_of(t().trailing_text));
         break;
     case ListSlotKind::none:
     case ListSlotKind::icon:
@@ -114,17 +117,17 @@ layout::Size ListItem::slot_size(const Slot& slot) {
     case ListSlotKind::none:
         return {0.0, 0.0};
     case ListSlotKind::icon:
-        return {t.icon_size, t.icon_size};
+        return {t().icon_size, t().icon_size};
     case ListSlotKind::avatar:
-        return {t.avatar_size, t.avatar_size};
+        return {t().avatar_size, t().avatar_size};
     case ListSlotKind::image:
-        return {t.image_size, t.image_size};
+        return {t().image_size, t().image_size};
     case ListSlotKind::checkbox:
-        return {t.checkbox_slot, t.checkbox_slot};
+        return {t().checkbox_slot, t().checkbox_slot};
     case ListSlotKind::radio_button:
-        return {t.radio_slot, t.radio_slot};
+        return {t().radio_slot, t().radio_slot};
     case ListSlotKind::switch_control:
-        return {t.switch_width, t.switch_height};
+        return {t().switch_width, t().switch_height};
     case ListSlotKind::text:
         return {slot.text->width, slot.text->box_height()};
     }
@@ -136,8 +139,8 @@ void ListItem::layout_text(double width) {
         return;
     }
     text_width_ = width;
-    headline_ = text::layout_paragraph(fonts_, spec_.headline, style_of(t.headline), width);
-    supporting_ = spec_.supporting.empty() ? text::TextBlock{} : text::layout_paragraph(fonts_, spec_.supporting, style_of(t.supporting), width);
+    headline_ = text::layout_paragraph(fonts_, spec_.headline, style_of(t().headline), width);
+    supporting_ = spec_.supporting.empty() ? text::TextBlock{} : text::layout_paragraph(fonts_, spec_.supporting, style_of(t().supporting), width);
     const bool overline = overline_.has_value();
     const bool supporting = !spec_.supporting.empty();
     if ((overline && supporting) || supporting_.lines.size() > 1) {
@@ -150,18 +153,18 @@ void ListItem::layout_text(double width) {
     const double text_h = (overline_ ? overline_->box_height() : 0.0) + headline_.height + supporting_.height;
     const double content = std::max({slot_size(leading_).height, text_h, slot_size(trailing_).height});
     height_ = std::max(min_height(lines_, spec_.density),
-                       vertical_space(t.top_space, lines_, spec_.density) + vertical_space(t.bottom_space, lines_, spec_.density) + content);
+                       vertical_space(t().top_space, lines_, spec_.density) + vertical_space(t().bottom_space, lines_, spec_.density) + content);
 }
 
 double ListItem::height_for(double width) {
     const layout::Size lead = slot_size(leading_);
     const layout::Size trail = slot_size(trailing_);
-    double text_w = width - t.leading_space - t.trailing_space;
+    double text_w = width - t().leading_space - t().trailing_space;
     if (lead.width > 0.0) {
-        text_w -= lead.width + t.between_space;
+        text_w -= lead.width + t().between_space;
     }
     if (trail.width > 0.0) {
-        text_w -= trail.width + t.between_space;
+        text_w -= trail.width + t().between_space;
     }
     layout_text(std::max(0.0, text_w));
     return height_;
@@ -191,17 +194,17 @@ void ListItem::place_slot(Slot& slot, double x, double top, double inner, bool t
 void ListItem::arrange(const render::Rect& r) {
     height_for(r.width);
     rect_ = r;
-    const double top_space = vertical_space(t.top_space, lines_, spec_.density);
+    const double top_space = vertical_space(t().top_space, lines_, spec_.density);
     const double top = r.y + top_space;
-    const double inner = r.height - top_space - vertical_space(t.bottom_space, lines_, spec_.density);
-    const bool top_aligned = inner >= t.top_align_breakpoint;
-    double x = r.x + t.leading_space;
+    const double inner = r.height - top_space - vertical_space(t().bottom_space, lines_, spec_.density);
+    const bool top_aligned = inner >= t().top_align_breakpoint;
+    double x = r.x + t().leading_space;
     if (leading_.spec.kind != ListSlotKind::none) {
         place_slot(leading_, x, top, inner, top_aligned);
-        x += leading_.rect.width + t.between_space;
+        x += leading_.rect.width + t().between_space;
     }
     if (trailing_.spec.kind != ListSlotKind::none) {
-        place_slot(trailing_, r.x + r.width - t.trailing_space - slot_size(trailing_).width, top, inner, top_aligned);
+        place_slot(trailing_, r.x + r.width - t().trailing_space - slot_size(trailing_).width, top, inner, top_aligned);
     }
     const double text_h = (overline_ ? overline_->box_height() : 0.0) + headline_.height + supporting_.height;
     text_at_ = {x, top_aligned ? top : top + (inner - text_h) / 2.0};
@@ -241,19 +244,19 @@ void ListItem::set_selected(bool selected) {
 }
 
 double ListItem::target_corner() const {
-    tokens::CornerSize c = t.corner;
+    tokens::CornerSize c = t().corner;
     if (interactive() && enabled()) {
         if (press_.pressed) {
-            c = t.pressed_corner;
+            c = t().pressed_corner;
         } else if (spec_.selected) {
-            c = t.selected_corner;
+            c = t().selected_corner;
         } else if (focus_.focused()) {
-            c = t.focused_corner;
+            c = t().focused_corner;
         } else if (press_.hovered) {
-            c = t.hovered_corner;
+            c = t().hovered_corner;
         }
     } else if (interactive() && spec_.selected) {
-        c = t.selected_corner;
+        c = t().selected_corner;
     }
     return tokens::corner_radius_dp[static_cast<std::size_t>(c)];
 }
@@ -381,25 +384,25 @@ void ListItem::paint_slot(render::Canvas& canvas, const color::ColorScheme& sche
     case ListSlotKind::none:
         return;
     case ListSlotKind::icon:
-        s.icon->font.draw(canvas, s.icon->symbol, {r.x, r.y}, t.icon_size, color);
+        s.icon->font.draw(canvas, s.icon->symbol, {r.x, r.y}, t().icon_size, color);
         return;
     case ListSlotKind::avatar: {
         const render::Point c{r.x + r.width / 2.0, r.y + r.height / 2.0};
-        const double fade = enabled_.amount() + (1.0 - enabled_.amount()) * t.disabled_content.opacity;
+        const double fade = enabled_.amount() + (1.0 - enabled_.amount()) * t().disabled_content.opacity;
         if (s.image) {
             canvas.push_clip(render::circle_path(c, r.width / 2.0));
             canvas.draw_image(*s.image, r, fade);
             canvas.pop_clip();
             return;
         }
-        canvas.fill_path(render::circle_path(c, r.width / 2.0), color::scale_alpha(scheme[t.avatar_container], fade));
+        canvas.fill_path(render::circle_path(c, r.width / 2.0), color::scale_alpha(scheme[t().avatar_container], fade));
         text::draw_line(canvas, fonts_, *slot.text, {c.x - slot.text->width / 2.0, c.y - slot.text->box_height() / 2.0},
-                        color::scale_alpha(scheme[t.avatar_content], fade));
+                        color::scale_alpha(scheme[t().avatar_content], fade));
         return;
     }
     case ListSlotKind::image: {
-        const double fade = enabled_.amount() + (1.0 - enabled_.amount()) * t.disabled_content.opacity;
-        canvas.push_clip(render::rounded_rect_path(r, render::uniform_radii(tokens::corner_radius(t.image_corner, r.width, r.height))));
+        const double fade = enabled_.amount() + (1.0 - enabled_.amount()) * t().disabled_content.opacity;
+        canvas.push_clip(render::rounded_rect_path(r, render::uniform_radii(tokens::corner_radius(t().image_corner, r.width, r.height))));
         canvas.draw_image(*s.image, r, fade);
         canvas.pop_clip();
         return;
@@ -421,16 +424,16 @@ void ListItem::paint_slot(render::Canvas& canvas, const color::ColorScheme& sche
 
 void ListItem::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const double k = std::clamp(selected_.value(), 0.0, 1.0);
-    const color::Argb disabled = resolve(scheme, t.disabled_content);
-    const color::Argb headline = enabled_.mix(disabled, color::mix(scheme[t.headline_color], scheme[t.selected_content], k));
-    const color::Argb content = enabled_.mix(disabled, color::mix(scheme[t.content_color], scheme[t.selected_content], k));
+    const color::Argb disabled = resolve(scheme, t().disabled_content);
+    const color::Argb headline = enabled_.mix(disabled, color::mix(scheme[t().headline_color], scheme[t().selected_content], k));
+    const color::Argb content = enabled_.mix(disabled, color::mix(scheme[t().content_color], scheme[t().selected_content], k));
     const render::CornerRadii radii = render::uniform_radii(std::clamp(corner_.value(), 0.0, std::min(rect_.width, rect_.height) / 2.0));
     if (spec_.transparent) {
         const render::Path shape = render::rounded_rect_path(rect_, radii);
-        canvas.fill_path(shape, color::scale_alpha(scheme[t.selected_container], k * enabled_.amount()));
+        canvas.fill_path(shape, color::scale_alpha(scheme[t().selected_container], k * enabled_.amount()));
         canvas.fill_path(shape, color::with_alpha(headline, std::clamp(state_layer_.value(), 0.0, 1.0)));
     } else {
-        const color::Argb container = color::mix(scheme[t.container], scheme[t.selected_container], k * enabled_.amount());
+        const color::Argb container = color::mix(scheme[t().container], scheme[t().selected_container], k * enabled_.amount());
         canvas.fill_path(render::rounded_rect_path(rect_, radii), color::state_layer(container, headline, state_layer_.value()));
     }
 

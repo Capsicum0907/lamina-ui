@@ -144,7 +144,7 @@ double SideSheet::actions_height() const {
     for (const auto& a : actions_) {
         h = std::max(h, a->height());
     }
-    return tokens::divider_tokens.thickness + 2.0 * t().actions_padding + h;
+    return current_style().divider.thickness + 2.0 * t().actions_padding + h;
 }
 
 void SideSheet::place() {
@@ -159,7 +159,7 @@ void SideSheet::place() {
     const double actions_top = s.y + s.height - actions_height();
     double x = s.x + t().padding;
     for (auto& a : actions_) {
-        a->set_origin({x, actions_top + tokens::divider_tokens.thickness + t().actions_padding});
+        a->set_origin({x, actions_top + current_style().divider.thickness + t().actions_padding});
         x += a->width() + t().action_space;
     }
     content_.place({s.x + t().padding, s.y + t().header_height, std::max(0.0, s.width - 2.0 * t().padding),
@@ -438,7 +438,7 @@ void SideSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     content_.paint(canvas, scheme);
     if (!actions_.empty()) {
         const double top = s.y + s.height - actions_height();
-        canvas.fill_rect({s.x, top, s.width, tokens::divider_tokens.thickness}, scheme[t().divider]);
+        canvas.fill_rect({s.x, top, s.width, current_style().divider.thickness}, scheme[t().divider]);
         for (const auto& a : actions_) {
             a->paint(canvas, scheme);
         }

@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/scroll_area.hpp"
 
 #include <algorithm>
@@ -11,16 +12,18 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::ScrollAreaTokens& t = tokens::scroll_area_tokens;
+const tokens::ScrollAreaTokens& t() {
+    return current_style().scroll_area;
+}
 
 }
 
 ScrollArea::ScrollArea()
-    : offset_(0.0, t.offset_spring),
-      offset_x_(0.0, t.offset_spring),
-      visibility_(0.0, t.bar_spring),
-      hover_(0.0, t.bar_spring),
-      hover_x_(0.0, t.bar_spring),
+    : offset_(0.0, t().offset_spring),
+      offset_x_(0.0, t().offset_spring),
+      visibility_(0.0, t().bar_spring),
+      hover_(0.0, t().bar_spring),
+      hover_x_(0.0, t().bar_spring),
       fling_(fling_decay()),
       fling_x_(fling_decay()) {}
 
@@ -67,7 +70,7 @@ void ScrollArea::reveal() {
         return;
     }
     visibility_.animate_to(1.0);
-    hide_in_ = t.hide_delay_seconds;
+    hide_in_ = t().hide_delay_seconds;
 }
 
 void ScrollArea::scroll_by(double dy) {
@@ -127,19 +130,19 @@ void ScrollArea::ensure_visible_x(double left, double right) {
 }
 
 bool ScrollArea::over_bar(double x, double y) const {
-    const render::Rect zone{viewport_.x + viewport_.width - t.bar_hit_width, viewport_.y, t.bar_hit_width, viewport_.height};
+    const render::Rect zone{viewport_.x + viewport_.width - t().bar_hit_width, viewport_.y, t().bar_hit_width, viewport_.height};
     return scrollable() && contains(zone, x, y);
 }
 
 bool ScrollArea::over_bar_x(double x, double y) const {
-    const double end = scrollable() ? t.bar_hit_width : 0.0;
-    const render::Rect zone{viewport_.x, viewport_.y + viewport_.height - t.bar_hit_width, viewport_.width - end, t.bar_hit_width};
+    const double end = scrollable() ? t().bar_hit_width : 0.0;
+    const render::Rect zone{viewport_.x, viewport_.y + viewport_.height - t().bar_hit_width, viewport_.width - end, t().bar_hit_width};
     return scrollable_x() && contains(zone, x, y);
 }
 
 double ScrollArea::track_length() const {
-    const double corner = scrollable_x() ? t.bar_hit_width : 0.0;
-    return std::max(0.0, viewport_.height - 2.0 * t.bar_margin - corner);
+    const double corner = scrollable_x() ? t().bar_hit_width : 0.0;
+    return std::max(0.0, viewport_.height - 2.0 * t().bar_margin - corner);
 }
 
 double ScrollArea::thumb_length() const {
@@ -147,12 +150,12 @@ double ScrollArea::thumb_length() const {
     if (content_height_ <= 0.0) {
         return track;
     }
-    return std::min(track, std::max(t.min_thumb_length, track * viewport_.height / content_height_));
+    return std::min(track, std::max(t().min_thumb_length, track * viewport_.height / content_height_));
 }
 
 double ScrollArea::track_length_x() const {
-    const double corner = scrollable() ? t.bar_hit_width : 0.0;
-    return std::max(0.0, viewport_.width - 2.0 * t.bar_margin - corner);
+    const double corner = scrollable() ? t().bar_hit_width : 0.0;
+    return std::max(0.0, viewport_.width - 2.0 * t().bar_margin - corner);
 }
 
 double ScrollArea::thumb_length_x() const {
@@ -160,7 +163,7 @@ double ScrollArea::thumb_length_x() const {
     if (content_width_ <= 0.0) {
         return track;
     }
-    return std::min(track, std::max(t.min_thumb_length, track * viewport_.width / content_width_));
+    return std::min(track, std::max(t().min_thumb_length, track * viewport_.width / content_width_));
 }
 
 bool ScrollArea::handle(const input::WheelEvent& e) {
@@ -171,10 +174,10 @@ bool ScrollArea::handle(const input::WheelEvent& e) {
     const double dx = sideways ? e.dy : e.dx;
     const double dy = sideways ? 0.0 : e.dy;
     if (dy != 0.0 && scrollable()) {
-        scroll_by(dy * t.wheel_step);
+        scroll_by(dy * t().wheel_step);
     }
     if (dx != 0.0 && scrollable_x()) {
-        scroll_by_x(dx * t.wheel_step);
+        scroll_by_x(dx * t().wheel_step);
     }
     return scrollable() || (dx != 0.0 && scrollable_x());
 }
@@ -188,7 +191,7 @@ bool ScrollArea::press_bar_x(const input::PointerEvent& e) {
         drag_start_offset_ = offset_x_.value();
         offset_x_.snap_to(offset_x_.value());
     } else if (r) {
-        const double page = std::max(viewport_.width - t.page_overlap, t.wheel_step);
+        const double page = std::max(viewport_.width - t().page_overlap, t().wheel_step);
         scroll_by_x(e.x_dp < r->x ? -page : page);
     }
     return true;
@@ -224,7 +227,7 @@ bool ScrollArea::handle(const input::PointerEvent& e) {
             bar_x_hovered_ = !bar_hovered_ && over_bar_x(e.x_dp, e.y_dp);
             hover_.animate_to(bar_hovered_ ? 1.0 : 0.0);
             hover_x_.animate_to(bar_x_hovered_ ? 1.0 : 0.0);
-            hide_in_ = t.hide_delay_seconds;
+            hide_in_ = t().hide_delay_seconds;
             return true;
         }
         if (drag_ == Drag::horizontal) {
@@ -261,14 +264,14 @@ bool ScrollArea::handle(const input::PointerEvent& e) {
         drag_start_offset_ = offset_.value();
         offset_.snap_to(offset_.value());
     } else if (r) {
-        const double page = std::max(viewport_.height - t.page_overlap, t.wheel_step);
+        const double page = std::max(viewport_.height - t().page_overlap, t().wheel_step);
         scroll_by(e.y_dp < r->y ? -page : page);
     }
     return true;
 }
 
 bool ScrollArea::handle(const input::KeyEvent& e) {
-    const double page = std::max(viewport_.height - t.page_overlap, t.wheel_step);
+    const double page = std::max(viewport_.height - t().page_overlap, t().wheel_step);
     if (e.key == input::Key::page_down) {
         scroll_by(page);
         return true;
@@ -339,7 +342,7 @@ ScrollArea::TouchRoute ScrollArea::touch_begin(const input::PointerEvent& e) {
             if (std::abs(u.velocity_x) > floor) {
                 fling_x_.start(offset_x_.value(), -u.velocity_x);
             }
-            hide_in_ = t.hide_delay_seconds;
+            hide_in_ = t().hide_delay_seconds;
             return TouchRoute::consumed;
         }
         touch_.cancel();
@@ -452,22 +455,22 @@ std::optional<render::Rect> ScrollArea::thumb() const {
     if (!scrollable()) {
         return std::nullopt;
     }
-    const double thickness = motion::lerp(t.bar_thickness, t.hovered_bar_thickness, std::clamp(hover_.value(), 0.0, 1.0));
+    const double thickness = motion::lerp(t().bar_thickness, t().hovered_bar_thickness, std::clamp(hover_.value(), 0.0, 1.0));
     const double length = thumb_length();
     const double progress = std::clamp(offset_.value() / max_offset(), 0.0, 1.0);
-    return render::Rect{viewport_.x + viewport_.width - t.bar_margin - thickness,
-                        viewport_.y + t.bar_margin + (track_length() - length) * progress, thickness, length};
+    return render::Rect{viewport_.x + viewport_.width - t().bar_margin - thickness,
+                        viewport_.y + t().bar_margin + (track_length() - length) * progress, thickness, length};
 }
 
 std::optional<render::Rect> ScrollArea::thumb_x() const {
     if (!scrollable_x()) {
         return std::nullopt;
     }
-    const double thickness = motion::lerp(t.bar_thickness, t.hovered_bar_thickness, std::clamp(hover_x_.value(), 0.0, 1.0));
+    const double thickness = motion::lerp(t().bar_thickness, t().hovered_bar_thickness, std::clamp(hover_x_.value(), 0.0, 1.0));
     const double length = thumb_length_x();
     const double progress = std::clamp(offset_x_.value() / max_offset_x(), 0.0, 1.0);
-    return render::Rect{viewport_.x + t.bar_margin + (track_length_x() - length) * progress,
-                        viewport_.y + viewport_.height - t.bar_margin - thickness, length, thickness};
+    return render::Rect{viewport_.x + t().bar_margin + (track_length_x() - length) * progress,
+                        viewport_.y + viewport_.height - t().bar_margin - thickness, length, thickness};
 }
 
 void ScrollArea::begin_content(render::Canvas& canvas) const {
@@ -484,15 +487,15 @@ void ScrollArea::end_content(render::Canvas& canvas) const {
 void ScrollArea::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const double shown = std::clamp(visibility_.value(), 0.0, 1.0);
     if (const std::optional<render::Rect> r = thumb()) {
-        const double opacity = motion::lerp(t.bar_opacity, t.hovered_bar_opacity, std::clamp(hover_.value(), 0.0, 1.0)) * shown;
+        const double opacity = motion::lerp(t().bar_opacity, t().hovered_bar_opacity, std::clamp(hover_.value(), 0.0, 1.0)) * shown;
         if (opacity > 0.0) {
-            canvas.fill_rounded_rect(*r, render::uniform_radii(r->width / 2.0), color::with_alpha(scheme[t.bar], opacity));
+            canvas.fill_rounded_rect(*r, render::uniform_radii(r->width / 2.0), color::with_alpha(scheme[t().bar], opacity));
         }
     }
     if (const std::optional<render::Rect> r = thumb_x()) {
-        const double opacity = motion::lerp(t.bar_opacity, t.hovered_bar_opacity, std::clamp(hover_x_.value(), 0.0, 1.0)) * shown;
+        const double opacity = motion::lerp(t().bar_opacity, t().hovered_bar_opacity, std::clamp(hover_x_.value(), 0.0, 1.0)) * shown;
         if (opacity > 0.0) {
-            canvas.fill_rounded_rect(*r, render::uniform_radii(r->height / 2.0), color::with_alpha(scheme[t.bar], opacity));
+            canvas.fill_rounded_rect(*r, render::uniform_radii(r->height / 2.0), color::with_alpha(scheme[t().bar], opacity));
         }
     }
 }

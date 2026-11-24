@@ -123,7 +123,7 @@ render::Rect SearchBar::surface() const {
     }
     const double max_height = area_.height * t().docked_max_height_ratio;
     const double limit = motion::lerp(c.height, std::max(c.height, max_height), std::max(0.0, progress_.value()));
-    const double natural = c.height + tokens::divider_tokens.thickness + results_.content_height();
+    const double natural = c.height + current_style().divider.thickness + results_.content_height();
     const double low = std::min(t().docked_min_height, limit);
     return {c.x, c.y, c.width, std::clamp(natural, low, std::max(low, limit))};
 }
@@ -145,7 +145,7 @@ render::Rect SearchBar::results_rect() const {
     const render::Rect s = surface();
     const render::Rect f = field_rect();
     const double bottom_padding = full_screen() ? motion::lerp(0.0, t().vertical_padding, progress()) : 0.0;
-    const double top = f.y + f.height + bottom_padding + tokens::divider_tokens.thickness;
+    const double top = f.y + f.height + bottom_padding + current_style().divider.thickness;
     return {s.x, top, s.width, std::max(0.0, s.y + s.height - top)};
 }
 
@@ -553,7 +553,7 @@ void SearchBar::paint_expanded(render::Canvas& canvas, const color::ColorScheme&
     const double alpha = full_screen() ? progress() : 1.0;
     const color::ColorScheme faded = color::faded(scheme, alpha);
     const render::Rect list = results_rect();
-    canvas.fill_rect({s.x, list.y - tokens::divider_tokens.thickness, s.width, tokens::divider_tokens.thickness}, faded[t().divider]);
+    canvas.fill_rect({s.x, list.y - current_style().divider.thickness, s.width, current_style().divider.thickness}, faded[t().divider]);
     results_.paint(canvas, faded);
     canvas.pop_clip();
     canvas.pop_clip();

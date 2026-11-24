@@ -15,6 +15,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
 #include "lamina/tokens/table.hpp"
@@ -29,8 +30,8 @@ enum class ColumnAlign { start, end };
 
 struct TableColumn {
     std::string title;
-    double width = tokens::table_tokens.default_column_width;
-    double min_width = tokens::table_tokens.default_min_column_width;
+    double width = current_style().table.default_column_width;
+    double min_width = current_style().table.default_min_column_width;
     ColumnAlign align = ColumnAlign::start;
     bool sortable = true;
     bool resizable = true;

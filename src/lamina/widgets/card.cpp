@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/card.hpp"
 
 #include <algorithm>
@@ -12,15 +13,17 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::CardTokens& t = tokens::card_tokens;
+const tokens::CardTokens& t() {
+    return current_style().card.common;
+}
 
 }
 
 Card::Card(CardOptions options)
     : options_(std::move(options)),
       enabled_(options_.enabled),
-      elevation_(tokens::card_style(options_.style).elevation, options_.enabled),
-      state_layer_(0.0, t.state_layer_spring) {
+      elevation_(current_style().card.style(options_.style).elevation, options_.enabled),
+      state_layer_(0.0, t().state_layer_spring) {
     if (options_.clickable) {
         options_.accessible_name = required_name(std::move(options_.accessible_name), "A clickable card");
     }
@@ -49,7 +52,7 @@ void Card::arrange(const render::Rect& r) {
 }
 
 double Card::radius() const {
-    return tokens::corner_radius(t.corner, rect_.width, rect_.height);
+    return tokens::corner_radius(t().corner, rect_.width, rect_.height);
 }
 
 AccessibleNode Card::accessible() const {
@@ -161,10 +164,10 @@ bool Card::animating() const {
 }
 
 void Card::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const tokens::CardStyleTokens& s = tokens::card_style(options_.style);
+    const tokens::CardStyleTokens& s = current_style().card.style(options_.style);
     const double r = radius();
     const color::Argb container = scheme[s.container];
-    const color::Argb enabled_fill = color::state_layer(container, scheme[t.state_layer], state_layer_.value());
+    const color::Argb enabled_fill = color::state_layer(container, scheme[t().state_layer], state_layer_.value());
     const color::Argb fill = enabled_.mix(resolve(scheme, s.disabled_container), enabled_fill);
     paint_surface(canvas, rect_, r, fill, elevation_.value(), scheme[color::Role::shadow]);
     if (options_.widgets) {
@@ -179,7 +182,7 @@ void Card::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     }
     if (s.outline) {
         const color::Argb outline = enabled_.mix(resolve(scheme, s.disabled_outline), scheme[*s.outline]);
-        canvas.fill_path(render::ring_path(rect_, r, t.outline_width), outline, render::FillRule::even_odd);
+        canvas.fill_path(render::ring_path(rect_, r, t().outline_width), outline, render::FillRule::even_odd);
     }
     focus_.paint(canvas, scheme, rect_, r);
 }

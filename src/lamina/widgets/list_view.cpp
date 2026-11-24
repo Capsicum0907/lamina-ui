@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/list_view.hpp"
 
 #include <algorithm>
@@ -8,7 +9,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::ListTokens& t = tokens::list_tokens;
+const tokens::ListTokens& t() {
+    return current_style().list;
+}
 
 }
 
@@ -97,8 +100,8 @@ std::pair<std::size_t, std::size_t> ListView::visible_rows() const {
     const double top = scroll_.offset();
     const std::size_t first = row_for_offset(top);
     const std::size_t last = row_for_offset(top + std::max(0.0, scroll_.viewport().height - 1e-6)) + 1;
-    const std::size_t from = first > t.overscan_rows ? first - t.overscan_rows : 0;
-    const std::size_t to = std::min(specs_.size(), last + t.overscan_rows);
+    const std::size_t from = first > t().overscan_rows ? first - t().overscan_rows : 0;
+    const std::size_t to = std::min(specs_.size(), last + t().overscan_rows);
     return {from, to};
 }
 
@@ -324,7 +327,7 @@ ListViewResponse ListView::handle(const input::KeyEvent& e) {
     auto enabled = [this](std::size_t i) { return row_enabled(i); };
     if (e.key == input::Key::page_down || e.key == input::Key::page_up) {
         rebuild_tops();
-        const double step = scroll_.viewport().height - tokens::scroll_area_tokens.page_overlap;
+        const double step = scroll_.viewport().height - current_style().scroll_area.page_overlap;
         const double y = tops_[focus_index_] + (e.key == input::Key::page_down ? step : -step);
         const std::size_t near = row_for_offset(std::clamp(y, 0.0, content_height()));
         const bool forward = e.key == input::Key::page_down;

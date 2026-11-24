@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/divider.hpp"
 
 #include <algorithm>
@@ -7,7 +8,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::DividerTokens& t = tokens::divider_tokens;
+const tokens::DividerTokens& t() {
+    return current_style().divider;
+}
 
 bool insets_start(DividerInset inset) {
     return inset == DividerInset::start || inset == DividerInset::both;
@@ -27,8 +30,8 @@ layout::Size Divider::measure(const layout::Constraints& c) const {
 }
 
 render::Rect Divider::line() const {
-    const double start = insets_start(options_.inset) ? t.inset_start : 0.0;
-    const double end = insets_end(options_.inset) ? t.inset_end : 0.0;
+    const double start = insets_start(options_.inset) ? t().inset_start : 0.0;
+    const double end = insets_end(options_.inset) ? t().inset_end : 0.0;
     if (options_.orientation == DividerOrientation::horizontal) {
         const double width = std::max(0.0, rect_.width - start - end);
         return {rect_.x + start, rect_.y + (rect_.height - options_.thickness) / 2.0, width, options_.thickness};

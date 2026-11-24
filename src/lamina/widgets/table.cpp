@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/table.hpp"
 
 #include <algorithm>
@@ -11,7 +12,9 @@ namespace lamina::widgets {
 
 namespace {
 
-constexpr const tokens::TableTokens& t = tokens::table_tokens;
+const tokens::TableTokens& t() {
+    return current_style().table;
+}
 
 bool overlaps(double a0, double a1, double b0, double b1) {
     return a0 < b1 && b0 < a1;
@@ -29,13 +32,13 @@ Table::Table(TableOptions options, const text::FontStack& fonts)
     if (!cell_) {
         throw std::invalid_argument("a table needs a cell function");
     }
-    const auto style = tokens::text_style(tokens::type_style(t.header_label));
+    const auto style = tokens::text_style(tokens::type_style(t().header_label));
     for (TableColumn& c : options.columns) {
         if (c.sortable && !icon_font_) {
             throw std::invalid_argument("a table with a sortable column needs an icon font for the sort arrow");
         }
         columns_.push_back({c.title, text::layout_line(fonts_, c.title, style), std::max(c.width, c.min_width), c.min_width, c.align, c.sortable,
-                            c.resizable, std::move(c.less), motion::Animated(0.0, t.state_layer_spring)});
+                            c.resizable, std::move(c.less), motion::Animated(0.0, t().state_layer_spring)});
     }
     set_row_count(options.row_count);
 }
@@ -157,7 +160,7 @@ std::optional<std::size_t> Table::divider_at(double x, double y) const {
             continue;
         }
         const render::Rect r = column_header_rect(c);
-        if (std::abs(x - (r.x + r.width)) <= t.resize_hit_width / 2.0) {
+        if (std::abs(x - (r.x + r.width)) <= t().resize_hit_width / 2.0) {
             return c;
         }
     }
@@ -173,8 +176,8 @@ std::pair<std::size_t, std::size_t> Table::visible_rows() const {
     const double top = scroll_.offset();
     const auto first = static_cast<std::size_t>(std::max(0.0, std::floor(top / h)));
     const auto last = static_cast<std::size_t>(std::max(0.0, std::ceil((top + scroll_.viewport().height) / h)));
-    const std::size_t from = first > t.overscan_rows ? first - t.overscan_rows : 0;
-    return {std::min(from, n), std::min(n, last + t.overscan_rows)};
+    const std::size_t from = first > t().overscan_rows ? first - t().overscan_rows : 0;
+    return {std::min(from, n), std::min(n, last + t().overscan_rows)};
 }
 
 void Table::sort_by(std::size_t column, SortDirection direction) {
@@ -318,7 +321,7 @@ Table::RowState& Table::row_state(std::size_t model_row) {
     auto it = rows_.find(model_row);
     if (it == rows_.end()) {
         const double on = selected_[model_row] ? 1.0 : 0.0;
-        it = rows_.emplace(model_row, RowState{motion::Animated(on, t.color_spring), motion::Animated(0.0, t.state_layer_spring)}).first;
+        it = rows_.emplace(model_row, RowState{motion::Animated(on, t().color_spring), motion::Animated(0.0, t().state_layer_spring)}).first;
     }
     return it->second;
 }
@@ -337,7 +340,7 @@ std::size_t Table::page_rows() const {
 const std::vector<text::TextLine>& Table::cells(std::size_t model_row) const {
     auto it = cache_.find(model_row);
     if (it == cache_.end()) {
-        const auto style = tokens::text_style(tokens::type_style(t.cell_label));
+        const auto style = tokens::text_style(tokens::type_style(t().cell_label));
         std::vector<text::TextLine> lines;
         for (std::size_t c = 0; c < columns_.size(); ++c) {
             lines.push_back(text::layout_line(fonts_, cell_(model_row, c), style));
@@ -620,14 +623,14 @@ void Table::paint(render::Canvas& canvas, const color::ColorScheme& scheme) cons
     const double rh = row_height();
     canvas.save();
     canvas.push_clip(bounds_);
-    canvas.fill_rect(bounds_, scheme[t.container]);
+    canvas.fill_rect(bounds_, scheme[t().container]);
     const auto [from, to] = visible_rows();
     stats_.painted_rows = to - from;
     for (auto it = cache_.begin(); it != cache_.end();) {
         const std::size_t r = view_row(it->first);
         it = r >= from && r < to ? std::next(it) : cache_.erase(it);
     }
-    const color::Argb disabled = resolve(scheme, t.disabled_label);
+    const color::Argb disabled = resolve(scheme, t().disabled_label);
     canvas.save();
     canvas.push_clip(v);
     for (std::size_t r = from; r < to; ++r) {
@@ -637,15 +640,15 @@ void Table::paint(render::Canvas& canvas, const color::ColorScheme& scheme) cons
         const double sel = state != rows_.end() ? std::clamp(state->second.selected.value(), 0.0, 1.0) : (selected_[m] ? 1.0 : 0.0);
         const double layer = state != rows_.end() ? state->second.state_layer.value() : 0.0;
         if (sel > 0.0) {
-            canvas.fill_rect(rr, color::with_alpha(scheme[t.selected_container], sel));
+            canvas.fill_rect(rr, color::with_alpha(scheme[t().selected_container], sel));
         }
         if (layer > 0.0) {
-            canvas.fill_rect(rr, color::with_alpha(scheme[t.state_layer], layer));
+            canvas.fill_rect(rr, color::with_alpha(scheme[t().state_layer], layer));
         }
         if (r + 1 < order_.size()) {
-            canvas.fill_rect({rr.x, rr.y + rh - t.divider_thickness, rr.width, t.divider_thickness}, scheme[t.divider]);
+            canvas.fill_rect({rr.x, rr.y + rh - t().divider_thickness, rr.width, t().divider_thickness}, scheme[t().divider]);
         }
-        const color::Argb ink = enabled_.mix(disabled, color::mix(scheme[t.cell_label_color], scheme[t.selected_label], sel));
+        const color::Argb ink = enabled_.mix(disabled, color::mix(scheme[t().cell_label_color], scheme[t().selected_label], sel));
         const std::vector<text::TextLine>& lines = cells(m);
         for (std::size_t c = 0; c < columns_.size(); ++c) {
             const render::Rect cr = cell_rect(r, c);
@@ -653,11 +656,11 @@ void Table::paint(render::Canvas& canvas, const color::ColorScheme& scheme) cons
                 continue;
             }
             const text::TextLine& line = lines[c];
-            const double inner = cr.width - t.cell_leading_padding - t.cell_trailing_padding;
-            const double x = columns_[c].align == ColumnAlign::start ? cr.x + t.cell_leading_padding
-                                                                     : cr.x + cr.width - t.cell_trailing_padding - line.width;
+            const double inner = cr.width - t().cell_leading_padding - t().cell_trailing_padding;
+            const double x = columns_[c].align == ColumnAlign::start ? cr.x + t().cell_leading_padding
+                                                                     : cr.x + cr.width - t().cell_trailing_padding - line.width;
             canvas.save();
-            canvas.push_clip({cr.x + t.cell_leading_padding, cr.y, std::max(0.0, inner), cr.height});
+            canvas.push_clip({cr.x + t().cell_leading_padding, cr.y, std::max(0.0, inner), cr.height});
             text::draw_line(canvas, fonts_, line, {x, cr.y + (cr.height - line.box_height()) / 2.0}, ink);
             canvas.pop_clip();
             canvas.restore();
@@ -667,16 +670,16 @@ void Table::paint(render::Canvas& canvas, const color::ColorScheme& scheme) cons
         const std::size_t r = view_row(focus_model_);
         if (r >= from && r < to) {
             const render::Rect rr = row_rect(r);
-            focus_.paint_inward(canvas, scheme, {v.x, rr.y, v.width, rr.height}, t.focus_ring_corner);
+            focus_.paint_inward(canvas, scheme, {v.x, rr.y, v.width, rr.height}, t().focus_ring_corner);
         }
     }
     canvas.pop_clip();
     canvas.restore();
     const render::Rect h = header_rect();
-    canvas.fill_rect(h, scheme[t.header_container]);
+    canvas.fill_rect(h, scheme[t().header_container]);
     canvas.save();
     canvas.push_clip(h);
-    const color::Argb header_ink = enabled_.mix(disabled, scheme[t.header_label_color]);
+    const color::Argb header_ink = enabled_.mix(disabled, scheme[t().header_label_color]);
     for (std::size_t c = 0; c < columns_.size(); ++c) {
         const Column& col = columns_[c];
         const render::Rect hr = column_header_rect(c);
@@ -684,28 +687,28 @@ void Table::paint(render::Canvas& canvas, const color::ColorScheme& scheme) cons
             continue;
         }
         const bool sorted = sort_ && sort_->column == c;
-        const double icon_room = col.sortable ? t.sort_icon_gap + t.sort_icon_size : 0.0;
-        const double inner = hr.width - t.cell_leading_padding - t.cell_trailing_padding;
-        const double label_x = col.align == ColumnAlign::start ? hr.x + t.cell_leading_padding
-                                                               : hr.x + hr.width - t.cell_trailing_padding - col.label.width;
+        const double icon_room = col.sortable ? t().sort_icon_gap + t().sort_icon_size : 0.0;
+        const double inner = hr.width - t().cell_leading_padding - t().cell_trailing_padding;
+        const double label_x = col.align == ColumnAlign::start ? hr.x + t().cell_leading_padding
+                                                               : hr.x + hr.width - t().cell_trailing_padding - col.label.width;
         canvas.save();
-        canvas.push_clip({hr.x + t.cell_leading_padding, hr.y, std::max(0.0, inner), hr.height});
+        canvas.push_clip({hr.x + t().cell_leading_padding, hr.y, std::max(0.0, inner), hr.height});
         text::draw_line(canvas, fonts_, col.label, {label_x, hr.y + (hr.height - col.label.box_height()) / 2.0}, header_ink);
         const double shown = sorted ? 1.0 : std::clamp(col.hover.value(), 0.0, 1.0);
         if (col.sortable && shown > 0.0) {
-            const double ix = col.align == ColumnAlign::start ? label_x + col.label.width + t.sort_icon_gap : label_x - icon_room;
-            const icons::Symbol symbol = sorted && sort_->direction == SortDirection::descending ? t.descending_symbol : t.ascending_symbol;
-            const color::Argb ink = enabled_.mix(disabled, scheme[sorted ? t.active_sort_icon : t.sort_icon]);
-            icon_font_->draw(canvas, symbol, {ix, hr.y + (hr.height - t.sort_icon_size) / 2.0}, t.sort_icon_size, color::scale_alpha(ink, shown));
+            const double ix = col.align == ColumnAlign::start ? label_x + col.label.width + t().sort_icon_gap : label_x - icon_room;
+            const icons::Symbol symbol = sorted && sort_->direction == SortDirection::descending ? t().descending_symbol : t().ascending_symbol;
+            const color::Argb ink = enabled_.mix(disabled, scheme[sorted ? t().active_sort_icon : t().sort_icon]);
+            icon_font_->draw(canvas, symbol, {ix, hr.y + (hr.height - t().sort_icon_size) / 2.0}, t().sort_icon_size, color::scale_alpha(ink, shown));
         }
         canvas.pop_clip();
         canvas.restore();
-        const double inset = std::min(t.header_divider_inset, hr.height / 2.0);
-        canvas.fill_rect({hr.x + hr.width - t.divider_thickness, hr.y + inset, t.divider_thickness, hr.height - 2.0 * inset}, scheme[t.divider]);
+        const double inset = std::min(t().header_divider_inset, hr.height / 2.0);
+        canvas.fill_rect({hr.x + hr.width - t().divider_thickness, hr.y + inset, t().divider_thickness, hr.height - 2.0 * inset}, scheme[t().divider]);
     }
     canvas.pop_clip();
     canvas.restore();
-    canvas.fill_rect({h.x, h.y + h.height - t.divider_thickness, h.width, t.divider_thickness}, scheme[t.divider]);
+    canvas.fill_rect({h.x, h.y + h.height - t().divider_thickness, h.width, t().divider_thickness}, scheme[t().divider]);
     scroll_.paint(canvas, scheme);
     stats_.cached_rows = cache_.size();
     canvas.pop_clip();

@@ -364,7 +364,7 @@ bool TabRow::handle(const input::WheelEvent& e) {
     if (notches == 0.0) {
         return false;
     }
-    scroll_.animate_to(std::clamp(scroll_.target() + notches * tokens::scroll_area_tokens.wheel_step, 0.0, max_scroll()));
+    scroll_.animate_to(std::clamp(scroll_.target() + notches * current_style().scroll_area.wheel_step, 0.0, max_scroll()));
     return true;
 }
 

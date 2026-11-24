@@ -57,4 +57,11 @@ constexpr const CardStyleTokens& card_style(CardStyle style) {
     return card_styles[static_cast<std::size_t>(style)];
 }
 
+struct CardSet {
+    CardTokens common = card_tokens;
+    std::array<CardStyleTokens, static_cast<std::size_t>(CardStyle::count)> styles = card_styles;
+
+    const CardStyleTokens& style(CardStyle s) const { return styles[static_cast<std::size_t>(s)]; }
+};
+
 }

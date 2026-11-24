@@ -3,6 +3,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/divider.hpp"
 #include "lamina/widgets/accessibility.hpp"
 
@@ -15,8 +16,8 @@ enum class DividerInset { none, start, end, both };
 struct DividerOptions {
     DividerOrientation orientation = DividerOrientation::horizontal;
     DividerInset inset = DividerInset::none;
-    double thickness = tokens::divider_tokens.thickness;
-    color::Role color = tokens::divider_tokens.color;
+    double thickness = current_style().divider.thickness;
+    color::Role color = current_style().divider.color;
 };
 
 class Divider {

@@ -2,19 +2,23 @@
 
 #include "lamina/color/scheme.hpp"
 #include "lamina/tokens/access_key.hpp"
+#include "lamina/tokens/badge.hpp"
 #include "lamina/tokens/bottom_sheet.hpp"
 #include "lamina/tokens/button.hpp"
 #include "lamina/tokens/button_group.hpp"
+#include "lamina/tokens/card.hpp"
 #include "lamina/tokens/checkbox.hpp"
 #include "lamina/tokens/chip.hpp"
 #include "lamina/tokens/date_picker.hpp"
 #include "lamina/tokens/dialog.hpp"
+#include "lamina/tokens/divider.hpp"
 #include "lamina/tokens/drag_handle.hpp"
 #include "lamina/tokens/fab.hpp"
 #include "lamina/tokens/fab_menu.hpp"
 #include "lamina/tokens/floating_toolbar.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/tokens/icon_button.hpp"
+#include "lamina/tokens/list.hpp"
 #include "lamina/tokens/menu.hpp"
 #include "lamina/tokens/menu_bar.hpp"
 #include "lamina/tokens/navigation_bar.hpp"
@@ -27,6 +31,7 @@
 #include "lamina/tokens/picker_dialog.hpp"
 #include "lamina/tokens/radio_button.hpp"
 #include "lamina/tokens/scrim.hpp"
+#include "lamina/tokens/scroll_area.hpp"
 #include "lamina/tokens/search.hpp"
 #include "lamina/tokens/segmented_button.hpp"
 #include "lamina/tokens/side_navigation.hpp"
@@ -36,6 +41,7 @@
 #include "lamina/tokens/split_button.hpp"
 #include "lamina/tokens/split_pane.hpp"
 #include "lamina/tokens/switch.hpp"
+#include "lamina/tokens/table.hpp"
 #include "lamina/tokens/tabs.hpp"
 #include "lamina/tokens/text_field.hpp"
 #include "lamina/tokens/time_picker.hpp"
@@ -106,6 +112,13 @@ struct Style {
     tokens::SnackbarTokens snackbar = tokens::snackbar_tokens;
     tokens::DragHandleTokens drag_handle = tokens::drag_handle_tokens;
     tokens::AccessKeyTokens access_key = tokens::access_key_tokens;
+    
+    tokens::ListTokens list = tokens::list_tokens;
+    tokens::TableTokens table = tokens::table_tokens;
+    tokens::DividerTokens divider = tokens::divider_tokens;
+    tokens::CardSet card;
+    tokens::BadgeTokens badge = tokens::badge_tokens;
+    tokens::ScrollAreaTokens scroll_area = tokens::scroll_area_tokens;
 };
 
 const Style& m3_expressive_style();

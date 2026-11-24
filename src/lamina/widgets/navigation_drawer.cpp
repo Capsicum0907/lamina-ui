@@ -43,7 +43,7 @@ double entry_height(DrawerEntryKind kind, tokens::Density density) {
     case DrawerEntryKind::headline:
         return t().headline_height;
     case DrawerEntryKind::divider:
-        return t().divider_top_space + tokens::divider_tokens.thickness + t().divider_bottom_space;
+        return t().divider_top_space + current_style().divider.thickness + t().divider_bottom_space;
     }
     return 0.0;
 }
@@ -342,8 +342,8 @@ void DrawerSheet::paint_entries(render::Canvas& canvas, const color::ColorScheme
             continue;
         }
         if (e.kind == DrawerEntryKind::divider) {
-            canvas.fill_rect({er.x + t().divider_inset, er.y + t().divider_top_space, er.width - 2.0 * t().divider_inset, tokens::divider_tokens.thickness},
-                             scheme[tokens::divider_tokens.color]);
+            canvas.fill_rect({er.x + t().divider_inset, er.y + t().divider_top_space, er.width - 2.0 * t().divider_inset, current_style().divider.thickness},
+                             scheme[current_style().divider.color]);
             continue;
         }
         if (e.kind == DrawerEntryKind::headline) {

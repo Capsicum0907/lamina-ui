@@ -6,6 +6,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/badge.hpp"
 
@@ -16,7 +17,7 @@ struct BadgeSpec {
     std::string accessible_description = {};
 };
 
-std::string badge_count(long long count, long long max = tokens::badge_tokens.max_count);
+std::string badge_count(long long count, long long max = current_style().badge.max_count);
 
 render::Rect badge_rect(const render::Rect& anchor, layout::Size badge, bool has_content,
                         const std::optional<render::Rect>& bounds = std::nullopt);
