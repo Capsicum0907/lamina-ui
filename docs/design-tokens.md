@@ -280,6 +280,14 @@ The ThorVG canvas blurs each shadow shape once and draws it from a cache, at the
 | `retained_min_scale` | 0.5 | a retained image drawn smaller than this in either direction is drawn by ThorVG |
 | `image_texture_bytes` | 256 MiB | the default budget of the textures of retained images (`WindowOptions::image_texture_bytes`) |
 | `image_texture_smooth` | true | bilinear filtering of those textures (false: nearest) |
+| `damage_tracking` | true | repaint and upload only the tiles of layer 0 that changed ([Damage tracking](app-structure.md#damage-tracking)); `WindowOptions::damage_tracking` starts from it |
+| `damage_tile` | 64 | the side of a tile, in px |
+| `damage_rects_max` | 1 | rectangles repainted in a frame at most; more are merged. Each rectangle is a ThorVG pass that prepares every shape again, so one band from the first to the last dirty row costs less than several |
+| `damage_merge_input_max` | 48 | more row runs than this are merged into their bounding box at once |
+| `damage_full_fraction` | 0.6 | at this share of dirty tiles or more the whole canvas is repainted |
+| `damage_outset` | 2 | px around a drawing's bounding box that count as touched, for antialiasing |
+| `damage_pending_max` | 16 | repainted rectangles kept for the window before they are merged into one |
+| `full_repaint_environment` | `LAMINA_FULL_REPAINT` | the environment variable that turns damage tracking off for every window |
 
 C `tokens/StateTokens.kt` (`VERSION: v0_103`), state layer opacity: hover 0.08, focus 0.10, pressed 0.10, dragged 0.16.
 
