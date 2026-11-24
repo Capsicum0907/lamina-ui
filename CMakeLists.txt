@@ -110,6 +110,7 @@ add_library(lamina STATIC
     src/lamina/widgets/pinch.cpp
     src/lamina/widgets/picker_dialog.cpp
     src/lamina/widgets/progress_indicator.cpp
+    src/lamina/widgets/pull_to_refresh.cpp
     src/lamina/widgets/radio_button.cpp
     src/lamina/widgets/scroll_area.cpp
     src/lamina/widgets/zoom_view.cpp
@@ -373,6 +374,7 @@ if(LAMINA_BUILD_TESTS)
         tests/placeholder_test.cpp
         tests/popup_transition_test.cpp
         tests/progress_indicator_test.cpp
+        tests/pull_to_refresh_test.cpp
         tests/protocol_test.cpp
         tests/radio_button_test.cpp
         tests/range_slider_test.cpp
