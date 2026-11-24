@@ -268,7 +268,19 @@ private:
             list_->set_viewport(r);
             pull_.set_area(r);
         });
-        return heading("Pull to refresh", frame_.node(nullptr), layout::CrossAlign::start);
+        auto& arrow = controls.emplace_with<widgets::Switch>(
+            [this](widgets::Switch& s, bool clicked) {
+                if (clicked) {
+                    pull_.set_style(s.checked() ? widgets::PullIndicatorStyle::arrow : widgets::PullIndicatorStyle::expressive);
+                    ctx.report(s.checked() ? "Pull to refresh: arrow" : "Pull to refresh: expressive");
+                }
+            },
+            widgets::SwitchOptions{.checked = false, .accessible_name = "Arrow indicator"});
+        focus_.add(arrow);
+        enabler("Arrow indicator", arrow);
+        auto column = layout::column({captioned("Arrow indicator", widgets::centered_node(arrow)), frame_.node(nullptr)});
+        column->spacing(progress_layout.row_gap);
+        return heading("Pull to refresh", column, layout::CrossAlign::start);
     }
 
     void set_all(double v, bool ease) {

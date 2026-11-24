@@ -3,9 +3,13 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <vector>
 
+#include "lamina/color/mix.hpp"
+#include "lamina/render/path.hpp"
 #include "lamina/tokens/elevation.hpp"
 #include "lamina/widgets/surface.hpp"
+#include "lamina/widgets/wavy_progress.hpp"
 
 namespace lamina::widgets {
 
@@ -13,6 +17,19 @@ namespace {
 
 bool inside(const render::Rect& r, double x, double y) {
     return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
+}
+
+double radians(double degrees) {
+    return degrees * std::numbers::pi / 180.0;
+}
+
+render::Point on_circle(render::Point c, double radius, double degrees) {
+    const double a = radians(degrees);
+    return {c.x + radius * std::cos(a), c.y + radius * std::sin(a)};
+}
+
+int arc_segments(double sweep_degrees, int per_turn) {
+    return std::max(1, static_cast<int>(std::ceil(std::abs(sweep_degrees) / 360.0 * per_turn)));
 }
 
 }
@@ -36,10 +53,35 @@ double pull_distance(double offset, double threshold, double max_tension) {
     return threshold * (1.0 + linear);
 }
 
+PullArrow pull_arrow(double fraction, const tokens::PullArrowTokens& k) {
+    const double adjusted = std::max(std::min(1.0, fraction) - k.arc_start, 0.0) * k.arc_gain;
+    const double linear = std::clamp(std::abs(fraction) - 1.0, 0.0, k.max_tension);
+    const double tension = linear - linear * linear / (2.0 * k.max_tension);
+    const double rotation = (k.rotation_start + k.rotation_arc * adjusted + tension) * k.rotation_scale;
+    return {rotation * 360.0, (rotation + adjusted * k.max_arc) * 360.0, std::min(1.0, adjusted)};
+}
+
 PullToRefresh::PullToRefresh(PullToRefreshOptions options)
     : options_(std::move(options)),
       distance_(0.0, options_.tokens->settle_spring),
-      indicator_(LoadingIndicatorOptions{.progress = 0.0, .contained = true, .size = options_.tokens->container_size}) {}
+      indicator_(LoadingIndicatorOptions{.progress = 0.0, .contained = true, .size = options_.tokens->container_size}),
+      arrow_alpha_(options_.arrow_tokens->min_alpha) {}
+
+void PullToRefresh::set_style(PullIndicatorStyle style) {
+    options_.style = style;
+}
+
+double PullToRefresh::container_size() const {
+    return options_.style == PullIndicatorStyle::arrow ? options_.arrow_tokens->container_size : t().container_size;
+}
+
+double PullToRefresh::spinner_sweep_degrees() const {
+    return circular_indeterminate_sweep(spinner_ms_) * 360.0;
+}
+
+double PullToRefresh::spinner_rotation_degrees() const {
+    return circular_indeterminate_rotation(spinner_ms_) + tokens::wavy_progress_tokens.start_angle_degrees;
+}
 
 bool PullToRefresh::shown() const {
     return spinning() || distance_.value() > 0.0;
@@ -52,6 +94,7 @@ void PullToRefresh::start_refreshing() {
     if (indicator_.determinate()) {
         indicator_.set_progress(std::nullopt);
     }
+    spinner_mix_.animate_to(1.0, options_.arrow_tokens->crossfade);
     distance_.animate_to(1.0);
 }
 
@@ -78,7 +121,7 @@ void PullToRefresh::set_enabled(bool enabled) {
 }
 
 render::Rect PullToRefresh::container_rect() const {
-    const double size = t().container_size;
+    const double size = container_size();
     return {area_.x + (area_.width - size) / 2.0, area_.y + distance_.value() * t().threshold - size, size, size};
 }
 
@@ -222,6 +265,13 @@ void PullToRefresh::step(double dt) {
     if (spinning()) {
         refresh_seconds_ += dt;
     }
+    arrow_alpha_.animate_to(distance_.value() >= 1.0 ? options_.arrow_tokens->max_alpha : options_.arrow_tokens->min_alpha,
+                            options_.arrow_tokens->alpha_tween);
+    arrow_alpha_.step(dt);
+    spinner_mix_.step(dt);
+    if (spinner_mix_.value() > 0.0) {
+        spinner_ms_ += dt * 1000.0;
+    }
     if (holding_ && refresh_seconds_ >= t().min_refresh_seconds) {
         leave();
     }
@@ -235,11 +285,79 @@ void PullToRefresh::step(double dt) {
             indicator_ = LoadingIndicator(LoadingIndicatorOptions{.progress = 0.0, .contained = true, .size = t().container_size});
         }
         turn_ = 0.0;
+        spinner_mix_.snap_to(0.0);
+        spinner_ms_ = 0.0;
+        arrow_alpha_.snap_to(options_.arrow_tokens->min_alpha);
     }
 }
 
 bool PullToRefresh::animating() const {
-    return !distance_.settled() || (shown() && indicator_.animating());
+    if (!distance_.settled()) {
+        return true;
+    }
+    if (!shown()) {
+        return false;
+    }
+    if (options_.style == PullIndicatorStyle::arrow) {
+        return spinning() || spinner_mix_.value() > 0.0 || !arrow_alpha_.settled();
+    }
+    return indicator_.animating();
+}
+
+void PullToRefresh::paint_arrow(render::Canvas& canvas, color::Argb color) const {
+    const tokens::PullArrowTokens& k = *options_.arrow_tokens;
+    const PullArrow a = arrow();
+    const double size = k.container_size;
+    const render::Point c{size / 2.0, size / 2.0};
+    const double radius = k.arc_radius + k.stroke / 2.0;
+    const double sweep = a.end_degrees - a.start_degrees;
+    if (sweep > 0.0) {
+        const int n = arc_segments(sweep, k.arc_segments_per_turn);
+        render::Path arc;
+        for (int i = 0; i <= n; ++i) {
+            const render::Point p = on_circle(c, radius + k.stroke / 2.0, a.start_degrees + sweep * i / n);
+            if (i == 0) {
+                arc.move_to(p);
+            } else {
+                arc.line_to(p);
+            }
+        }
+        for (int i = n; i >= 0; --i) {
+            arc.line_to(on_circle(c, radius - k.stroke / 2.0, a.start_degrees + sweep * i / n));
+        }
+        arc.close();
+        canvas.fill_path(arc, color);
+    }
+    if (a.scale > 0.0) {
+        const double w = k.arrow_width * a.scale;
+        const double h = k.arrow_height * a.scale;
+        const double end = radians(a.end_degrees);
+        const render::Point out{std::cos(end), std::sin(end)};
+        const render::Point ahead{-std::sin(end), std::cos(end)};
+        const render::Point base = on_circle(c, radius, a.end_degrees) - ahead * k.stroke;
+        render::Path head;
+        head.move_to(base - out * (w / 2.0));
+        head.line_to(base + ahead * h);
+        head.line_to(base + out * (w / 2.0));
+        head.close();
+        canvas.fill_path(head, color);
+    }
+}
+
+void PullToRefresh::paint_spinner(render::Canvas& canvas, color::Argb color) const {
+    const tokens::PullArrowTokens& k = *options_.arrow_tokens;
+    const double size = k.container_size;
+    const render::Point c{size / 2.0, size / 2.0};
+    const double radius = (k.spinner_size - k.stroke) / 2.0;
+    const double start = spinner_rotation_degrees();
+    const double sweep = spinner_sweep_degrees();
+    const int n = arc_segments(sweep, k.arc_segments_per_turn);
+    std::vector<render::Point> line;
+    line.reserve(static_cast<std::size_t>(n) + 1);
+    for (int i = 0; i <= n; ++i) {
+        line.push_back(on_circle(c, radius, start + sweep * i / n));
+    }
+    canvas.fill_path(render::stroke_path(line, k.stroke), color);
 }
 
 void PullToRefresh::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -250,9 +368,25 @@ void PullToRefresh::paint(render::Canvas& canvas, const color::ColorScheme& sche
     if (r.y + r.height <= area_.y) {
         return;
     }
-    const double size = t().container_size;
+    const double size = container_size();
     canvas.save();
     canvas.push_clip(area_);
+    if (options_.style == PullIndicatorStyle::arrow) {
+        const tokens::PullArrowTokens& k = *options_.arrow_tokens;
+        paint_surface(canvas, r, tokens::corner_radius(t().container_shape, size, size), scheme[k.container], tokens::elevation_dp[k.elevation_level],
+                      scheme[t().shadow]);
+        canvas.translate(r.x, r.y);
+        const double mix = std::clamp(spinner_mix_.value(), 0.0, 1.0);
+        if (mix < 1.0) {
+            paint_arrow(canvas, color::scale_alpha(scheme[k.indicator], arrow_alpha_.value() * (1.0 - mix)));
+        }
+        if (mix > 0.0) {
+            paint_spinner(canvas, color::scale_alpha(scheme[k.indicator], mix));
+        }
+        canvas.pop_clip();
+        canvas.restore();
+        return;
+    }
     paint_surface(canvas, r, tokens::corner_radius(t().container_shape, size, size), scheme[t().container],
                   tokens::elevation_dp[t().elevation_level], scheme[t().shadow]);
     canvas.translate(r.x + size / 2.0, r.y + size / 2.0);

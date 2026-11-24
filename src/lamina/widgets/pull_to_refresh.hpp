@@ -6,6 +6,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/input/events.hpp"
 #include "lamina/motion/animated.hpp"
+#include "lamina/motion/tween.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/tokens/pull_to_refresh.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -13,11 +14,23 @@
 
 namespace lamina::widgets {
 
+enum class PullIndicatorStyle { expressive, arrow };
+
 struct PullToRefreshOptions {
     std::string accessible_name = {};
     bool enabled = true;
     const tokens::PullToRefreshTokens* tokens = &tokens::pull_to_refresh_tokens;
+    PullIndicatorStyle style = PullIndicatorStyle::expressive;
+    const tokens::PullArrowTokens* arrow_tokens = &tokens::pull_arrow_tokens;
 };
+
+struct PullArrow {
+    double start_degrees = 0.0;
+    double end_degrees = 0.0;
+    double scale = 0.0;
+};
+
+PullArrow pull_arrow(double fraction, const tokens::PullArrowTokens& tokens);
 
 struct PullToRefreshResponse {
     bool refresh = false;
@@ -53,6 +66,13 @@ public:
     render::Rect container_rect() const;
     double indicator_scale() const;
     double indicator_turn_degrees() const { return turn_; }
+    PullIndicatorStyle style() const { return options_.style; }
+    void set_style(PullIndicatorStyle style);
+    PullArrow arrow() const { return pull_arrow(distance_.value(), *options_.arrow_tokens); }
+    double arrow_alpha() const { return arrow_alpha_.value(); }
+    double spinner_mix() const { return spinner_mix_.value(); }
+    double spinner_sweep_degrees() const;
+    double spinner_rotation_degrees() const;
     const LoadingIndicator& indicator() const { return indicator_; }
 
     void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
@@ -75,6 +95,9 @@ private:
     void release(bool commit, PullToRefreshResponse& response);
     void sync_indicator();
     void start_refreshing();
+    double container_size() const;
+    void paint_arrow(render::Canvas& canvas, color::Argb color) const;
+    void paint_spinner(render::Canvas& canvas, color::Argb color) const;
     void leave();
 
     PullToRefreshOptions options_;
@@ -87,6 +110,9 @@ private:
     motion::Animated distance_;
     LoadingIndicator indicator_;
     double turn_ = 0.0;
+    motion::Tweened arrow_alpha_;
+    motion::Tweened spinner_mix_{0.0};
+    double spinner_ms_ = 0.0;
 };
 
 }

@@ -2222,6 +2222,13 @@ const std::map<std::string, Scene>& expressive_videos() {
              d.touch_move_to(start, d.style().pull_seconds);
              d.touch_lift();
              d.wait(1.0);
+             click_named(d, "Arrow indicator", 0.4);
+             d.move_to(start, 0.3);
+             d.touch_swipe({start.x, start.y + d.style().pull_short}, d.style().pull_seconds, d.style().pull_hold, true);
+             d.wait(1.0);
+             d.move_to(start, 0.3);
+             d.touch_swipe({start.x, start.y + d.style().pull_long}, d.style().pull_seconds, d.style().pull_hold, true);
+             d.wait(3.0);
          }},
         {"toolbars",
          [](Driver& d, examples::components::Gallery& g) {

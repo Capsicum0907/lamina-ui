@@ -366,3 +366,69 @@ TEST_CASE("a refresh longer than the minimum leaves as soon as it ends, and one 
     CHECK(p.spinning());
     CHECK(p.shown());
 }
+
+TEST_CASE("the arrow's arc grows from the pull past 0.4 of the threshold to 0.8 of a turn, and its head scales in with it") {
+    const tokens::PullArrowTokens& k = tokens::pull_arrow_tokens;
+    CHECK(k.container_size == 40.0);
+    CHECK(k.stroke == doctest::Approx(2.5));
+    const widgets::PullArrow none = widgets::pull_arrow(0.0, k);
+    CHECK(none.scale == 0.0);
+    CHECK(none.end_degrees - none.start_degrees == doctest::Approx(0.0));
+    CHECK(widgets::pull_arrow(k.arc_start, k).scale == doctest::Approx(0.0));
+    double last_sweep = 0.0;
+    double last_start = none.start_degrees;
+    for (double f = 0.0; f <= 1.0 + 1e-9; f += 0.05) {
+        const widgets::PullArrow a = widgets::pull_arrow(f, k);
+        const double sweep = a.end_degrees - a.start_degrees;
+        CHECK(sweep >= last_sweep - 1e-9);
+        CHECK(a.start_degrees >= last_start - 1e-9);
+        last_sweep = sweep;
+        last_start = a.start_degrees;
+    }
+    const widgets::PullArrow full = widgets::pull_arrow(1.0, k);
+    CHECK(full.scale == doctest::Approx(1.0));
+    CHECK(full.end_degrees - full.start_degrees == doctest::Approx(k.max_arc * 360.0));
+    const widgets::PullArrow over = widgets::pull_arrow(1.5, k);
+    CHECK(over.end_degrees - over.start_degrees == doctest::Approx(k.max_arc * 360.0));
+    CHECK(over.start_degrees > full.start_degrees);
+}
+
+TEST_CASE("the arrow style draws an arc in a 40 dp container, turns into a spinning circle on release, and back once hidden") {
+    const color::ColorScheme& s = scheme();
+    const tokens::PullArrowTokens& k = tokens::pull_arrow_tokens;
+    PullToRefresh p({.accessible_name = "Refresh", .style = widgets::PullIndicatorStyle::arrow});
+    p.set_area(area);
+    p.handle(touch(PointerAction::down, x, top), true);
+    drag_to(p, top, finger_for(0.8));
+    p.step(frame_seconds);
+    const render::Rect r = p.container_rect();
+    CHECK(r.width == k.container_size);
+    CHECK(p.arrow_alpha() < k.max_alpha);
+    thorvg::Canvas pulled(400, 800);
+    pulled.clear(0xffffffff);
+    p.paint(pulled, s);
+    CHECK(pulled.pixel(static_cast<int>(r.x + 2.0), static_cast<int>(r.y + r.height / 2.0)) == s[k.container]);
+    CHECK(count_color(pulled, s[k.container]) > 0);
+
+    drag_to(p, finger_for(0.8), finger_for(1.2));
+    for (int i = 0; i < 30; ++i) {
+        p.step(frame_seconds);
+    }
+    CHECK(p.arrow_alpha() == doctest::Approx(k.max_alpha));
+    CHECK(p.spinner_mix() == 0.0);
+    REQUIRE(p.handle(touch(PointerAction::up, x, finger_for(1.2)), true).refresh);
+    for (int i = 0; i < 12; ++i) {
+        p.step(frame_seconds);
+    }
+    CHECK(p.spinner_mix() == doctest::Approx(1.0));
+    const double rot = p.spinner_rotation_degrees();
+    p.step(0.25);
+    CHECK(p.spinner_rotation_degrees() != doctest::Approx(rot));
+    CHECK(p.animating());
+    p.set_refreshing(false);
+    settle(p);
+    CHECK_FALSE(p.shown());
+    CHECK(p.spinner_mix() == 0.0);
+    CHECK(p.arrow_alpha() == doctest::Approx(k.min_alpha));
+    CHECK_FALSE(p.animating());
+}
