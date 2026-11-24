@@ -45,9 +45,11 @@ int main(int argc, char** argv) {
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::Typeface typeface = examples::take_typeface(argc, argv);
         const diagnostics::FrameStatsSwitches frame_stats = examples::take_frame_stats(argc, argv);
+        const bool full_repaint = examples::take_flag(argc, argv, examples::full_repaint_flag);
         const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
         sdl3::Window window({"lamina-ui components", examples::components::window_width_dp,
-                             examples::window_height_dp(examples::components::window_height_dp, want_title_bar), want_title_bar, frame_stats},
+                             examples::window_height_dp(examples::components::window_height_dp, want_title_bar), want_title_bar, frame_stats, true,
+                             tokens::raster.image_texture_bytes, !full_repaint},
                             examples::window_canvas());
         WindowHost host(window);
         auto load = [](text::Typeface t) { return sdl3::typeface_stack(t, examples::res::embedded_fonts); };

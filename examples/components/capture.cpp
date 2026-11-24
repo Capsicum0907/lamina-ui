@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <fstream>
 #include <functional>
@@ -108,6 +109,7 @@ struct CaptureStyle {
 };
 
 inline constexpr std::string_view window_option = "--window";
+inline constexpr std::string_view verify_repaint_flag = "--verify-repaint";
 
 struct WindowSize {
     double width = examples::components::window_width_dp;
@@ -174,6 +176,10 @@ public:
         canvas_.set_probe(probe);
     }
     void set_cursor(bool on) { cursor_ = on; }
+    void set_full_repaint(bool on) { canvas_.set_damage_tracking(!on); }
+    void set_verify(bool on) { verify_ = on; }
+    std::size_t verified_frames() const { return verified_frames_; }
+    std::uint64_t outside_pixels() const { return outside_pixels_; }
     render::Point pointer() const { return pointer_; }
     void set_pointer(render::Point p) { pointer_ = p; }
     bool animating() const { return animating_; }
@@ -215,13 +221,16 @@ public:
             canvas_.fill_rect(window_rect, background);
             canvas_.push_clip(window_rect);
             animating_ = gallery_.paint(canvas_, f);
-            paint_overlay();
+            paint_overlay(canvas_);
             canvas_.pop_clip();
             canvas_.restore();
         }
         if (probe_) {
             canvas_.finish();
             probe_->end_frame();
+        }
+        if (verify_) {
+            verify();
         }
         badge_left_ -= f.dt_seconds;
         clock_ += f.dt_seconds;
@@ -523,15 +532,15 @@ private:
         badge_left_ = style_.key_badge_seconds;
     }
 
-    void paint_overlay() {
+    void paint_overlay(render::Canvas& c) {
         if (badge_left_ > 0.0 && !badge_text_.empty()) {
             const text::TextLine line = text::layout_line(fonts_, badge_text_, tokens::text_style(tokens::type_style(style_.badge_type)));
             const double h = line.box_height() + 2.0 * style_.key_badge_padding;
             const double w = line.width + 2.0 * style_.key_badge_padding;
             const render::Rect r{style_.key_badge_margin, window_.height - style_.key_badge_margin - h, w, h};
             const double a = std::clamp(badge_left_ / 0.2, 0.0, 1.0);
-            canvas_.fill_path(render::rounded_rect_path(r, render::uniform_radii(h / 2.0)), color::scale_alpha(style_.badge_fill, a));
-            text::draw_line(canvas_, fonts_, line, {r.x + style_.key_badge_padding, r.y + style_.key_badge_padding},
+            c.fill_path(render::rounded_rect_path(r, render::uniform_radii(h / 2.0)), color::scale_alpha(style_.badge_fill, a));
+            text::draw_line(c, fonts_, line, {r.x + style_.key_badge_padding, r.y + style_.key_badge_padding},
                             color::scale_alpha(style_.badge_text, a));
         }
         if (!cursor_) {
@@ -572,8 +581,8 @@ private:
                 path.close();
                 return path;
             };
-            canvas_.fill_path(resize(1.5), style_.cursor_outline);
-            canvas_.fill_path(resize(0.0), style_.cursor_fill);
+            c.fill_path(resize(1.5), style_.cursor_outline);
+            c.fill_path(resize(0.0), style_.cursor_fill);
             return;
         }
         if (shape == input::Cursor::text) {
@@ -597,15 +606,53 @@ private:
                 path.close();
                 return path;
             };
-            canvas_.fill_path(beam(1.5), style_.cursor_outline);
-            canvas_.fill_path(beam(0.0), style_.cursor_fill);
+            c.fill_path(beam(1.5), style_.cursor_outline);
+            c.fill_path(beam(0.0), style_.cursor_fill);
             return;
         }
-        canvas_.fill_path(arrow(1.5), style_.cursor_outline);
-        canvas_.fill_path(arrow(0.0), style_.cursor_fill);
+        c.fill_path(arrow(1.5), style_.cursor_outline);
+        c.fill_path(arrow(0.0), style_.cursor_fill);
     }
 
+    void verify() {
+        const render::PixelView got = canvas_.finish();
+        const std::vector<render::PixelRect> changed = canvas_.take_changed_pixels();
+        const std::size_t area = static_cast<std::size_t>(got.width) * static_cast<std::size_t>(got.height);
+        const bool comparable = previous_.size() == area;
+        render::Fingerprint print;
+        std::uint64_t outside = 0;
+        for (int y = 0; y < got.height; ++y) {
+            const auto* a = reinterpret_cast<const std::uint32_t*>(got.data + got.stride * y);
+            print.add_bytes({got.data + got.stride * y, static_cast<std::size_t>(got.width) * sizeof(std::uint32_t)});
+            for (int x = 0; comparable && x < got.width; ++x) {
+                const std::size_t i = static_cast<std::size_t>(y) * static_cast<std::size_t>(got.width) + static_cast<std::size_t>(x);
+                if (previous_[i] != a[x]) {
+                    const bool inside = std::any_of(changed.begin(), changed.end(), [&](const render::PixelRect& r) {
+                        return x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
+                    });
+                    outside += inside ? 0 : 1;
+                }
+            }
+        }
+        previous_.resize(area);
+        for (int y = 0; y < got.height; ++y) {
+            std::memcpy(previous_.data() + static_cast<std::size_t>(y) * static_cast<std::size_t>(got.width), got.data + got.stride * y,
+                        static_cast<std::size_t>(got.width) * sizeof(std::uint32_t));
+        }
+        std::uint64_t repainted = 0;
+        for (const render::PixelRect& r : changed) {
+            repainted += static_cast<std::uint64_t>(r.area());
+        }
+        std::printf("frame %zu %016llx repainted %llu outside %llu\n", verified_frames_, static_cast<unsigned long long>(print.value()),
+                    static_cast<unsigned long long>(repainted), static_cast<unsigned long long>(outside));
+        std::fflush(stdout);
+        verified_frames_ += 1;
+        outside_pixels_ += outside;
+    }
     void write() {
+        if (!out_) {
+            return;
+        }
         const render::PixelView px = canvas_.finish();
         for (int y = 0; y < px.height; ++y) {
             std::fwrite(px.data + px.stride * y, 4, static_cast<std::size_t>(px.width), out_);
@@ -621,6 +668,10 @@ private:
     thorvg::Canvas canvas_;
     CaptureStyle style_;
     bool recording_ = false;
+    bool verify_ = false;
+    std::size_t verified_frames_ = 0;
+    std::uint64_t outside_pixels_ = 0;
+    std::vector<std::uint32_t> previous_;
     bool cursor_ = true;
     bool animating_ = false;
     render::Point pointer_{720.0, 820.0};
@@ -3397,12 +3448,12 @@ int usage() {
         keys += (keys.empty() ? "" : "|") + std::string(t.key);
     }
     std::fprintf(stderr,
-                 "usage: components_capture [%s %s] [%s <width>x<height>] <mode> ...\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
+                 "usage: components_capture [%s %s] [%s <width>x<height>] [%s] [%s] <mode> ...\n  components_capture size <scale>\n  components_capture still <scene> <light|dark> <scale> <out.bgra> [name]\n"
                  "  components_capture tree <scene> <light|dark> <scale>\n"
                  "  components_capture check\n"
                  "  components_capture video <scene> <light|dark> <scale>\n"
                  "  components_capture bench <scene> <light|dark> <scale> <start dp> <distance dp> <seconds> [repeats] [out.bgra]\n",
-                 examples::typeface_option.data(), keys.c_str(), window_option.data());
+                 examples::typeface_option.data(), keys.c_str(), window_option.data(), examples::full_repaint_flag.data(), verify_repaint_flag.data());
     return 2;
 }
 
@@ -3412,6 +3463,8 @@ int main(int argc, char** argv) {
     try {
         const text::Typeface typeface = examples::take_typeface(argc, argv);
         const WindowSize window = take_window(argc, argv);
+        const bool full_repaint = examples::take_flag(argc, argv, examples::full_repaint_flag);
+        const bool verify_repaint = examples::take_flag(argc, argv, verify_repaint_flag);
         if (argc < 2 || (argc < 3 && std::string_view(argv[1]) != "check")) {
             return usage();
         }
@@ -3534,6 +3587,7 @@ int main(int argc, char** argv) {
             const int repeats = argc > 8 ? std::stoi(argv[8]) : 1;
             Driver driver(gallery, fonts, scale, nullptr, window);
             driver.set_cursor(false);
+            driver.set_full_repaint(full_repaint);
             driver.settle();
             (*found)(driver, gallery);
             driver.settle();
@@ -3558,26 +3612,43 @@ int main(int argc, char** argv) {
                 probe.set_switches({false, true});
                 probe.set_display(display);
                 driver.set_probe(&probe);
+                driver.set_verify(verify_repaint);
                 const bool up = r % 2 == 0;
                 const double from = up ? low : low - distance;
                 driver.set_pointer({x, from});
                 driver.touch_swipe({x, up ? from - distance : low}, seconds, 0.0, false);
                 driver.set_probe(nullptr);
+                driver.set_verify(false);
                 std::printf("%s\n", diagnostics::report_line(diagnostics::report_rows(probe.recent(), display, up ? "bench up" : "bench down")).c_str());
                 probe.set_switches({});
                 driver.wait(s.swipe_hold_seconds);
                 driver.touch_lift();
                 driver.settle();
             }
+            if (verify_repaint) {
+                std::printf("verify %zu frames, %llu pixels changed outside the rects\n", driver.verified_frames(),
+                            static_cast<unsigned long long>(driver.outside_pixels()));
+            }
             if (argc > 9) {
                 driver.write_raw(argv[9]);
             }
-            return 0;
+            return verify_repaint && driver.outside_pixels() > 0 ? 1 : 0;
         }
         if (mode == "video") {
             const Scene* found = find_scene({&videos(), &pattern_videos(), &expressive_videos(), &adaptive_videos(), &files_videos(), &font_videos(), &gallery_videos()}, scene);
             if (!found) {
                 return usage();
+            }
+            if (verify_repaint) {
+                Driver driver(gallery, fonts, scale, nullptr, window);
+                driver.set_full_repaint(full_repaint);
+                driver.settle();
+                driver.set_verify(true);
+                (*found)(driver, gallery);
+                driver.set_verify(false);
+                std::printf("verify %zu frames, %llu pixels changed outside the rects\n", driver.verified_frames(),
+                            static_cast<unsigned long long>(driver.outside_pixels()));
+                return driver.outside_pixels() > 0 ? 1 : 0;
             }
 #ifdef _WIN32
             _setmode(_fileno(stdout), _O_BINARY);

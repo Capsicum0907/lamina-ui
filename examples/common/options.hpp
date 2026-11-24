@@ -12,6 +12,7 @@ namespace lamina::examples {
 inline constexpr std::string_view title_bar_flag = "--title-bar";
 inline constexpr std::string_view typeface_option = "--font";
 inline constexpr std::string_view frame_stats_option = "--frame-stats";
+inline constexpr std::string_view full_repaint_flag = "--full-repaint";
 
 bool take_flag(int& argc, char** argv, std::string_view flag);
 std::optional<std::string> take_option(int& argc, char** argv, std::string_view name);
