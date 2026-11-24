@@ -12,11 +12,25 @@
 
 ## Loading indicator
 
-`LoadingIndicator` (`lamina/widgets/loading_indicator.hpp`) morphs through seven Material shapes in a 48 dp container while it is indeterminate, a new morph every 650 ms, and grows from a circle to SoftBurst as a determinate progress goes from 0 to 1 (`LoadingIndicatorOptions::progress`, `set_progress`). `contained` puts it on primary-container; `size` scales the whole indicator. Values: [Loading indicator](../design-tokens.md#loading-indicator).
+`LoadingIndicator` (`lamina/widgets/loading_indicator.hpp`) morphs through seven Material shapes in a 48 dp container while it is indeterminate, a new morph every 650 ms, and grows from a circle to SoftBurst as a determinate progress goes from 0 to 1 (`LoadingIndicatorOptions::progress`, `set_progress`). `contained` puts it on primary-container; `size` scales the whole indicator. A full determinate indicator that turns indeterminate (`set_progress(std::nullopt)`) keeps its turn, and its size and centre blend into the indeterminate ones on the default effects spring, so the shape does not jump. Values: [Loading indicator](../design-tokens.md#loading-indicator).
 
 ## Wavy progress indicators
 
 `LinearWavyProgressIndicator` and `CircularWavyProgressIndicator` (`lamina/widgets/wavy_progress.hpp`) draw the Expressive wavy indicators: linear 240 × 10 dp by default, circular 48 dp, both with 4 dp strokes and a 4 dp gap to the track. Without `WavyProgressOptions::progress` they are indeterminate; `set_progress` hands them over to a determinate value without a jump. The wave flattens near 0 and 1 (`wavy_indicator_amplitude`). Values: [Wavy progress indicators](../design-tokens.md#wavy-progress-indicators).
+
+## Pull to refresh
+
+`lamina/widgets/pull_to_refresh.hpp`: `PullToRefresh` is the Material pull-to-refresh with the Expressive loading indicator, the role of Compose's `PullToRefreshBox` with `PullToRefreshDefaults.LoadingIndicator`. It does not hold the list: the program gives it the list's viewport (`set_area`), the pointer events before the list gets them and whether the list is at its top, and paints it after the list.
+
+- Pull: a touch that goes down inside the area while the list is at its top (`handle(event, at_top)`, true within `top_tolerance` of the top) is watched. Once it has moved more than `slop` (8 dp) down from where the list was at its top, and stays within `max_angle_degrees` (45°) of straight down, the pull takes it: the response has `claimed` (the program then cancels the list's press and its scroll, so nothing clicks and nothing flings) and `consumed` for every event of the touch from then on (`holds_pointer()` is true). A list that reaches its top during a scroll drag starts counting from that point, so one drag can scroll up to the top and go on into a pull. A drag up, a drag to the side, a list away from its top, a mouse or a pen does nothing: lamina does not scroll by mouse drag, so on the desktop the pull is by touch only.
+- Resistance: half the finger's travel (`drag_multiplier`) is the pull. Up to the `threshold` (80 dp) the indicator follows it one for one; past it the extra is damped by `x - x² / 4` of the overshoot over the threshold, so the indicator slows down and stops at twice the threshold, three thresholds of pull in (`pull_offset`, `pull_distance` is its inverse). `distance_fraction()` is the indicator's offset over the threshold.
+- Indicator: a 48 dp circle on primary-container with a level 2 shadow comes in from behind the top edge of the area, which cuts it, its bottom at `distance_fraction() × threshold` below the top. Inside it the loading indicator's determinate shape (on-primary-container) morphs from a circle to SoftBurst as the fraction goes from 0 to 1, turns back by half a turn with it, and grows from `start_scale` (0.5) to its full size; past the threshold it turns on by `overshoot_turn_degrees` (180°) per threshold of extra offset.
+- Release: past the threshold the response has `refresh` and the pull is refreshing (`refreshing()`): the shape turns indeterminate where it is (its turn, size and place carry over, [Loading indicator](#loading-indicator)) and the indicator settles to the threshold on the default spatial spring. Below it, it springs back to the top on the same spring, without a refresh. A lost touch (a leave without an up), `cancel_interaction()`, `set_enabled(false)` and a second finger, if the program passes it on as a cancel, spring back without a refresh.
+- Refreshing: the program calls `set_refreshing(false)` when its work is done, and the indicator leaves upward on the spring, still morphing; its shape turns determinate again only once it is hidden. `set_refreshing(true)` brings it in without a pull, for a refresh started from a key or a menu. While it is refreshing no pull starts, so a refresh is never asked for twice, and the list scrolls as usual.
+- A pull that starts while the indicator is still on its way back takes it from where it is.
+- `accessible()` is a progress indicator node, named by `accessible_name`, while the indicator shows. `animating()` is true while it moves or spins.
+
+Values: [Pull to refresh](../design-tokens.md#pull-to-refresh). The components example has a demo on its Progress page.
 
 ## Tooltips
 
@@ -31,6 +45,7 @@
 - Material 3, snackbar: <https://m3.material.io/components/snackbar/overview>
 - Material 3, progress indicators: <https://m3.material.io/components/progress-indicators/overview>
 - Material 3, loading indicator: <https://m3.material.io/components/loading-indicator/overview>
+- Material 3, pull to refresh (under progress indicators): <https://m3.material.io/components/progress-indicators/overview>
 - Material 3, tooltips: <https://m3.material.io/components/tooltips/overview>
 - Material 3, badges: <https://m3.material.io/components/badges/overview>
 - The source files and commits of every value: [design tokens](../design-tokens.md)

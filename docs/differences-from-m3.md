@@ -25,6 +25,7 @@ Where lamina-ui does not follow Material 3 and its Compose implementation: value
 - Drag gestures: a drag starts after 8 dp, releases are clamped to 8000 dp/s, and there is no decay phase. [Drag gestures](design-tokens.md#drag-gestures)
 - Density: a scale below a component's minimum is clamped instead of rejected, and the minimums of segmented buttons, navigation items and menus are lamina-ui's own. [Density](design-tokens.md#density)
 - Circular progress indicator: the arcs are sampled every 1 dp (`sample_length`). [Circular progress indicator](design-tokens.md#circular-progress-indicator)
+- Pull to refresh: the shadow, the indicator's growth from half its size, its turn past the threshold, the springs, the slop and the 45° direction limit are lamina-ui's own, and the Compose values it uses were recalled rather than read. [Pull to refresh](design-tokens.md#pull-to-refresh)
 - Scrollable tabs: the 90 dp minimum width, the 52 dp edge padding and the default spatial spring are Compose's; the wheel step (64 dp, the scroll area's) is lamina-ui's own. [Tabs](design-tokens.md#tabs)
 
 ## Behaviour that differs
@@ -38,6 +39,8 @@ Where lamina-ui does not follow Material 3 and its Compose implementation: value
 - A segment label or a split button's leading label that does not fit is cut to one line with an ellipsis, where a Compose `Text` with its defaults wraps; a segmented row stops shrinking at a minimum that keeps each segment's paddings, icon slot and an ellipsis, where Compose's weighted segments have none. [Segmented button](design-tokens.md#segmented-button), [Split buttons](design-tokens.md#split-buttons)
 - In 24-hour mode the time picker's handle follows the pointer, and 0 and 00 are invalid hours in 12-hour mode. [Time picker](design-tokens.md#time-picker)
 - A disabled floating toolbar dims its FAB and stops it reacting; Compose's FABs have no disabled state. [Floating toolbars](design-tokens.md#floating-toolbars)
+- A loading indicator that turns from determinate to indeterminate keeps its turn and blends its size and centre on a spring; Compose starts the indeterminate rotation afresh and crossfades where it switches. [Loading indicator](design-tokens.md#loading-indicator)
+- Pull to refresh is a recogniser beside the list rather than nested scrolling, and the indicator keeps morphing while it leaves rather than crossfading back to the determinate shape. [Pull to refresh](design-tokens.md#pull-to-refresh)
 - A blurred shadow is drawn at the nearest whole pixel, up to half a pixel from its surface's fractional position, from an image of its shape blurred once. [Elevation and state layers](design-tokens.md#elevation-and-state-layers)
 - The 48 dp touch target widens the hit area only: it takes no room in the layout, where Compose's `minimumInteractiveComponentSize` reserves 48 dp. It works for the mouse and the pen as well as for touch, where Compose widens touches only, and a negative density turns it off. [Touch target](design-tokens.md#touch-target)
 

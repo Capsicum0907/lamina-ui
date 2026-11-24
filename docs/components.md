@@ -11,7 +11,7 @@ The components, grouped as Material 3 groups them. Each page says what a compone
 | [Inputs](components/inputs.md) | text field, numeric field, search bar |
 | [Containers](components/containers.md) | dialog, bottom and side sheets, cards, lists, dividers, scroll area, zoom view, pager |
 | [Navigation](components/navigation.md) | tabs, navigation bar, navigation rail, side navigation, navigation drawers, modal wide navigation rail, top app bars, floating toolbars, flexible bottom app bar |
-| [Feedback](components/feedback.md) | snackbar, progress indicators, loading indicator, wavy progress indicators, tooltips, badges |
+| [Feedback](components/feedback.md) | snackbar, progress indicators, loading indicator, wavy progress indicators, pull to refresh, tooltips, badges |
 | [Menus](components/menus.md) | dropdown menu, grouped menu, context menu, menu bar |
 | [Data table](components/data-table.md) | table |
 | [Dates and times](components/dates-and-times.md) | calendar, date pickers, date range picker, docked date picker, picker dialogs, time pickers |
