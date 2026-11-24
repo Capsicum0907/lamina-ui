@@ -389,7 +389,7 @@ void DrawerSheet::paint_entries(render::Canvas& canvas, const color::ColorScheme
     scroll_.paint(canvas, scheme);
 }
 
-DrawerSlide::DrawerSlide(DrawerValue initial) : drag_(initial, drawer_thresholds(), tokens::drag_gesture) {}
+DrawerSlide::DrawerSlide(DrawerValue initial) : drag_(initial, drawer_thresholds(), current_style().gesture.drag) {}
 
 void DrawerSlide::set_width(double width) {
     width_ = width;

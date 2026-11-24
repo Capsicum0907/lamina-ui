@@ -90,7 +90,7 @@ BottomSheet::BottomSheet(BottomSheetOptions options)
     : options_(std::move(options)),
       handle_(options_.strings->drag_handle),
       content_(options_.content),
-      drag_(options_.initial, sheet_thresholds(), tokens::drag_gesture),
+      drag_(options_.initial, sheet_thresholds(), current_style().gesture.drag),
       scrim_(0.0, motion_spec().scrim) {
     if (options_.accessible_name.empty()) {
         options_.accessible_name = options_.strings->bottom_sheet_pane_title;

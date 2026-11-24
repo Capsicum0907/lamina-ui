@@ -11,6 +11,7 @@
 #include "lamina/motion/velocity_tracker.hpp"
 #include "lamina/motion/zoom.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/zoom.hpp"
 #include "lamina/widgets/accessibility.hpp"
 
@@ -20,7 +21,7 @@ struct ZoomViewOptions {
     std::string accessible_name;
     double content_width = 0.0;
     double content_height = 0.0;
-    const tokens::ZoomTokens* tokens = &tokens::zoom;
+    const tokens::ZoomTokens* tokens = &current_style().zoom;
 };
 
 class ZoomView {

@@ -55,4 +55,14 @@ inline constexpr TouchScrollTokens touch_scroll{
     .vertical_angle_limit_degrees = 90.0,
 };
 
+struct GestureTokens {
+    motion::VelocityTrackerSpec tracking = velocity_tracking;
+    double touch_slop = tokens::touch_slop;
+    double maximum_fling_velocity = tokens::maximum_fling_velocity;
+    double anchored_min_fling_velocity = tokens::anchored_min_fling_velocity;
+    motion::DragGesture drag = drag_gesture;
+    motion::SplineDecaySpec fling_decay = tokens::fling_decay;
+    TouchScrollTokens touch_scroll = tokens::touch_scroll;
+};
+
 }

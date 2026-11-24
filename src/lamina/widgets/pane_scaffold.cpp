@@ -59,7 +59,7 @@ std::string PaneExpansionAnchor::description(const PatternStrings& strings) cons
 }
 
 PaneExpansionState::PaneExpansionState(std::vector<PaneExpansionAnchor> anchors, std::optional<std::size_t> initial_anchor)
-    : anchors_(std::move(anchors)), tracker_(tokens::velocity_tracking) {
+    : anchors_(std::move(anchors)), tracker_(current_style().gesture.tracking) {
     if (initial_anchor && *initial_anchor < anchors_.size()) {
         current_ = initial_anchor;
     }
@@ -193,7 +193,7 @@ void PaneExpansionState::release(double time_seconds) {
     if (anchors_.empty() || !offset_) {
         return;
     }
-    const double velocity = tracker_.velocity(tokens::maximum_fling_velocity);
+    const double velocity = tracker_.velocity(current_style().gesture.maximum_fling_velocity);
     const std::size_t i = closest(*offset_, velocity);
     current_ = i;
     target_ = anchors_[i].position_in(width_);

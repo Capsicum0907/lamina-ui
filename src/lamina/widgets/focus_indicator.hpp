@@ -10,6 +10,7 @@
 #include "lamina/render/canvas.hpp"
 #include "lamina/render/geometry.hpp"
 #include "lamina/render/path.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/focus.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/motion.hpp"
@@ -55,7 +56,7 @@ public:
         if (a <= 0.0) {
             return;
         }
-        const tokens::FocusIndicatorTokens& t = tokens::focus_indicator;
+        const tokens::FocusIndicatorTokens& t = current_style().focus_indicator;
         const double grow = t.outer_offset + t.thickness;
         const render::Rect outer{shape.x - grow, shape.y - grow, shape.width + 2.0 * grow, shape.height + 2.0 * grow};
         canvas.fill_path(render::ring_path(outer, radius + grow, t.thickness), color::scale_alpha(scheme[color_.value_or(t.color)], a),
@@ -66,7 +67,7 @@ public:
         if (a <= 0.0) {
             return;
         }
-        const tokens::FocusIndicatorTokens& t = tokens::focus_indicator;
+        const tokens::FocusIndicatorTokens& t = current_style().focus_indicator;
         const double grow = t.outer_offset + t.thickness;
         const double inset = t.outer_offset;
         auto widen = [](const render::CornerRadii& r, double by) {
@@ -87,7 +88,7 @@ public:
         if (a <= 0.0) {
             return;
         }
-        const tokens::FocusIndicatorTokens& t = tokens::focus_indicator;
+        const tokens::FocusIndicatorTokens& t = current_style().focus_indicator;
         const double d = t.inward_offset;
         const double w = t.thickness;
         const render::Rect outer{shape.x + d, shape.y + d, shape.width - 2.0 * d, shape.height - 2.0 * d};

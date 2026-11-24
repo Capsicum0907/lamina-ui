@@ -3,6 +3,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/motion/spline_decay.hpp"
 #include "lamina/motion/velocity_tracker.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/drag.hpp"
 
 namespace lamina::widgets {
@@ -23,7 +24,7 @@ bool angle_aligned(const tokens::TouchScrollTokens& tokens, input::ScrollAxes ax
 
 class TouchScroll {
 public:
-    explicit TouchScroll(const tokens::TouchScrollTokens& tokens = tokens::touch_scroll);
+    explicit TouchScroll(const tokens::TouchScrollTokens& tokens = current_style().gesture.touch_scroll);
 
     TouchScrollUpdate press(const input::PointerEvent& event, input::ScrollAxes axes, bool catch_fling);
     TouchScrollUpdate move(const input::PointerEvent& event);

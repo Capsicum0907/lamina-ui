@@ -12,10 +12,12 @@
 #include "lamina/tokens/date_picker.hpp"
 #include "lamina/tokens/dialog.hpp"
 #include "lamina/tokens/divider.hpp"
+#include "lamina/tokens/drag.hpp"
 #include "lamina/tokens/drag_handle.hpp"
 #include "lamina/tokens/fab.hpp"
 #include "lamina/tokens/fab_menu.hpp"
 #include "lamina/tokens/floating_toolbar.hpp"
+#include "lamina/tokens/focus.hpp"
 #include "lamina/tokens/grouped_menu.hpp"
 #include "lamina/tokens/icon_button.hpp"
 #include "lamina/tokens/list.hpp"
@@ -52,6 +54,7 @@
 #include "lamina/tokens/tooltip.hpp"
 #include "lamina/tokens/top_app_bar.hpp"
 #include "lamina/tokens/wavy_progress.hpp"
+#include "lamina/tokens/zoom.hpp"
 
 namespace lamina {
 
@@ -132,6 +135,10 @@ struct Style {
     tokens::LoadingIndicatorSet loading_indicator;
     tokens::PullToRefreshTokens pull_to_refresh = tokens::pull_to_refresh_tokens;
     tokens::PullArrowTokens pull_arrow = tokens::pull_arrow_tokens;
+    
+    tokens::FocusIndicatorTokens focus_indicator = tokens::focus_indicator;
+    tokens::GestureTokens gesture;
+    tokens::ZoomTokens zoom = tokens::zoom;
 };
 
 const Style& m3_expressive_style();

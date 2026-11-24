@@ -1,3 +1,4 @@
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 
 #include <cmath>
@@ -20,7 +21,7 @@ double drag_angle(double dx, double dy) {
 }
 
 const motion::SplineDecay& fling_decay() {
-    static const motion::SplineDecay decay(tokens::fling_decay);
+    static const motion::SplineDecay decay(current_style().gesture.fling_decay);
     return decay;
 }
 

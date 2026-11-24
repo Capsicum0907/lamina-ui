@@ -46,7 +46,7 @@ SideSheet::SideSheet(SideSheetOptions options, const text::FontStack& fonts)
       close_(header_button(options_.close)),
       back_(header_button(options_.back)),
       content_(options_.content),
-      drag_(options_.initial, side_thresholds(), tokens::drag_gesture) {
+      drag_(options_.initial, side_thresholds(), current_style().gesture.drag) {
     if (options_.accessible_name.empty()) {
         options_.accessible_name = options_.headline.empty() ? options_.strings->side_sheet_pane_title : options_.headline;
     }

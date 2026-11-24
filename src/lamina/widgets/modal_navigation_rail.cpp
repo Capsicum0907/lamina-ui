@@ -33,7 +33,7 @@ ModalNavigationRail::ModalNavigationRail(ModalNavigationRailOptions options, con
     : options_(std::move(options)),
       rail_(rail_options(options_.rail, options_.hide_on_collapse), fonts),
       slide_(RailValue::collapsed, {[](double distance) { return distance * t().positional_fraction; }, t().velocity_threshold},
-             tokens::drag_gesture),
+             current_style().gesture.drag),
       scrim_(0.0, t().scrim) {}
 
 layout::Size ModalNavigationRail::measure(const layout::Constraints& c) {

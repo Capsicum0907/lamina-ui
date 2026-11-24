@@ -6,6 +6,7 @@
 
 #include "lamina/input/events.hpp"
 #include "lamina/render/geometry.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/zoom.hpp"
 
 namespace lamina::widgets {
@@ -29,7 +30,7 @@ constexpr PinchOptions pinch_options(const tokens::ZoomTokens& t) {
 
 class PinchRecognizer {
 public:
-    explicit PinchRecognizer(PinchOptions options = pinch_options(tokens::zoom));
+    explicit PinchRecognizer(PinchOptions options = pinch_options(current_style().zoom));
 
     std::optional<PinchUpdate> handle(const input::FingerEvent& event);
     void cancel();
