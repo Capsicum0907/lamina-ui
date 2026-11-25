@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <memory>
+#include <string>
 
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/checkbox.hpp"
@@ -32,6 +33,20 @@ std::unique_ptr<W> placed(std::unique_ptr<W> w) {
     return w;
 }
 
+void save_round(const RestyleResult& r, const std::string& name) {
+    thorvg::Canvas canvas(restyle_canvas_width, restyle_canvas_height * 3);
+    const RestyleShot* shots[] = {&r.built_under_default, &r.switched, &r.built_under_test};
+    for (int i = 0; i < 3; ++i) {
+        for (int y = 0; y < restyle_canvas_height; ++y) {
+            for (int x = 0; x < restyle_canvas_width; ++x) {
+                canvas.fill_rect({static_cast<double>(x), static_cast<double>(y + i * restyle_canvas_height), 1.0, 1.0},
+                                 shots[i]->pixels[static_cast<std::size_t>(y * restyle_canvas_width + x)]);
+            }
+        }
+    }
+    save_shot(canvas, name);
+}
+
 void check_round(const RestyleResult& r) {
     CHECK(r.built_under_default.pixels != r.built_under_test.pixels);
     CHECK(r.switched.bounds.x == r.built_under_test.bounds.x);
@@ -44,9 +59,11 @@ void check_round(const RestyleResult& r) {
 }
 
 TEST_CASE("a button built under one style and switched to another paints as one built under the other") {
-    check_round(restyle_round([] {
+    const RestyleResult r = restyle_round([] {
         return placed(std::make_unique<widgets::Button>(widgets::ButtonOptions{"Send", ButtonStyle::filled, ButtonSize::medium, ButtonShape::round}, fonts()));
-    }));
+    });
+    save_round(r, "restyle_button");
+    check_round(r);
 }
 
 TEST_CASE("a toggle button with the style's shapes follows a style change") {
@@ -102,12 +119,14 @@ TEST_CASE("a label lays its text out again in the new style's type on its next m
 }
 
 TEST_CASE("a list view measures its rows again and its rows lay out their text in the new style after a style change") {
-    check_round(restyle_round([] {
+    const RestyleResult r = restyle_round([] {
         std::vector<widgets::ListItemSpec> items{{"Inbox", "Three new messages", "", {}, {}, widgets::ListItemAction::select, true},
                                                  {"Starred", "", "Saved", {}, {widgets::ListSlotKind::checkbox}, widgets::ListItemAction::toggle},
                                                  {"Sent"}};
         auto list = std::make_unique<widgets::ListView>(widgets::ListViewOptions{items, true}, fonts());
         list->set_viewport({0.0, 0.0, static_cast<double>(restyle_canvas_width), static_cast<double>(restyle_canvas_height)});
         return list;
-    }));
+    });
+    save_round(r, "restyle_list");
+    check_round(r);
 }
