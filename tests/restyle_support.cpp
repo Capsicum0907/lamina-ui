@@ -6,6 +6,26 @@
 
 namespace lamina::test {
 
+namespace {
+
+std::string environment(const char* name) {
+#ifdef _MSC_VER
+    char* value = nullptr;
+    std::size_t length = 0;
+    if (_dupenv_s(&value, &length, name) != 0 || !value) {
+        return {};
+    }
+    std::string out(value);
+    std::free(value);
+    return out;
+#else
+    const char* value = std::getenv(name);
+    return value ? value : "";
+#endif
+}
+
+}
+
 const Style& restyle_test_style() {
     static const Style style = [] {
         Style s = m3_expressive_style();
@@ -35,13 +55,7 @@ const Style& restyle_test_style() {
 }
 
 void save_shot(thorvg::Canvas& canvas, const std::string& name) {
-    char* dir = nullptr;
-    std::size_t length = 0;
-    if (_dupenv_s(&dir, &length, shots_variable) != 0 || !dir) {
-        return;
-    }
-    const std::string folder(dir);
-    std::free(dir);
+    const std::string folder = environment(shots_variable);
     if (folder.empty()) {
         return;
     }
