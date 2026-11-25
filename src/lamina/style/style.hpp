@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "lamina/color/scheme.hpp"
 #include "lamina/tokens/access_key.hpp"
 #include "lamina/tokens/badge.hpp"
@@ -63,6 +65,19 @@
 #include "lamina/tokens/zoom.hpp"
 
 namespace lamina {
+
+class StyleRevision {
+public:
+    StyleRevision();
+    StyleRevision(const StyleRevision&);
+    StyleRevision& operator=(const StyleRevision&);
+
+    std::uint64_t value() const { return value_; }
+    void bump();
+
+private:
+    std::uint64_t value_;
+};
 
 struct Style {
     const color::ColorSpec* color = &color::spec_2025();
@@ -154,13 +169,21 @@ struct Style {
     tokens::InteractionTokens interaction;
     tokens::DensityTokens density = tokens::density_tokens;
 
+    StyleRevision revision;
+
     double minimum_target(tokens::Density d) const { return density.minimum_target(d, interaction.minimum_interactive_size); }
+    void changed() { revision.bump(); }
 };
 
 const Style& m3_expressive_style();
 
+const Style& default_style();
+void set_default_style(const Style& style);
+void reset_default_style();
+
 const Style& current_style();
 void set_current_style(const Style& style);
+void clear_current_style();
 
 class StyleScope {
 public:
@@ -172,6 +195,17 @@ public:
 
 private:
     const Style* previous_;
+};
+
+class StyleStamp {
+public:
+    StyleStamp() : seen_(current_style().revision.value()) {}
+
+    bool stale() const { return seen_ != current_style().revision.value(); }
+    bool refresh();
+
+private:
+    std::uint64_t seen_;
 };
 
 }

@@ -127,3 +127,54 @@ TEST_CASE("a style with another outline changes outlined buttons and leaves fill
     CHECK(a.left == b.left);
     CHECK(a.right != b.right);
 }
+
+TEST_CASE("every style and every copy of one has its own revision, and changed() gives it a new one") {
+    Style a = m3_expressive_style();
+    Style b = a;
+    CHECK(a.revision.value() != m3_expressive_style().revision.value());
+    CHECK(a.revision.value() != b.revision.value());
+    const auto before = a.revision.value();
+    a.changed();
+    CHECK(a.revision.value() != before);
+    b = a;
+    CHECK(b.revision.value() != a.revision.value());
+}
+
+TEST_CASE("the app's default style is active wherever no style is installed") {
+    Style app = m3_expressive_style();
+    Style scoped = m3_expressive_style();
+    set_default_style(app);
+    CHECK(&default_style() == &app);
+    CHECK(&current_style() == &app);
+    {
+        const StyleScope scope(scoped);
+        CHECK(&current_style() == &scoped);
+    }
+    CHECK(&current_style() == &app);
+    reset_default_style();
+    CHECK(&default_style() == &m3_expressive_style());
+    CHECK(&current_style() == &m3_expressive_style());
+}
+
+TEST_CASE("a style stamp is stale after the active style changes or is changed in place") {
+    Style a = m3_expressive_style();
+    Style b = m3_expressive_style();
+    const StyleScope outer(a);
+    StyleStamp stamp;
+    CHECK_FALSE(stamp.stale());
+    {
+        const StyleScope inner(a);
+        CHECK_FALSE(stamp.stale());
+    }
+    {
+        const StyleScope inner(b);
+        CHECK(stamp.stale());
+        CHECK(stamp.refresh());
+        CHECK_FALSE(stamp.refresh());
+    }
+    CHECK(stamp.refresh());
+    a.changed();
+    CHECK(stamp.stale());
+    CHECK(stamp.refresh());
+    CHECK_FALSE(stamp.stale());
+}
