@@ -38,6 +38,7 @@
 #include "lamina/tokens/pager.hpp"
 #include "lamina/tokens/pane_scaffold.hpp"
 #include "lamina/tokens/picker_dialog.hpp"
+#include "lamina/tokens/presentation.hpp"
 #include "lamina/tokens/progress_indicator.hpp"
 #include "lamina/tokens/pull_to_refresh.hpp"
 #include "lamina/tokens/radio_button.hpp"
@@ -168,6 +169,9 @@ struct Style {
     tokens::StateLayerTokens state_layer;
     tokens::InteractionTokens interaction;
     tokens::DensityTokens density = tokens::density_tokens;
+    tokens::ContainerTokens containers = tokens::container_tokens;
+    tokens::LayeringTokens layering = tokens::layering_tokens;
+    tokens::SelectionTokens selection = tokens::selection_tokens;
 
     StyleRevision revision;
 

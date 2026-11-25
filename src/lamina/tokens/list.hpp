@@ -50,6 +50,7 @@ struct ListTokens {
     motion::SpringSpec shape_spring;
     motion::SpringSpec state_layer_spring;
     std::size_t overscan_rows;
+    bool row_dividers;
 };
 
 inline constexpr ListTokens list_tokens{
@@ -92,6 +93,7 @@ inline constexpr ListTokens list_tokens{
     .shape_spring = motion_scheme.fast_spatial(),
     .state_layer_spring = motion_scheme.fast_effects(),
     .overscan_rows = 2,
+    .row_dividers = false,
 };
 
 }

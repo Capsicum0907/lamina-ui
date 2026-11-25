@@ -20,7 +20,8 @@ ListView::ListView(ListViewOptions options, const text::FontStack& fonts)
       single_selection_(options.single_selection),
       accessible_name_(std::move(options.accessible_name)),
       top_inset_(options.top_inset),
-      density_(options.density) {
+      density_(options.density),
+      dividers_(options.dividers) {
     set_items(std::move(options.items));
 }
 
@@ -392,6 +393,7 @@ bool ListView::animating() const {
 
 void ListView::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     stats_.painted_rows = 0;
+    const bool dividers = dividers_.value_or(current_style().list.row_dividers);
     scroll_.begin_content(canvas);
     for (std::size_t i = visible_.first; i < visible_.second; ++i) {
         const auto it = live_.find(i);
@@ -400,6 +402,11 @@ void ListView::paint(render::Canvas& canvas, const color::ColorScheme& scheme) c
         }
         it->second->paint(canvas, scheme);
         ++stats_.painted_rows;
+        if (dividers && i + 1 < specs_.size()) {
+            const render::Rect r = it->second->bounds();
+            const tokens::DividerTokens& d = current_style().divider;
+            canvas.fill_rect({r.x, r.y + r.height - d.thickness, r.width, d.thickness}, scheme[d.color]);
+        }
     }
     scroll_.end_content(canvas);
     scroll_.paint(canvas, scheme);

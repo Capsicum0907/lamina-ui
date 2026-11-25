@@ -26,6 +26,7 @@ struct ListViewOptions {
     std::string accessible_name = {};
     double top_inset = 0.0;
     tokens::Density density = {};
+    std::optional<bool> dividers = std::nullopt;
 };
 
 struct ListViewResponse {
@@ -110,6 +111,7 @@ private:
     std::size_t focus_index_ = 0;
     bool enabled_ = true;
     tokens::Density density_{};
+    std::optional<bool> dividers_;
     std::optional<std::size_t> pressed_;
     std::pair<std::size_t, std::size_t> visible_{0, 0};
     mutable ListViewStats stats_;
