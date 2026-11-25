@@ -192,6 +192,7 @@ public:
     DrawerValue target_value() const { return slide_.target_value(); }
     double offset() const { return slide_.offset(); }
     double scrim_alpha() const { return slide_.fraction(); }
+    double content_shift() const;
     bool is_open() const { return slide_.shown(); }
     bool visible() const { return slide_.shown(); }
     bool holds_pointer() const { return is_open() || slide_.dragging() || sheet_.holds_pointer(); }

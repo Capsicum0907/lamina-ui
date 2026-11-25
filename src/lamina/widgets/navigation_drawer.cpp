@@ -327,8 +327,8 @@ void DrawerSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme
 void DrawerSheet::paint_container(render::Canvas& canvas, const color::ColorScheme& scheme, const render::Rect& c) const {
     const bool modal = options_.style == DrawerSheetStyle::modal;
     const render::CornerRadii radii = modal ? current_style().shape.radii(t().modal_shape, c.width, c.height) : render::uniform_radii(0.0);
-    paint_surface(canvas, c, radii, scheme[modal ? t().modal_container : t().standard_container],
-                  modal ? t().modal_elevation : t().standard_elevation, scheme[color::Role::shadow]);
+    widgets::paint_container(canvas, c, radii, scheme, modal ? t().modal_container : t().standard_container, modal ? t().modal_elevation : t().standard_elevation,
+                    modal ? SurfaceLayer::overlay : SurfaceLayer::base);
 }
 
 void DrawerSheet::paint_entries(render::Canvas& canvas, const color::ColorScheme& scheme) const {
@@ -586,6 +586,11 @@ void ModalNavigationDrawer::step(double dt) {
 
 bool ModalNavigationDrawer::animating() const {
     return slide_.animating() || slide_.pressed() || sheet_.animating();
+}
+
+double ModalNavigationDrawer::content_shift() const {
+    const tokens::LayeringTokens& l = current_style().layering;
+    return l.mode == tokens::Layering::recede ? slide_.fraction() * slide_.width() * l.drawer_push : 0.0;
 }
 
 void ModalNavigationDrawer::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {

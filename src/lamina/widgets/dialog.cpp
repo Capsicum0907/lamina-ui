@@ -1,5 +1,6 @@
 #include "lamina/style/style.hpp"
 #include "lamina/widgets/dialog.hpp"
+#include "lamina/widgets/surface.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -493,7 +494,7 @@ void Dialog::paint(render::Canvas& canvas, const color::ColorScheme& scheme) con
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});
     const double radius = current_style().shape.radius(t().corner, surface_.width, surface_.height);
-    canvas.fill_path(render::rounded_rect_path(surface_, render::uniform_radii(radius)), s[t().container]);
+    paint_container(canvas, surface_, render::uniform_radii(radius), s, t().container, 0.0, SurfaceLayer::overlay);
     if (icon_) {
         icon_->font.draw(canvas, icon_->symbol, icon_origin_, t().icon_size, s[t().icon_color]);
     }

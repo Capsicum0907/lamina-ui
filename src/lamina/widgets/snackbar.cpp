@@ -138,7 +138,7 @@ void Snackbar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) c
     canvas.save();
     popup_.scale_about(canvas, {surface_.x + surface_.width / 2.0, surface_.y + surface_.height / 2.0});
     const double radius = current_style().shape.radius(t().corner, surface_.width, surface_.height);
-    paint_surface(canvas, surface_, radius, s[t().container], current_style().elevation.levels[t().elevation], s[color::Role::shadow]);
+    paint_container(canvas, surface_, render::uniform_radii(radius), s, t().container, current_style().elevation.levels[t().elevation], SurfaceLayer::overlay);
     message_.paint(canvas, s);
     if (action_) {
         action_->paint(canvas, s);

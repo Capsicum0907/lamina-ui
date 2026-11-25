@@ -443,7 +443,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     const color::ColorScheme s = color::faded(scheme, a);
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const render::Rect gr = group_rect(g);
-        paint_surface(canvas, gr, group_radii(g), s[t().group_container], current_style().elevation.levels[t().elevation], s[color::Role::shadow]);
+        paint_container(canvas, gr, group_radii(g), s, t().group_container, current_style().elevation.levels[t().elevation], SurfaceLayer::overlay);
     }
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         const Group& group = groups_[g];

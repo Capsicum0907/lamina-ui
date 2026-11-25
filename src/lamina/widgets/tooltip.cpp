@@ -353,10 +353,10 @@ void Tooltip::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
     canvas.save();
     popup_.scale_about(canvas, {r.x + r.width / 2.0, r.y + r.height / 2.0});
     const bool is_rich = options_.kind == TooltipKind::rich;
-    const color::Argb container = s[is_rich ? rich().container : plain().container];
+    const color::Argb container = s[is_rich ? container_role(rich().container, SurfaceLayer::overlay) : plain().container];
     const double radius = current_style().shape.radius(is_rich ? rich().corner : plain().corner, r.width, r.height);
     if (is_rich) {
-        paint_surface(canvas, r, radius, container, current_style().elevation.levels[rich().elevation], s[color::Role::shadow]);
+        paint_container(canvas, r, render::uniform_radii(radius), s, rich().container, current_style().elevation.levels[rich().elevation], SurfaceLayer::overlay);
     } else {
         canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), container);
     }

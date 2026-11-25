@@ -542,8 +542,8 @@ void BottomSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme
     }
     const render::Rect container{s.x, s.y, s.width, s.height + overflow};
     const render::CornerRadii radii = current_style().shape.radii(t().shape, container.width, container.height);
-    paint_surface(canvas, container, radii, scheme[t().container], modal() ? t().modal_shadow_elevation : t().standard_shadow_elevation,
-                  scheme[color::Role::shadow]);
+    paint_container(canvas, container, radii, scheme, t().container, modal() ? t().modal_shadow_elevation : t().standard_shadow_elevation,
+                    modal() ? SurfaceLayer::overlay : SurfaceLayer::base);
     canvas.push_clip(render::rounded_rect_path(container, radii));
     if (options_.drag_handle) {
         handle_.paint(canvas, scheme);

@@ -531,7 +531,7 @@ void SearchBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         return;
     }
     const double r = corner_radius();
-    paint_surface(canvas, collapsed_, render::uniform_radii(r), scheme[t().container], t().shadow_elevation, scheme[color::Role::shadow]);
+    paint_container(canvas, collapsed_, render::uniform_radii(r), scheme, t().container, t().shadow_elevation, SurfaceLayer::base);
     canvas.save();
     canvas.push_clip(render::rounded_rect_path(collapsed_, render::uniform_radii(r)));
     paint_field(canvas, scheme, collapsed_, false);
@@ -547,7 +547,7 @@ void SearchBar::paint_expanded(render::Canvas& canvas, const color::ColorScheme&
     const render::CornerRadii radii = render::uniform_radii(std::min(corner_radius(), std::min(s.width, s.height) / 2.0));
     canvas.save();
     canvas.push_clip(area_);
-    paint_surface(canvas, s, radii, scheme[t().container], t().shadow_elevation, scheme[color::Role::shadow]);
+    paint_container(canvas, s, radii, scheme, t().container, t().shadow_elevation, SurfaceLayer::overlay);
     canvas.push_clip(render::rounded_rect_path(s, radii));
     paint_field(canvas, scheme, field_rect(), true);
     const double alpha = full_screen() ? progress() : 1.0;

@@ -1,6 +1,7 @@
 #include "lamina/style/style.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/widgets/menu.hpp"
+#include "lamina/widgets/scrim.hpp"
 
 #include <algorithm>
 #include <array>
@@ -582,10 +583,11 @@ void Menu::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const
     const double a = opacity();
     const render::Rect r = bounds();
     const double radius = current_style().shape.radius(t().corner, r.width, r.height);
+    paint_receded_backdrop(canvas, {0.0, 0.0, window_.width, window_.height}, scheme, a);
     canvas.save();
     popup_.scale_about(canvas, pivot_);
     const color::ColorScheme s = color::faded(scheme, a);
-    paint_surface(canvas, r, radius, s[t().container], current_style().elevation.levels[t().elevation], s[color::Role::shadow]);
+    paint_container(canvas, r, render::uniform_radii(radius), s, t().container, current_style().elevation.levels[t().elevation], SurfaceLayer::overlay);
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const color::Argb label_color = item.enabled.mix(resolve(s, t().disabled_label), s[t().label_color]);

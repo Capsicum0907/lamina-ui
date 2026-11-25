@@ -420,7 +420,7 @@ void FloatingToolbar::paint(render::Canvas& canvas, const color::ColorScheme& sc
         const double elevation =
             has_fab() ? motion::lerp(current_style().elevation.levels[t().collapsed_elevation_with_fab], current_style().elevation.levels[t().expanded_elevation_with_fab], p)
                       : motion::lerp(current_style().elevation.levels[t().collapsed_elevation], current_style().elevation.levels[t().expanded_elevation], p);
-        paint_surface(canvas, bar, radius, scheme[c.container], elevation, scheme[color::Role::shadow]);
+        paint_container(canvas, bar, render::uniform_radii(radius), scheme, c.container, elevation, SurfaceLayer::base);
         canvas.save();
         canvas.push_clip(render::rounded_rect_path(bar, render::uniform_radii(radius)));
         const render::Rect inner = horizontal()

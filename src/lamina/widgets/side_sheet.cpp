@@ -419,8 +419,8 @@ void SideSheet::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     if (modal() && !options_.detached) {
         radii = options_.edge == SideSheetEdge::end ? render::CornerRadii{r, 0.0, 0.0, r} : render::CornerRadii{0.0, r, r, 0.0};
     }
-    paint_surface(canvas, s, radii, scheme[modal() ? t().modal_container : t().standard_container], modal() ? t().modal_elevation : t().standard_elevation,
-                  scheme[color::Role::shadow]);
+    paint_container(canvas, s, radii, scheme, modal() ? t().modal_container : t().standard_container, modal() ? t().modal_elevation : t().standard_elevation,
+                    modal() ? SurfaceLayer::overlay : SurfaceLayer::base);
     canvas.push_clip(render::rounded_rect_path(s, radii));
     if (!options_.headline.empty()) {
         const double x = back_ ? back_->bounds().x + back_->width() + t().back_headline_space : s.x + t().padding;

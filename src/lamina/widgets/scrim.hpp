@@ -19,4 +19,10 @@ inline void paint_scrim(render::Canvas& canvas, const render::Rect& area, const 
     canvas.fill_rect(area, color::with_alpha(scheme[t.color], t.opacity * a));
 }
 
+inline void paint_receded_backdrop(render::Canvas& canvas, const render::Rect& area, const color::ColorScheme& scheme, double alpha) {
+    if (current_style().layering.mode == tokens::Layering::recede) {
+        paint_scrim(canvas, area, scheme, alpha);
+    }
+}
+
 }
