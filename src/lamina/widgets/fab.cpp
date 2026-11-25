@@ -56,7 +56,19 @@ void Fab::cancel_interaction() {
     elevation_.animate_to(state_elevation(current_style().fab.style(options_.style), press_));
 }
 
+void Fab::restyle() {
+    style_stamp_.refresh();
+    const auto& motion = current_style().motion;
+    state_layer_.set_spec(motion.fast_effects());
+    elevation_.set_spec(motion.default_effects());
+    focus_.restyle();
+    elevation_.animate_to(state_elevation(current_style().fab.style(options_.style), press_));
+}
+
 void Fab::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     state_layer_.step(dt);
     elevation_.step(dt);
     focus_.step(dt);

@@ -6,6 +6,7 @@
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/typography.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -24,6 +25,7 @@ public:
     Label(LabelOptions options, const text::FontStack& fonts);
 
     void set_text(std::string text);
+    void restyle();
     layout::Size measure(const layout::Constraints& c);
     void set_origin(render::Point origin) { origin_ = origin; }
     void arrange(const render::Rect& r) { origin_ = {r.x, r.y}; }
@@ -36,6 +38,7 @@ public:
 
 private:
     std::string text_;
+    tokens::TypeRole type_;
     text::TextStyle style_;
     color::Role color_;
     text::FontStack fonts_;
@@ -43,6 +46,7 @@ private:
     text::TextBlock block_;
     double laid_out_width_ = -1.0;
     render::Point origin_{0.0, 0.0};
+    StyleStamp style_stamp_;
 };
 
 }

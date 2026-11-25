@@ -118,7 +118,22 @@ void Switch::cancel_interaction() {
     retarget();
 }
 
+void Switch::restyle() {
+    style_stamp_.refresh();
+    const auto& motion = current_style().motion;
+    offset_.set_spec(motion.fast_spatial());
+    thumb_size_.set_spec(motion.fast_spatial());
+    state_layer_.set_spec(motion.fast_effects());
+    checked_.set_spec(motion.default_effects());
+    focus_.restyle();
+    enabled_.restyle();
+    retarget();
+}
+
 void Switch::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     offset_.step(dt);
     thumb_size_.step(dt);
     state_layer_.step(dt);

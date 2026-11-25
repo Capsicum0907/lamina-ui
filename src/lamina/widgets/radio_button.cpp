@@ -90,7 +90,22 @@ void RadioButton::cancel_interaction() {
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
+void RadioButton::restyle() {
+    style_stamp_.refresh();
+    const auto& motion = current_style().motion;
+    dot_radius_.set_spec(motion.fast_spatial());
+    selected_.set_spec(motion.default_effects());
+    state_layer_.set_spec(motion.fast_effects());
+    focus_.restyle();
+    enabled_.restyle();
+    dot_radius_.animate_to(target_dot(options_.selected));
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
+}
+
 void RadioButton::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     dot_radius_.step(dt);
     selected_.step(dt);
     state_layer_.step(dt);

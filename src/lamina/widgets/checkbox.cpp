@@ -196,7 +196,22 @@ void Checkbox::cancel_interaction() {
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
+void Checkbox::restyle() {
+    style_stamp_.refresh();
+    const auto& motion = current_style().motion;
+    check_fraction_.set_spec(motion.default_spatial());
+    gravitation_.set_spec(motion.default_spatial());
+    checked_.set_spec(options_.state == tokens::CheckboxState::off ? box_out_spring() : box_in_spring());
+    state_layer_.set_spec(motion.fast_effects());
+    focus_.restyle();
+    enabled_.restyle();
+    state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
+}
+
 void Checkbox::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     if (snap_off_in_ >= 0.0) {
         snap_off_in_ -= dt;
         if (snap_off_in_ <= 0.0) {

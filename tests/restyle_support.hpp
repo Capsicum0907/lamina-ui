@@ -76,4 +76,37 @@ RestyleResult restyle_round(Make make) {
     return r;
 }
 
+inline constexpr int restyle_motion_frames = 6;
+
+template <typename Make, typename Act>
+RestyleResult restyle_motion_round(Make make, Act act) {
+    RestyleResult r;
+    auto run = [&](auto& w) {
+        w->step(frame_seconds);
+        act(*w);
+        for (int i = 0; i < restyle_motion_frames; ++i) {
+            w->step(frame_seconds);
+        }
+        return shoot(*w);
+    };
+    {
+        auto w = make();
+        settle_widget(*w);
+        r.built_under_default = run(w);
+    }
+    {
+        auto w = make();
+        settle_widget(*w);
+        const StyleScope scope(restyle_test_style());
+        r.switched = run(w);
+    }
+    {
+        const StyleScope scope(restyle_test_style());
+        auto w = make();
+        settle_widget(*w);
+        r.built_under_test = run(w);
+    }
+    return r;
+}
+
 }
