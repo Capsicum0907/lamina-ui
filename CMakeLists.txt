@@ -397,6 +397,8 @@ if(LAMINA_BUILD_TESTS)
         tests/snackbar_test.cpp
         tests/split_button_test.cpp
         tests/split_pane_test.cpp
+        tests/restyle_support.cpp
+        tests/restyle_test.cpp
         tests/spring_test.cpp
         tests/style_test.cpp
         tests/support.cpp

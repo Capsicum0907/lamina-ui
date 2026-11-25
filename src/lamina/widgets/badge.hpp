@@ -28,6 +28,7 @@ public:
 
     const BadgeSpec& spec() const { return spec_; }
     void set_spec(BadgeSpec spec);
+    void restyle();
     bool small() const { return spec_.text.empty(); }
     layout::Size size() const;
     std::string description() const { return spec_.accessible_description.empty() ? spec_.text : spec_.accessible_description; }

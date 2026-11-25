@@ -113,6 +113,7 @@ public:
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -159,6 +160,8 @@ private:
     motion::Animated checked_amount_;
     motion::Animated border_;
     double icon_rotation_ = 0.0;
+    bool style_shapes_ = false;
+    StyleStamp style_stamp_;
 };
 
 }

@@ -132,7 +132,25 @@ void IconButton::cancel_interaction() {
     retarget();
 }
 
+void IconButton::restyle() {
+    style_stamp_.refresh();
+    const auto& motion = current_style().motion;
+    corner_.set_spec(motion.default_effects());
+    state_layer_.set_spec(motion.fast_effects());
+    checked_.set_spec(motion.default_effects());
+    icon_fade_.set_spec(motion.fast_effects());
+    focus_.restyle();
+    enabled_.restyle();
+    if (badge_) {
+        badge_->restyle();
+    }
+    retarget();
+}
+
 void IconButton::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     corner_.step(dt);
     state_layer_.step(dt);
     checked_.step(dt);

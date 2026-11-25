@@ -51,6 +51,13 @@ public:
         progress_.snap_to(1.0);
     }
 
+    void restyle(motion::SpringSpec spec) {
+        progress_.set_spec(spec);
+        if (start_key_) {
+            start_ = linear(*start_key_);
+        }
+        target_ = linear(target_key_);
+    }
     void step(double dt_seconds) { progress_.step(dt_seconds); }
     bool settled() const { return progress_.settled(); }
     double progress() const { return progress_.value(); }

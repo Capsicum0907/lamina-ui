@@ -31,6 +31,7 @@ public:
     FocusIndicator() : amount_(0.0, current_style().motion.fast_effects()) {}
 
     void set_color(std::optional<color::Role> role) { color_ = role; }
+    void restyle() { amount_.set_spec(current_style().motion.fast_effects()); }
 
     bool focused() const { return focused_; }
     void set_focused(bool focused) {

@@ -40,6 +40,7 @@ public:
         : enabled_(enabled), amount_(enabled ? 1.0 : 0.0, current_style().motion.default_effects()) {}
 
     bool enabled() const { return enabled_; }
+    void restyle() { amount_.set_spec(current_style().motion.default_effects()); }
     bool set(bool enabled) {
         if (enabled == enabled_) {
             return false;

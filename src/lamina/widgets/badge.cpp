@@ -41,6 +41,10 @@ render::Rect badge_rect(const render::Rect& anchor, layout::Size badge, bool has
 
 Badge::Badge(BadgeSpec spec, const text::FontStack& fonts) : spec_(std::move(spec)), fonts_(fonts), line_(text::layout_line(fonts_, spec_.text, label_style())) {}
 
+void Badge::restyle() {
+    line_ = text::layout_line(fonts_, spec_.text, label_style());
+}
+
 void Badge::set_spec(BadgeSpec spec) {
     spec_ = std::move(spec);
     line_ = text::layout_line(fonts_, spec_.text, label_style());

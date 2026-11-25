@@ -72,6 +72,7 @@ public:
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -91,6 +92,7 @@ private:
     std::optional<icons::Icon> previous_icon_;
     std::optional<Badge> badge_;
     motion::Animated icon_fade_;
+    StyleStamp style_stamp_;
 };
 
 }

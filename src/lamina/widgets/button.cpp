@@ -44,6 +44,7 @@ Button::Button(ButtonOptions options, const text::FontStack& fonts)
     }
     if (options_.toggle && !options_.shapes) {
         options_.shapes = toggle_button_shapes(options_.size);
+        style_shapes_ = true;
     }
     if (options_.shapes) {
         corners_.emplace(target_corners(), options_.shapes->spring);
@@ -316,7 +317,39 @@ void Button::cancel_interaction() {
     retarget();
 }
 
+void Button::restyle() {
+    style_stamp_.refresh();
+    const auto& motion = current_style().motion;
+    press_amount_.set_spec(motion.default_effects());
+    squareness_.set_spec(motion.fast_spatial());
+    icon_fade_.set_spec(motion.fast_effects());
+    state_layer_.set_spec(motion.fast_effects());
+    elevation_.set_spec(motion.default_effects());
+    checked_amount_.set_spec(current_style().button.toggle_motion.colors);
+    border_.set_spec(current_style().button.toggle_motion.border_width);
+    focus_.restyle();
+    enabled_.restyle();
+    if (style_shapes_) {
+        options_.shapes = toggle_button_shapes(options_.size);
+    }
+    if (corners_ && options_.shapes) {
+        corners_->restyle(options_.shapes->spring);
+    }
+    label_ = text::layout_line(fonts_, options_.label, current_style().type.text(current_style().button.size(options_.size).label));
+    ellipsized_ = false;
+    label_room_ = -1.0;
+    if (!sized_) {
+        height_ = current_style().density.button_length(options_.size).at(options_.density);
+        width_ = intrinsic_width();
+    }
+    fit_label();
+    retarget();
+}
+
 void Button::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     press_amount_.step(dt);
     squareness_.step(dt);
     icon_fade_.step(dt);
