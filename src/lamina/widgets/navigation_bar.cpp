@@ -205,12 +205,16 @@ bool NavigationBar::animating() const {
 
 void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     canvas.fill_rect(bounds(), scheme[t().container]);
+    const tokens::SelectionTokens& selection = current_style().selection;
+    const bool surface = selection.mark == tokens::SelectionMark::surface;
+    const color::Role active_icon = surface ? t().active_icon : selection.foreground;
+    const color::Role active_label = surface ? t().active_label : selection.foreground;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const Item& item = items_[i];
         const NavigationItem& spec = options_.items[i];
         const double progress = item.indicator.value();
         const render::Rect indicator = indicator_rect(i);
-        if (progress > 0.0 && indicator.width > 0.0) {
+        if (surface && progress > 0.0 && indicator.width > 0.0) {
             canvas.fill_path(render::rounded_rect_path(indicator, render::uniform_radii(indicator.height / 2.0)),
                              color::with_alpha(scheme[t().indicator], std::clamp(progress, 0.0, 1.0)));
         }
@@ -221,15 +225,20 @@ void NavigationBar::paint(render::Canvas& canvas, const color::ColorScheme& sche
         }
         const double k = item.color.value();
         icons::draw_centered(canvas, spec.icon, full, t().icon_size,
-                             item.enabled.mix(resolve(scheme, t().disabled_icon), color::mix(scheme[t().inactive_icon], scheme[t().active_icon], k)),
+                             item.enabled.mix(resolve(scheme, t().disabled_icon), color::mix(scheme[t().inactive_icon], scheme[active_icon], k)),
                              icons::mix(spec.style, spec.selected_style, std::clamp(k, 0.0, 1.0)));
         badges_.paint(canvas, scheme, i,
                       {full.x + (full.width - t().icon_size) / 2.0, full.y + (full.height - t().icon_size) / 2.0, t().icon_size, t().icon_size},
                       item_rect(i));
         if (item.label && label_opacity() > 0.0) {
             const double x = full.x + (full.width - item.label->width) / 2.0;
-            const color::Argb c = item.enabled.mix(resolve(scheme, t().disabled_label), color::mix(scheme[t().inactive_label], scheme[t().active_label], k));
-            text::draw_line(canvas, fonts_, *item.label, {x, full.y + full.height + t().indicator_to_label_space}, color::scale_alpha(c, label_opacity()));
+            const color::Argb c = item.enabled.mix(resolve(scheme, t().disabled_label), color::mix(scheme[t().inactive_label], scheme[active_label], k));
+            const double y = full.y + full.height + t().indicator_to_label_space;
+            text::draw_line(canvas, fonts_, *item.label, {x, y}, color::scale_alpha(c, label_opacity()));
+            if (!surface && selection.underline && progress > 0.0) {
+                canvas.fill_rect({x, y + label_height(*item.label), item.label->width, selection.underline_thickness},
+                                 color::scale_alpha(scheme[active_label], std::clamp(progress, 0.0, 1.0) * label_opacity()));
+            }
         }
     }
     if (!items_.empty()) {

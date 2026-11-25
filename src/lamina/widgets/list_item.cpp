@@ -134,12 +134,20 @@ layout::Size ListItem::slot_size(const Slot& slot) {
     return {0.0, 0.0};
 }
 
+tokens::TypeRole ListItem::headline_role() const {
+    const tokens::SelectionTokens& s = current_style().selection;
+    const bool marked = s.mark == tokens::SelectionMark::foreground && s.emphasized_label && spec_.selected;
+    return marked ? tokens::emphasized(t().headline) : t().headline;
+}
+
 void ListItem::layout_text(double width) {
-    if (width == text_width_) {
+    const tokens::TypeRole role = headline_role();
+    if (width == text_width_ && role == headline_role_) {
         return;
     }
     text_width_ = width;
-    headline_ = text::layout_paragraph(fonts_, spec_.headline, style_of(t().headline), width);
+    headline_role_ = role;
+    headline_ = text::layout_paragraph(fonts_, spec_.headline, style_of(role), width);
     supporting_ = spec_.supporting.empty() ? text::TextBlock{} : text::layout_paragraph(fonts_, spec_.supporting, style_of(t().supporting), width);
     const bool overline = overline_.has_value();
     const bool supporting = !spec_.supporting.empty();
@@ -239,6 +247,9 @@ void ListItem::set_selected(bool selected) {
     }
     spec_.selected = selected;
     selected_.animate_to(selected ? 1.0 : 0.0);
+    if (text_width_ >= 0.0) {
+        layout_text(text_width_);
+    }
     sync_controls();
     retarget();
 }
@@ -423,10 +434,14 @@ void ListItem::paint_slot(render::Canvas& canvas, const color::ColorScheme& sche
 }
 
 void ListItem::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    const double k = std::clamp(selected_.value(), 0.0, 1.0);
+    const tokens::SelectionTokens& selection = current_style().selection;
+    const bool surface = selection.mark == tokens::SelectionMark::surface;
+    const double marked = std::clamp(selected_.value(), 0.0, 1.0);
+    const double k = surface ? marked : 0.0;
+    const color::Argb selected_content = scheme[surface ? t().selected_content : selection.foreground];
     const color::Argb disabled = resolve(scheme, t().disabled_content);
-    const color::Argb headline = enabled_.mix(disabled, color::mix(scheme[t().headline_color], scheme[t().selected_content], k));
-    const color::Argb content = enabled_.mix(disabled, color::mix(scheme[t().content_color], scheme[t().selected_content], k));
+    const color::Argb headline = enabled_.mix(disabled, color::mix(scheme[t().headline_color], selected_content, marked));
+    const color::Argb content = enabled_.mix(disabled, color::mix(scheme[t().content_color], selected_content, marked));
     const render::CornerRadii radii = render::uniform_radii(std::clamp(corner_.value(), 0.0, std::min(rect_.width, rect_.height) / 2.0));
     if (spec_.transparent) {
         const render::Path shape = render::rounded_rect_path(rect_, radii);

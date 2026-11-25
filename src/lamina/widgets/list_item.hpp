@@ -119,6 +119,7 @@ private:
     void sync_controls();
     void place_slot(Slot& slot, double x, double top, double inner, bool top_aligned);
     void paint_slot(render::Canvas& canvas, const color::ColorScheme& scheme, const Slot& slot, color::Argb color) const;
+    tokens::TypeRole headline_role() const;
     void layout_text(double width);
     double target_corner() const;
     void retarget();
@@ -132,6 +133,7 @@ private:
     text::TextBlock supporting_;
     std::optional<text::TextLine> overline_;
     double text_width_ = -1.0;
+    std::optional<tokens::TypeRole> headline_role_;
     ListLines lines_ = ListLines::one;
     double height_ = 0.0;
     render::Rect rect_{0.0, 0.0, 0.0, 0.0};
