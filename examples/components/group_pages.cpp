@@ -12,6 +12,7 @@
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/split_button.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -184,7 +185,7 @@ private:
     }
 
     layout::NodePtr captioned_at(const char* caption, layout::NodePtr content) {
-        const auto style = tokens::text_style(tokens::type_style(base_page_layout.caption_type));
+        const auto style = current_style().type.text(base_page_layout.caption_type);
         captions.push_back(std::make_unique<widgets::Label>(
             widgets::LabelOptions{caption, base_page_layout.caption_type, base_page_layout.caption, false}, ctx.fonts));
         return std::make_shared<Captioned>(reflow, examples::caption_cell(*captions.back(), groups_layout.label_width, style.line_height, style.line_height),

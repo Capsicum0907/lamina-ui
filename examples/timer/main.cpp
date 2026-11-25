@@ -28,6 +28,7 @@
 #include "timer/engine.hpp"
 #include "timer/layout.hpp"
 #include "timer/readout.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using examples::AnimatedBox;
@@ -116,10 +117,10 @@ struct Config {
     double pulse_scale = 0.025;
     double hidden_scale = 0.92;
     double key_press_seconds = 0.12;
-    motion::SpringSpec move_spring = tokens::motion_scheme.default_spatial();
-    motion::SpringSpec fade_spring = tokens::motion_scheme.default_effects();
-    motion::SpringSpec screen_fade_spring = tokens::motion_scheme.slow_effects();
-    motion::SpringSpec screen_scale_spring = tokens::motion_scheme.slow_spatial();
+    motion::SpringSpec move_spring = current_style().motion.default_spatial();
+    motion::SpringSpec fade_spring = current_style().motion.default_effects();
+    motion::SpringSpec screen_fade_spring = current_style().motion.slow_effects();
+    motion::SpringSpec screen_scale_spring = current_style().motion.slow_spatial();
 };
 
 struct KeyBinding {
@@ -221,9 +222,9 @@ int main(int argc, char** argv) {
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
-        const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
-        const auto& size_tokens = tokens::button_size(config.button_size);
-        const double label_size = tokens::type_style(size_tokens.label).size_sp;
+        const color::ColorScheme scheme = current_style().color->build(config.scheme);
+        const auto& size_tokens = current_style().button.size(config.button_size);
+        const double label_size = current_style().type.style(size_tokens.label).size_sp;
         const double icon_size = size_tokens.icon_size;
         const auto clock_start = std::chrono::steady_clock::now();
         auto now_seconds = [&] { return std::chrono::duration<double>(std::chrono::steady_clock::now() - clock_start).count(); };

@@ -10,11 +10,12 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/layout/window_size_class.hpp"
 #include "lamina/tokens/motion.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
 struct ReflowStyle {
-    motion::SpringSpec spring = tokens::motion_scheme.default_spatial();
+    motion::SpringSpec spring = current_style().motion.default_spatial();
     layout::WindowWidthClass columns_from = layout::WindowWidthClass::expanded;
     layout::WindowWidthClass caption_beside_from = layout::WindowWidthClass::medium;
 };

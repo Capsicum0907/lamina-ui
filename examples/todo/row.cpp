@@ -9,12 +9,15 @@
 #include "lamina/tokens/focus.hpp"
 #include "lamina/tokens/interaction.hpp"
 #include "lamina/tokens/text_field.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::todo {
 
 namespace {
 
-constexpr const tokens::OutlinedTextFieldTokens& field_tokens = tokens::outlined_text_field;
+const tokens::OutlinedTextFieldTokens& field_tokens() {
+    return current_style().text_field;
+}
 
 tokens::CheckboxState check_state(bool done) {
     return done ? tokens::CheckboxState::on : tokens::CheckboxState::off;
@@ -28,7 +31,9 @@ double unit(const motion::Animated& a) {
     return std::clamp(a.value(), 0.0, 1.0);
 }
 
-constexpr double focus_ring_reach = tokens::focus_indicator.outer_offset + tokens::focus_indicator.thickness;
+double focus_ring_reach() {
+    return current_style().focus_indicator.outer_offset + current_style().focus_indicator.thickness;
+}
 
 }
 
@@ -68,7 +73,7 @@ void TaskRow::set_column(const Column& column) {
     relayout();
     for (auto* e : {&editor_, &closing_editor_}) {
         if (*e) {
-            (*e)->set_width(column_.text_width + field_tokens.padding);
+            (*e)->set_width(column_.text_width + field_tokens().padding);
         }
     }
 }
@@ -78,7 +83,7 @@ void TaskRow::relayout() {
         return;
     }
     laid_out_width_ = column_.text_width;
-    block_ = text::layout_paragraph(fonts_, text_, tokens::text_style(tokens::type_style(style_.text_type)), column_.text_width);
+    block_ = text::layout_paragraph(fonts_, text_, current_style().type.text(style_.text_type), column_.text_width);
 }
 
 double TaskRow::target_height() const {
@@ -142,7 +147,7 @@ void TaskRow::arrange_widgets() {
     remove_.set_origin({column_.remove_x, r.y + (style_.min_height - remove_.height()) / 2.0});
     for (auto* e : {&editor_, &closing_editor_}) {
         if (*e) {
-            (*e)->set_origin({column_.text_x - field_tokens.padding, r.y + style_.edit_padding});
+            (*e)->set_origin({column_.text_x - field_tokens().padding, r.y + style_.edit_padding});
         }
     }
 }
@@ -231,7 +236,7 @@ void TaskRow::begin_edit(const std::optional<input::PointerEvent>& press) {
     closing_editor_.reset();
     edit_.animate_to(1.0);
     editor_.emplace(widgets::TextFieldOptions{.label = "", .multiline = false, .clipboard = clipboard_}, fonts_);
-    editor_->set_width(column_.text_width + field_tokens.padding);
+    editor_->set_width(column_.text_width + field_tokens().padding);
     editor_->set_text(text_);
     arrange_widgets();
     editor_->set_focused(true);
@@ -292,12 +297,12 @@ void TaskRow::paint(render::Canvas& canvas, const color::ColorScheme& scheme) co
         return;
     }
     const color::ColorScheme s = p < 1.0 ? color::faded(scheme, p) : scheme;
-    const double reach = moving() ? 0.0 : focus_ring_reach;
+    const double reach = moving() ? 0.0 : focus_ring_reach();
     canvas.push_clip({r.x - reach, r.y - reach, r.width + 2.0 * reach, r.height + 2.0 * reach});
-    const double radius = tokens::corner_radius(style_.corner, r.width, r.height);
+    const double radius = current_style().shape.radius(style_.corner, r.width, r.height);
     if (const double h = unit(hover_); h > 0.0) {
         canvas.fill_rounded_rect(r, render::uniform_radii(radius),
-                                 color::with_alpha(s[style_.state_layer], h * tokens::state_layer_opacity::hover));
+                                 color::with_alpha(s[style_.state_layer], h * current_style().state_layer.hover));
     }
     if (const double f = unit(focus_); f > 0.0) {
         canvas.fill_path(render::ring_path(r, radius, style_.focus_ring_width), color::scale_alpha(s[style_.focus_ring], f),
@@ -433,8 +438,8 @@ void SectionHeader::paint(render::Canvas& canvas, const color::ColorScheme& sche
     const color::ColorScheme s = p < 1.0 ? color::faded(scheme, p) : scheme;
     const render::Rect r = box_.rect();
     const render::Rect toggle = toggle_rect();
-    const double radius = tokens::corner_radius(row_style_.corner, toggle.width, toggle.height);
-    const double layer = std::max(unit(hover_) * tokens::state_layer_opacity::hover, fold_focus_.amount() * tokens::state_layer_opacity::focus);
+    const double radius = current_style().shape.radius(row_style_.corner, toggle.width, toggle.height);
+    const double layer = std::max(unit(hover_) * current_style().state_layer.hover, fold_focus_.amount() * current_style().state_layer.focus);
     if (layer > 0.0) {
         canvas.fill_rounded_rect(toggle, render::uniform_radii(radius), color::with_alpha(s[row_style_.state_layer], layer));
     }

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/theme.hpp"
 #include "common/canvas.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
@@ -35,10 +36,11 @@ struct Layout {
 }
 
 int main(int argc, char** argv) {
+    set_default_style(examples::sample_style());
     try {
         const Layout layout;
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const auto scheme = color::spec_2021().build(color::default_scheme_options);
+        const auto scheme = current_style().color->build(color::default_scheme_options);
 
         sdl3::Window window({"lamina-ui text field", 760, 560}, examples::window_canvas());
         std::vector<std::unique_ptr<widgets::TextField>> fields;

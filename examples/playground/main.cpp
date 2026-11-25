@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "common/theme.hpp"
 #include "common/canvas.hpp"
 #include "lamina/color/mix.hpp"
 #include "lamina/color/scheme.hpp"
@@ -18,6 +19,7 @@
 #include "lamina/widgets/surface.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using color::Role;
@@ -64,27 +66,28 @@ struct Card {
 }
 
 int main(int argc, char** argv) {
+    set_default_style(examples::sample_style());
     try {
         const Layout layout;
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const auto header_style = tokens::text_style(tokens::type_style(layout.header_type));
-        const auto title_style = tokens::text_style(tokens::type_style(layout.title_type));
-        const auto body_style = tokens::text_style(tokens::type_style(layout.body_type));
+        const auto header_style = current_style().type.text(layout.header_type);
+        const auto title_style = current_style().type.text(layout.title_type);
+        const auto body_style = current_style().type.text(layout.body_type);
         const auto header_line = text::layout_line(fonts, header_text, header_style);
         double body_width = -1.0;
         text::TextBlock body_block;
         std::vector<text::TextLine> titles;
-        const auto spatial = tokens::motion_scheme.default_spatial();
-        const auto spatial_fast = tokens::motion_scheme.fast_spatial();
-        const auto effects = tokens::motion_scheme.default_effects();
-        const auto effects_fast = tokens::motion_scheme.fast_effects();
-        const auto scheme = color::spec_2021().build(color::default_scheme_options);
+        const auto spatial = current_style().motion.default_spatial();
+        const auto spatial_fast = current_style().motion.fast_spatial();
+        const auto effects = current_style().motion.default_effects();
+        const auto effects_fast = current_style().motion.fast_effects();
+        const auto scheme = current_style().color->build(color::default_scheme_options);
 
         std::vector<Card> cards;
         for (int i = 0; i < layout.columns * layout.rows; ++i) {
             cards.push_back({
-                motion::Animated(tokens::elevation_dp[layout.rest_elevation], spatial),
-                motion::Animated(tokens::corner_radius(layout.rest_corner, 0.0, 0.0), spatial_fast),
+                motion::Animated(current_style().elevation.levels[layout.rest_elevation], spatial),
+                motion::Animated(current_style().shape.radius(layout.rest_corner, 0.0, 0.0), spatial_fast),
                 motion::Animated(0.0, effects),
                 motion::Animated(0.0, effects_fast),
             });
@@ -129,8 +132,8 @@ int main(int argc, char** argv) {
                         continue;
                     }
                     c.selected = !c.selected;
-                    c.elevation.animate_to(tokens::elevation_dp[c.selected ? layout.raised_elevation : layout.rest_elevation]);
-                    c.corner.animate_to(tokens::corner_radius(c.selected ? layout.raised_corner : layout.rest_corner, c.rect.width, c.rect.height));
+                    c.elevation.animate_to(current_style().elevation.levels[c.selected ? layout.raised_elevation : layout.rest_elevation]);
+                    c.corner.animate_to(current_style().shape.radius(c.selected ? layout.raised_corner : layout.rest_corner, c.rect.width, c.rect.height));
                     c.fill.animate_to(c.selected ? 1.0 : 0.0);
                 }
             }
@@ -142,7 +145,7 @@ int main(int argc, char** argv) {
             for (std::size_t i = 0; i < cards.size(); ++i) {
                 Card& c = cards[i];
                 const render::Rect r = c.rect;
-                c.hover.animate_to(widgets::contains(r, pointer_x, pointer_y) ? tokens::state_layer_opacity::hover : 0.0);
+                c.hover.animate_to(widgets::contains(r, pointer_x, pointer_y) ? current_style().state_layer.hover : 0.0);
                 for (auto* a : {&c.elevation, &c.corner, &c.fill, &c.hover}) {
                     a->step(frame.dt_seconds);
                 }

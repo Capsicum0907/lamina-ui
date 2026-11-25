@@ -44,6 +44,7 @@
 #include "lamina/widgets/tooltip.hpp"
 #include "lamina/widgets/widget_set.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -282,7 +283,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
       host(h),
       typefaces(typefaces_ ? std::optional<GalleryFonts>(*typefaces_) : std::nullopt),
       options(state.options),
-      theme(color::spec_2021().build(options)),
+      theme(current_style().color->build(options)),
       scheme(theme.current()),
       header({"部品", layout.header_type, layout.text, false}, f),
       status({"—", layout.caption_type, layout.caption, false}, f),
@@ -315,7 +316,7 @@ Gallery::Impl::Impl(const text::FontStack& f, const GalleryFonts* typefaces_, co
                                .selected = state.page,
                                .accessible_name = "Pages",
                                .scrollable = true,
-                               .edge_padding = layout.margin - tokens::tab_tokens.horizontal_text_padding},
+                               .edge_padding = layout.margin - current_style().tabs.common.horizontal_text_padding},
         f);
     page = state.page;
     pager.scroll_to_page(page);
@@ -534,7 +535,7 @@ layout::NodePtr Gallery::Impl::items(std::vector<layout::NodePtr> nodes) {
 }
 
 layout::NodePtr Gallery::Impl::captioned(const char* caption, layout::NodePtr content) {
-    const auto style = tokens::text_style(tokens::type_style(layout.caption_type));
+    const auto style = current_style().type.text(layout.caption_type);
     Row row{std::make_unique<widgets::Label>(widgets::LabelOptions{caption, layout.caption_type, layout.caption, false}, fonts), content};
     auto r = std::make_shared<Captioned>(reflow, examples::caption_cell(*row.caption, layout.label_width, style.line_height, style.line_height), content,
                                          layout.caption_gap);
@@ -853,7 +854,7 @@ void Gallery::Impl::build_dialog() {
 }
 
 void Gallery::Impl::retheme() {
-    theme.fade_to(color::spec_2021().build(options));
+    theme.fade_to(current_style().color->build(options));
     dark_toggle->set_icon(icon(options.dark ? res::icons::light_mode : res::icons::dark_mode));
     host.set_dark_theme(options.dark);
 }

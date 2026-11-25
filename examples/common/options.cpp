@@ -6,6 +6,7 @@
 
 #include "lamina/tokens/title_bar.hpp"
 #include "lamina_sdl3/window.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples {
 
@@ -57,7 +58,7 @@ diagnostics::FrameStatsSwitches take_frame_stats(int& argc, char** argv) {
 }
 
 int window_height_dp(int content_height_dp, bool title_bar) {
-    return content_height_dp + (title_bar && sdl3::client_title_bar_supported() ? static_cast<int>(std::ceil(tokens::title_bar_tokens.height)) : 0);
+    return content_height_dp + (title_bar && sdl3::client_title_bar_supported() ? static_cast<int>(std::ceil(current_style().title_bar.height)) : 0);
 }
 
 }

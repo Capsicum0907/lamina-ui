@@ -1,6 +1,7 @@
 #include <exception>
 #include <optional>
 
+#include "common/theme.hpp"
 #include "common/canvas.hpp"
 #include "common/options.hpp"
 #include "components/gallery.hpp"
@@ -41,6 +42,7 @@ private:
 }
 
 int main(int argc, char** argv) {
+    set_default_style(examples::sample_style());
     try {
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::Typeface typeface = examples::take_typeface(argc, argv);

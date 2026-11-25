@@ -34,6 +34,7 @@
 #include "todo/layout.hpp"
 #include "todo/row.hpp"
 #include "todo/storage.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using examples::todo::ItemId;
@@ -73,7 +74,7 @@ struct Config {
     widgets::SnackbarOptions snackbar{"Undo"};
     widgets::DialogOptions clear_dialog{"Delete completed tasks?", "Every completed task will be deleted. You can undo it right after.",
                                         "Delete", "Cancel"};
-    motion::SpringSpec fade_spring = tokens::motion_scheme.default_effects();
+    motion::SpringSpec fade_spring = current_style().motion.default_effects();
 };
 
 struct Base {
@@ -99,7 +100,7 @@ int main(int argc, char** argv) {
         const std::optional<std::string> data_dir = examples::take_option(argc, argv, config.data_dir_option);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
-        const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
+        const color::ColorScheme scheme = current_style().color->build(config.scheme);
         if (data_dir) {
             std::filesystem::create_directories(*data_dir);
         }

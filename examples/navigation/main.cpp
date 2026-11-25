@@ -66,6 +66,7 @@ std::string format_value(const char* name, double v) {
 }
 
 int main(int argc, char** argv) {
+    set_default_style(examples::sample_style());
     try {
         const Layout layout;
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
@@ -74,7 +75,7 @@ int main(int argc, char** argv) {
         auto icon = [&](Symbol s) { return icons::Icon{icon_font, s}; };
 
         color::SchemeOptions options = color::default_scheme_options;
-        examples::ThemeFade theme(color::spec_2021().build(options));
+        examples::ThemeFade theme(current_style().color->build(options));
 
         widgets::Label header({"Navigation", layout.header_type, layout.text, false}, fonts);
         widgets::Label status({"—", layout.caption_type, layout.caption, false}, fonts);
@@ -299,7 +300,7 @@ int main(int argc, char** argv) {
         auto background = [&](const input::PointerEvent& e) {
             if (dark_toggle.handle(e)) {
                 options.dark = dark_toggle.checked();
-                theme.fade_to(color::spec_2021().build(options));
+                theme.fade_to(current_style().color->build(options));
             }
             if (primary_tabs.handle(e)) {
                 report("Primary tab: " + std::to_string(primary_tabs.selected() + 1));
@@ -349,7 +350,7 @@ int main(int argc, char** argv) {
             }
             if (dark_toggle.handle(k)) {
                 options.dark = dark_toggle.checked();
-                theme.fade_to(color::spec_2021().build(options));
+                theme.fade_to(current_style().color->build(options));
             }
             if (primary_tabs.handle(k)) {
                 report("Primary tab: " + std::to_string(primary_tabs.selected() + 1));

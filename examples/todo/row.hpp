@@ -24,6 +24,7 @@
 #include "res.hpp"
 #include "todo/engine.hpp"
 #include "todo/layout.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::todo {
 
@@ -42,8 +43,8 @@ struct RowStyle {
     double focus_ring_width = 2.0;
     icons::Symbol remove_icon = res::icons::delete_;
     std::string remove_name = "Delete";
-    motion::SpringSpec move_spring = tokens::motion_scheme.default_spatial();
-    motion::SpringSpec fade_spring = tokens::motion_scheme.default_effects();
+    motion::SpringSpec move_spring = current_style().motion.default_spatial();
+    motion::SpringSpec fade_spring = current_style().motion.default_effects();
 };
 
 enum class RowPart { check, text, remove };

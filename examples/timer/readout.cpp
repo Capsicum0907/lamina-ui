@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::timer {
 
@@ -35,7 +36,7 @@ std::vector<std::string_view> split_characters(std::string_view utf8) {
 }
 
 DigitFace::DigitFace(const text::FontStack& fonts, tokens::TypeRole role)
-    : fonts_(fonts), style_(tokens::text_style(tokens::type_style(role))) {
+    : fonts_(fonts), style_(current_style().type.text(role)) {
     for (char c = '0'; c <= '9'; ++c) {
         const Glyph& g = glyph(std::string_view(&c, 1));
         digit_width_ = std::max(digit_width_, g.line.width);

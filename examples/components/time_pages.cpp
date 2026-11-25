@@ -11,6 +11,7 @@
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/time_picker.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -98,7 +99,7 @@ public:
         dialog_ = std::make_unique<widgets::PickerDialog>(
             widgets::PickerDialogOptions{"OK", "Cancel", widgets::PickerDialogLayout::time, tokens::CornerSize::extra_large,
                                          locale_->strings.time_picker_title,
-                                         widgets::PickerDialogLeading{{ctx.icon_font, tokens::time_picker_tokens.keyboard_symbol},
+                                         widgets::PickerDialogLeading{{ctx.icon_font, current_style().time_picker.keyboard_symbol},
                                                                       locale_->strings.switch_to_text_input,
                                                                       [this](widgets::IconButton& b) { toggle_dialog_mode(b); }},
                                          "Time picker dialog"},
@@ -212,7 +213,7 @@ private:
     void toggle_dialog_mode(widgets::IconButton& b) {
         const bool to_input = dialog_picker_->mode() == widgets::TimePickerMode::dial;
         dialog_picker_->set_mode(to_input ? widgets::TimePickerMode::input : widgets::TimePickerMode::dial);
-        b.set_icon({ctx.icon_font, to_input ? tokens::time_picker_tokens.clock_symbol : tokens::time_picker_tokens.keyboard_symbol});
+        b.set_icon({ctx.icon_font, to_input ? current_style().time_picker.clock_symbol : current_style().time_picker.keyboard_symbol});
         b.set_accessible_name(to_input ? locale_->strings.switch_to_clock_mode : locale_->strings.switch_to_text_input);
         dialog_->set_title(to_input ? locale_->strings.time_input_title : locale_->strings.time_picker_title);
     }

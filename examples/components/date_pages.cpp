@@ -14,6 +14,7 @@
 #include "lamina/widgets/picker_dialog.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -93,12 +94,12 @@ public:
 
         dialog_picker_ = std::make_unique<widgets::DatePicker>(widgets::DatePickerOptions{.today = today_}, ctx.fonts, ctx.icon_font);
         dialog_ = std::make_unique<widgets::PickerDialog>(
-            widgets::PickerDialogOptions{"OK", "Cancel", widgets::PickerDialogLayout::date, tokens::date_picker_tokens.dialog_corner, {},
+            widgets::PickerDialogOptions{"OK", "Cancel", widgets::PickerDialogLayout::date, current_style().date_picker.dialog_corner, {},
                                          std::nullopt, "Date picker dialog"},
             std::make_unique<widgets::PaneOf<widgets::DatePicker>>(*dialog_picker_), ctx.fonts);
         dialog_range_ = std::make_unique<widgets::DateRangePicker>(widgets::DateRangePickerOptions{.today = today_}, ctx.fonts, ctx.icon_font);
         range_dialog_ = std::make_unique<widgets::PickerDialog>(
-            widgets::PickerDialogOptions{"OK", "Cancel", widgets::PickerDialogLayout::date, tokens::date_picker_tokens.dialog_corner, {},
+            widgets::PickerDialogOptions{"OK", "Cancel", widgets::PickerDialogLayout::date, current_style().date_picker.dialog_corner, {},
                                          std::nullopt, "Date range dialog"},
             std::make_unique<widgets::PaneOf<widgets::DateRangePicker>>(*dialog_range_), ctx.fonts);
 

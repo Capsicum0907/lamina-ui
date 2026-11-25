@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "common/theme.hpp"
 #include "common/canvas.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
@@ -17,6 +18,7 @@
 #include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using color::Role;
@@ -45,10 +47,11 @@ struct Card {
 }
 
 int main(int argc, char** argv) {
+    set_default_style(examples::sample_style());
     try {
         const LayoutStyle style;
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
-        const auto scheme = color::spec_2021().build(color::default_scheme_options);
+        const auto scheme = current_style().color->build(color::default_scheme_options);
 
         widgets::Label title({"\u914d\u7f6e\u306e\u4ed5\u7d44\u307f", TypeRole::headline_medium, Role::on_surface}, fonts);
         widgets::Label intro({"\u7a93\u306e\u5927\u304d\u3055\u3092\u5909\u3048\u308b\u3068\u3001\u6587\u7ae0\u306e\u6298\u308a\u8fd4\u3057\u30fb\u30dc\u30bf\u30f3\u306e\u4e26\u3073\u30fb\u5217\u306e\u5e45\u304c\u305d\u306e\u5834\u3067\u7d44\u307f\u76f4\u3055\u308c\u307e\u3059\u3002Rows and columns measure their children first and then place them, like Compose.", TypeRole::body_large, Role::on_surface_variant}, fonts);
@@ -111,7 +114,7 @@ int main(int argc, char** argv) {
         auto paint = [&](render::Canvas& canvas, const sdl3::Frame& frame) {
             for (const auto& c : cards) {
                 const render::Rect r = c->rect();
-                widgets::paint_surface(canvas, r, tokens::corner_radius(style.card_corner, r.width, r.height), scheme[style.card],
+                widgets::paint_surface(canvas, r, current_style().shape.radius(style.card_corner, r.width, r.height), scheme[style.card],
                                        style.card_elevation, scheme[Role::shadow]);
             }
             for (auto* l : {&title, &intro, &left_title, &left_body, &right_title, &right_body}) {

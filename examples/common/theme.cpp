@@ -5,11 +5,21 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/item_focus.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples {
 
+const Style& sample_style() {
+    static const Style style = [] {
+        Style s = m3_expressive_style();
+        s.color = &color::spec_2021();
+        return s;
+    }();
+    return style;
+}
+
 ThemeFade::ThemeFade(const color::ColorScheme& initial)
-    : from_(initial), to_(initial), progress_(1.0, tokens::motion_scheme.slow_effects()) {}
+    : from_(initial), to_(initial), progress_(1.0, current_style().motion.slow_effects()) {}
 
 color::ColorScheme ThemeFade::current() const {
     return color::mix(from_, to_, progress_.value());

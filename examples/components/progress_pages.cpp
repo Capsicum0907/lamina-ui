@@ -17,6 +17,7 @@
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/wavy_progress.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -62,7 +63,7 @@ public:
 
     bool handle(const input::PointerEvent& e) override {
         handle_tips(e);
-        const bool at_top = list_->scroll_area().offset() <= tokens::pull_to_refresh_tokens.top_tolerance;
+        const bool at_top = list_->scroll_area().offset() <= current_style().pull_to_refresh.top_tolerance;
         const widgets::PullToRefreshResponse r = pull_.handle(e, at_top);
         if (r.refresh) {
             refresh_clock_ = 0.0;

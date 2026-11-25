@@ -17,6 +17,7 @@
 #include "lamina/widgets/widget_set.hpp"
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using tokens::ButtonShape;
@@ -44,17 +45,18 @@ struct Row {
 }
 
 int main(int argc, char** argv) {
+    set_default_style(examples::sample_style());
     try {
         const Layout layout;
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         color::SchemeOptions options = color::default_scheme_options;
-        examples::ThemeFade theme(color::spec_2021().build(options));
+        examples::ThemeFade theme(current_style().color->build(options));
         examples::SeedChips chips;
         widgets::Button dark_toggle({"ダーク", ButtonStyle::outlined, ButtonSize::extra_small, ButtonShape::round}, fonts);
         widgets::Switch spec_switch;
         widgets::Label spec_label({"2025", layout.caption_type, layout.caption, false}, fonts);
         auto retheme = [&] { theme.fade_to((spec_switch.checked() ? color::spec_2025() : color::spec_2021()).build(options)); };
-        const auto caption_style = tokens::text_style(tokens::type_style(layout.caption_type));
+        const auto caption_style = current_style().type.text(layout.caption_type);
 
         const std::pair<ButtonStyle, const char*> styles[] = {
             {ButtonStyle::filled, "Filled"},     {ButtonStyle::tonal, "Tonal"}, {ButtonStyle::outlined, "Outlined"},

@@ -3,25 +3,26 @@
 #include <algorithm>
 
 #include "lamina/color/mix.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::calculator {
 
 Display::Display(DisplayStyle style, const text::FontStack& fonts)
     : style_(style),
       fonts_(fonts),
-      text_style_(tokens::text_style(tokens::type_style(style.focused_type))),
-      secondary_ratio_(tokens::type_style(style.secondary_type).size_sp / tokens::type_style(style.focused_type).size_sp),
+      text_style_(current_style().type.text(style.focused_type)),
+      secondary_ratio_(current_style().type.style(style.secondary_type).size_sp / current_style().type.style(style.focused_type).size_sp),
       lines_{Line{{}, text::layout_line(fonts, "", text_style_), true, motion::Animated(1.0, style.size_spring),
                   motion::Animated(1.0, style.color_spring)},
              Line{{}, text::layout_line(fonts, "", text_style_), false, motion::Animated(secondary_ratio_, style.size_spring),
                   motion::Animated(0.0, style.color_spring)}},
-      badge_(text::layout_line(fonts, "", tokens::text_style(tokens::type_style(style.badge_type)))),
+      badge_(text::layout_line(fonts, "", current_style().type.text(style.badge_type))),
       badge_opacity_(0.0, style.color_spring) {}
 
 void Display::set_badge(const std::string& text, bool visible) {
     if (text != badge_text_) {
         badge_text_ = text;
-        badge_ = text::layout_line(fonts_, badge_text_, tokens::text_style(tokens::type_style(style_.badge_type)));
+        badge_ = text::layout_line(fonts_, badge_text_, current_style().type.text(style_.badge_type));
     }
     badge_opacity_.animate_to(visible ? 1.0 : 0.0);
 }

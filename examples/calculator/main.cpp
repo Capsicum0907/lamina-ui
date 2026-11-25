@@ -23,6 +23,7 @@
 #include "lamina_sdl3/app.hpp"
 #include "lamina_sdl3/system_fonts.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using examples::AnimatedBox;
@@ -67,8 +68,8 @@ struct Config {
     double label_ratio = 0.4;
     double icon_ratio = 0.36;
     double key_press_seconds = 0.12;
-    motion::SpringSpec move_spring = tokens::motion_scheme.default_spatial();
-    motion::SpringSpec fade_spring = tokens::motion_scheme.default_effects();
+    motion::SpringSpec move_spring = current_style().motion.default_spatial();
+    motion::SpringSpec fade_spring = current_style().motion.default_effects();
     examples::calculator::DisplayStyle display;
     std::array<widgets::ButtonColors, 4> roles{{
         {color::Role::surface_container_high, color::Role::on_surface},
@@ -157,9 +158,9 @@ int main(int argc, char** argv) {
         const bool want_title_bar = examples::take_flag(argc, argv, examples::title_bar_flag);
         const text::FontStack fonts = sdl3::font_stack_from_arguments(argc, argv);
         const icons::IconFont icon_font = icons::IconFont::from_resource(examples::res::fonts::symbols);
-        const color::ColorScheme scheme = color::spec_2025().build(config.scheme);
-        const auto& size_tokens = tokens::button_size(config.key_size);
-        const double label_size = tokens::type_style(size_tokens.label).size_sp;
+        const color::ColorScheme scheme = current_style().color->build(config.scheme);
+        const auto& size_tokens = current_style().button.size(config.key_size);
+        const double label_size = current_style().type.style(size_tokens.label).size_sp;
 
         examples::calculator::Engine engine;
         examples::calculator::Display display(config.display, fonts);

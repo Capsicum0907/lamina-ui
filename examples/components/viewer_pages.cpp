@@ -17,6 +17,7 @@
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/pager.hpp"
 #include "lamina/widgets/zoom_view.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -201,7 +202,7 @@ public:
         BasePage::paint(canvas, scheme);
         const ViewerLayout& l = viewer_layout;
         const render::Rect& r = zoom_.bounds();
-        const double radius = tokens::corner_radius(l.corner, r.width, r.height);
+        const double radius = current_style().shape.radius(l.corner, r.width, r.height);
         const render::Path outline = render::rounded_rect_path(r, render::uniform_radii(radius));
         canvas.save();
         canvas.push_clip(outline);
@@ -289,7 +290,7 @@ private:
     void paint_photos(render::Canvas& canvas, const color::ColorScheme& scheme) const {
         const ViewerLayout& l = viewer_layout;
         const render::Rect& r = photos_.bounds();
-        const double radius = tokens::corner_radius(l.corner, r.width, r.height);
+        const double radius = current_style().shape.radius(l.corner, r.width, r.height);
         canvas.save();
         canvas.push_clip(render::rounded_rect_path(r, render::uniform_radii(radius)));
         canvas.fill_rect(r, scheme[l.photo_stage]);
@@ -325,7 +326,7 @@ private:
         const double inset = side * l.photo_frame_fraction;
         const render::Rect frame{inset, inset, shape.width - 2.0 * inset, shape.height - 2.0 * inset};
         canvas.fill_path(render::ring_path(frame, inset, side * l.photo_frame_width_fraction), figure, render::FillRule::even_odd);
-        const auto style = tokens::text_style(tokens::type_style(l.photo_number_type));
+        const auto style = current_style().type.text(l.photo_number_type);
         const text::TextLine number = text::layout_line(ctx.fonts, std::to_string(index + 1), style);
         const double grow = side * l.photo_number_fraction / std::max(1.0, number.box_height());
         canvas.save();

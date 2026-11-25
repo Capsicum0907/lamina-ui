@@ -13,6 +13,7 @@
 #include "lamina/widgets/floating_toolbar.hpp"
 #include "lamina/widgets/list_view.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -356,7 +357,7 @@ private:
 
     void place(Frame& f) {
         const render::Rect r = f.frame.rect();
-        const double offset = tokens::floating_toolbar_tokens.screen_offset;
+        const double offset = current_style().floating_toolbar.screen_offset;
         for (auto& t : f.toolbars) {
             if (t->orientation() == widgets::ToolbarOrientation::vertical) {
                 t->set_origin({r.x + r.width - offset - t->width(), r.y + (r.height - t->height()) / 2.0});

@@ -13,6 +13,7 @@
 #include "lamina/widgets/interaction.hpp"
 #include "lamina/widgets/protocol.hpp"
 #include "lamina/widgets/scroll_area.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -96,7 +97,7 @@ public:
     bool animating() const { return content_.animating() || area_.animating(); }
 
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-        const double ring = tokens::focus_indicator.outer_offset + tokens::focus_indicator.thickness;
+        const double ring = current_style().focus_indicator.outer_offset + current_style().focus_indicator.thickness;
         const render::Rect v = area_.viewport();
         const double left = shift() > 0.0 ? 0.0 : ring;
         const double right = shift() < area_.max_offset_x() ? 0.0 : ring;

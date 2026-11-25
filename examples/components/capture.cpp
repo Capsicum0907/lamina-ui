@@ -22,6 +22,7 @@
 #include <io.h>
 #endif
 
+#include "common/theme.hpp"
 #include "common/options.hpp"
 #include "components/gallery.hpp"
 #include "lamina/calendar/date.hpp"
@@ -38,6 +39,7 @@
 #include "lamina_sdl3/system_fonts.hpp"
 #include "lamina_thorvg/canvas.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using input::Key;
@@ -551,7 +553,7 @@ private:
 
     void paint_overlay(render::Canvas& c) {
         if (badge_left_ > 0.0 && !badge_text_.empty()) {
-            const text::TextLine line = text::layout_line(fonts_, badge_text_, tokens::text_style(tokens::type_style(style_.badge_type)));
+            const text::TextLine line = text::layout_line(fonts_, badge_text_, current_style().type.text(style_.badge_type));
             const double h = line.box_height() + 2.0 * style_.key_badge_padding;
             const double w = line.width + 2.0 * style_.key_badge_padding;
             const render::Rect r{style_.key_badge_margin, window_.height - style_.key_badge_margin - h, w, h};
@@ -971,7 +973,7 @@ const std::map<std::string, Scene>& stills() {
                  d.wait(d.style().reveal_pause_seconds);
              }
              const render::Rect r = *g.find(d.style().side_scroll_target);
-             d.move_to({r.x + r.width / 2.0, r.y + r.height - tokens::scroll_area_tokens.bar_hit_width / 2.0}, 0.3);
+             d.move_to({r.x + r.width / 2.0, r.y + r.height - current_style().scroll_area.bar_hit_width / 2.0}, 0.3);
              d.wait(0.4);
          }},
         {"sheets", [](Driver& d, examples::components::Gallery&) { show_page(d, "Sheets"); }},
@@ -3514,6 +3516,7 @@ int usage() {
 }
 
 int main(int argc, char** argv) {
+    set_default_style(examples::sample_style());
     try {
         const text::Typeface typeface = examples::take_typeface(argc, argv);
         const WindowSize window = take_window(argc, argv);

@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/theme.hpp"
 #include "common/canvas.hpp"
 #include "lamina/color/scheme.hpp"
 #include "lamina/layout/layout.hpp"
@@ -13,6 +14,7 @@
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/interaction.hpp"
 #include "lamina_sdl3/app.hpp"
+#include "lamina/style/style.hpp"
 
 using namespace lamina;
 using shapes::MaterialShape;
@@ -40,16 +42,17 @@ render::Path placed(const render::Path& unit, const render::Rect& r) {
 }
 
 int main() {
+    set_default_style(examples::sample_style());
     try {
         const Layout layout;
-        const auto scheme = color::spec_2021().build(color::default_scheme_options);
+        const auto scheme = current_style().color->build(color::default_scheme_options);
         const auto& all = shapes::all_material_shapes();
         const int rows = static_cast<int>((all.size() + layout.columns - 1) / layout.columns);
 
         std::size_t current = 0;
         std::size_t previous = 0;
         auto morph = std::make_unique<shapes::Morph>(shapes::material_shape(all[previous]), shapes::material_shape(all[current]));
-        motion::Animated progress(1.0, tokens::motion_scheme.default_spatial());
+        motion::Animated progress(1.0, current_style().motion.default_spatial());
         std::size_t hovered = all.size();
 
         std::vector<render::Rect> cells(all.size());

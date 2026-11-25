@@ -28,6 +28,7 @@
 #include "lamina/widgets/text_field.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -102,7 +103,7 @@ constexpr std::array<Clip, 12> clips{{
 class Timeline {
 public:
     explicit Timeline(const text::FontStack& fonts) : fonts_(fonts) {
-        const auto style = tokens::text_style(tokens::type_style(desktop_layout.timeline_type));
+        const auto style = current_style().type.text(desktop_layout.timeline_type);
         for (const char* n : track_names) {
             names_.push_back(text::layout_line(fonts, n, style));
         }

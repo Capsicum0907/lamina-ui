@@ -13,6 +13,7 @@
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/motion.hpp"
 #include "lamina/tokens/typography.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::timer {
 
@@ -55,7 +56,7 @@ struct EntryReadoutStyle {
     double field_gap = 20.0;
     double max_scale = 1.6;
     std::array<const char*, 3> units{"h", "m", "s"};
-    motion::SpringSpec fade_spring = tokens::motion_scheme.default_effects();
+    motion::SpringSpec fade_spring = current_style().motion.default_effects();
 };
 
 class EntryReadout {
@@ -80,7 +81,7 @@ private:
 
 struct TimeTextStyle {
     tokens::TypeRole type = tokens::TypeRole::display_large;
-    motion::SpringSpec scale_spring = tokens::motion_scheme.default_spatial();
+    motion::SpringSpec scale_spring = current_style().motion.default_spatial();
 };
 
 class TimeText {

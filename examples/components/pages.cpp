@@ -29,6 +29,7 @@
 #include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/widget_set.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -641,7 +642,7 @@ private:
         focus_.add(*rail_);
         auto left = layout::column({button_row, reflow.place(sized(widgets::full_width_node(*bar_), page_layout.bar_width, bar_->height()))});
         left->spacing(page_layout.row_gap);
-        auto r = items({left, sized(widgets::measured_node(*rail_), tokens::navigation_rail_tokens.collapsed_width, page_layout.rail_height)});
+        auto r = items({left, sized(widgets::measured_node(*rail_), current_style().navigation_rail.collapsed_width, page_layout.rail_height)});
         r->spacing(page_layout.column_space).cross_align(layout::CrossAlign::start);
         return r;
     }

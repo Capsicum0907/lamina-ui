@@ -16,6 +16,7 @@
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/tooltip.hpp"
 #include "lamina/widgets/widget_set.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -198,7 +199,7 @@ protected:
     icons::Icon icon(icons::Symbol s) const { return {ctx.icon_font, s}; }
 
     layout::NodePtr captioned(const char* caption, layout::NodePtr content) {
-        const auto style = tokens::text_style(tokens::type_style(base_page_layout.caption_type));
+        const auto style = current_style().type.text(base_page_layout.caption_type);
         captions.push_back(std::make_unique<widgets::Label>(
             widgets::LabelOptions{caption, base_page_layout.caption_type, base_page_layout.caption, false}, ctx.fonts));
         return std::make_shared<Captioned>(reflow, examples::caption_cell(*captions.back(), base_page_layout.label_width, style.line_height, style.line_height),

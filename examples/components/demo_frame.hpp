@@ -18,6 +18,7 @@
 #include "lamina/widgets/list_item.hpp"
 #include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/widget_set.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -59,7 +60,7 @@ public:
     void set_size(layout::Size size) { size_ = size; }
 
     const render::Rect& rect() const { return rect_; }
-    double radius() const { return tokens::corner_radius(demo_frame_style.corner, rect_.width, rect_.height); }
+    double radius() const { return current_style().shape.radius(demo_frame_style.corner, rect_.width, rect_.height); }
 
     void paint_background(render::Canvas& canvas, const color::ColorScheme& scheme) const {
         canvas.fill_path(render::rounded_rect_path(rect_, render::uniform_radii(radius())), scheme[demo_frame_style.background]);

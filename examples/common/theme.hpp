@@ -10,9 +10,12 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/widgets/focus_indicator.hpp"
 
 namespace lamina::examples {
+
+const Style& sample_style();
 
 inline constexpr std::array<color::Argb, 5> theme_seeds{0xff6750a4, 0xff006a6a, 0xffb3261e, 0xff7d5260, 0xff386a20};
 

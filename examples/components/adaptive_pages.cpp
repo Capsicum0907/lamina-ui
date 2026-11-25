@@ -21,6 +21,7 @@
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "res.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::examples::components {
 
@@ -536,7 +537,7 @@ private:
                 continue;
             }
             const bool primary = role == widgets::PaneRole::primary;
-            const double radius = tokens::corner_radius(l.pane_corner, r.width, r.height);
+            const double radius = current_style().shape.radius(l.pane_corner, r.width, r.height);
             canvas.fill_path(render::rounded_rect_path(r, render::uniform_radii(radius)), scheme[primary ? l.detail_container : l.list_container]);
         }
     }
