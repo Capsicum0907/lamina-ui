@@ -28,6 +28,7 @@
 #include "lamina_sdl3/caption_frame.hpp"
 #include "lamina_sdl3/report.hpp"
 #include "lamina_sdl3/system_ui.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::sdl3 {
 
@@ -599,7 +600,7 @@ struct Window::Impl {
 
     void admit_pointer(Frame& frame, const input::PointerEvent& event) {
         const input::ScreenOrigin origin{to_dp(static_cast<float>(origin_x)), to_dp(static_cast<float>(origin_y))};
-        if (touch_echo.admit(event, origin, tokens::touch_echo_tolerance_pixels / scale())) {
+        if (touch_echo.admit(event, origin, current_style().interaction.touch_echo_tolerance_pixels / scale())) {
             frame.pointer.push_back(event);
         }
     }

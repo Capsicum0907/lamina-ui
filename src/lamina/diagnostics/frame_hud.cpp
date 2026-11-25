@@ -6,6 +6,7 @@
 #include "lamina/color/mix.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/typography.hpp"
+#include "lamina/style/style.hpp"
 
 namespace lamina::diagnostics {
 
@@ -20,7 +21,7 @@ bool numeric(const std::string& cell) {
 render::Rect paint_frame_hud(render::Canvas& canvas, const text::FontStack& fonts, const color::ColorScheme& scheme,
                              const std::vector<ReportRow>& rows, const std::vector<FrameSample>& history, double refresh_hz,
                              const render::Rect& area, const tokens::FrameStatsTokens& t) {
-    const text::TextStyle style = tokens::text_style(tokens::type_style(t.type));
+    const text::TextStyle style = current_style().type.text(t.type);
     std::vector<std::vector<text::TextLine>> lines;
     std::vector<double> columns;
     double spanning = 0.0;
