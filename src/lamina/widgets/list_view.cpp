@@ -370,7 +370,26 @@ void ListView::cancel_interaction() {
     }
 }
 
+void ListView::restyle() {
+    style_stamp_.refresh();
+    scroll_.restyle();
+    focus_.restyle();
+    for (std::size_t i = 0; i < specs_.size(); ++i) {
+        heights_[i] = list_item_estimate(specs_[i]);
+        measured_width_[i] = -1.0;
+    }
+    for (auto& [index, row] : live_) {
+        row->restyle();
+    }
+    tops_dirty_ = true;
+    scroll_.set_content_height(content_height());
+    update_rows();
+}
+
 void ListView::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     const double before = scroll_.offset();
     scroll_.step(dt);
     for (auto& [i, row] : live_) {

@@ -402,7 +402,20 @@ std::optional<input::PointerEvent> ScrollArea::rehover() {
     return to_content({input::PointerAction::move, pointer_->x, pointer_->y});
 }
 
+void ScrollArea::restyle() {
+    style_stamp_.refresh();
+    offset_.set_spec(t().offset_spring);
+    offset_x_.set_spec(t().offset_spring);
+    visibility_.set_spec(t().bar_spring);
+    hover_.set_spec(t().bar_spring);
+    hover_x_.set_spec(t().bar_spring);
+    touch_.set_tokens(current_style().gesture.touch_scroll);
+}
+
 void ScrollArea::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     const double edge = touch_.tokens().edge_tolerance;
     if (fling_.active()) {
         const double v = fling_.step(dt);

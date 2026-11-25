@@ -52,6 +52,7 @@ public:
     render::Rect to_window(const render::Rect& content) const;
     std::optional<input::PointerEvent> rehover();
 
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     bool dragging() const { return dragging_ || touch_.owns(); }
@@ -123,6 +124,7 @@ private:
     TouchScroll touch_;
     motion::Fling fling_;
     motion::Fling fling_x_;
+    StyleStamp style_stamp_;
 };
 
 template <typename Deliver>

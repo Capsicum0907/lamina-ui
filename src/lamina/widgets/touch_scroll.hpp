@@ -37,6 +37,7 @@ public:
     input::ScrollAxes axes() const { return axes_; }
     input::PointerEvent forward(const input::PointerEvent& event) const;
     const tokens::TouchScrollTokens& tokens() const { return *tokens_; }
+    void set_tokens(const tokens::TouchScrollTokens& tokens) { tokens_ = &tokens; }
 
 private:
     enum class Phase { idle, pending, owning };

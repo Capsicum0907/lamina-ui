@@ -7,6 +7,7 @@
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
+#include "lamina/widgets/list_view.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "restyle_support.hpp"
@@ -98,4 +99,15 @@ TEST_CASE("a label lays its text out again in the new style's type on its next m
         fresh = shot(built);
     }
     check_round({before, fresh, after});
+}
+
+TEST_CASE("a list view measures its rows again and its rows lay out their text in the new style after a style change") {
+    check_round(restyle_round([] {
+        std::vector<widgets::ListItemSpec> items{{"Inbox", "Three new messages", "", {}, {}, widgets::ListItemAction::select, true},
+                                                 {"Starred", "", "Saved", {}, {widgets::ListSlotKind::checkbox}, widgets::ListItemAction::toggle},
+                                                 {"Sent"}};
+        auto list = std::make_unique<widgets::ListView>(widgets::ListViewOptions{items, true}, fonts());
+        list->set_viewport({0.0, 0.0, static_cast<double>(restyle_canvas_width), static_cast<double>(restyle_canvas_height)});
+        return list;
+    }));
 }

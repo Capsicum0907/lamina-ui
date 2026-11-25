@@ -82,6 +82,7 @@ public:
     ListViewResponse handle(const input::KeyEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     double next_wake_seconds() const { return scroll_.next_wake_seconds(); }
@@ -115,6 +116,7 @@ private:
     std::optional<std::size_t> pressed_;
     std::pair<std::size_t, std::size_t> visible_{0, 0};
     mutable ListViewStats stats_;
+    StyleStamp style_stamp_;
 };
 
 }

@@ -360,7 +360,41 @@ void ListItem::cancel_interaction() {
     retarget();
 }
 
+void ListItem::restyle() {
+    style_stamp_.refresh();
+    selected_.set_spec(t().color_spring);
+    corner_.set_spec(t().shape_spring);
+    state_layer_.set_spec(t().state_layer_spring);
+    focus_.restyle();
+    enabled_.restyle();
+    if (!spec_.overline.empty()) {
+        overline_ = text::layout_line(fonts_, spec_.overline, style_of(t().overline));
+    }
+    for (Slot* slot : {&leading_, &trailing_}) {
+        if (slot->checkbox) {
+            slot->checkbox->restyle();
+        }
+        if (slot->switch_control) {
+            slot->switch_control->restyle();
+        }
+        if (slot->radio) {
+            slot->radio->restyle();
+        }
+        if (slot->spec.kind == ListSlotKind::avatar && !slot->spec.image) {
+            slot->text = text::layout_line(fonts_, slot->spec.text, style_of(t().avatar_label));
+        }
+        if (slot->spec.kind == ListSlotKind::text) {
+            slot->text = text::layout_line(fonts_, slot->spec.text, style_of(t().trailing_text));
+        }
+    }
+    text_width_ = -1.0;
+    retarget();
+}
+
 void ListItem::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     enabled_.step(dt);
     selected_.step(dt);

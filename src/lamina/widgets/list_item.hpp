@@ -100,6 +100,7 @@ public:
     ListItemResponse handle(const input::PointerEvent& event);
     ListItemResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -144,6 +145,7 @@ private:
     motion::Animated selected_;
     motion::Animated corner_;
     motion::Animated state_layer_;
+    StyleStamp style_stamp_;
 };
 
 }
