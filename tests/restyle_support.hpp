@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "lamina/color/scheme.hpp"
@@ -19,6 +20,9 @@ inline constexpr motion::SpringSpec restyle_spring{1.0, 50.0};
 inline constexpr color::Argb restyle_background = 0xffffffff;
 
 const Style& restyle_test_style();
+
+inline constexpr const char* shots_variable = "LAMINA_STYLE_SHOTS";
+void save_shot(thorvg::Canvas& canvas, const std::string& name);
 
 struct RestyleShot {
     render::Rect bounds;
