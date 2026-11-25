@@ -4,6 +4,7 @@
 #include <string>
 
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/button_group.hpp"
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
@@ -48,12 +49,12 @@ void save_round(const RestyleResult& r, const std::string& name) {
 }
 
 void check_round(const RestyleResult& r) {
-    CHECK(r.built_under_default.pixels != r.built_under_test.pixels);
+    CHECK((r.built_under_default.pixels != r.built_under_test.pixels));
     CHECK(r.switched.bounds.x == r.built_under_test.bounds.x);
     CHECK(r.switched.bounds.y == r.built_under_test.bounds.y);
     CHECK(r.switched.bounds.width == r.built_under_test.bounds.width);
     CHECK(r.switched.bounds.height == r.built_under_test.bounds.height);
-    CHECK(r.switched.pixels == r.built_under_test.pixels);
+    CHECK((r.switched.pixels == r.built_under_test.pixels));
 }
 
 }
@@ -128,5 +129,31 @@ TEST_CASE("a list view measures its rows again and its rows lay out their text i
         return list;
     });
     save_round(r, "restyle_list");
+    check_round(r);
+}
+
+struct RelaidGroup {
+    std::unique_ptr<widgets::ButtonGroup> g;
+    void relayout() {
+        const layout::Size size = g->measure({0.0, static_cast<double>(restyle_canvas_width), 0.0, static_cast<double>(restyle_canvas_height)});
+        g->arrange({origin.x, origin.y, size.width, size.height});
+    }
+    void step(double dt) {
+        g->step(dt);
+        relayout();
+    }
+    render::Rect bounds() const { return g->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const { g->paint(c, s); }
+};
+
+TEST_CASE("a connected button group laid out again by its owner follows a style change") {
+    const RestyleResult r = restyle_round([] {
+        widgets::ButtonGroupOptions o{{{"Day"}, {"Week"}, {"Month"}}, widgets::ButtonGroupSelection::single, true};
+        o.accessible_name = "Range";
+        auto w = std::make_unique<RelaidGroup>(RelaidGroup{std::make_unique<widgets::ButtonGroup>(std::move(o), fonts(), icon_font())});
+        w->relayout();
+        return w;
+    });
+    save_round(r, "restyle_button_group");
     check_round(r);
 }

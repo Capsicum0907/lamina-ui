@@ -74,6 +74,7 @@ public:
 
     double width() const { return width_; }
     double height() const { return height_; }
+    double intrinsic_height() const;
     void set_size(double width, double height);
     tokens::Density density() const { return options_.density; }
     void set_density(tokens::Density density);

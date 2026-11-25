@@ -88,6 +88,7 @@ public:
     ButtonGroupResponse handle(const input::PointerEvent& event);
     ButtonGroupResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -106,6 +107,7 @@ private:
         double width = 0.0;
     };
 
+    std::optional<ButtonShapes> connected_shapes(std::size_t index) const;
     double spacing() const;
     double compression_limit(std::size_t index) const;
     void layout_items();
@@ -126,6 +128,7 @@ private:
     double max_width_ = 0.0;
     render::Rect bounds_{0.0, 0.0, 0.0, 0.0};
     layout::Size window_{0.0, 0.0};
+    StyleStamp style_stamp_;
     bool enabled_ = true;
     bool reopen_blocked_ = false;
 };

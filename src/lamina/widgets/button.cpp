@@ -149,6 +149,10 @@ void Button::set_size(double width, double height) {
     fit_label();
 }
 
+double Button::intrinsic_height() const {
+    return current_style().density.button_length(options_.size).at(options_.density);
+}
+
 void Button::set_density(tokens::Density density) {
     options_.density = density;
     if (!sized_) {

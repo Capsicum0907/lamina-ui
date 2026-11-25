@@ -45,12 +45,7 @@ ButtonGroup::ButtonGroup(ButtonGroupOptions options, const text::FontStack& font
         if (options_.selection != ButtonGroupSelection::none) {
             b.toggle = ButtonToggle{.checked = spec.checked, .radio = options_.selection == ButtonGroupSelection::single};
         }
-        if (options_.connected) {
-            if (const auto p = connected_position(i, n)) {
-                b.shapes = ButtonShapes{current_style().button_group.rest_corners(*p), current_style().button_group.pressed_corners(*p),
-                                        tokens::all_corners(t().connected_checked_corner), current_style().button.toggle_motion.shape};
-            }
-        }
+        b.shapes = connected_shapes(i);
         items_.push_back(Item{spec, std::make_unique<Button>(std::move(b), fonts_), motion::Animated(0.0, t().width_spring)});
     }
     IconButtonOptions overflow{icons::Icon{icon_font_, t().overflow_symbol}, options_.strings->more_options, t().overflow_style,
@@ -58,6 +53,18 @@ ButtonGroup::ButtonGroup(ButtonGroupOptions options, const text::FontStack& font
     overflow.enabled = enabled_;
     overflow_ = std::make_unique<IconButton>(std::move(overflow));
     visible_ = n;
+}
+
+std::optional<ButtonShapes> ButtonGroup::connected_shapes(std::size_t index) const {
+    if (!options_.connected) {
+        return std::nullopt;
+    }
+    const auto p = connected_position(index, options_.items.size());
+    if (!p) {
+        return std::nullopt;
+    }
+    return ButtonShapes{current_style().button_group.rest_corners(*p), current_style().button_group.pressed_corners(*p),
+                        tokens::all_corners(t().connected_checked_corner), current_style().button.toggle_motion.shape};
 }
 
 double ButtonGroup::spacing() const {
@@ -122,7 +129,7 @@ layout::Size ButtonGroup::measure(const layout::Constraints& c) {
     }
     double height = 0.0;
     for (const Item& item : items_) {
-        height = std::max(height, item.button->height());
+        height = std::max(height, item.button->intrinsic_height());
     }
     if (overflowing()) {
         height = std::max(height, overflow_->height());
@@ -175,7 +182,7 @@ void ButtonGroup::layout_items() {
     double x = bounds_.x;
     for (std::size_t i = 0; i < visible_; ++i) {
         Button& b = *items_[i].button;
-        b.set_size(items_[i].width, b.height());
+        b.set_size(items_[i].width, b.intrinsic_height());
         b.set_origin({x, bounds_.y + (bounds_.height - b.height()) / 2.0});
         x += items_[i].width + spacing();
     }
@@ -403,7 +410,24 @@ void ButtonGroup::cancel_interaction() {
     }
 }
 
+void ButtonGroup::restyle() {
+    style_stamp_.refresh();
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        Item& item = items_[i];
+        if (const std::optional<ButtonShapes> shapes = connected_shapes(i)) {
+            item.button->set_shapes(*shapes);
+        }
+        item.button->restyle();
+        item.pressed.set_spec(t().width_spring);
+    }
+    overflow_->restyle();
+    layout_items();
+}
+
 void ButtonGroup::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     for (Item& item : items_) {
         item.button->step(dt);
         item.pressed.step(dt);
