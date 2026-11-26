@@ -68,6 +68,8 @@ public:
         offset_ = *p;
     }
 
+    void set_gesture(DragGesture gesture) { gesture_ = gesture; }
+
     bool positioned() const { return positioned_; }
     bool has(T value) const { return position_of(value).has_value(); }
     std::optional<double> position_of(T value) const {
@@ -119,7 +121,7 @@ public:
         pressed_ = true;
         dragging_ = false;
         press_pointer_ = pointer;
-        tracker_.reset();
+        tracker_ = VelocityTracker(gesture_.tracking);
         tracker_.add(time_seconds, pointer);
     }
 

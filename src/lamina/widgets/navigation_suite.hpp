@@ -12,6 +12,7 @@
 #include "lamina/layout/window_size_class.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/density.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -103,6 +104,7 @@ public:
     NavigationSuiteResponse handle(const input::PointerEvent& event);
     NavigationSuiteResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -133,6 +135,7 @@ private:
     bool enabled_ = true;
     bool labels_ = true;
     tokens::Density density_{};
+    StyleStamp style_stamp_;
 };
 
 }

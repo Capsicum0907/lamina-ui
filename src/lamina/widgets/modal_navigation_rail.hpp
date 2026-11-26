@@ -8,6 +8,7 @@
 #include "lamina/motion/anchored_draggable.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/navigation_rail.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -63,6 +64,7 @@ public:
     ModalRailResponse handle(const input::PointerEvent& event);
     ModalRailResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -81,6 +83,7 @@ private:
     bool tracking_ = false;
     bool scrim_pressed_ = false;
     bool claim_focus_ = false;
+    StyleStamp style_stamp_;
 };
 
 }

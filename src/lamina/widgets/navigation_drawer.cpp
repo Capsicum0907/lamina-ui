@@ -303,7 +303,30 @@ void DrawerSheet::cancel_interaction() {
     retarget();
 }
 
+void DrawerSheet::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    scroll_.restyle();
+    for (std::size_t i = 0; i < rows_.size(); ++i) {
+        const DrawerEntry& e = options_.entries[i];
+        Row& r = rows_[i];
+        r.label = text::layout_line(fonts_, e.label, style_of(e.kind == DrawerEntryKind::headline ? t().headline_type : t().label_type));
+        if (r.badge) {
+            r.badge = text::layout_line(fonts_, e.badge->text, style_of(t().badge_type));
+        }
+        r.height = entry_height(e.kind, options_.density);
+        r.state_layer.set_spec(current_style().motion.fast_effects());
+        r.selection.set_spec(motion_spec().colors);
+        r.enabled.restyle();
+    }
+    layout_rows();
+    scroll_.set_content_height(content_height());
+}
+
 void DrawerSheet::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     for (Row& r : rows_) {
         r.state_layer.step(dt);
         r.selection.step(dt);
@@ -390,6 +413,10 @@ void DrawerSheet::paint_entries(render::Canvas& canvas, const color::ColorScheme
 }
 
 DrawerSlide::DrawerSlide(DrawerValue initial) : drag_(initial, drawer_thresholds(), current_style().gesture.drag) {}
+
+void DrawerSlide::restyle() {
+    drag_.set_gesture(current_style().gesture.drag);
+}
 
 void DrawerSlide::set_width(double width) {
     width_ = width;
@@ -578,7 +605,17 @@ void ModalNavigationDrawer::cancel_interaction() {
     scrim_pressed_ = false;
 }
 
+void ModalNavigationDrawer::restyle() {
+    style_stamp_.refresh();
+    sheet_.restyle();
+    slide_.restyle();
+    set_area(area_);
+}
+
 void ModalNavigationDrawer::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     slide_.step(dt);
     place();
     sheet_.step(dt);
@@ -755,7 +792,17 @@ void DismissibleNavigationDrawer::cancel_interaction() {
     tracking_ = false;
 }
 
+void DismissibleNavigationDrawer::restyle() {
+    style_stamp_.refresh();
+    sheet_.restyle();
+    slide_.restyle();
+    arrange(area_);
+}
+
 void DismissibleNavigationDrawer::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     slide_.step(dt);
     place();
     sheet_.step(dt);

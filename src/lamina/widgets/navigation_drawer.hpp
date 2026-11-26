@@ -12,6 +12,7 @@
 #include "lamina/motion/anchored_draggable.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
@@ -98,6 +99,7 @@ public:
     DrawerResponse handle(const input::KeyEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -133,6 +135,7 @@ private:
     FocusIndicator focus_;
     std::size_t focus_index_ = 0;
     bool enabled_ = true;
+    StyleStamp style_stamp_;
 };
 
 enum class DrawerValue { closed, open };
@@ -166,6 +169,7 @@ public:
     bool move(double x, double time_seconds) { return drag_.move(x, time_seconds); }
     DrawerValue release(double time_seconds);
     void cancel();
+    void restyle();
     void step(double dt_seconds) { drag_.step(dt_seconds); }
 
 private:
@@ -202,6 +206,7 @@ public:
     DrawerResponse handle(const input::KeyEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -216,6 +221,7 @@ private:
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     bool scrim_pressed_ = false;
     bool tracking_ = false;
+    StyleStamp style_stamp_;
 };
 
 class DismissibleNavigationDrawer {
@@ -250,6 +256,7 @@ public:
     DrawerResponse handle(const input::KeyEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -265,6 +272,7 @@ private:
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     render::Rect content_rect_{0.0, 0.0, 0.0, 0.0};
     bool tracking_ = false;
+    StyleStamp style_stamp_;
 };
 
 layout::NodePtr permanent_drawer(DrawerSheet& sheet, layout::NodePtr content);

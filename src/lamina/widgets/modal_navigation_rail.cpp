@@ -190,7 +190,18 @@ void ModalNavigationRail::cancel_interaction() {
     scrim_pressed_ = false;
 }
 
+void ModalNavigationRail::restyle() {
+    style_stamp_.refresh();
+    rail_.restyle();
+    slide_.set_gesture(current_style().gesture.drag);
+    scrim_.set_spec(t().scrim);
+    layout_rail();
+}
+
 void ModalNavigationRail::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     if (claim_focus_) {
         claim_focus_ = false;
         if (target_expanded_ && !rail_.focused()) {

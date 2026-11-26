@@ -16,8 +16,11 @@
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/list_view.hpp"
+#include "lamina/widgets/modal_navigation_rail.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
+#include "lamina/widgets/navigation_drawer.hpp"
 #include "lamina/widgets/navigation_rail.hpp"
+#include "lamina/widgets/navigation_suite.hpp"
 #include "lamina/widgets/pager.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/radio_button.hpp"
@@ -379,4 +382,33 @@ TEST_CASE("an expanded side navigation sizes itself again after a style change")
             return side;
         },
         [](widgets::SideNavigation& w) { w.set_expanded(false); }));
+}
+
+TEST_CASE("an open modal navigation drawer lays its rows out again after a style change") {
+    const RestyleResult r = restyle_round([] {
+        widgets::NavigationDrawerOptions o{{{widgets::drawer_headline("Mail"), {widgets::DrawerEntryKind::item, "Inbox"}, {widgets::DrawerEntryKind::item, "Sent"}}, 1}};
+        o.initial = widgets::DrawerValue::open;
+        auto drawer = std::make_unique<widgets::ModalNavigationDrawer>(std::move(o), fonts());
+        drawer->set_area(restyle_area);
+        return in_area(std::move(drawer));
+    });
+    save_round(r, "restyle_navigation_drawer");
+    check_round(r);
+}
+
+TEST_CASE("a modal navigation rail and a navigation suite lay out their navigation again after a style change") {
+    check_round(restyle_round([] {
+        auto rail = std::make_unique<widgets::ModalNavigationRail>(widgets::ModalNavigationRailOptions{{navigation_items(), 1}}, fonts());
+        rail->arrange(restyle_area);
+        return in_area(std::move(rail));
+    }));
+    const RestyleResult r = restyle_round([] {
+        widgets::NavigationSuiteScaffoldOptions o{navigation_items(), 1};
+        o.type = widgets::NavigationSuiteType::wide_navigation_rail_expanded;
+        auto suite = std::make_unique<widgets::NavigationSuiteScaffold>(std::move(o), fonts());
+        suite->arrange(restyle_area);
+        return suite;
+    });
+    save_round(r, "restyle_navigation_suite");
+    check_round(r);
 }

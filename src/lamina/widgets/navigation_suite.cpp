@@ -286,7 +286,21 @@ void NavigationSuiteScaffold::cancel_interaction() {
     side_widget_.cancel_interaction();
 }
 
+void NavigationSuiteScaffold::restyle() {
+    style_stamp_.refresh();
+    bar_widget_.restyle();
+    side_widget_.restyle();
+    bar_.set_spec(t().spring);
+    side_.set_spec(t().spring);
+    if (rect_.width > 0.0) {
+        place();
+    }
+}
+
 void NavigationSuiteScaffold::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     bar_.step(dt);
     side_.step(dt);
     bar_widget_.step(dt);
