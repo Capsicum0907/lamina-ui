@@ -372,7 +372,20 @@ void ChipGroup::cancel_interaction() {
     }
 }
 
+void ChipGroup::restyle() {
+    style_stamp_.refresh();
+    for (Entry& e : entries_) {
+        e.chip->restyle();
+        e.presence.set_spec(m().group_presence);
+        e.dx.set_spec(m().group_move);
+        e.dy.set_spec(m().group_move);
+    }
+}
+
 void ChipGroup::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     for (Entry& e : entries_) {
         e.chip->step(dt);
         e.presence.step(dt);

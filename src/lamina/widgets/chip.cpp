@@ -273,7 +273,23 @@ void Chip::cancel_interaction() {
     retarget();
 }
 
+void Chip::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    enabled_.restyle();
+    elevation_.restyle(current_style().chip.style(options_.kind, options_.elevated).elevation);
+    selected_.set_spec(m().colors);
+    state_layer_.set_spec(m().state_layer);
+    const bool growing = leading_size_.target() > 0.5;
+    leading_size_.set_spec(growing ? m().slot_expand : m().slot_shrink);
+    leading_alpha_.set_spec(growing ? m().slot_fade_in : m().slot_fade_out);
+    label_ = text::layout_line(fonts_, options_.label, label_style());
+}
+
 void Chip::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     enabled_.step(dt);
     elevation_.step(dt);

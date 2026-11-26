@@ -9,6 +9,8 @@
 #include "lamina/widgets/button_group.hpp"
 #include "lamina/widgets/card.hpp"
 #include "lamina/widgets/checkbox.hpp"
+#include "lamina/widgets/chip.hpp"
+#include "lamina/widgets/chip_group.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
@@ -196,6 +198,32 @@ TEST_CASE("a segmented button row laid out again by its owner follows a style ch
     save_round(r, "restyle_segmented_button");
     check_round(r);
     check_round(restyle_motion_round(make, [](RelaidSegments& w) { w.row->set_checked(1, true); }));
+}
+
+TEST_CASE("a chip lays out its label in the new style's type and animates with the new style's springs after a style change") {
+    auto make = [] {
+        widgets::ChipOptions o{"Vegetarian", tokens::ChipKind::filter};
+        o.leading_icon = icon();
+        return placed(std::make_unique<widgets::Chip>(o, fonts()));
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_chip");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::Chip& w) { w.set_selected(true); }));
+}
+
+TEST_CASE("a chip group flows its chips again after a style change") {
+    const RestyleResult r = restyle_round([] {
+        widgets::ChipGroupOptions o{{{"Breakfast", tokens::ChipKind::filter}, {"Lunch", tokens::ChipKind::filter}, {"Dinner", tokens::ChipKind::filter},
+                                     {"Snacks", tokens::ChipKind::filter}}};
+        auto g = std::make_unique<widgets::ChipGroup>(std::move(o), fonts());
+        const double w = restyle_canvas_width - 2.0 * origin.x;
+        const layout::Size size = g->measure({0.0, w, 0.0, static_cast<double>(restyle_canvas_height)});
+        g->arrange({origin.x, origin.y, w, size.height});
+        return g;
+    });
+    save_round(r, "restyle_chip_group");
+    check_round(r);
 }
 
 TEST_CASE("a clickable card animates its focus with the new style's springs after a style change") {

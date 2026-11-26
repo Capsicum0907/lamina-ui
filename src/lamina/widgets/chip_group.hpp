@@ -65,6 +65,7 @@ public:
     ChipGroupResponse handle(const input::PointerEvent& event);
     ChipGroupResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -105,6 +106,7 @@ private:
     bool focused_ = false;
     std::size_t focus_entry_ = 0;
     bool enabled_ = true;
+    StyleStamp style_stamp_;
 };
 
 }

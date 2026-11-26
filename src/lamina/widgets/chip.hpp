@@ -9,6 +9,7 @@
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
 #include "lamina/render/image.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/chip.hpp"
 #include "lamina/tokens/density.hpp"
@@ -77,6 +78,7 @@ public:
     ChipResponse handle(const input::PointerEvent& event);
     ChipResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -108,6 +110,7 @@ private:
     motion::Animated leading_size_;
     motion::Animated leading_alpha_;
     std::optional<icons::Icon> exiting_leading_;
+    StyleStamp style_stamp_;
 };
 
 }
