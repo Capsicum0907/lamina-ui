@@ -241,7 +241,28 @@ void SideNavigation::cancel_interaction() {
     retarget_state_layers();
 }
 
+void SideNavigation::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    badges_.restyle();
+    expansion_.set_spec(t().expansion);
+    drawer_.set_spec(t().expansion);
+    const auto style = current_style().type.text(t().label);
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        Item& item = items_[i];
+        item.label = text::layout_line(fonts_, options_.items[i].label, style);
+        item.state_layer.set_spec(t().state_layer_spring);
+        item.indicator.set_spec(t().selection);
+        item.color.set_spec(t().colors);
+        item.enabled.restyle();
+    }
+    update_width();
+}
+
 void SideNavigation::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     expansion_.step(dt);
     drawer_.step(dt);

@@ -10,6 +10,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -77,6 +78,7 @@ public:
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -113,6 +115,7 @@ private:
     FocusIndicator focus_;
     std::size_t focus_index_ = 0;
     bool row_enabled_ = true;
+    StyleStamp style_stamp_;
 };
 
 }

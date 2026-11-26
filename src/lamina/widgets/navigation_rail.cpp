@@ -341,7 +341,39 @@ void NavigationRail::cancel_interaction() {
     retarget_state_layers();
 }
 
+void NavigationRail::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    badges_.restyle();
+    const auto& spec = current_style().motion;
+    for (motion::Animated* a : {&min_width_, &full_width_, &item_space_, &item_min_height_, &labels_}) {
+        a->set_spec(spec.default_spatial());
+    }
+    const bool expanded = options_.expanded;
+    min_width_.animate_to(expanded ? t().expanded_min_width : collapsed_width());
+    full_width_.animate_to(expanded ? t().expanded_max_width : collapsed_width());
+    item_space_.animate_to(expanded ? t().expanded_item_space : t().collapsed_item_space);
+    item_min_height_.animate_to(item_min_height(expanded));
+    const auto top_style = current_style().type.text(t().top_label);
+    const auto start_style = current_style().type.text(t().start_label);
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        Item& item = items_[i];
+        item.top_label = text::layout_line(fonts_, options_.items[i].label, top_style);
+        item.start_label = text::layout_line(fonts_, options_.items[i].label, start_style);
+        item.state_layer.set_spec(spec.fast_effects());
+        item.indicator.set_spec(spec.default_spatial());
+        item.position.set_spec(spec.default_spatial());
+        item.color.set_spec(spec.default_effects());
+        item.label_mode.set_spec(spec.default_effects());
+        item.enabled.restyle();
+    }
+    update_width();
+}
+
 void NavigationRail::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     min_width_.step(dt);
     full_width_.step(dt);

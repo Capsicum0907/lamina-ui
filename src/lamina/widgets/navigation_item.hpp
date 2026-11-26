@@ -41,6 +41,13 @@ public:
         badges_[index] = spec ? std::optional<Badge>(Badge(*spec, fonts_)) : std::nullopt;
     }
     const std::optional<Badge>& at(std::size_t index) const { return badges_[index]; }
+    void restyle() {
+        for (std::optional<Badge>& badge : badges_) {
+            if (badge) {
+                badge->restyle();
+            }
+        }
+    }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme, std::size_t index, const render::Rect& icon,
                const render::Rect& item) const {
         paint_badge(canvas, scheme, badges_[index], icon, item);

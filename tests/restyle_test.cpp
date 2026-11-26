@@ -16,10 +16,13 @@
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/list_view.hpp"
+#include "lamina/widgets/navigation_bar.hpp"
+#include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/pager.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
+#include "lamina/widgets/side_navigation.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
@@ -300,4 +303,80 @@ TEST_CASE("the fling decay follows the active style and a fling given another de
     CHECK(fling.active());
     CHECK(fling.value() == value);
     CHECK(fling.velocity() == doctest::Approx(velocity).epsilon(restyle_velocity_tolerance));
+}
+
+namespace {
+
+std::vector<widgets::NavigationItem> navigation_items() {
+    std::vector<widgets::NavigationItem> items;
+    for (auto [symbol, label] : {std::pair{res::icons::home, "Home"}, std::pair{res::icons::search, "Search"}, std::pair{res::icons::settings, "Settings"}}) {
+        items.push_back({icon(symbol), label});
+    }
+    return items;
+}
+
+constexpr render::Rect restyle_area{0.0, 0.0, static_cast<double>(restyle_canvas_width), static_cast<double>(restyle_canvas_height)};
+
+template <typename W>
+struct InArea {
+    std::unique_ptr<W> w;
+    void step(double dt) { w->step(dt); }
+    render::Rect bounds() const { return restyle_area; }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const { w->paint(c, s); }
+};
+
+template <typename W>
+std::unique_ptr<InArea<W>> in_area(std::unique_ptr<W> w) {
+    return std::make_unique<InArea<W>>(InArea<W>{std::move(w)});
+}
+
+}
+
+TEST_CASE("a navigation bar lays out its labels in the new style's type after a style change") {
+    const RestyleResult r = restyle_round([] {
+        auto bar = std::make_unique<widgets::NavigationBar>(widgets::NavigationBarOptions{navigation_items(), 1}, fonts());
+        bar->set_width(restyle_canvas_width);
+        bar->set_origin({0.0, 20.0});
+        return bar;
+    });
+    save_round(r, "restyle_navigation_bar");
+    check_round(r);
+    check_round(restyle_motion_round(
+        [] {
+            auto bar = std::make_unique<widgets::NavigationBar>(widgets::NavigationBarOptions{navigation_items(), 1}, fonts());
+            bar->set_width(restyle_canvas_width);
+            return bar;
+        },
+        [](widgets::NavigationBar& w) { w.select(2); }));
+}
+
+TEST_CASE("an expanded navigation rail sizes itself again after a style change") {
+    const RestyleResult r = restyle_round([] {
+        widgets::NavigationRailOptions o{navigation_items(), 1, true};
+        auto rail = std::make_unique<widgets::NavigationRail>(std::move(o), fonts());
+        rail->measure({0.0, static_cast<double>(restyle_canvas_width)});
+        rail->arrange({0.0, 0.0, rail->width(), static_cast<double>(restyle_canvas_height)});
+        return rail;
+    });
+    save_round(r, "restyle_navigation_rail");
+    check_round(r);
+}
+
+TEST_CASE("an expanded side navigation sizes itself again after a style change") {
+    const RestyleResult r = restyle_round([] {
+        auto side = std::make_unique<widgets::SideNavigation>(widgets::SideNavigationOptions{navigation_items(), 1, true}, fonts());
+        side->measure({0.0, static_cast<double>(restyle_canvas_width), 0.0, static_cast<double>(restyle_canvas_height)});
+        side->arrange(restyle_area);
+        return side;
+    });
+    save_round(r, "restyle_side_navigation");
+    check_round(r);
+    check_round(restyle_motion_round(
+        [] {
+            auto side = std::make_unique<widgets::SideNavigation>(widgets::SideNavigationOptions{navigation_items(), 1, true}, fonts());
+            side->measure({0.0, static_cast<double>(restyle_canvas_width), 0.0, static_cast<double>(restyle_canvas_height)});
+            side->arrange(restyle_area);
+            return side;
+        },
+        [](widgets::SideNavigation& w) { w.set_expanded(false); }));
 }

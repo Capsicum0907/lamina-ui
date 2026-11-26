@@ -188,7 +188,29 @@ void NavigationBar::cancel_interaction() {
     retarget_state_layers();
 }
 
+void NavigationBar::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    badges_.restyle();
+    const auto& motion = current_style().motion;
+    labels_.set_spec(motion.default_spatial());
+    const auto style = current_style().type.text(t().label);
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        Item& item = items_[i];
+        if (item.label) {
+            item.label = text::layout_line(fonts_, options_.items[i].label, style);
+        }
+        item.state_layer.set_spec(motion.fast_effects());
+        item.indicator.set_spec(motion.default_spatial());
+        item.color.set_spec(motion.default_effects());
+        item.enabled.restyle();
+    }
+}
+
 void NavigationBar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     labels_.step(dt);
     for (Item& item : items_) {
