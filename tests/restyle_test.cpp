@@ -29,6 +29,7 @@
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/side_navigation.hpp"
+#include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/snackbar.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
@@ -465,4 +466,15 @@ TEST_CASE("a menu and a grouped menu size their items again after a style change
     });
     save_round(g, "restyle_grouped_menu");
     check_round(g);
+}
+
+TEST_CASE("a slider animates its focus with the new style's springs after a style change") {
+    check_round(restyle_motion_round(
+        [] {
+            auto s = std::make_unique<widgets::Slider>(widgets::SliderOptions{0.4});
+            s->set_width(300.0);
+            s->set_origin(origin);
+            return s;
+        },
+        [](widgets::Slider& w) { w.set_focused(true); }));
 }

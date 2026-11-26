@@ -9,6 +9,7 @@
 #include "lamina/input/events.hpp"
 #include "lamina/layout/layout.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/slider.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -78,6 +79,7 @@ public:
     bool handle(const input::PointerEvent& event);
     void cancel_interaction();
     bool handle(const input::KeyEvent& event);
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -98,6 +100,7 @@ private:
     FocusIndicator focus_;
     Enablement enabled_;
     ValueIndicator indicator_;
+    StyleStamp style_stamp_;
 };
 
 }

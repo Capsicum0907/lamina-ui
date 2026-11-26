@@ -278,7 +278,16 @@ bool Slider::handle(const input::KeyEvent& e) {
     return options_.value != before;
 }
 
+void Slider::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    enabled_.restyle();
+}
+
 void Slider::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     enabled_.step(dt);
     indicator_.step(dt);

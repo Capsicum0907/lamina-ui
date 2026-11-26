@@ -276,7 +276,18 @@ void RangeSlider::cancel_interaction() {
     update_handles();
 }
 
+void RangeSlider::restyle() {
+    style_stamp_.refresh();
+    for (FocusIndicator& f : focus_) {
+        f.restyle();
+    }
+    enabled_.restyle();
+}
+
 void RangeSlider::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     for (FocusIndicator& f : focus_) {
         f.step(dt);
     }
