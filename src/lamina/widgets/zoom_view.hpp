@@ -21,7 +21,7 @@ struct ZoomViewOptions {
     std::string accessible_name;
     double content_width = 0.0;
     double content_height = 0.0;
-    const tokens::ZoomTokens* tokens = &current_style().zoom;
+    const tokens::ZoomTokens* tokens = nullptr;
 };
 
 class ZoomView {
@@ -32,7 +32,7 @@ public:
     const render::Rect& bounds() const { return bounds_; }
     void set_content_size(double width, double height);
     motion::ZoomGeometry geometry() const;
-    const tokens::ZoomTokens& tokens() const { return *tokens_; }
+    const tokens::ZoomTokens& tokens() const { return tokens_ ? *tokens_ : current_style().zoom; }
 
     bool handle(const input::FingerEvent& event);
     bool handle(const input::PointerEvent& event);
@@ -43,6 +43,7 @@ public:
     std::optional<render::Point> take_tap();
     std::optional<double> next_wake_seconds() const;
 
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
 
@@ -94,7 +95,7 @@ private:
         bool fresh = true;
     };
 
-    motion::ZoomLimits scale_limits() const { return {tokens_->min_scale, tokens_->max_scale}; }
+    motion::ZoomLimits scale_limits() const { return {tokens().min_scale, tokens().max_scale}; }
     double focus_x() const;
     double focus_y() const;
     double span() const;
@@ -153,6 +154,7 @@ private:
     motion::SpringState settle_{0.0, 0.0};
     motion::Fling fling_x_;
     motion::Fling fling_y_;
+    StyleStamp style_stamp_;
 };
 
 }

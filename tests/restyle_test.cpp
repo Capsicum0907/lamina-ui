@@ -46,6 +46,7 @@
 #include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 #include "lamina/widgets/wavy_progress.hpp"
+#include "lamina/widgets/zoom_view.hpp"
 #include "lamina/widgets/widget_set.hpp"
 #include "restyle_support.hpp"
 
@@ -664,4 +665,27 @@ TEST_CASE("a three pane scaffold restyles its panes' widgets and moves its panes
     check_round(r);
     check_round(restyle_motion_round([] { return std::make_unique<PaneRig>(); },
                                      [](PaneRig& w) { w.navigator.navigate_to(widgets::list_detail_pane::detail); }));
+}
+
+TEST_CASE("a zoom view without its own tokens reads the active style's and settles with its spring") {
+    const widgets::ZoomViewOptions options{"Photo", 400.0, 300.0};
+    widgets::ZoomView kept(options);
+    widgets::ZoomView switched(options);
+    for (widgets::ZoomView* v : {&kept, &switched}) {
+        v->set_bounds({0.0, 0.0, 400.0, 300.0});
+        v->zoom_to(2.0, 200.0, 150.0);
+    }
+    CHECK(&kept.tokens() == &m3_expressive_style().zoom);
+    kept.step(frame_seconds);
+    {
+        const StyleScope scope(restyle_test_style());
+        CHECK(&switched.tokens() == &restyle_test_style().zoom);
+        switched.step(frame_seconds);
+    }
+    CHECK(switched.scale() != kept.scale());
+    widgets::ZoomViewOptions own = options;
+    own.tokens = &m3_expressive_style().zoom;
+    const widgets::ZoomView given(own);
+    const StyleScope scope(restyle_test_style());
+    CHECK(&given.tokens() == &m3_expressive_style().zoom);
 }

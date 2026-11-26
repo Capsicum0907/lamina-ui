@@ -23,11 +23,11 @@ ZoomView::ZoomView(ZoomViewOptions options)
       name_(std::move(options.accessible_name)),
       content_width_(options.content_width),
       content_height_(options.content_height),
-      tracker_x_(options.tokens->tracking),
-      tracker_y_(options.tokens->tracking),
+      tracker_x_(tokens().tracking),
+      tracker_y_(tokens().tracking),
       fling_x_(fling_decay()),
       fling_y_(fling_decay()) {
-    shown_ = raw_ = motion::fitted(geometry(), tokens_->min_scale);
+    shown_ = raw_ = motion::fitted(geometry(), tokens().min_scale);
 }
 
 motion::ZoomGeometry ZoomView::geometry() const {
@@ -47,7 +47,7 @@ void ZoomView::set_bounds(const render::Rect& bounds) {
     }
     if (!gesture_active()) {
         stop_motion();
-        shown_ = raw_ = motion::clamp_pan(geometry(), {std::clamp(shown_.scale, tokens_->min_scale, tokens_->max_scale), shown_.x, shown_.y});
+        shown_ = raw_ = motion::clamp_pan(geometry(), {std::clamp(shown_.scale, tokens().min_scale, tokens().max_scale), shown_.x, shown_.y});
     }
 }
 
@@ -64,7 +64,7 @@ void ZoomView::snap_to_fit() {
     scaling_ = false;
     last_tap_.reset();
     drop_taps();
-    shown_ = raw_ = motion::fitted(geometry(), tokens_->min_scale);
+    shown_ = raw_ = motion::fitted(geometry(), tokens().min_scale);
 }
 
 void ZoomView::hold_tap(double x, double y, double up_seconds, double timeout_seconds) {
@@ -96,23 +96,23 @@ std::optional<double> ZoomView::next_wake_seconds() const {
 }
 
 void ZoomView::reset() {
-    settle_to(motion::fitted(geometry(), tokens_->min_scale));
+    settle_to(motion::fitted(geometry(), tokens().min_scale));
 }
 
 void ZoomView::zoom_to(double scale, double x, double y) {
     const motion::ZoomTransform from = settling_ ? settle_target_ : shown_;
     const double fx = x - bounds_.x;
     const double fy = y - bounds_.y;
-    const double s = std::clamp(scale, tokens_->min_scale, tokens_->max_scale);
+    const double s = std::clamp(scale, tokens().min_scale, tokens().max_scale);
     settle_to(motion::clamp_pan(geometry(), motion::zoom_about(from, fx, fy, s)));
 }
 
 bool ZoomView::zoomed() const {
-    return shown_.scale > tokens_->min_scale + tokens_->zoomed_epsilon;
+    return shown_.scale > tokens().min_scale + tokens().zoomed_epsilon;
 }
 
 motion::PanEdges ZoomView::edges() const {
-    return motion::pan_edges(geometry(), shown_, tokens_->edge_tolerance);
+    return motion::pan_edges(geometry(), shown_, tokens().edge_tolerance);
 }
 
 bool ZoomView::can_pan_horizontally(double dx) const {
@@ -169,10 +169,10 @@ double ZoomView::span() const {
 
 motion::ZoomTransform ZoomView::banded(const motion::ZoomTransform& raw, double fx, double fy) const {
     const motion::ZoomGeometry g = geometry();
-    const double s = motion::band_scale(raw.scale, scale_limits(), tokens_->scale_band_coefficient, tokens_->scale_band_ratio);
+    const double s = motion::band_scale(raw.scale, scale_limits(), tokens().scale_band_coefficient, tokens().scale_band_ratio);
     motion::ZoomTransform z = motion::zoom_about(raw, fx, fy, s);
-    z.x = motion::band_into(z.x, motion::pan_limits_x(g, s), {tokens_->pan_band_coefficient, tokens_->pan_band_extent * g.viewport_width});
-    z.y = motion::band_into(z.y, motion::pan_limits_y(g, s), {tokens_->pan_band_coefficient, tokens_->pan_band_extent * g.viewport_height});
+    z.x = motion::band_into(z.x, motion::pan_limits_x(g, s), {tokens().pan_band_coefficient, tokens().pan_band_extent * g.viewport_width});
+    z.y = motion::band_into(z.y, motion::pan_limits_y(g, s), {tokens().pan_band_coefficient, tokens().pan_band_extent * g.viewport_height});
     return z;
 }
 
@@ -181,9 +181,9 @@ motion::ZoomTransform ZoomView::unbanded(const motion::ZoomTransform& shown, dou
     const double s = shown.scale;
     const motion::ZoomTransform t{
         s,
-        motion::unband_from(shown.x, motion::pan_limits_x(g, s), {tokens_->pan_band_coefficient, tokens_->pan_band_extent * g.viewport_width}),
-        motion::unband_from(shown.y, motion::pan_limits_y(g, s), {tokens_->pan_band_coefficient, tokens_->pan_band_extent * g.viewport_height})};
-    const double raw_scale = motion::unband_scale(s, scale_limits(), tokens_->scale_band_coefficient, tokens_->scale_band_ratio);
+        motion::unband_from(shown.x, motion::pan_limits_x(g, s), {tokens().pan_band_coefficient, tokens().pan_band_extent * g.viewport_width}),
+        motion::unband_from(shown.y, motion::pan_limits_y(g, s), {tokens().pan_band_coefficient, tokens().pan_band_extent * g.viewport_height})};
+    const double raw_scale = motion::unband_scale(s, scale_limits(), tokens().scale_band_coefficient, tokens().scale_band_ratio);
     return motion::zoom_about(t, fx, fy, raw_scale);
 }
 
@@ -217,17 +217,17 @@ void ZoomView::release(double time_seconds, bool fling) {
     const motion::ZoomGeometry g = geometry();
     tracker_x_.release(time_seconds);
     tracker_y_.release(time_seconds);
-    if (fling && zoomed() && motion::in_bounds(g, shown_, scale_limits(), tokens_->edge_tolerance)) {
+    if (fling && zoomed() && motion::in_bounds(g, shown_, scale_limits(), tokens().edge_tolerance)) {
         shown_ = raw_ = motion::clamp_pan(g, shown_);
-        const double vx = tracker_x_.velocity(tokens_->maximum_velocity);
-        const double vy = tracker_y_.velocity(tokens_->maximum_velocity);
+        const double vx = tracker_x_.velocity(tokens().maximum_velocity);
+        const double vy = tracker_y_.velocity(tokens().maximum_velocity);
         const motion::ZoomLimits lx = motion::pan_limits_x(g, shown_.scale);
         const motion::ZoomLimits ly = motion::pan_limits_y(g, shown_.scale);
         settling_ = false;
-        if (std::abs(vx) > tokens_->minimum_fling_velocity && lx.max > lx.min) {
+        if (std::abs(vx) > tokens().minimum_fling_velocity && lx.max > lx.min) {
             fling_x_.start(shown_.x, vx);
         }
-        if (std::abs(vy) > tokens_->minimum_fling_velocity && ly.max > ly.min) {
+        if (std::abs(vy) > tokens().minimum_fling_velocity && ly.max > ly.min) {
             fling_y_.start(shown_.y, vy);
         }
         if (fling_x_.active() || fling_y_.active()) {
@@ -239,10 +239,10 @@ void ZoomView::release(double time_seconds, bool fling) {
 
 void ZoomView::toggle_zoom(double fx, double fy) {
     if (zoomed()) {
-        settle_to(motion::fitted(geometry(), tokens_->min_scale));
+        settle_to(motion::fitted(geometry(), tokens().min_scale));
         return;
     }
-    settle_to(motion::clamp_pan(geometry(), motion::zoom_about(shown_, fx, fy, tokens_->double_tap_scale)));
+    settle_to(motion::clamp_pan(geometry(), motion::zoom_about(shown_, fx, fy, tokens().double_tap_scale)));
 }
 
 void ZoomView::yield() {
@@ -258,7 +258,7 @@ bool ZoomView::hands_off(double dx, double dy) const {
         return false;
     }
     const double angle = std::atan2(std::abs(dy), std::abs(dx)) * degrees_per_half_turn / std::numbers::pi;
-    const double limit = tokens_->handoff_angle_degrees;
+    const double limit = tokens().handoff_angle_degrees;
     if (angle <= limit) {
         return waiting_.horizontal && !can_pan_horizontally(dx);
     }
@@ -279,7 +279,7 @@ void ZoomView::regroup() {
     prev_focus_x_ = start_focus_x_ = focus_x();
     prev_focus_y_ = start_focus_y_ = focus_y();
     initial_span_ = prev_span_ = span();
-    if (was_scaling && fingers_.size() >= 2 && prev_span_ >= tokens_->min_span) {
+    if (was_scaling && fingers_.size() >= 2 && prev_span_ >= tokens().min_span) {
         scaling_ = true;
     }
 }
@@ -306,9 +306,9 @@ bool ZoomView::finger_down(const input::FingerEvent& e) {
         catch_motion();
         fingers_.push_back({e.finger, x, y, x, y});
         waiting_ = {};
-        const bool second_tap = last_tap_ && e.time_seconds - last_tap_->up_seconds <= tokens_->double_tap_timeout_seconds &&
-                                e.time_seconds - last_tap_->up_seconds >= tokens_->double_tap_min_seconds &&
-                                std::hypot(x - last_tap_->x, y - last_tap_->y) < tokens_->double_tap_slop;
+        const bool second_tap = last_tap_ && e.time_seconds - last_tap_->up_seconds <= tokens().double_tap_timeout_seconds &&
+                                e.time_seconds - last_tap_->up_seconds >= tokens().double_tap_min_seconds &&
+                                std::hypot(x - last_tap_->x, y - last_tap_->y) < tokens().double_tap_slop;
         if (second_tap) {
             const Tap tap = *last_tap_;
             last_tap_.reset();
@@ -349,17 +349,17 @@ bool ZoomView::finger_move(const input::FingerEvent& e) {
     if (phase_ == Phase::yielded || phase_ == Phase::double_tap || phase_ == Phase::handed) {
         return phase_ == Phase::double_tap;
     }
-    if (single_tap_ && std::hypot(it->x - it->down_x, it->y - it->down_y) > tokens_->double_tap_touch_slop) {
+    if (single_tap_ && std::hypot(it->x - it->down_x, it->y - it->down_y) > tokens().double_tap_touch_slop) {
         single_tap_ = false;
     }
     const double fx = focus_x();
     const double fy = focus_y();
     const double sp = span();
     if (fingers_.size() >= 2) {
-        if (!scaling_ && sp >= tokens_->min_span && std::abs(sp - initial_span_) > tokens_->span_slop) {
+        if (!scaling_ && sp >= tokens().min_span && std::abs(sp - initial_span_) > tokens().span_slop) {
             scaling_ = true;
             prev_span_ = sp;
-        } else if (scaling_ && sp < tokens_->min_span) {
+        } else if (scaling_ && sp < tokens().min_span) {
             scaling_ = false;
             initial_span_ = sp;
         }
@@ -369,15 +369,15 @@ bool ZoomView::finger_move(const input::FingerEvent& e) {
         const bool can_pan = fingers_.size() >= 2 || zoomed();
         if (scaling_) {
             phase_ = Phase::panning;
-        } else if (can_pan && travel > tokens_->touch_slop) {
+        } else if (can_pan && travel > tokens().touch_slop) {
             if (hands_off(fx - start_focus_x_, fy - start_focus_y_)) {
                 phase_ = Phase::handed;
                 last_tap_.reset();
                 return false;
             }
             phase_ = Phase::panning;
-            prev_focus_x_ = start_focus_x_ + (fx - start_focus_x_) * tokens_->touch_slop / travel;
-            prev_focus_y_ = start_focus_y_ + (fy - start_focus_y_) * tokens_->touch_slop / travel;
+            prev_focus_x_ = start_focus_x_ + (fx - start_focus_x_) * tokens().touch_slop / travel;
+            prev_focus_y_ = start_focus_y_ + (fy - start_focus_y_) * tokens().touch_slop / travel;
         }
     }
     tracker_x_.add(e.time_seconds, fx);
@@ -417,7 +417,7 @@ bool ZoomView::finger_up(const input::FingerEvent& e) {
     const bool cancelled = e.action == input::FingerAction::cancel;
     if (was == Phase::pending && single_tap_ && !cancelled) {
         last_tap_ = Tap{lifted.down_x, lifted.down_y, e.time_seconds};
-        hold_tap(lifted.down_x, lifted.down_y, e.time_seconds, tokens_->double_tap_timeout_seconds);
+        hold_tap(lifted.down_x, lifted.down_y, e.time_seconds, tokens().double_tap_timeout_seconds);
     }
     single_tap_ = false;
     release(e.time_seconds, was == Phase::panning && !cancelled);
@@ -486,7 +486,7 @@ bool ZoomView::handle(const input::PointerEvent& e) {
         mouse_y_ = y;
         return true;
     case input::PointerAction::move:
-        if (click_ && std::hypot(x - click_->x, y - click_->y) > tokens_->double_tap_touch_slop) {
+        if (click_ && std::hypot(x - click_->x, y - click_->y) > tokens().double_tap_touch_slop) {
             click_.reset();
         }
         if (phase_ != Phase::mouse) {
@@ -499,7 +499,7 @@ bool ZoomView::handle(const input::PointerEvent& e) {
         return true;
     case input::PointerAction::up:
         if (click_) {
-            hold_tap(click_->x, click_->y, e.time_seconds, tokens_->double_click_timeout_seconds);
+            hold_tap(click_->x, click_->y, e.time_seconds, tokens().double_click_timeout_seconds);
             click_.reset();
         }
         if (phase_ != Phase::mouse) {
@@ -518,7 +518,7 @@ bool ZoomView::handle(const input::WheelEvent& e) {
         return false;
     }
     const motion::ZoomTransform from = settling_ ? settle_target_ : shown_;
-    zoom_to(from.scale * std::pow(tokens_->wheel_zoom_factor, -e.dy), e.x_dp, e.y_dp);
+    zoom_to(from.scale * std::pow(tokens().wheel_zoom_factor, -e.dy), e.x_dp, e.y_dp);
     return true;
 }
 
@@ -547,7 +547,16 @@ bool ZoomView::holds_pointer() const {
     return phase_ == Phase::double_tap || phase_ == Phase::panning || fingers_.size() >= 2;
 }
 
+void ZoomView::restyle() {
+    style_stamp_.refresh();
+    fling_x_.set_decay(fling_decay());
+    fling_y_.set_decay(fling_decay());
+}
+
 void ZoomView::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     if (pending_tap_) {
         if (pending_tap_->fresh) {
             pending_tap_->fresh = false;
@@ -567,22 +576,22 @@ void ZoomView::step(double dt) {
         if (fling_x_.active()) {
             const double v = fling_x_.step(dt);
             shown_.x = std::clamp(v, lx.min, lx.max);
-            if (std::abs(v - shown_.x) > tokens_->edge_tolerance) {
+            if (std::abs(v - shown_.x) > tokens().edge_tolerance) {
                 fling_x_.stop();
             }
         }
         if (fling_y_.active()) {
             const double v = fling_y_.step(dt);
             shown_.y = std::clamp(v, ly.min, ly.max);
-            if (std::abs(v - shown_.y) > tokens_->edge_tolerance) {
+            if (std::abs(v - shown_.y) > tokens().edge_tolerance) {
                 fling_y_.stop();
             }
         }
         raw_ = shown_;
     }
     if (settling_) {
-        settle_ = motion::advance(tokens_->settle_spring, settle_, 1.0, dt);
-        if (motion::is_settled(settle_, 1.0, tokens_->settle_threshold)) {
+        settle_ = motion::advance(tokens().settle_spring, settle_, 1.0, dt);
+        if (motion::is_settled(settle_, 1.0, tokens().settle_threshold)) {
             settling_ = false;
             shown_ = settle_target_;
         } else {
@@ -608,7 +617,7 @@ std::optional<input::Cursor> ZoomView::cursor() const {
 std::optional<AccessibleNode> ZoomView::accessible() const {
     AccessibleNode node{AccessibleRole::group, name_, bounds_};
     node.state.enabled = enabled_;
-    node.state.range = AccessibleRange{shown_.scale, tokens_->min_scale, tokens_->max_scale};
+    node.state.range = AccessibleRange{shown_.scale, tokens().min_scale, tokens().max_scale};
     return node;
 }
 
