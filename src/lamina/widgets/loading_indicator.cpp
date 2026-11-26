@@ -2,9 +2,13 @@
 #include "lamina/widgets/loading_indicator.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <deque>
 #include <limits>
+#include <mutex>
 #include <numbers>
+#include <utility>
 
 #include "lamina/shapes/to_path.hpp"
 
@@ -65,16 +69,49 @@ double scale_factor(bool determinate) {
 
 }
 
+namespace {
+
+struct ShapeKey {
+    std::array<shapes::MaterialShape, 7> indeterminate;
+    std::array<shapes::MaterialShape, 2> determinate;
+    double circle_rotation;
+    double active_size;
+    double container_size;
+
+    bool operator==(const ShapeKey&) const = default;
+};
+
+struct Shapes {
+    std::vector<shapes::Morph> indeterminate;
+    std::vector<shapes::Morph> determinate;
+    double indeterminate_scale;
+    double determinate_scale;
+};
+
+const Shapes& active_shapes() {
+    static std::mutex lock;
+    static std::deque<std::pair<ShapeKey, Shapes>> cache;
+    const ShapeKey key{current_style().loading_indicator.indeterminate_shapes, current_style().loading_indicator.determinate_shapes,
+                       t().determinate_circle_rotation_degrees, t().active_size, t().container_size};
+    const std::scoped_lock hold(lock);
+    for (const auto& [seen, built] : cache) {
+        if (seen == key) {
+            return built;
+        }
+    }
+    return cache.emplace_back(key, Shapes{build_morphs(false), build_morphs(true), scale_factor(false), scale_factor(true)}).second;
+}
+
+}
+
 const std::vector<shapes::Morph>& loading_indicator_morphs(bool determinate) {
-    static const std::vector<shapes::Morph> indeterminate = build_morphs(false);
-    static const std::vector<shapes::Morph> determinate_morphs = build_morphs(true);
-    return determinate ? determinate_morphs : indeterminate;
+    const Shapes& s = active_shapes();
+    return determinate ? s.determinate : s.indeterminate;
 }
 
 double loading_indicator_scale(bool determinate) {
-    static const double indeterminate = scale_factor(false);
-    static const double determinate_scale = scale_factor(true);
-    return determinate ? determinate_scale : indeterminate;
+    const Shapes& s = active_shapes();
+    return determinate ? s.determinate_scale : s.indeterminate_scale;
 }
 
 double spring_finish_seconds(const motion::SpringSpec& spec, double threshold) {
