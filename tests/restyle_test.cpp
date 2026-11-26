@@ -12,6 +12,7 @@
 #include "lamina/widgets/chip.hpp"
 #include "lamina/widgets/chip_group.hpp"
 #include "lamina/widgets/dialog.hpp"
+#include "lamina/widgets/divider.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
@@ -43,6 +44,7 @@
 #include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 #include "lamina/widgets/wavy_progress.hpp"
+#include "lamina/widgets/widget_set.hpp"
 #include "restyle_support.hpp"
 
 using namespace lamina;
@@ -609,4 +611,17 @@ TEST_CASE("a split pane places its divider again and shows its handle with the n
     save_round(r, "restyle_split_pane");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::SplitPane& w) { w.set_focused(true); }));
+}
+
+TEST_CASE("a widget set restyles its widgets without stepping them") {
+    const widgets::ButtonOptions o{"Send", ButtonStyle::filled, ButtonSize::medium};
+    widgets::WidgetSet set;
+    widgets::Button& button = set.emplace<widgets::Button>(o, fonts());
+    set.emplace<widgets::Divider>();
+    const StyleScope scope(restyle_test_style());
+    const widgets::Button fresh(o, fonts());
+    CHECK(button.height() != fresh.height());
+    set.restyle();
+    CHECK(button.width() == fresh.width());
+    CHECK(button.height() == fresh.height());
 }

@@ -60,6 +60,9 @@ template <typename W>
 concept Cancellable = requires(W& w) { w.cancel_interaction(); };
 
 template <typename W>
+concept Restylable = requires(W& w) { w.restyle(); };
+
+template <typename W>
 concept HoldsPointer = requires(const W& w) {
     { w.holds_pointer() } -> std::convertible_to<bool>;
 };

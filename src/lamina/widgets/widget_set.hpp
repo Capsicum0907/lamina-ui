@@ -111,6 +111,10 @@ public:
         visit([](Member& m) { m.cancel_interaction(); });
     }
 
+    void restyle() {
+        visit([](Member& m) { m.restyle(); });
+    }
+
     void set_enabled(bool enabled) {
         visit([enabled](Member& m) { m.set_enabled(enabled); });
     }
@@ -160,6 +164,7 @@ private:
         virtual bool holds_pointer() const = 0;
         virtual std::optional<TargetHit> target_hit(const input::PointerEvent& e) const = 0;
         virtual void cancel_interaction() = 0;
+        virtual void restyle() = 0;
         virtual void set_enabled(bool enabled) = 0;
         virtual void set_density(tokens::Density density) = 0;
         virtual void collect(std::vector<AccessibleNode>& out) const = 0;
@@ -197,6 +202,11 @@ private:
         void cancel_interaction() override {
             if constexpr (Cancellable<Widget>) {
                 widget.cancel_interaction();
+            }
+        }
+        void restyle() override {
+            if constexpr (Restylable<Widget>) {
+                widget.restyle();
             }
         }
         void set_enabled(bool enabled) override {
