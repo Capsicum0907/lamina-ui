@@ -10,7 +10,7 @@ lamina-ui is not affiliated with or endorsed by Google. "Material Design" is Goo
 
 ## Status
 
-Version 0.4.0. The API is not stable yet and may change in any 0.x release. It has been built and run on Windows 11 with Visual Studio 2022, and on Android through APKs built with the NDK, on an emulator and on one phone. The code for other platforms is written for them but has not been built, and mixed-DPI monitors and Windows 10 have not been tested.
+Version 0.4.0. The API is not stable yet and may change in any 0.x release. It has been built and run on Windows 11 with Visual Studio 2022. Android, through APKs built with the NDK, was run on an emulator and on one phone with 0.3.0; 0.4.0 has not been run on Android yet. The code for other platforms is written for them but has not been built, and mixed-DPI monitors and Windows 10 have not been tested.
 
 ## Quick start
 
