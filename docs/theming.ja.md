@@ -77,7 +77,7 @@ window.set_style(quiet);
 
 ほかの部品は、まだ作ったときに使っていたスタイルの値を持ったままです。`DatePicker`・`DateRangePicker`・`DockedDatePicker`・`TimePicker`・`PickerDialog`・`SplitButton`・`FabMenu`・`FloatingToolbar`・`FlexibleBottomAppBar`・`SearchBar`・`BottomSheet`・`SideSheet`・`Tooltip`・`MenuBar`・`Table`・`NumericField`・`TitleBar`・`ThreePaneScaffold`・`SplitPane`・`ZoomView`・`LoadingIndicator` と、波形と円の進み具合の表示です。そのうちいくつかは上に挙げた部品を中に持っています。分割ボタンの左右などです。中の部品は新しいスタイルに従って大きさが変わることがありますが、持っている側の部品は並べ直しません。スタイルを切り替えた後、この一覧にない部品のうち、大きさや動きを変えたいものは作り直してください。残りの部品も、群ごとに `restyle()` を足し、上のテストで確かめていきます。
 
-スタイルが変わっても、まだ動きに付いてこないところがあります。ドロワー・シート・レールのすでに動いている引きずりや収まりは、始めたときのばねで終わり、次の動きから新しいスタイルのばねを使います。`PullToRefresh` は、中の読み込み中の表示を、大きさのほかは読み直しません。
+スタイルが変わっても、まだ動きに付いてこないところがあります。ドロワーとレールのすでに動いている引きずりや収まりは、始めたときのばねで終わり、次の動きから新しいスタイルのばねを使います。`PullToRefresh` は、中の読み込み中の表示を、大きさのほかは読み直しません。
 
 スタイルは、その下で作ったものがまだ使うかもしれない間は、ほかのスタイルを入れた後も生かしておいてください。`PagerOptions::tokens`・`PullToRefreshOptions::tokens`・`PullToRefreshOptions::arrow_tokens` は既定では空（null）で、そのとき部品は使うたびに今のスタイルのトークンを読みます。プログラムが指す先を渡したときは、渡したままです。はじいたときの減速の曲線（`fling_decay()`）は、今のスタイルの `gesture.fling_decay` から計算し、同じ値で使うときのために取っておきます。なので、違う減速の値ごとに 1 回だけ計算します。`ScrollArea` と `TabRow` は `restyle()` で新しい曲線を取り、はじいて動いている途中なら今の位置と速さから新しい曲線で続けます。`ScrollArea` の外の `TouchScroll` は作ったときの指の操作のトークンを、`ZoomView` は作ったときの減速の曲線を持ったままです。
 
