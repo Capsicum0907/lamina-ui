@@ -425,6 +425,7 @@ if(LAMINA_BUILD_TESTS)
         tests/todo_layout_test.cpp
         tests/toggle_button_test.cpp
         tests/tokens_test.cpp
+        tests/tween_test.cpp
         tests/wavy_progress_test.cpp
         tests/widget_set_test.cpp
         tests/window_size_class_test.cpp

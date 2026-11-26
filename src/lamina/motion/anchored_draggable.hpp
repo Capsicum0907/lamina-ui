@@ -74,6 +74,12 @@ public:
             motion_ = spring;
         }
     }
+    void retune(const TweenSpec& tween) {
+        if (const auto* current = std::get_if<TweenSpec>(&motion_); animating_ && current) {
+            elapsed_ = retimed_elapsed(*current, elapsed_, tween);
+            motion_ = tween;
+        }
+    }
 
     bool positioned() const { return positioned_; }
     bool has(T value) const { return position_of(value).has_value(); }

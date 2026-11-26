@@ -10,7 +10,21 @@ namespace lamina::motion {
 struct TweenSpec {
     double duration_seconds;
     CubicBezier easing;
+
+    bool operator==(const TweenSpec&) const = default;
 };
+
+inline double retimed_elapsed(const TweenSpec& running, double elapsed_seconds, const TweenSpec& next) {
+    if (running == next) {
+        return elapsed_seconds;
+    }
+    if (next.duration_seconds <= 0.0) {
+        return next.duration_seconds;
+    }
+    const double linear = running.duration_seconds <= 0.0 ? 1.0 : std::clamp(elapsed_seconds / running.duration_seconds, 0.0, 1.0);
+    const double progress = running.easing == next.easing ? linear : ease_inverse(next.easing, ease(running.easing, linear));
+    return progress * next.duration_seconds;
+}
 
 class Tweened {
 public:
@@ -34,6 +48,16 @@ public:
         value_ = value;
         elapsed_ = spec_.duration_seconds;
     }
+    void retime(const TweenSpec& spec) {
+        if (settled()) {
+            return;
+        }
+        elapsed_ = retimed_elapsed(spec_, elapsed_, spec);
+        spec_ = spec;
+        if (spec.duration_seconds <= 0.0) {
+            snap_to(to_);
+        }
+    }
     void step(double dt_seconds) {
         if (settled()) {
             value_ = to_;
@@ -45,6 +69,9 @@ public:
 
     double value() const { return value_; }
     double target() const { return to_; }
+    double origin() const { return from_; }
+    double elapsed() const { return elapsed_; }
+    const TweenSpec& spec() const { return spec_; }
     bool settled() const { return elapsed_ >= spec_.duration_seconds || from_ == to_; }
 
 private:
