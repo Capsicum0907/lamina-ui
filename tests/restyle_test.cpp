@@ -14,9 +14,11 @@
 #include "lamina/widgets/dialog.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
+#include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/list_view.hpp"
+#include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/modal_navigation_rail.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
 #include "lamina/widgets/navigation_drawer.hpp"
@@ -445,4 +447,22 @@ TEST_CASE("a snackbar and a dialog lay out their text and actions again after a 
     });
     save_round(d, "restyle_dialog");
     check_round(d);
+}
+
+TEST_CASE("a menu and a grouped menu size their items again after a style change") {
+    const RestyleResult m = restyle_round([] {
+        auto menu = std::make_unique<widgets::Menu>(widgets::MenuOptions{{{"Cut"}, {"Copy"}, {"Paste"}}}, fonts());
+        menu->open_at({20.0, 10.0}, {static_cast<double>(restyle_canvas_width), static_cast<double>(restyle_canvas_height)});
+        return in_area(std::move(menu));
+    });
+    save_round(m, "restyle_menu");
+    check_round(m);
+    const RestyleResult g = restyle_round([] {
+        widgets::GroupedMenuOptions o{{{{{"Bold"}, {"Italic", std::nullopt, std::nullopt, std::nullopt, true}}, "Style"}}};
+        auto menu = std::make_unique<widgets::GroupedMenu>(std::move(o), fonts());
+        menu->open({20.0, 0.0, 10.0, 10.0}, {static_cast<double>(restyle_canvas_width), static_cast<double>(restyle_canvas_height)});
+        return in_area(std::move(menu));
+    });
+    save_round(g, "restyle_grouped_menu");
+    check_round(g);
 }

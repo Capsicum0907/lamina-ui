@@ -22,6 +22,12 @@ public:
         }
     }
 
+    void set_spec(SpringSpec spec) {
+        for (Animated& c : corners_) {
+            c.set_spec(spec);
+        }
+    }
+
     void snap_to(const render::CornerRadii& value) {
         const auto v = as_array(value);
         for (std::size_t i = 0; i < corners_.size(); ++i) {

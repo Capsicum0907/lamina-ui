@@ -115,47 +115,72 @@ Menu::Menu(MenuOptions options, const text::FontStack& fonts)
       popup_(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects()) {
     density_ = options.density;
     const tokens::ShortcutFormat& format = options.shortcut_format ? *options.shortcut_format : tokens::default_shortcut_format();
-    const auto style = current_style().type.text(t().label);
-    double content = 0.0;
     for (auto& item : options.items) {
-        std::optional<text::TextLine> label;
-        std::optional<AccessKeyLabel> access;
-        std::optional<text::TextLine> shortcut;
-        const std::optional<input::Key> key = access_key_for(item.label, item.access_key);
-        double w = 2.0 * t().item_horizontal_padding;
-        if (!item.label.empty()) {
-            label = text::layout_line(fonts_, item.label, style);
-            w += label->width;
-            if (key) {
-                access = access_key_label(fonts_, item.label, *label, *key);
-                w += access->suffix_width();
-            }
-        }
-        if (item.leading_icon) {
-            w += t().icon_size + t().icon_text_space;
-        }
-        std::string shortcut_text = item.shortcut ? format_chord(*item.shortcut, format) : std::string{};
         std::unique_ptr<Menu> child;
         if (!item.submenu.empty()) {
             if (!icon_font_) {
                 throw std::invalid_argument("a menu with a submenu needs an icon font for the submenu arrow");
             }
             child = std::make_unique<Menu>(MenuOptions{std::move(item.submenu), item.label, density_, icon_font_, options.shortcut_format}, fonts_);
-            w += t().trailing_space + t().trailing_icon_size;
-        } else if (!shortcut_text.empty()) {
-            shortcut = text::layout_line(fonts_, shortcut_text, style);
-            w += t().trailing_space + std::max(t().trailing_icon_size, shortcut->width);
         }
-        content = std::max(content, w);
         names_.push_back(item.label);
         commands_.push_back(item.command);
-        shortcut_labels_.push_back(std::move(shortcut_text));
-        access_keys_.push_back(key);
+        shortcut_labels_.push_back(item.shortcut ? format_chord(*item.shortcut, format) : std::string{});
+        access_keys_.push_back(access_key_for(item.label, item.access_key));
         children_.push_back(std::move(child));
-        items_.push_back({std::move(label), std::move(item.leading_icon), std::move(access), std::move(shortcut), {},
+        items_.push_back({std::nullopt, std::move(item.leading_icon), std::nullopt, std::nullopt, {},
                           motion::Animated(0.0, current_style().motion.fast_effects()), Enablement(item.enabled), item.divider_before});
     }
+    layout_items();
+}
+
+void Menu::layout_items() {
+    const auto style = current_style().type.text(t().label);
+    double content = 0.0;
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        Item& item = items_[i];
+        double w = 2.0 * t().item_horizontal_padding;
+        if (!names_[i].empty()) {
+            item.label = text::layout_line(fonts_, names_[i], style);
+            w += item.label->width;
+            if (access_keys_[i]) {
+                item.access = access_key_label(fonts_, names_[i], *item.label, *access_keys_[i]);
+                w += item.access->suffix_width();
+            }
+        }
+        if (item.icon) {
+            w += t().icon_size + t().icon_text_space;
+        }
+        if (children_[i]) {
+            w += t().trailing_space + t().trailing_icon_size;
+        } else if (!shortcut_labels_[i].empty()) {
+            item.shortcut = text::layout_line(fonts_, shortcut_labels_[i], style);
+            w += t().trailing_space + std::max(t().trailing_icon_size, item.shortcut->width);
+        }
+        content = std::max(content, w);
+    }
     width_ = std::clamp(content, t().item_min_width, t().item_max_width);
+}
+
+void Menu::restyle() {
+    style_stamp_.refresh();
+    popup_.restyle(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects());
+    focus_.restyle();
+    access_keys_fade_.set_spec(current_style().motion.fast_effects());
+    for (Item& item : items_) {
+        item.state_layer.set_spec(current_style().motion.fast_effects());
+        item.enabled.restyle();
+    }
+    for (auto& c : children_) {
+        if (c) {
+            c->restyle();
+        }
+    }
+    layout_items();
+    if (position_ && popup_.is_open()) {
+        origin_ = position_({width_, height()});
+        pivot_ = menu_transform_origin(anchor_, bounds());
+    }
 }
 
 void Menu::set_density(tokens::Density density) {
@@ -199,9 +224,11 @@ render::Rect Menu::item_rect(std::size_t index) const {
     return {origin_.x, origin_.y + item_top(index), width_, item_height()};
 }
 
-void Menu::place(render::Point origin, const render::Rect& anchor, layout::Size window, input::InputSource source) {
+void Menu::place(std::function<render::Point(layout::Size)> position, const render::Rect& anchor, layout::Size window, input::InputSource source) {
     close_child();
-    origin_ = origin;
+    position_ = std::move(position);
+    anchor_ = anchor;
+    origin_ = position_({width_, height()});
     window_ = window;
     pivot_ = menu_transform_origin(anchor, bounds());
     popup_.open();
@@ -215,15 +242,17 @@ void Menu::place(render::Point origin, const render::Rect& anchor, layout::Size 
 }
 
 void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSource source) {
-    place(menu_position(anchor, window, {width_, height()}), anchor, window, source);
+    place([anchor, window](layout::Size size) { return menu_position(anchor, window, size); }, anchor, window, source);
 }
 
 void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSource source, double horizontal_margin, double vertical_margin) {
-    place(menu_position(anchor, window, {width_, height()}, horizontal_margin, vertical_margin), anchor, window, source);
+    place([anchor, window, horizontal_margin, vertical_margin](layout::Size size) {
+        return menu_position(anchor, window, size, horizontal_margin, vertical_margin);
+    }, anchor, window, source);
 }
 
 void Menu::open_at(render::Point at, layout::Size window, input::InputSource source) {
-    place(context_menu_position(at, window, {width_, height()}), {at.x, at.y, 0.0, 0.0}, window, source);
+    place([at, window](layout::Size size) { return context_menu_position(at, window, size); }, {at.x, at.y, 0.0, 0.0}, window, source);
 }
 
 void Menu::open_child(std::size_t index, input::InputSource source) {
@@ -240,7 +269,7 @@ void Menu::open_child(std::size_t index, input::InputSource source) {
     close_child();
     Menu& c = *children_[index];
     const render::Rect item = item_rect(index);
-    c.place(submenu_position(item, window_, {c.width_, c.height()}), item, window_, source);
+    c.place([item, window = window_](layout::Size size) { return submenu_position(item, window, size); }, item, window_, source);
     open_child_ = index;
     retarget();
 }
@@ -538,6 +567,9 @@ void Menu::reveal_access_keys() {
 }
 
 void Menu::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     popup_.step(dt);
     focus_.step(dt);
     access_keys_fade_.step(dt);

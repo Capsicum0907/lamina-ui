@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <string>
@@ -104,6 +105,7 @@ public:
     MenuResponse handle(const input::PointerEvent& event);
     MenuResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -121,10 +123,11 @@ private:
     };
 
     void set_active(std::optional<std::size_t> index);
+    void layout_items();
     void retarget();
     std::vector<std::optional<input::Key>> enabled_access_keys() const;
     void reveal_access_keys();
-    void place(render::Point origin, const render::Rect& anchor, layout::Size window, input::InputSource source);
+    void place(std::function<render::Point(layout::Size)> position, const render::Rect& anchor, layout::Size window, input::InputSource source);
     double item_top(std::size_t index) const;
     double divider_height() const;
     void open_child(std::size_t index, input::InputSource source);
@@ -155,6 +158,9 @@ private:
     tokens::Density density_{};
     render::Point pivot_{0.0, 0.0};
     PopupTransition popup_;
+    std::function<render::Point(layout::Size)> position_;
+    render::Rect anchor_{0.0, 0.0, 0.0, 0.0};
+    StyleStamp style_stamp_;
 };
 
 }

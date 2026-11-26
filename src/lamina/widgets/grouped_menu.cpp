@@ -48,64 +48,18 @@ tokens::Corners menu_item_corners(std::size_t index, std::size_t count) {
 GroupedMenu::GroupedMenu(GroupedMenuOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(options.accessible_name),
       popup_(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects()) {
-    const auto item_style = current_style().type.text(t().label);
-    const auto group_label_style = current_style().type.text(t().group_label);
-    double content = 0.0;
-    double y = 0.0;
-    for (std::size_t g = 0; g < options.groups.size(); ++g) {
-        MenuGroup& spec = options.groups[g];
-        Group group{std::nullopt, spec.label, 0.0, 0.0, std::nullopt, spec.selection, {}, y, 0.0, false, false, corner_springs()};
-        double gy = t().group_vertical_padding;
-        if (!spec.label.empty()) {
-            group.label = text::layout_line(fonts_, spec.label, group_label_style);
-            group.label_y = gy;
-            group.label_height = std::max(t().group_label_min_height, group.label->style.line_height);
-            gy += group.label_height;
-            content = std::max(content, std::clamp(t().group_label_start_padding + group.label->width + t().group_label_end_padding,
-                                                   t().item_min_width, t().item_max_width));
-        }
-        if (spec.divider) {
-            group.divider_y = gy + t().divider_vertical_padding;
-            gy += 2.0 * t().divider_vertical_padding + t().divider_thickness;
-        }
+    for (MenuGroup& spec : options.groups) {
+        Group group{std::nullopt, spec.label, 0.0, 0.0, std::nullopt, spec.selection, {}, 0.0, 0.0, false, false, corner_springs(), spec.divider};
         for (GroupedMenuItem& item : spec.items) {
-            std::optional<text::TextLine> label;
-            std::optional<AccessKeyLabel> access;
-            const std::optional<input::Key> key = access_key_for(item.label, item.access_key);
-            double w = 2.0 * t().item_horizontal_padding;
-            double h = 0.0;
-            if (!item.label.empty()) {
-                label = text::layout_line(fonts_, item.label, item_style);
-                w += label->width;
-                h = label->style.line_height;
-                if (key) {
-                    access = access_key_label(fonts_, item.label, *label, *key);
-                    w += access->suffix_width();
-                }
-            }
-            if (item.leading_icon) {
-                w += t().leading_icon_size + t().icon_text_space;
-                h = std::max(h, t().leading_icon_size);
-            }
-            if (item.trailing_icon) {
-                w += t().icon_text_space + t().trailing_icon_size;
-                h = std::max(h, t().trailing_icon_size);
-            }
-            content = std::max(content, std::clamp(w, t().item_min_width, t().item_max_width) + 2.0 * t().item_horizontal_inset);
-            const double height = std::max(t().item_min_height, h + 2.0 * t().item_vertical_padding);
             const double on = item.selected ? 1.0 : 0.0;
-            access_keys_.push_back(key);
-            group.items.push_back({std::move(label), std::move(item.leading_icon), std::move(item.selected_leading_icon),
-                                   std::move(item.trailing_icon), std::move(access), item.selected, gy, height, {},
-                                   motion::Animated(0.0, current_style().motion.fast_effects()), motion::Animated(on, current_style().motion.fast_effects()),
-                                   corner_springs(), Enablement(item.enabled), item.label});
-            gy += height;
+            access_keys_.push_back(access_key_for(item.label, item.access_key));
+            group.items.push_back({std::nullopt, std::move(item.leading_icon), std::move(item.selected_leading_icon), std::move(item.trailing_icon),
+                                   std::nullopt, item.selected, 0.0, 0.0, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
+                                   motion::Animated(on, current_style().motion.fast_effects()), corner_springs(), Enablement(item.enabled), item.label});
         }
-        group.height = gy + t().group_vertical_padding;
-        y += group.height + t().group_gap;
         groups_.push_back(std::move(group));
     }
-    width_ = content;
+    layout_groups();
     for (std::size_t g = 0; g < groups_.size(); ++g) {
         groups_[g].corners.snap_to(group_target(g));
         for (std::size_t i = 0; i < groups_[g].items.size(); ++i) {
@@ -194,9 +148,15 @@ void GroupedMenu::choose(std::size_t group, std::size_t item) {
     }
 }
 
+void GroupedMenu::place() {
+    origin_ = menu_position(anchor_, window_, {width_, height()}, t().window_horizontal_margin, t().window_vertical_margin);
+    pivot_ = menu_transform_origin(anchor_, bounds());
+}
+
 void GroupedMenu::open(const render::Rect& anchor, layout::Size window, input::InputSource source) {
-    origin_ = menu_position(anchor, window, {width_, height()}, t().window_horizontal_margin, t().window_vertical_margin);
-    pivot_ = menu_transform_origin(anchor, bounds());
+    anchor_ = anchor;
+    window_ = window;
+    place();
     if (popup_.open()) {
         for (std::size_t g = 0; g < groups_.size(); ++g) {
             groups_[g].hovered = false;
@@ -407,7 +367,88 @@ void GroupedMenu::reveal_access_keys() {
     access_keys_fade_.animate_to(1.0);
 }
 
+void GroupedMenu::layout_groups() {
+    const auto item_style = current_style().type.text(t().label);
+    const auto group_label_style = current_style().type.text(t().group_label);
+    double content = 0.0;
+    double y = 0.0;
+    std::size_t flat = 0;
+    for (Group& group : groups_) {
+        group.y = y;
+        double gy = t().group_vertical_padding;
+        if (!group.name.empty()) {
+            group.label = text::layout_line(fonts_, group.name, group_label_style);
+            group.label_y = gy;
+            group.label_height = std::max(t().group_label_min_height, group.label->style.line_height);
+            gy += group.label_height;
+            content = std::max(content, std::clamp(t().group_label_start_padding + group.label->width + t().group_label_end_padding,
+                                                   t().item_min_width, t().item_max_width));
+        }
+        if (group.divider) {
+            group.divider_y = gy + t().divider_vertical_padding;
+            gy += 2.0 * t().divider_vertical_padding + t().divider_thickness;
+        }
+        for (Item& item : group.items) {
+            const std::optional<input::Key> key = access_keys_[flat++];
+            double w = 2.0 * t().item_horizontal_padding;
+            double h = 0.0;
+            if (!item.name.empty()) {
+                item.label = text::layout_line(fonts_, item.name, item_style);
+                w += item.label->width;
+                h = item.label->style.line_height;
+                if (key) {
+                    item.access = access_key_label(fonts_, item.name, *item.label, *key);
+                    w += item.access->suffix_width();
+                }
+            }
+            if (item.leading_icon) {
+                w += t().leading_icon_size + t().icon_text_space;
+                h = std::max(h, t().leading_icon_size);
+            }
+            if (item.trailing_icon) {
+                w += t().icon_text_space + t().trailing_icon_size;
+                h = std::max(h, t().trailing_icon_size);
+            }
+            content = std::max(content, std::clamp(w, t().item_min_width, t().item_max_width) + 2.0 * t().item_horizontal_inset);
+            item.y = gy;
+            item.height = std::max(t().item_min_height, h + 2.0 * t().item_vertical_padding);
+            gy += item.height;
+        }
+        group.height = gy + t().group_vertical_padding;
+        y += group.height + t().group_gap;
+    }
+    width_ = content;
+}
+
+void GroupedMenu::restyle() {
+    style_stamp_.refresh();
+    popup_.restyle(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects());
+    focus_.restyle();
+    access_keys_fade_.set_spec(current_style().motion.fast_effects());
+    layout_groups();
+    if (popup_.is_open()) {
+        place();
+    }
+    for (std::size_t g = 0; g < groups_.size(); ++g) {
+        Group& group = groups_[g];
+        group.corners.set_spec(current_style().motion.fast_spatial());
+        for (Item& item : group.items) {
+            item.state_layer.set_spec(current_style().motion.fast_effects());
+            item.selection.set_spec(current_style().motion.fast_effects());
+            item.corners.set_spec(current_style().motion.fast_spatial());
+            item.enabled.restyle();
+        }
+        retarget_group(g);
+        for (std::size_t i = 0; i < group.items.size(); ++i) {
+            retarget_item(g, i);
+        }
+    }
+}
+
 void GroupedMenu::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     popup_.step(dt);
     focus_.step(dt);
     access_keys_fade_.step(dt);

@@ -98,6 +98,7 @@ public:
     GroupedMenuResponse handle(const input::PointerEvent& event);
     GroupedMenuResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -133,8 +134,11 @@ private:
         bool hovered;
         bool has_been_hovered;
         motion::AnimatedRadii corners;
+        bool divider = false;
     };
 
+    void layout_groups();
+    void place();
     render::CornerRadii group_target(std::size_t group) const;
     render::CornerRadii item_target(std::size_t group, std::size_t item) const;
     void retarget_group(std::size_t group);
@@ -161,6 +165,9 @@ private:
     bool access_keys_shown_ = false;
     motion::Animated access_keys_fade_{0.0, current_style().motion.fast_effects()};
     FocusIndicator focus_;
+    render::Rect anchor_{0.0, 0.0, 0.0, 0.0};
+    layout::Size window_{0.0, 0.0};
+    StyleStamp style_stamp_;
 };
 
 }
