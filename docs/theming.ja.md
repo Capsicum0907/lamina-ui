@@ -22,7 +22,7 @@
 
 `lamina/tokens/motion.hpp`：standard と expressive の二つの動きの体系の、ばね・緩急・時間のトークン。どちらの体系も、Compose の `MotionScheme` と同じく6つのばねに役割の名前を付けています（`fast_spatial()`・`default_spatial()`・`slow_spatial()`・`fast_effects()`・`default_effects()`・`slow_effects()`）。部品はどれも、使っているスタイルの `motion`（[スタイル](#スタイル)）からばねを取ります。Material 3 Expressive のスタイルでは、これは expressive の体系（`tokens::motion_scheme`）です。
 
-`lamina/motion/easing.hpp`・`lamina/motion/tween.hpp`：3 次ベジェの緩急（`ease(curve, fraction)`。Compose の `CubicBezierEasing`）と、決まった時間で曲線に沿って目標へ動く値 `Tweened`。Compose がばねでなくトゥイーンで動かす、チップとカードの高さ（影）と、2 段のアプリバーの題名の消え方に使います。`tokens::CubicBezier` は `motion::CubicBezier` です。
+`lamina/motion/easing.hpp`・`lamina/motion/tween.hpp`：3 次ベジェの緩急（`ease(curve, fraction)`。Compose の `CubicBezierEasing`）と、決まった時間で曲線に沿って目標へ動く値 `Tweened`。Compose がばねでなくトゥイーンで動かす、チップとカードの高さ（影）と、2 段のアプリバーの題名の消え方に使います。`ease_inverse(curve, eased)` は、曲線が緩急をつけた値に届く割合を返します。`Tweened::retime(spec)` と `retimed_elapsed(running, elapsed, next)` は、動いているトゥイーンを別の長さと曲線に移します（[スタイルが変わったとき](#スタイルが変わったとき)）。`tokens::CubicBezier` は `motion::CubicBezier` です。
 
 `lamina/motion/spring.hpp`：減衰するばね。解を式で直接求めます。`advance` は値を目標に向けて好きな時間だけ進めます。時間をどうコマに分けても結果は変わりません。`is_settled` は動きが止まったかを判定します。
 
@@ -79,9 +79,19 @@ window.set_style(quiet);
 
 スタイルでなく状態に属するものは、部品が持ったままにします。分割した区画の仕切りの位置、拡大の表示の倍率と位置、期間を選ぶ表が見せている月（新しい月の高さで同じ所まで送ります）、伸び縮みする下のアプリバーのたたみ具合です。選んだタブを真ん中に見せていた送れるタブの列は、もう一度真ん中に見せます。ほかの所へ送ってあれば、そのままです。
 
-すでに動いているドロワー・レール・下のシートの滑りは、今の位置と速さから新しいスタイルのばねで続けます（`AnchoredDraggable::retune`）。下のシートは、出るところか、隠れるところか、収まるところかを覚えていて、ばねを選びます。スタイルが変わっても、まだ動きに付いてこないところがあります。
+すでに動いているドロワー・レール・下のシートの滑りは、今の位置と速さから新しいスタイルのばねで続けます（`AnchoredDraggable::retune`）。下のシートは、出るところか、隠れるところか、収まるところかを覚えていて、ばねを選びます。
 
-- 動いている途中の時間で決まる動き（トゥイーン）は、始めたときの長さと曲線で終わり、次の動きから新しいスタイルのものを使います。引きずった後のドロワーの収まり、横のシートの滑り、波形の進み具合の表示の動き、チップとカードの浮き上がりの動きです。
+動いている途中の、時間で決まる動き（トゥイーン）は、今いる所から、同じ動きの新しいスタイルのトゥイーンで続けます。引きずった後のドロワーの収まり、横のシートの滑り、波形の進み具合の表示の進み・波の高さ・受け渡しの動き、チップとカードの浮き上がりの動き、引っぱって更新の矢印の濃さと回る印への移り変わり、スライダーと範囲のスライダーの値の吹き出しです。部品は、動いているトゥイーンをどのトークンから取ったかを覚えています（浮き上がりは、上がるところか、ポインターが離れて下がるところか、押す・フォーカスが終わって下がるところか。波の高さは、上がるところか下がるところか。円の受け渡しは、1 周の残りがどれだけだったか）。そして新しいスタイルの値を `Tweened::retime` か `AnchoredDraggable::retune(TweenSpec)` に渡します。トゥイーンは始まりと行き先をそのままにし、長さと曲線、それに進んだ時間だけを替えます。
+
+- 曲線が同じなら、進んだ割合 `p`（進んだ時間を長さで割ったもの）をそのままにし、新しい長さの残り `新しい長さ × (1 − p)` をかけて動きます。
+- 曲線が違うなら、古い曲線が `p` で出す緩急をつけた値 `e` を取り、新しい曲線が `e` を出す割合 `p'` を二分法で探し（`ease_inverse`）、`新しい長さ × (1 − p')` をかけて動きます。切り替えた時点で、緩急をつけた値は変わらず、なので位置も変わりません。
+- 新しい長さが 0 以下なら、行き先で終わります。
+- 長さも曲線も同じなら、何も変えません。なので、何も変えない読み直しでは、どのトゥイーンもそのままです。
+
+位置はつながりますが、速さはつながりません。切り替えた後は、新しい曲線の `p'` での傾きと新しい長さで動きます。曲線が同じで長さが半分なら、2 倍の速さで動きます。二分法は、どの曲線でも 0 から 1 までの緩急をつけた値に届く割合を見つけます。動きのトークンの曲線はどれも終わりまで上がり続けるので、その割合は一つに決まります。行き過ぎる曲線だけが出す 0 より小さい値や 1 より大きい値は 0 か 1 として扱うので、そういうトゥイーンは始まりへ跳ぶか、行き先で終わります。スタイルが変わって行き先が動くとき（アンカーが動くシート、高さが変わる浮き上がり）は、これまでどおり今の値から新しい長さと曲線でトゥイーンを始め直します。
+
+スタイルが変わっても、まだ動きに付いてこないところがあります。
+
 - 引きずりは、始めたときの速さの測り方のままです。`TouchScroll`・`ZoomView`・`PaneExpansionState` の速さの測り方は、作ったときのトークンのままです。`AnchoredDraggable` は、次に押したときから新しいものを使います。
 - 部品が中の部品にオプションだけで渡す値は、作ったときのままです。ツールチップの動作のボタンの種類・大きさ・色、ツールバーと下のアプリバーのボタンの中身の色、横のシート・検索バー・日付の選択の見出しのボタンの大きさと中身の色、ドックした日付の選択の入力欄のいちばん小さな幅です。中の部品は、自分のトークンを読み直します。
 
@@ -115,6 +125,7 @@ window.set_style(quiet);
 - 上の一覧の部品に、公開の `restyle()` が増えました。`Menu` と `GroupedMenu` は開いたときの基準の場所を覚え、`Menu` には `reposition` が増えました。`TextField` はプログラムを始めたときのスタイルからトークンを読んでいましたが、ほかの部品と同じく今のスタイルから読むようになりました。
 - `loading_indicator_morphs()` と `loading_indicator_scale()` は、初めて呼んだときのスタイルの形を持ったままでしたが、今のスタイルの形を返すようになりました。円の波形の進み具合の表示の形も同じです。
 - `Button` に、`set_padding`・`set_min_width`・`set_icon_size`・`set_checked_overlay` が増えました。分割ボタンは、これで左右のボタンに新しいスタイルの余白・いちばん小さな幅・アイコンの大きさ・重ねを渡します。`WidgetSet` に `restyle()`、`widgets/protocol.hpp` に `Restylable` の約束、`DialogPane` に既定では何もしない仮想の `restyle()`、`AnchoredDraggable` に `retune`、`BottomAppBarState` に `restyle(limit)` が増えました。`DialogPane` を継いだクラスが、別の形の `restyle` を自分で宣言していると、元のものが隠れます。
+- `Tweened` に `retime`・`origin`・`elapsed`・`spec`、`motion/tween.hpp` に `retimed_elapsed`、`motion/easing.hpp` に `ease_inverse`・`ease_solve_iterations`・`ease_solve_tolerance` が増えました。`CubicBezier` と `TweenSpec` は `==` で比べられます。`AnchoredDraggable::retune` に `TweenSpec` を取る形が増えました。動いているトゥイーンの時間を合わせ直し、動いているばねには何もしません。ばねを取る形が動いているトゥイーンに何もしないのと同じです。`WavyProgressCore` に仮想の `handoff_motion()`（受け渡しのトゥイーン）が増えました。継いだクラスが替えなければ、進みのトゥイーンです。`ValueIndicator` に `restyle()`、`RangeSlider` に `value_indicator_scale(thumb)` が増えました。
 - `set_width` を呼んでいない `LinearWavyProgressIndicator` と、`set_size` を呼んでいない `CircularWavyProgressIndicator` は、`restyle()` で新しいスタイルの幅か大きさを取ります。プログラムが大きさを決めたものは、その大きさのままです。
 - `ListViewOptions` の最後に新しいメンバー `dividers` が入りました。重なった面は入れ物を新しい `paint_container` で描きます。`paint_surface` は変わりません。
 
