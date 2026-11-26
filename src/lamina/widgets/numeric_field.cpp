@@ -407,7 +407,23 @@ void NumericField::cancel_interaction() {
     editor_.cancel_interaction();
 }
 
+void NumericField::restyle() {
+    style_stamp_.refresh();
+    label_ = text::layout_line(fonts_, options_.label, style_of(t().label_type));
+    unit_ = text::layout_line(fonts_, options_.unit, style_of(current_style().text_field.input_type));
+    enabled_.restyle();
+    hover_.set_spec(t().color_spring);
+    focus_.set_spec(t().color_spring);
+    error_amount_.set_spec(t().color_spring);
+    editor_.set_density(t().editor_density);
+    editor_.restyle();
+    place_editor();
+}
+
 void NumericField::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     editor_.step(dt);
     enabled_.step(dt);
     hover_.step(dt);

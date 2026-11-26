@@ -27,6 +27,7 @@
 #include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/navigation_suite.hpp"
 #include "lamina/widgets/nodes.hpp"
+#include "lamina/widgets/numeric_field.hpp"
 #include "lamina/widgets/pager.hpp"
 #include "lamina/widgets/pane_scaffold.hpp"
 #include "lamina/widgets/progress_indicator.hpp"
@@ -688,4 +689,16 @@ TEST_CASE("a zoom view without its own tokens reads the active style's and settl
     const widgets::ZoomView given(own);
     const StyleScope scope(restyle_test_style());
     CHECK(&given.tokens() == &m3_expressive_style().zoom);
+}
+
+TEST_CASE("a numeric field lays out its label, value and unit again and outlines its focus with the new style's springs") {
+    auto make = [] {
+        widgets::NumericFieldOptions o{"Width", 42.0};
+        o.unit = "px";
+        return placed(std::make_unique<widgets::NumericField>(std::move(o), fonts()));
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_numeric_field");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::NumericField& w) { w.set_focused(true); }));
 }

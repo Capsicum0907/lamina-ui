@@ -84,6 +84,7 @@ public:
     NumericFieldResponse handle(const input::KeyEvent& event);
     void handle(const input::TextEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -119,6 +120,7 @@ private:
     motion::Animated hover_;
     motion::Animated focus_;
     motion::Animated error_amount_;
+    StyleStamp style_stamp_;
 };
 
 }
