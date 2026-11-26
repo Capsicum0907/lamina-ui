@@ -88,7 +88,7 @@ A running tween goes on from where it is with the new style's tween for the same
 - With a new duration of zero or less, it ends at its target.
 - With the same spec, nothing changes, so a restyle that changes nothing keeps every tween exactly as it was.
 
-The position is continuous; the velocity is not. After the switch the tween moves at the new curve's slope at `p'` over the new duration, so with the same curve and half the duration it moves twice as fast. The bisection finds a progress for an eased value from 0 to 1 on any curve; the curves of the motion tokens rise all the way, so that progress is the only one. An eased value below 0 or above 1, which only a curve that overshoots gives, is taken as 0 or 1, so such a tween jumps back to its start or ends at its target. A style change that moves a tween's target (a sheet whose anchors move, an elevation whose level changes) starts a new tween from the current value with the new spec, as before.
+The position is continuous; the velocity is not. After the switch the tween moves at the new curve's slope at `p'` over the new duration, so with the same curve and half the duration it moves twice as fast. The bisection finds a progress for an eased value from 0 to 1 on any curve; the curves of the motion tokens rise all the way, so that progress is the only one. An eased value below 0 or above 1, which only a curve that overshoots gives, is taken as 0 or 1, so such a tween jumps back to its start or ends at its target. A style change that moves a tween's target (a sheet whose anchors move, an elevation whose level changes) starts a new tween from the current value with the new spec and its full duration.
 
 A few things still do not move with a style change:
 
