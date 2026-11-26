@@ -112,7 +112,7 @@ window.set_style(quiet);
 
 スタイルに入れていないもの：窓の描画の設定（`tokens::raster`）、フレームの統計の表示（`tokens::frame_stats`）、アイコンのフォントの軸（`tokens::symbol_axes`）、密度の刻み（`tokens::density_interval`）、動画のトークン、ショートカットの書き方（`tokens::default_shortcut_format()`、OS で決まります）。描画面と文字の並べ方はスタイルを読みません。
 
-### 次のリリースで互換性が変わるところ
+### 0.4.0 で互換性が変わるところ
 
 - `lamina::Style` は `namespace lamina` の新しい名前です。`using namespace lamina;` を書いて、名前空間の範囲で自分の `Style` を宣言しているファイルでは、名前があいまいになります。どちらかの名前を変えるか、修飾してください。レイアウトの見本の `Style` は `LayoutStyle` にしました。
 - 既定の値をトークンから取るオプションの構造体（`ButtonGroupOptions::expanded_ratio`・`ChipGroupOptions::spacing` など）は、その構造体を作ったときに使っているスタイルから既定の値を取ります。`badge_count` の `max` のような引数の既定の値は、呼んだときに使っているスタイルから取ります。
