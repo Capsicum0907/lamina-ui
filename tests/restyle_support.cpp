@@ -49,6 +49,18 @@ const Style& restyle_test_style() {
         s.button.toggle_motion.colors = restyle_spring;
         s.button.toggle_motion.border_width = restyle_spring;
         s.button.toggle_motion.shape = restyle_spring;
+        for (motion::SpringSpec* spring : {&s.chip.motion.slot_expand, &s.chip.motion.slot_shrink, &s.chip.motion.slot_fade_in, &s.chip.motion.slot_fade_out,
+                                           &s.chip.motion.colors, &s.chip.motion.state_layer, &s.chip.motion.group_move, &s.chip.motion.group_presence,
+                                           &s.card.common.state_layer_spring, &s.side_navigation.expansion, &s.side_navigation.selection,
+                                           &s.side_navigation.colors, &s.side_navigation.state_layer_spring, &s.navigation_suite.spring,
+                                           &s.top_app_bar.common.container_spring, &s.top_app_bar.common.snap_spring, &s.navigation_drawer_motion.colors,
+                                           &s.modal_navigation_rail.scrim, &s.pager.settle_spring, &s.pull_to_refresh.settle_spring,
+                                           &s.fab.extended_motion.width, &s.fab.extended_motion.label_alpha, &s.segmented_button_motion.label_shift,
+                                           &s.segmented_button_motion.check_scale, &s.segmented_button_motion.check_fade,
+                                           &s.segmented_button_motion.icon_crossfade, &s.segmented_button_motion.colors,
+                                           &s.segmented_button_motion.state_layer}) {
+            *spring = restyle_spring;
+        }
         return s;
     }();
     return style;

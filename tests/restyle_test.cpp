@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/button_group.hpp"
