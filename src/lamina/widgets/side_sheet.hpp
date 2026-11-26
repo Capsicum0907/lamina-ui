@@ -101,6 +101,7 @@ public:
     bool handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -134,6 +135,7 @@ private:
     bool tracking_ = false;
     bool content_claimed_ = false;
     bool enabled_ = true;
+    StyleStamp style_stamp_;
 };
 
 }

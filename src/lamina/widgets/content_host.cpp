@@ -118,6 +118,14 @@ void ContentHost::cancel_interaction() {
     }
 }
 
+void ContentHost::restyle() {
+    scroll_.restyle();
+    if (widgets()) {
+        widgets()->restyle();
+    }
+    relayout();
+}
+
 void ContentHost::step(double dt) {
     if (empty()) {
         return;

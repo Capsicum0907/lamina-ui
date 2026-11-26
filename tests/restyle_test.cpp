@@ -41,6 +41,7 @@
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/side_navigation.hpp"
+#include "lamina/widgets/side_sheet.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/snackbar.hpp"
 #include "lamina/widgets/split_button.hpp"
@@ -869,4 +870,39 @@ TEST_CASE("a running slide of a drawer or a rail goes on from where it is with t
     CHECK(kept.first == switched.first);
     CHECK(kept.first < 0.0);
     CHECK(kept.second != switched.second);
+}
+
+namespace {
+
+template <typename Sheet>
+struct SheetRig {
+    widgets::WidgetSet body;
+    layout::NodePtr node;
+    std::unique_ptr<Sheet> sheet;
+
+    SheetRig() { node = layout::column({widgets::node(body.emplace<widgets::Button>(widgets::ButtonOptions{"Inside", ButtonStyle::tonal}, fonts()))}); }
+    widgets::ContentSlot slot() { return {node, &body, nullptr}; }
+    void step(double dt) { sheet->step(dt); }
+    render::Rect bounds() const { return sheet->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const { sheet->paint(c, s); }
+};
+
+}
+
+TEST_CASE("an open side sheet lays out its headline, buttons and content again after a style change") {
+    const render::Rect area{0.0, 0.0, static_cast<double>(restyle_canvas_width), 320.0};
+    const RestyleResult r = restyle_round([&] {
+        auto rig = std::make_unique<SheetRig<widgets::SideSheet>>();
+        widgets::SideSheetOptions o;
+        o.headline = "Filters";
+        o.close = widgets::SideSheetIcon{icon(res::icons::close), "Close"};
+        o.actions = {widgets::ButtonOptions{"Apply"}, widgets::ButtonOptions{"Reset", ButtonStyle::outlined}};
+        o.content = rig->slot();
+        o.initial = widgets::SideSheetValue::expanded;
+        rig->sheet = std::make_unique<widgets::SideSheet>(std::move(o), fonts());
+        rig->sheet->set_area(area);
+        return rig;
+    }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_side_sheet");
+    check_round(r);
 }

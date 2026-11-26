@@ -389,7 +389,20 @@ void SideSheet::cancel_interaction() {
     scrim_pressed_ = false;
 }
 
+void SideSheet::restyle() {
+    style_stamp_.refresh();
+    headline_ = text::layout_line(fonts_, options_.headline, current_style().type.text(t().headline_type));
+    each_button([](auto& b) { b.restyle(); });
+    content_.restyle();
+    drag_.set_gesture(current_style().gesture.drag);
+    update_anchors();
+    place();
+}
+
 void SideSheet::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     drag_.step(dt);
     place();
     each_button([dt](auto& b) { b.step(dt); });
