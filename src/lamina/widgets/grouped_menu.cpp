@@ -9,6 +9,7 @@
 #include "lamina/tokens/motion.hpp"
 #include "lamina/widgets/item_focus.hpp"
 #include "lamina/widgets/menu.hpp"
+#include "lamina/widgets/scrim.hpp"
 #include "lamina/widgets/surface.hpp"
 
 namespace lamina::widgets {
@@ -479,6 +480,7 @@ void GroupedMenu::paint(render::Canvas& canvas, const color::ColorScheme& scheme
         return;
     }
     const double a = opacity();
+    paint_receded_backdrop(canvas, {0.0, 0.0, window_.width, window_.height}, scheme, a);
     canvas.save();
     popup_.scale_about(canvas, pivot_);
     const color::ColorScheme s = color::faded(scheme, a);

@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/list_view.hpp"
 #include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
@@ -99,6 +100,40 @@ std::unique_ptr<thorvg::Canvas> paint_menu(const Style& style, const char* shot)
     return canvas;
 }
 
+template <typename Make>
+std::pair<RestyleShot, RestyleShot> switched_and_built(const Style& style, Make make, RestyleCanvas size) {
+    std::pair<RestyleShot, RestyleShot> r;
+    auto w = make();
+    settle_widget(*w);
+    {
+        const StyleScope scope(style);
+        settle_widget(*w);
+        r.first = shoot(*w, size);
+    }
+    const StyleScope scope(style);
+    auto b = make();
+    settle_widget(*b);
+    r.second = shoot(*b, size);
+    return r;
+}
+
+void check_switched_as_built(const std::pair<RestyleShot, RestyleShot>& r) {
+    CHECK(r.first.bounds.x == r.second.bounds.x);
+    CHECK(r.first.bounds.y == r.second.bounds.y);
+    CHECK(r.first.bounds.width == r.second.bounds.width);
+    CHECK(r.first.bounds.height == r.second.bounds.height);
+    CHECK((r.first.pixels == r.second.pixels));
+}
+
+constexpr RestyleCanvas menu_canvas{menu_window_width, menu_window_height};
+
+std::unique_ptr<widgets::GroupedMenu> grouped_menu() {
+    widgets::GroupedMenuOptions o{{{{{"Bold"}, {"Italic", std::nullopt, std::nullopt, std::nullopt, true}}, "Style"}, {{{"Copy"}, {"Paste"}}}}};
+    auto m = std::make_unique<widgets::GroupedMenu>(std::move(o), fonts());
+    m->open(menu_anchor, {static_cast<double>(menu_window_width), static_cast<double>(menu_window_height)});
+    return m;
+}
+
 std::vector<widgets::DrawerEntry> drawer_entries() {
     const icons::Icon inbox{icon_font(), res::icons::add};
     return {widgets::drawer_headline("Mail"), {widgets::DrawerEntryKind::item, "Inbox", inbox}, {widgets::DrawerEntryKind::item, "Outbox", inbox}};
@@ -179,4 +214,27 @@ TEST_CASE("with receding layers an open modal drawer pushes the content by its w
     const double shift = paint_drawer(with_receding_layers(), "layering_drawer_recede");
     CHECK(shift > 0.0);
     CHECK(shift == doctest::Approx(m3_expressive_style().navigation_drawer.max_width * m3_expressive_style().layering.drawer_push));
+}
+
+TEST_CASE("with receding layers a grouped menu takes the receded container and dims what is behind it") {
+    auto paint = [](const Style& style, const char* shot) {
+        const StyleScope scope(style);
+        auto m = grouped_menu();
+        settle_widget(*m);
+        auto canvas = std::make_unique<thorvg::Canvas>(menu_window_width, menu_window_height);
+        canvas->clear(restyle_background);
+        m->paint(*canvas, scheme());
+        save_shot(*canvas, shot);
+        return canvas;
+    };
+    auto a = paint(m3_expressive_style(), "layering_grouped_menu_default");
+    auto b = paint(with_receding_layers(), "layering_grouped_menu_recede");
+    CHECK(a->pixel(menu_window_width - 1, menu_window_height - 1) == restyle_background);
+    CHECK(b->pixel(menu_window_width - 1, menu_window_height - 1) != restyle_background);
+    CHECK(count_color(*b, scheme()[m3_expressive_style().grouped_menu.group_container]) * stray_pixel_ratio <
+          count_color(*a, scheme()[m3_expressive_style().grouped_menu.group_container]));
+}
+
+TEST_CASE("a grouped menu built under the M3 style and switched to receding layers paints as one built under receding layers") {
+    check_switched_as_built(switched_and_built(with_receding_layers(), grouped_menu, menu_canvas));
 }
