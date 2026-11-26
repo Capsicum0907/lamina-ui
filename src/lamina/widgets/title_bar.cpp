@@ -29,6 +29,7 @@ double pressed_corner() {
 
 TitleBar::TitleBar(TitleBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
+      fonts_(fonts),
       title_({options_.title, current_style().title_bar.title, current_style().title_bar.title_color, false}, fonts),
       buttons_{{
           {button_order[0], {}, {0.0, current_style().motion.fast_effects()}, {0.0, current_style().motion.fast_effects()}, {resting_corner(), current_style().motion.fast_spatial()}},
@@ -117,7 +118,23 @@ void TitleBar::cancel_interaction() {
     }
 }
 
+void TitleBar::restyle() {
+    style_stamp_.refresh();
+    title_ = Label({title_.text(), current_style().title_bar.title, current_style().title_bar.title_color, false}, fonts_);
+    active_.set_spec(current_style().motion.default_effects());
+    for (Button& b : buttons_) {
+        b.state_layer.set_spec(current_style().motion.fast_effects());
+        b.emphasis.set_spec(current_style().motion.fast_effects());
+        b.corner.set_spec(current_style().motion.fast_spatial());
+        retarget(b);
+    }
+    set_origin(origin_);
+}
+
 void TitleBar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     active_.step(dt);
     for (Button& b : buttons_) {
         b.state_layer.step(dt);

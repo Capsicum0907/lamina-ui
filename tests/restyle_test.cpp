@@ -37,6 +37,7 @@
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina/widgets/title_bar.hpp"
 #include "lamina/widgets/tooltip.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
@@ -573,4 +574,20 @@ TEST_CASE("a shown rich tooltip lays out its text and action again and stays by 
     }, {restyle_canvas_width, 320});
     save_round(r, "restyle_tooltip");
     check_round(r);
+}
+
+TEST_CASE("a title bar lays out its title again and fades its buttons with the new style's springs after a style change") {
+    auto make = [] {
+        auto bar = std::make_unique<widgets::TitleBar>(widgets::TitleBarOptions{"Notes", icon_font()}, fonts());
+        bar->set_width(restyle_canvas_width);
+        bar->set_origin({0.0, 20.0});
+        return bar;
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_title_bar");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::TitleBar& w) {
+        const render::Rect b = w.button_rect(widgets::TitleBarAction::minimize);
+        w.handle(input::PointerEvent{input::PointerAction::down, b.x + b.width / 2.0, b.y + b.height / 2.0});
+    }));
 }

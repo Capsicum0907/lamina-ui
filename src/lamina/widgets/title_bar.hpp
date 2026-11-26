@@ -55,6 +55,7 @@ public:
 
     TitleBarAction handle(const input::PointerEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -74,12 +75,14 @@ private:
     void paint_button(render::Canvas& canvas, const color::ColorScheme& scheme, const Button& button) const;
 
     TitleBarOptions options_;
+    text::FontStack fonts_;
     Label title_;
     std::array<Button, 3> buttons_;
     motion::Animated active_;
     double width_ = 0.0;
     render::Point origin_{0.0, 0.0};
     bool maximized_ = false;
+    StyleStamp style_stamp_;
 };
 
 }
