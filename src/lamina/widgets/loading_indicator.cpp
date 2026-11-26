@@ -264,7 +264,17 @@ AccessibleNode LoadingIndicator::accessible() const {
     return node;
 }
 
+void LoadingIndicator::restyle() {
+    style_stamp_.refresh();
+    morph_.set_spec(t().morph_spring);
+    handoff_.set_spec(t().handoff_spring);
+    morph_seconds_ = spring_finish_seconds(t().morph_spring, t().morph_threshold);
+}
+
 void LoadingIndicator::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     handoff_.step(dt);
     if (determinate()) {
         return;

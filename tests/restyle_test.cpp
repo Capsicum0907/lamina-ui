@@ -18,6 +18,7 @@
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/list_view.hpp"
+#include "lamina/widgets/loading_indicator.hpp"
 #include "lamina/widgets/menu.hpp"
 #include "lamina/widgets/modal_navigation_rail.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
@@ -530,4 +531,12 @@ TEST_CASE("a split button arranged by its owner pads and shapes its halves again
     save_round(r, "restyle_split_button");
     check_round(r);
     check_round(restyle_motion_round(make, [](Arranged<widgets::SplitButton>& w) { w.w->set_checked(true); }));
+}
+
+TEST_CASE("a loading indicator takes the new style's shapes and morphs with the new style's springs after a style change") {
+    auto make = [] { return placed(std::make_unique<widgets::LoadingIndicator>(widgets::LoadingIndicatorOptions{0.3})); };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_loading_indicator");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::LoadingIndicator& w) { w.set_progress(std::nullopt); }));
 }

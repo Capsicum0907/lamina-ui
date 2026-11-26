@@ -45,6 +45,7 @@ public:
     void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
     AccessibleNode accessible() const;
 
+    void restyle();
     void step(double dt_seconds);
     bool animating() const { return !determinate() || !handoff_.settled(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -66,6 +67,7 @@ private:
     std::size_t morph_index_ = 0;
     double turn_ = 0.0;
     double spin_ = 0.0;
+    StyleStamp style_stamp_;
 };
 
 const std::vector<shapes::Morph>& loading_indicator_morphs(bool determinate);
