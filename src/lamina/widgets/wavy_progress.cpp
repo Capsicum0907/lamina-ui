@@ -5,7 +5,9 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <mutex>
 #include <numbers>
+#include <tuple>
 
 #include "lamina/motion/easing.hpp"
 #include "lamina/motion/lerp.hpp"
@@ -52,13 +54,18 @@ struct CircularShapes {
 };
 
 const CircularShapes& circular_shapes(int n) {
-    static std::map<int, CircularShapes> cache;
-    auto it = cache.find(n);
+    using Key = std::tuple<int, float, float, float, float, float>;
+    static std::mutex lock;
+    static std::map<Key, CircularShapes> cache;
+    const Key key{n, t().star_inner_radius, t().star_rounding.radius, t().star_rounding.smoothing, t().star_inner_rounding.radius,
+                  t().star_inner_rounding.smoothing};
+    const std::scoped_lock hold(lock);
+    auto it = cache.find(key);
     if (it == cache.end()) {
         shapes::RoundedPolygon circle = shapes::circle(n).normalized();
         shapes::RoundedPolygon star = shapes::star(n, 1.0f, t().star_inner_radius, t().star_rounding, t().star_inner_rounding).normalized();
         shapes::Morph morph(circle, star);
-        it = cache.emplace(n, CircularShapes{std::move(circle), std::move(star), std::move(morph)}).first;
+        it = cache.emplace(key, CircularShapes{std::move(circle), std::move(star), std::move(morph)}).first;
     }
     return it->second;
 }
