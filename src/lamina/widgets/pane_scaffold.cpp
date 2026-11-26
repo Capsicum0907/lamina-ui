@@ -778,7 +778,30 @@ void ThreePaneScaffold::cancel_interaction() {
     }
 }
 
+void ThreePaneScaffold::restyle() {
+    style_stamp_.refresh();
+    for (Pane& p : panes_) {
+        for (motion::Animated* a : {&p.x, &p.y, &p.width, &p.height}) {
+            a->set_spec(t().motion);
+        }
+    }
+    handle_painter_.restyle();
+    focus_.restyle();
+    enabled_.restyle();
+    for (const auto& slot : options_.panes) {
+        if (slot && slot->widgets) {
+            slot->widgets->restyle();
+        }
+    }
+    if (started_) {
+        refresh_targets();
+    }
+}
+
 void ThreePaneScaffold::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     clock_ += dt;
     expansion_.step(dt);
     if (expansion_.settling() || expansion_.dragging()) {

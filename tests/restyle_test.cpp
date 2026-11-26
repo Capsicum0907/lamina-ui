@@ -26,7 +26,9 @@
 #include "lamina/widgets/navigation_drawer.hpp"
 #include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/navigation_suite.hpp"
+#include "lamina/widgets/nodes.hpp"
 #include "lamina/widgets/pager.hpp"
+#include "lamina/widgets/pane_scaffold.hpp"
 #include "lamina/widgets/progress_indicator.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/radio_button.hpp"
@@ -624,4 +626,42 @@ TEST_CASE("a widget set restyles its widgets without stepping them") {
     set.restyle();
     CHECK(button.width() == fresh.width());
     CHECK(button.height() == fresh.height());
+}
+
+namespace {
+
+struct PaneRig {
+    widgets::WidgetSet list;
+    widgets::WidgetSet detail;
+    layout::NodePtr list_node;
+    layout::NodePtr detail_node;
+    widgets::ThreePaneScaffoldNavigator navigator =
+        widgets::list_detail_pane_navigator(widgets::calculate_pane_scaffold_directive({layout::compute_window_size_class(restyle_canvas_width, restyle_canvas_height)}));
+    std::unique_ptr<widgets::ThreePaneScaffold> scaffold;
+
+    PaneRig() {
+        list_node = layout::column({widgets::node(list.emplace<widgets::Button>(widgets::ButtonOptions{"List"}, fonts()))});
+        detail_node = layout::column({widgets::node(detail.emplace<widgets::Button>(widgets::ButtonOptions{"Detail"}, fonts()))});
+        widgets::ThreePaneScaffoldOptions o;
+        o.panes[static_cast<std::size_t>(widgets::list_detail_pane::list)] = widgets::ContentSlot{list_node, &list, nullptr};
+        o.panes[static_cast<std::size_t>(widgets::list_detail_pane::detail)] = widgets::ContentSlot{detail_node, &detail, nullptr};
+        scaffold = std::make_unique<widgets::ThreePaneScaffold>(std::move(o), navigator);
+        scaffold->arrange(restyle_area);
+    }
+    void step(double dt) {
+        scaffold->step(dt);
+        scaffold->arrange(restyle_area);
+    }
+    render::Rect bounds() const { return scaffold->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const { scaffold->paint(c, s); }
+};
+
+}
+
+TEST_CASE("a three pane scaffold restyles its panes' widgets and moves its panes with the new style's springs after a style change") {
+    const RestyleResult r = restyle_round([] { return std::make_unique<PaneRig>(); });
+    save_round(r, "restyle_pane_scaffold");
+    check_round(r);
+    check_round(restyle_motion_round([] { return std::make_unique<PaneRig>(); },
+                                     [](PaneRig& w) { w.navigator.navigate_to(widgets::list_detail_pane::detail); }));
 }

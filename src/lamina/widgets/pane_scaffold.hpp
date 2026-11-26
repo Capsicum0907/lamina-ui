@@ -136,6 +136,7 @@ public:
     PaneScaffoldResponse handle(const input::KeyEvent& event);
     void handle(const input::TextEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -179,6 +180,7 @@ private:
     FocusIndicator focus_;
     Enablement enabled_;
     double clock_ = 0.0;
+    StyleStamp style_stamp_;
 };
 
 }
