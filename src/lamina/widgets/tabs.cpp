@@ -380,6 +380,7 @@ void TabRow::cancel_interaction() {
 
 void TabRow::restyle() {
     style_stamp_.refresh();
+    const bool centred = placed_ && options_.scrollable && !tabs_.empty() && scroll_.target() == centred_scroll(options_.selected);
     const motion::SpringSpec spatial = current_style().motion.default_spatial();
     indicator_offset_.set_spec(spatial);
     indicator_width_.set_spec(spatial);
@@ -401,6 +402,9 @@ void TabRow::restyle() {
     update_height();
     if (placed_) {
         retarget_indicator();
+        if (centred) {
+            scroll_.animate_to(centred_scroll(options_.selected));
+        }
         clamp_scroll();
     }
 }

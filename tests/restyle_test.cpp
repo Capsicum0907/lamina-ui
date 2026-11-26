@@ -1070,3 +1070,18 @@ TEST_CASE("date pickers lay out their headers, grids and fields again and slide 
     save_round(docked, "restyle_docked_date_picker");
     check_round(docked);
 }
+
+TEST_CASE("a scrollable tab row that shows its selected tab in the middle keeps it there after a style change") {
+    auto make = [] {
+        widgets::TabRowOptions o{{{"Flights"}, {"Hotels"}, {"Explore"}, {"Trips"}, {"Saved"}, {"Offers"}, {"Account"}}};
+        o.scrollable = true;
+        o.selected = 3;
+        auto row = std::make_unique<widgets::TabRow>(std::move(o), fonts());
+        row->set_origin(shot_origin);
+        row->set_width(restyle_canvas_width - 2.0 * shot_origin.x);
+        return row;
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_scrollable_tabs");
+    check_round(r);
+}
