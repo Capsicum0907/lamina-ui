@@ -59,13 +59,14 @@ std::unique_ptr<W> placed(std::unique_ptr<W> w) {
 }
 
 void save_round(const RestyleResult& r, const std::string& name) {
-    thorvg::Canvas canvas(restyle_canvas_width, restyle_canvas_height * 3);
+    const RestyleCanvas size = r.built_under_default.canvas;
+    thorvg::Canvas canvas(size.width, size.height * 3);
     const RestyleShot* shots[] = {&r.built_under_default, &r.switched, &r.built_under_test};
     for (int i = 0; i < 3; ++i) {
-        for (int y = 0; y < restyle_canvas_height; ++y) {
-            for (int x = 0; x < restyle_canvas_width; ++x) {
-                canvas.fill_rect({static_cast<double>(x), static_cast<double>(y + i * restyle_canvas_height), 1.0, 1.0},
-                                 shots[i]->pixels[static_cast<std::size_t>(y * restyle_canvas_width + x)]);
+        for (int y = 0; y < size.height; ++y) {
+            for (int x = 0; x < size.width; ++x) {
+                canvas.fill_rect({static_cast<double>(x), static_cast<double>(y + i * size.height), 1.0, 1.0},
+                                 shots[i]->pixels[static_cast<std::size_t>(y * size.width + x)]);
             }
         }
     }

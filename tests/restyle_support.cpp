@@ -61,6 +61,28 @@ const Style& restyle_test_style() {
                                            &s.segmented_button_motion.state_layer}) {
             *spring = restyle_spring;
         }
+        for (motion::SpringSpec* spring : {&s.split_button.common.shape_spring, &s.split_button.common.chevron_spring,
+                                           &s.date_picker_motion.month_scroll, &s.date_picker_motion.year_expand, &s.date_picker_motion.year_fade_in,
+                                           &s.date_picker_motion.year_fade_out, &s.date_picker_motion.mode_slide, &s.date_picker_motion.mode_fade_in,
+                                           &s.date_picker_motion.mode_fade_out, &s.date_picker_motion.range_crossfade, &s.date_picker_motion.selection,
+                                           &s.date_picker_motion.state_layer, &s.date_picker_motion.popup_scale, &s.date_picker_motion.popup_fade,
+                                           &s.time_picker_motion.selector, &s.time_picker_motion.numbers, &s.time_picker_motion.period_shape,
+                                           &s.time_picker_motion.colors, &s.time_picker_motion.state_layer, &s.time_picker_motion.mode,
+                                           &s.toggle_fab.progress, &s.fab_menu.stagger, &s.fab_menu.item_width, &s.fab_menu.item_alpha,
+                                           &s.floating_toolbar.expand, &s.flexible_bottom_app_bar.snap, &s.search_motion.expand, &s.search_motion.collapse,
+                                           &s.bottom_sheet_motion.show, &s.bottom_sheet_motion.hide, &s.bottom_sheet_motion.settle,
+                                           &s.bottom_sheet_motion.scrim, &s.table.color_spring, &s.table.state_layer_spring, &s.numeric_field.color_spring,
+                                           &s.pane_scaffold.motion, &s.pane_scaffold.anchoring, &s.split_pane.handle_fade,
+                                           &s.loading_indicator.common.morph_spring, &s.loading_indicator.common.handoff_spring,
+                                           &s.drag_handle.size_spring, &s.drag_handle.color_spring, &s.zoom.settle_spring,
+                                           &s.navigation_drawer_motion.open, &s.navigation_drawer_motion.close, &s.modal_navigation_rail.slide}) {
+            *spring = restyle_spring;
+        }
+        for (motion::TweenSpec* tween : {&s.side_sheet_motion, &s.navigation_drawer_motion.settle, &s.wavy_progress_motion.progress,
+                                         &s.wavy_progress_motion.amplitude_up, &s.wavy_progress_motion.amplitude_down,
+                                         &s.wavy_progress_motion.circular_handoff_min, &s.wavy_progress_motion.circular_handoff_max}) {
+            tween->duration_seconds *= restyle_duration_scale;
+        }
         return s;
     }();
     return style;
