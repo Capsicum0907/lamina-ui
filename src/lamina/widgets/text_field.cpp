@@ -13,7 +13,9 @@ namespace lamina::widgets {
 
 namespace {
 
-const auto& t = current_style().text_field;
+const tokens::OutlinedTextFieldTokens& t() {
+    return current_style().text_field;
+}
 
 text::TextStyle style_of(tokens::TypeRole role) {
     return current_style().type.text(role);
@@ -102,16 +104,16 @@ TextField::TextField(TextFieldOptions options, const text::FontStack& fonts)
       width_(options_.min_width),
       buffer_({.multiline = options_.multiline,
                .keeps_tabs = options_.accepts_tab,
-               .history = {.depth = t.undo_depth, .pause_seconds = t.undo_pause_seconds}}),
-      label_large_(text::layout_line(fonts, options_.label, style_of(t.label_type))),
-      label_small_(text::layout_line(fonts, options_.label, style_of(t.minimized_label_type))),
-      placeholder_(text::layout_line(fonts, options_.placeholder, style_of(t.input_type))),
+               .history = {.depth = t().undo_depth, .pause_seconds = t().undo_pause_seconds}}),
+      label_large_(text::layout_line(fonts, options_.label, style_of(t().label_type))),
+      label_small_(text::layout_line(fonts, options_.label, style_of(t().minimized_label_type))),
+      placeholder_(text::layout_line(fonts, options_.placeholder, style_of(t().input_type))),
       label_progress_(0.0, current_style().motion.fast_spatial()),
       focus_(0.0, current_style().motion.fast_effects()),
       hover_(0.0, current_style().motion.fast_effects()),
       placeholder_opacity_(0.0, current_style().motion.fast_effects()),
       enabled_(options_.enabled),
-      supporting_(text::layout_line(fonts, options_.supporting_text, style_of(t.supporting_type))),
+      supporting_(text::layout_line(fonts, options_.supporting_text, style_of(t().supporting_type))),
       error_amount_(0.0, current_style().motion.default_effects()) {
     if (masked()) {
         options_.multiline = false;
@@ -171,7 +173,7 @@ double TextField::rest_height() const {
 }
 
 double TextField::container_height() const {
-    const double padding = t.vertical_padding - (t.height - rest_height()) / 2.0;
+    const double padding = t().vertical_padding - (t().height - rest_height()) / 2.0;
     return options_.multiline ? std::max(rest_height(), content_height() + 2 * padding) : rest_height();
 }
 
@@ -180,13 +182,13 @@ void TextField::set_density(tokens::Density density) {
 }
 
 double TextField::height() const {
-    const double extra = options_.supporting_text.empty() ? 0.0 : t.supporting_top_padding + supporting_.box_height();
+    const double extra = options_.supporting_text.empty() ? 0.0 : t().supporting_top_padding + supporting_.box_height();
     return container_height() + extra;
 }
 
 void TextField::set_supporting_text(std::string text) {
     options_.supporting_text = std::move(text);
-    supporting_ = text::layout_line(fonts_, options_.supporting_text, style_of(t.supporting_type));
+    supporting_ = text::layout_line(fonts_, options_.supporting_text, style_of(t().supporting_type));
 }
 
 void TextField::set_error(bool error) {
@@ -283,11 +285,11 @@ render::Rect TextField::bounds() const {
 }
 
 double TextField::padding_start() const {
-    return options_.padding_start.value_or(t.padding);
+    return options_.padding_start.value_or(t().padding);
 }
 
 double TextField::padding_end() const {
-    return options_.padding_end.value_or(t.padding);
+    return options_.padding_end.value_or(t().padding);
 }
 
 void TextField::set_padding(std::optional<double> start, std::optional<double> end) {
@@ -349,7 +351,7 @@ void TextField::set_focused(bool focused) {
 }
 
 void TextField::relayout() {
-    const text::TextStyle style = style_of(t.input_type);
+    const text::TextStyle style = style_of(t().input_type);
     const std::u32string_view shown = buffer_.shown();
     const std::string utf8 = display_text();
     if (options_.multiline) {
@@ -656,33 +658,33 @@ double TextField::next_blink_seconds() const {
     if (!focused_) {
         return -1.0;
     }
-    return t.caret_blink_seconds - std::fmod(blink_clock_, t.caret_blink_seconds);
+    return t().caret_blink_seconds - std::fmod(blink_clock_, t().caret_blink_seconds);
 }
 
 render::Rect TextField::caret_area() const {
     const std::size_t caret = buffer_.caret();
     const std::size_t k = line_map_.line_of(caret, !buffer_.composing() && buffer_.upstream());
     const double x = text_left() + x_in_line(k, caret) - scroll_x_;
-    return {x, input_top() + line_tops_[k], t.caret_width, line_tops_[k + 1] - line_tops_[k]};
+    return {x, input_top() + line_tops_[k], t().caret_width, line_tops_[k + 1] - line_tops_[k]};
 }
 
 void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) const {
     const render::Rect r = bounds();
-    const double radius = current_style().shape.radius(t.corner, r.width, r.height);
+    const double radius = current_style().shape.radius(t().corner, r.width, r.height);
     const double f = focus_.value();
-    const double outline_width = t.outline_width + (t.focus_outline_width - t.outline_width) * f;
-    const color::Argb idle_outline = color::mix(scheme[t.outline], scheme[t.hover_outline], hover_.value());
+    const double outline_width = t().outline_width + (t().focus_outline_width - t().outline_width) * f;
+    const color::Argb idle_outline = color::mix(scheme[t().outline], scheme[t().hover_outline], hover_.value());
     const double e = std::clamp(error_amount_.value(), 0.0, 1.0);
-    const color::Argb error_outline = color::mix(scheme[t.error], scheme[t.error_hover_outline], hover_.value() * (1.0 - f));
-    const color::Argb outline = enabled_.mix(resolve(scheme, t.disabled_outline),
-                                             color::mix(color::mix(idle_outline, scheme[t.focus_outline], f), error_outline, e));
+    const color::Argb error_outline = color::mix(scheme[t().error], scheme[t().error_hover_outline], hover_.value() * (1.0 - f));
+    const color::Argb outline = enabled_.mix(resolve(scheme, t().disabled_outline),
+                                             color::mix(color::mix(idle_outline, scheme[t().focus_outline], f), error_outline, e));
 
     const double p = std::clamp(label_progress_.value(), 0.0, 1.0);
     const double small_scale = label_small_.style.size / label_large_.style.size;
     const double scale = 1.0 + (small_scale - 1.0) * p;
     if (options_.outlined && p > 0.0 && !options_.label.empty()) {
-        const double gap_left = text_left() - t.label_gap_padding;
-        const double gap_right = gap_left + label_large_.width * scale + 2 * t.label_gap_padding;
+        const double gap_left = text_left() - t().label_gap_padding;
+        const double gap_right = gap_left + label_large_.width * scale + 2 * t().label_gap_padding;
         canvas.fill_path(notched_ring_path(r, radius, outline_width, gap_left, gap_right), outline, render::FillRule::even_odd);
     } else if (options_.outlined) {
         canvas.fill_path(render::ring_path(r, radius, outline_width), outline, render::FillRule::even_odd);
@@ -691,9 +693,9 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
     const double rest_top = r.y + (rest_height() - label_large_.box_height()) / 2.0;
     const double float_top = r.y - label_large_.box_height() * scale / 2.0;
     const double label_top = rest_top + (float_top - rest_top) * p;
-    const color::Argb idle_label = color::mix(scheme[t.label], scheme[t.hover_label], hover_.value());
+    const color::Argb idle_label = color::mix(scheme[t().label], scheme[t().hover_label], hover_.value());
     const color::Argb label_color =
-        enabled_.mix(resolve(scheme, t.disabled_label), color::mix(color::mix(idle_label, scheme[t.focus_label], f), scheme[t.error], e));
+        enabled_.mix(resolve(scheme, t().disabled_label), color::mix(color::mix(idle_label, scheme[t().focus_label], f), scheme[t().error], e));
     canvas.save();
     canvas.translate(text_left(), label_top);
     canvas.scale(scale);
@@ -702,23 +704,23 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
 
     if (!options_.supporting_text.empty()) {
         const color::Argb supporting =
-            enabled_.mix(resolve(scheme, t.disabled_supporting), color::mix(scheme[t.supporting], scheme[t.error], e));
-        text::draw_line(canvas, fonts_, supporting_, {text_left(), r.y + r.height + t.supporting_top_padding}, supporting);
+            enabled_.mix(resolve(scheme, t().disabled_supporting), color::mix(scheme[t().supporting], scheme[t().error], e));
+        text::draw_line(canvas, fonts_, supporting_, {text_left(), r.y + r.height + t().supporting_top_padding}, supporting);
     }
 
-    canvas.push_clip({text_left() - t.caret_width, r.y, inner_width() + 2 * t.caret_width, r.height});
+    canvas.push_clip({text_left() - t().caret_width, r.y, inner_width() + 2 * t().caret_width, r.height});
     const double left = text_left() - scroll_x_;
     const double top = input_top();
-    const color::Argb input_color = enabled_.mix(resolve(scheme, t.disabled_input), scheme[t.input]);
+    const color::Argb input_color = enabled_.mix(resolve(scheme, t().disabled_input), scheme[t().input]);
 
     if (placeholder_shown()) {
-        const color::Argb placeholder = enabled_.mix(resolve(scheme, t.disabled_placeholder), scheme[t.placeholder]);
+        const color::Argb placeholder = enabled_.mix(resolve(scheme, t().disabled_placeholder), scheme[t().placeholder]);
         text::draw_line(canvas, fonts_, placeholder_, {text_left(), top},
                         color::scale_alpha(placeholder, std::clamp(placeholder_opacity_.value(), 0.0, 1.0)));
     }
 
     if (focused_ && buffer_.has_selection()) {
-        const color::Argb selection = color::with_alpha(scheme[t.selection], t.selection_opacity);
+        const color::Argb selection = color::with_alpha(scheme[t().selection], t().selection_opacity);
         const std::size_t first = buffer_.shown_index(buffer_.selection_start());
         const std::size_t last = buffer_.shown_index(buffer_.selection_end());
         for (std::size_t k = 0; k < lines_.size(); ++k) {
@@ -747,15 +749,15 @@ void TextField::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
         }
         const double x0 = x_in_line(k, a);
         const double x1 = x_in_line(k, b);
-        canvas.fill_rect({left + x0, top + line_tops_[k] + lines_[k].baseline + t.composition_underline * 2, x1 - x0,
-                          t.composition_underline},
+        canvas.fill_rect({left + x0, top + line_tops_[k] + lines_[k].baseline + t().composition_underline * 2, x1 - x0,
+                          t().composition_underline},
                          input_color);
     }
 
-    const bool caret_on = std::fmod(blink_clock_, 2 * t.caret_blink_seconds) < t.caret_blink_seconds;
+    const bool caret_on = std::fmod(blink_clock_, 2 * t().caret_blink_seconds) < t().caret_blink_seconds;
     if (focused_ && caret_on) {
         const render::Rect c = caret_area();
-        canvas.fill_rect({c.x - t.caret_width / 2.0, c.y, t.caret_width, c.height}, color::mix(scheme[t.caret], scheme[t.error], e));
+        canvas.fill_rect({c.x - t().caret_width / 2.0, c.y, t().caret_width, c.height}, color::mix(scheme[t().caret], scheme[t().error], e));
     }
     canvas.pop_clip();
 }
