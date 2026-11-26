@@ -14,8 +14,11 @@
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/chip.hpp"
 #include "lamina/widgets/chip_group.hpp"
+#include "lamina/widgets/date_picker.hpp"
+#include "lamina/widgets/date_range_picker.hpp"
 #include "lamina/widgets/dialog.hpp"
 #include "lamina/widgets/divider.hpp"
+#include "lamina/widgets/docked_date_picker.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/fab_menu.hpp"
@@ -1021,4 +1024,49 @@ TEST_CASE("a time picker and its dialog lay out their numbers again and turn the
     }, picker_canvas);
     save_round(d, "restyle_picker_dialog");
     check_round(d);
+}
+
+namespace {
+
+constexpr calendar::Date picker_today{2026, 11, 26};
+
+template <typename Picker>
+struct PopupRig {
+    std::unique_ptr<Picker> picker;
+    void step(double dt) { picker->step(dt); }
+    render::Rect bounds() const { return picker->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const {
+        picker->paint(c, s);
+        picker->paint_popup(c, s);
+    }
+};
+
+}
+
+TEST_CASE("date pickers lay out their headers, grids and fields again and slide with the new style's springs after a style change") {
+    auto make = [] {
+        widgets::DatePickerOptions o{picker_today, calendar::Date{2026, 11, 12}};
+        return placed(std::make_unique<widgets::DatePicker>(std::move(o), fonts(), icon_font()));
+    };
+    const RestyleResult r = restyle_round(make, picker_canvas);
+    save_round(r, "restyle_date_picker");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::DatePicker& w) { w.set_mode(widgets::DatePickerMode::input); }, picker_canvas));
+
+    const RestyleResult range = restyle_round([] {
+        widgets::DateRangePickerOptions o{picker_today, calendar::Date{2026, 11, 3}, calendar::Date{2026, 11, 9}};
+        o.height = picker_canvas.height - 2.0 * shot_origin.y;
+        return placed(std::make_unique<widgets::DateRangePicker>(std::move(o), fonts(), icon_font()));
+    }, picker_canvas);
+    save_round(range, "restyle_date_range_picker");
+    check_round(range);
+
+    const RestyleResult docked = restyle_round([] {
+        auto picker = placed(std::make_unique<widgets::DockedDatePicker>(widgets::DockedDatePickerOptions{picker_today, calendar::Date{2026, 11, 12}},
+                                                                         fonts(), icon_font()));
+        picker->open();
+        return std::make_unique<PopupRig<widgets::DockedDatePicker>>(PopupRig<widgets::DockedDatePicker>{std::move(picker)});
+    }, picker_canvas);
+    save_round(docked, "restyle_docked_date_picker");
+    check_round(docked);
 }

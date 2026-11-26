@@ -66,6 +66,7 @@ public:
     void handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     std::optional<render::Rect> caret_area() const;
@@ -92,6 +93,7 @@ private:
     render::Point origin_{0.0, 0.0};
     bool enabled_;
     std::unique_ptr<FocusStop> field_stop_;
+    StyleStamp style_stamp_;
 };
 
 }

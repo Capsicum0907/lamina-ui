@@ -92,6 +92,7 @@ public:
     void handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     std::optional<render::Rect> caret_area() const;
@@ -139,6 +140,8 @@ private:
     std::optional<calendar::Date> fading_;
     motion::Animated selection_fade_;
     Enablement enabled_;
+    double laid_item_height_ = 0.0;
+    StyleStamp style_stamp_;
 };
 
 }

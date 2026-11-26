@@ -196,6 +196,7 @@ void DateRangePicker::place_children() {
     fields_[1]->set_origin({origin_.x + t().input_start + field_width() + t().range_input_spacing, content_top() + t().input_top});
     list_.set_viewport(list_area());
     list_.set_content_height(month_count() * item_height());
+    laid_item_height_ = item_height();
 }
 
 std::optional<calendar::Date> DateRangePicker::focused_day() const {
@@ -532,7 +533,30 @@ void DateRangePicker::cancel_interaction() {
     state_layer_.animate_to(0.0);
 }
 
+void DateRangePicker::restyle() {
+    style_stamp_.refresh();
+    const double before = laid_item_height_;
+    toggle_.restyle();
+    for (auto& f : fields_) {
+        f->restyle();
+        f->set_width(field_width());
+    }
+    grid_focus_.restyle();
+    state_layer_.set_spec(m().state_layer);
+    list_.restyle();
+    mode_alpha_.set_spec(m().range_crossfade);
+    selection_fade_.set_spec(m().selection);
+    enabled_.restyle();
+    place_children();
+    if (before > 0.0) {
+        list_.jump_to(list_.offset() * item_height() / before);
+    }
+}
+
 void DateRangePicker::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     toggle_.step(dt);
     fields_[0]->step(dt);
     fields_[1]->step(dt);

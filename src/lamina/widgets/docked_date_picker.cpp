@@ -342,7 +342,20 @@ void DockedDatePicker::cancel_interaction() {
     picker_.cancel_interaction();
 }
 
+void DockedDatePicker::restyle() {
+    style_stamp_.refresh();
+    field_->restyle();
+    field_->set_width(t().container_width);
+    open_button_.restyle();
+    picker_.restyle();
+    popup_.restyle(closed_scale(), m().popup_scale, m().popup_fade);
+    place();
+}
+
 void DockedDatePicker::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     field_->step(dt);
     open_button_.step(dt);
     popup_.step(dt);

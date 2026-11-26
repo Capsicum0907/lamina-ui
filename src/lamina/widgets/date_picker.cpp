@@ -804,7 +804,36 @@ void DatePicker::cancel_interaction() {
     pointer_.state_layer.animate_to(0.0);
 }
 
+void DatePicker::restyle() {
+    style_stamp_.refresh();
+    for (IconButton* b : {&toggle_, &previous_button_, &next_button_}) {
+        b->restyle();
+    }
+    input_->restyle();
+    input_->set_width(t().container_width - t().input_start - t().input_end);
+    menu_.state_layer.set_spec(m().state_layer);
+    menu_.focus.restyle();
+    grid_focus_.restyle();
+    year_focus_.restyle();
+    pointer_.state_layer.set_spec(m().state_layer);
+    years_scroll_.restyle();
+    slide_.set_spec(m().month_scroll);
+    year_expand_.set_spec(m().year_expand);
+    year_alpha_.set_spec(years_open_ ? m().year_fade_in : m().year_fade_out);
+    mode_progress_.set_spec(m().mode_slide);
+    incoming_alpha_.set_spec(m().mode_fade_in);
+    outgoing_alpha_.set_spec(m().mode_fade_out);
+    height_.set_spec(m().mode_slide);
+    height_.animate_to(content_height(mode_));
+    selection_fade_.set_spec(m().selection);
+    enabled_.restyle();
+    place_children();
+}
+
 void DatePicker::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     toggle_.step(dt);
     previous_button_.step(dt);
     next_button_.step(dt);
