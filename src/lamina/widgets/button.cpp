@@ -184,6 +184,35 @@ void Button::set_shapes(ButtonShapes shapes) {
     corners_->animate_to(target_corners());
 }
 
+void Button::refit() {
+    if (!sized_) {
+        width_ = intrinsic_width();
+    }
+    label_room_ = -1.0;
+    fit_label();
+}
+
+void Button::set_padding(std::optional<ButtonPadding> padding) {
+    options_.padding = padding;
+    refit();
+}
+
+void Button::set_min_width(std::optional<double> min_width) {
+    options_.min_width = min_width;
+    refit();
+}
+
+void Button::set_icon_size(std::optional<double> size) {
+    options_.icon_size = size;
+    refit();
+}
+
+void Button::set_checked_overlay(double overlay) {
+    if (options_.toggle) {
+        options_.toggle->checked_overlay = overlay;
+    }
+}
+
 ButtonPadding Button::padding() const {
     const auto& size = current_style().button.size(options_.size);
     return options_.padding.value_or(ButtonPadding{size.leading_space, size.trailing_space});

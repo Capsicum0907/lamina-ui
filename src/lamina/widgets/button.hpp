@@ -94,6 +94,10 @@ public:
     double icon_size() const;
     void set_icon_rotation(double radians) { icon_rotation_ = radians; }
     void set_shapes(ButtonShapes shapes);
+    void set_padding(std::optional<ButtonPadding> padding);
+    void set_min_width(std::optional<double> min_width);
+    void set_icon_size(std::optional<double> size);
+    void set_checked_overlay(double overlay);
 
     bool pressed() const { return press_.pressed; }
     bool toggleable() const { return options_.toggle.has_value(); }
@@ -123,6 +127,7 @@ private:
     double content_width() const;
     double content_width_for(double label_width) const;
     void fit_label();
+    void refit();
     double rest_corner() const;
     double pressed_corner() const;
     double corner() const;
