@@ -33,6 +33,7 @@
 #include "lamina/widgets/snackbar.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
+#include "lamina/widgets/text_field.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 #include "restyle_support.hpp"
@@ -477,4 +478,24 @@ TEST_CASE("a slider animates its focus with the new style's springs after a styl
             return s;
         },
         [](widgets::Slider& w) { w.set_focused(true); }));
+}
+
+TEST_CASE("a text field lays out its label and text in the new style's type and floats its label with the new style's springs") {
+    auto make = [] {
+        widgets::TextFieldOptions o;
+        o.label = "Name";
+        o.supporting_text = "As on your card";
+        auto field = std::make_unique<widgets::TextField>(o, fonts());
+        field->set_width(300.0);
+        field->set_origin(origin);
+        return field;
+    };
+    const RestyleResult r = restyle_round([&] {
+        auto field = make();
+        field->set_text("Ada");
+        return field;
+    });
+    save_round(r, "restyle_text_field");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::TextField& w) { w.set_focused(true); }));
 }

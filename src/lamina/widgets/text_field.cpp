@@ -638,7 +638,25 @@ void TextField::cancel_interaction() {
     dragging_ = false;
 }
 
+void TextField::restyle() {
+    style_stamp_.refresh();
+    label_large_ = text::layout_line(fonts_, options_.label, style_of(t().label_type));
+    label_small_ = text::layout_line(fonts_, options_.label, style_of(t().minimized_label_type));
+    placeholder_ = text::layout_line(fonts_, options_.placeholder, style_of(t().input_type));
+    supporting_ = text::layout_line(fonts_, options_.supporting_text, style_of(t().supporting_type));
+    label_progress_.set_spec(current_style().motion.fast_spatial());
+    focus_.set_spec(current_style().motion.fast_effects());
+    hover_.set_spec(current_style().motion.fast_effects());
+    placeholder_opacity_.set_spec(current_style().motion.fast_effects());
+    error_amount_.set_spec(current_style().motion.default_effects());
+    enabled_.restyle();
+    relayout();
+}
+
 void TextField::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     blink_clock_ += dt;
     buffer_.advance(dt);
     label_progress_.step(dt);

@@ -102,6 +102,7 @@ public:
     void handle(const input::TextEvent& event);
     void cancel_interaction();
 
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     double next_blink_seconds() const;
@@ -179,6 +180,7 @@ private:
     text::TextLine supporting_;
     bool error_ = false;
     motion::Animated error_amount_;
+    StyleStamp style_stamp_;
 };
 
 }
