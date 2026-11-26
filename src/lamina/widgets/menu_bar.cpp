@@ -40,17 +40,8 @@ void sync_commands(Menu& menu, const ShortcutRegistry& commands) {
 MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
     : fonts_(fonts), accessible_name_(required_name(options.accessible_name, "a menu bar")), commands_(options.commands),
       density_(options.density) {
-    const auto style = current_style().type.text(t().label);
-    double x = t().start_padding;
     for (MenuBarMenu& spec : options.menus) {
-        text::TextLine label = text::layout_line(fonts_, spec.label, style);
         const std::optional<input::Key> key = access_key_for(spec.label, spec.access_key);
-        std::optional<AccessKeyLabel> access;
-        double w = 2.0 * t().item_horizontal_padding + label.width;
-        if (key) {
-            access = access_key_label(fonts_, spec.label, label, *key);
-            w += access->suffix_width();
-        }
         if (commands_) {
             apply_shortcuts(spec.items, *commands_);
         }
@@ -58,11 +49,50 @@ MenuBar::MenuBar(MenuBarOptions options, const text::FontStack& fonts)
             MenuOptions{std::move(spec.items), spec.label, density_, options.icon_font, options.shortcut_format}, fonts_));
         names_.push_back(spec.label);
         access_keys_.push_back(key);
-        items_.push_back({std::move(label), std::move(access), x, w, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
+        items_.push_back({{}, std::nullopt, 0.0, 0.0, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
                           motion::Animated(0.0, current_style().motion.default_effects())});
+    }
+    layout_items();
+}
+
+void MenuBar::layout_items() {
+    const auto style = current_style().type.text(t().label);
+    double x = t().start_padding;
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        Item& item = items_[i];
+        item.label = text::layout_line(fonts_, names_[i], style);
+        item.access.reset();
+        double w = 2.0 * t().item_horizontal_padding + item.label.width;
+        if (access_keys_[i]) {
+            item.access = access_key_label(fonts_, names_[i], item.label, *access_keys_[i]);
+            w += item.access->suffix_width();
+        }
+        item.x = x;
+        item.width = w;
         x += w;
     }
-    width_ = x + t().start_padding;
+    if (!sized_) {
+        width_ = x + t().start_padding;
+    }
+}
+
+void MenuBar::restyle() {
+    style_stamp_.refresh();
+    layout_items();
+    for (Item& item : items_) {
+        item.state_layer.set_spec(current_style().motion.fast_effects());
+        item.open.set_spec(current_style().motion.default_effects());
+    }
+    access_keys_fade_.set_spec(current_style().motion.fast_effects());
+    focus_.restyle();
+    enabled_.restyle();
+    retarget();
+    for (auto& m : menus_) {
+        m->restyle();
+    }
+    if (open_) {
+        menus_[*open_]->reposition(item_rect(*open_), window_, t().window_margin, t().window_margin);
+    }
 }
 
 double MenuBar::height() const {
@@ -335,6 +365,9 @@ MenuBarResponse MenuBar::handle(const input::KeyEvent& e) {
 }
 
 void MenuBar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     for (Item& item : items_) {
         item.state_layer.step(dt);
         item.open.step(dt);

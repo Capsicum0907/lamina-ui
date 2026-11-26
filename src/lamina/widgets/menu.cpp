@@ -256,6 +256,24 @@ void Menu::place(std::function<render::Point(layout::Size)> position, const rend
                    : std::nullopt);
 }
 
+void Menu::reposition(const render::Rect& anchor, layout::Size window) {
+    if (!popup_.is_open()) {
+        return;
+    }
+    window_ = window;
+    reanchor([anchor, window](layout::Size size) { return menu_position(anchor, window, size); }, anchor);
+}
+
+void Menu::reposition(const render::Rect& anchor, layout::Size window, double horizontal_margin, double vertical_margin) {
+    if (!popup_.is_open()) {
+        return;
+    }
+    window_ = window;
+    reanchor([anchor, window, horizontal_margin, vertical_margin](layout::Size size) {
+        return menu_position(anchor, window, size, horizontal_margin, vertical_margin);
+    }, anchor);
+}
+
 void Menu::open(const render::Rect& anchor, layout::Size window, input::InputSource source) {
     place([anchor, window](layout::Size size) { return menu_position(anchor, window, size); }, anchor, window, source);
 }

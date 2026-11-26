@@ -57,7 +57,10 @@ public:
 
     double width() const { return width_; }
     double height() const;
-    void set_width(double width) { width_ = width; }
+    void set_width(double width) {
+        width_ = width;
+        sized_ = true;
+    }
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const { return {origin_.x, origin_.y, width_, height()}; }
     void set_window(layout::Size window) { window_ = window; }
@@ -84,6 +87,7 @@ public:
     MenuBarResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
     void deactivate();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -107,6 +111,7 @@ private:
     std::optional<std::size_t> item_at(double x, double y) const;
     std::optional<std::size_t> access_match(const input::KeyEvent& e) const;
     void reveal_access_keys(bool shown);
+    void layout_items();
 
     text::FontStack fonts_;
     std::string accessible_name_;
@@ -125,8 +130,10 @@ private:
     Enablement enabled_;
     tokens::Density density_{};
     double width_ = 0.0;
+    bool sized_ = false;
     render::Point origin_{0.0, 0.0};
     layout::Size window_{0.0, 0.0};
+    StyleStamp style_stamp_;
 };
 
 }

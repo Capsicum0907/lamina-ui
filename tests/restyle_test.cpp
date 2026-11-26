@@ -21,6 +21,7 @@
 #include "lamina/widgets/list_view.hpp"
 #include "lamina/widgets/loading_indicator.hpp"
 #include "lamina/widgets/menu.hpp"
+#include "lamina/widgets/menu_bar.hpp"
 #include "lamina/widgets/modal_navigation_rail.hpp"
 #include "lamina/widgets/navigation_bar.hpp"
 #include "lamina/widgets/navigation_drawer.hpp"
@@ -719,4 +720,34 @@ TEST_CASE("an open submenu follows its item to its new place after a style chang
     check_round(r);
     const auto opened = make();
     CHECK(opened->w->open_submenu() == 1u);
+}
+
+namespace {
+
+struct BarWithMenus {
+    std::unique_ptr<widgets::MenuBar> bar;
+    void step(double dt) { bar->step(dt); }
+    render::Rect bounds() const { return bar->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const {
+        bar->paint(c, s);
+        bar->paint_menus(c, s);
+    }
+};
+
+}
+
+TEST_CASE("a menu bar lays out its items again and keeps its open menu under its item after a style change") {
+    const RestyleResult r = restyle_round([] {
+        auto bar = std::make_unique<widgets::MenuBar>(
+            widgets::MenuBarOptions{.menus = {{"File", {{.label = "New"}, {.label = "Quit"}}}, {"Edit", {{.label = "Undo"}, {.label = "Copy"}}}},
+                                    .accessible_name = "Menu bar"},
+            fonts());
+        bar->set_window({static_cast<double>(restyle_canvas_width), 320.0});
+        const render::Rect item = bar->item_rect(1);
+        bar->handle(input::PointerEvent{input::PointerAction::down, item.x + item.width / 2.0, item.y + item.height / 2.0});
+        bar->handle(input::PointerEvent{input::PointerAction::up, item.x + item.width / 2.0, item.y + item.height / 2.0});
+        return std::make_unique<BarWithMenus>(BarWithMenus{std::move(bar)});
+    }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_menu_bar");
+    check_round(r);
 }
