@@ -14,6 +14,7 @@
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/list_view.hpp"
 #include "lamina/widgets/radio_button.hpp"
+#include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "restyle_support.hpp"
 
@@ -167,4 +168,31 @@ TEST_CASE("an extended FAB lays out its label in the new style's type and collap
     save_round(r, "restyle_extended_fab");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::ExtendedFab& w) { w.set_expanded(false); }));
+}
+
+struct RelaidSegments {
+    std::unique_ptr<widgets::SegmentedButtonRow> row;
+    void relayout() {
+        const layout::Size size = row->measure({0.0, static_cast<double>(restyle_canvas_width) - 2.0 * origin.x, 0.0, static_cast<double>(restyle_canvas_height)});
+        row->arrange({origin.x, origin.y, size.width, size.height});
+    }
+    void step(double dt) {
+        row->step(dt);
+        relayout();
+    }
+    render::Rect bounds() const { return row->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const { row->paint(c, s); }
+};
+
+TEST_CASE("a segmented button row laid out again by its owner follows a style change") {
+    auto make = [] {
+        widgets::SegmentedButtonRowOptions o{{{"Day", std::nullopt, true}, {"Week"}, {"Month"}}};
+        auto w = std::make_unique<RelaidSegments>(RelaidSegments{std::make_unique<widgets::SegmentedButtonRow>(std::move(o), fonts(), icon_font())});
+        w->relayout();
+        return w;
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_segmented_button");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](RelaidSegments& w) { w.row->set_checked(1, true); }));
 }

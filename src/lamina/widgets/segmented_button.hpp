@@ -11,6 +11,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/layout.hpp"
 #include "lamina/tokens/density.hpp"
 #include "lamina/tokens/segmented_button.hpp"
@@ -89,6 +90,7 @@ public:
     SegmentedButtonResponse handle(const input::PointerEvent& event);
     SegmentedButtonResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -119,6 +121,7 @@ private:
     double count() const { return static_cast<double>(segments_.size()); }
     double row_width(double segment) const;
     void fit_labels();
+    void measure_segments();
 
     SegmentedButtonRowOptions options_;
     text::FontStack fonts_;
@@ -135,6 +138,7 @@ private:
     FocusIndicator focus_;
     std::size_t focus_index_ = 0;
     bool enabled_ = true;
+    StyleStamp style_stamp_;
 };
 
 }

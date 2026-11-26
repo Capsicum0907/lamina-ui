@@ -61,6 +61,11 @@ SegmentedButtonRow::SegmentedButtonRow(SegmentedButtonRowOptions options, const 
                                  motion::Animated(shows_icon ? 0.0 : hidden_offset(), m().label_shift), Enablement(allowed && enabled_),
                                  allowed});
     }
+    measure_segments();
+}
+
+void SegmentedButtonRow::measure_segments() {
+    const text::TextStyle style = current_style().type.text(t().label);
     const double mark = text::layout_line(fonts_, current_style().type.ellipsis, style).width;
     double widest = t().min_width;
     double narrowest = t().min_width;
@@ -359,7 +364,33 @@ void SegmentedButtonRow::cancel_interaction() {
     retarget();
 }
 
+void SegmentedButtonRow::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    const text::TextStyle style = current_style().type.text(t().label);
+    for (Item& item : segments_) {
+        item.label = text::layout_line(fonts_, item.spec.label, style);
+        item.shown = item.label;
+        item.ellipsized = false;
+        item.state_layer.set_spec(m().state_layer);
+        item.checked_amount.set_spec(m().colors);
+        item.check_scale.set_spec(m().check_scale);
+        item.check_alpha.set_spec(m().check_fade);
+        item.icon_cross.set_spec(m().icon_crossfade);
+        item.label_offset.set_spec(m().label_shift);
+        if (item.label_offset.target() != 0.0) {
+            item.label_offset.animate_to(hidden_offset());
+        }
+        item.enabled.restyle();
+    }
+    label_room_ = -1.0;
+    measure_segments();
+}
+
 void SegmentedButtonRow::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     for (Item& item : segments_) {
         item.state_layer.step(dt);
