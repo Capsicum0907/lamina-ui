@@ -52,7 +52,7 @@
 - `set_default_style(style)` は、スタイルをアプリの既定にします。ほかのスタイルを入れていないどのスレッドでも、これが使っているスタイルになります。`default_style()` はそれを返し、`reset_default_style()` で Material 3 Expressive のスタイルに戻ります。スタイルが一つのアプリは、`main` の始め、部品を作る前に 1 回呼びます。
 - `set_current_style(style)` は、呼んだスレッドのその後ずっとのスタイルを、既定の上に入れます。`clear_current_style()` で外します。
 - `sdl3::Window::set_style(style)` は窓に自分のスタイルを持たせます。`Window::style()` はそれを返し、設定していなければ使っているスタイルを返します。`sdl3::run_app` は、毎回の更新と描画の間、窓のスタイルを入れます。自分でフレームの繰り返しを書くアプリは、更新と描画を `StyleScope` で囲みます。窓ごとのスタイルには `run_app(Window&, update, paint)` を使います。`WindowOptions` を受け取るほうは窓を自分で作るからです。
-- [いちばん小さなプログラム](../README.ja.md#いちばん小さなプログラム)のように、フレームの繰り返しの前に作る部品は、作った場所で使っているスタイルの下で作られます。スコープや `set_current_style` がなければ既定のスタイルです。`set_default_style` を使っていれば、それがもうアプリのスタイルです。[スタイルを読み直す](#スタイルが変わったとき)部品は、最初の 1 歩で窓のスタイルにも従うので、別のスタイルの下で作っても自分で直ります。ほかの部品は、作ったときに取った値のままです。
+- [いちばん小さなプログラム](../README.ja.md#いちばん小さなプログラム)のように、フレームの繰り返しの前に作る部品は、作った場所で使っているスタイルの下で作られます。スコープや `set_current_style` がなければ既定のスタイルです。`set_default_style` を使っていれば、それがもうアプリのスタイルです。どの部品も[スタイルを読み直し](#スタイルが変わったとき)、最初の 1 歩で窓のスタイルに従うので、別のスタイルの下で作っても自分で直ります。
 
 スタイルは参照で持つので、入れている間は呼んだ側が生かしておきます。スタイルは、ほかの構造体と同じように写して変えます。
 
@@ -73,13 +73,19 @@ window.set_style(quiet);
 - `restyle()` は部品の状態を残します。ラベル・チェックの状態・フォーカス・`set_size` で決めた大きさ・どの動きの今の値と速さもです。ばねは数値だけが替わって今の位置から続き、行き先をスタイルから取る動きは新しい行き先へ動きます。なので、スタイルが変わると跳ばずに動いて変わります。あるスタイルの下で作って別のスタイルの下で進めた部品は、落ち着いた後、はじめから別のスタイルの下で作った部品と同じに描かれます。`tests/restyle_test.cpp` がこれを確かめます。
 - オプションでアプリが渡した値は、渡したままです。オプションの構造体を作るときにスタイルから取る既定の値は、アプリが選んだ値と見分けられないので、これも残ります。`ButtonShapes::spring` と、互換性の節に挙げたオプションの既定の値です。形をスタイルから取ったトグルボタン（`ButtonOptions::shapes` を渡していないもの）は、`restyle()` で形を取り直します。
 
-今スタイルを読み直す部品は `Button`・`IconButton`・`Badge`・`ButtonGroup`・`Label`・`Checkbox`・`Switch`・`RadioButton`・`Fab`・`ExtendedFab`・`ListView`・`ListItem`・`ScrollArea`・`SegmentedButtonRow`・`Card`・`Chip`・`ChipGroup`・`TabRow`・`NavigationBar`・`NavigationRail`・`SideNavigation`・`DrawerSheet`・`ModalNavigationDrawer`・`DismissibleNavigationDrawer`・`ModalNavigationRail`・`NavigationSuiteScaffold`・`TopAppBar`・`Snackbar`・`Dialog`・`Menu`・`GroupedMenu`・`Slider`・`RangeSlider`・`TextField`・`Pager`・`PullToRefresh` と、それらが共有する部品（`FocusIndicator`・`Enablement`・`AnimatedCorners`・`InteractionElevation`・`PopupTransition`・`TopAppBarState`、どれも自分の `restyle()` を持ちます。それに `TouchScroll::set_tokens`・`Fling::set_decay`・`AnchoredDraggable::set_gesture`・`AnimatedRadii::set_spec`）です。ほかの部品を持つ部品は、中の部品の `restyle()` を呼び、並べ直します。ダイアログは中の並びを組み直し、開いているメニューは開いたときの基準の場所からもう一度置き直し、モーダルのドロワーとレールは自分の場所の中でシートを測り直します。持ち主が並べる部品（セグメントボタンの列・ボタンのまとまり）は自分を測り直し、持ち主の次の `measure` と `arrange` で置かれます。
+どの部品もスタイルを読み直します。`Button`・`IconButton`・`Badge`・`ButtonGroup`・`SplitButton`・`Label`・`Checkbox`・`Switch`・`RadioButton`・`Fab`・`ExtendedFab`・`FabMenu` とその `ToggleFab`・`ListView`・`ListItem`・`ScrollArea`・`Table`・`SegmentedButtonRow`・`Card`・`Chip`・`ChipGroup`・`TabRow`・`NavigationBar`・`NavigationRail`・`SideNavigation`・`DrawerSheet`・`ModalNavigationDrawer`・`DismissibleNavigationDrawer`・`ModalNavigationRail`・`NavigationSuiteScaffold`・`ThreePaneScaffold`・`SplitPane`・`TopAppBar`・`TitleBar`・`FloatingToolbar`・`FlexibleBottomAppBar`・`SearchBar`・`Snackbar`・`Dialog`・`PickerDialog`・`BottomSheet`・`SideSheet`・`Tooltip`・`Menu`・`GroupedMenu`・`MenuBar`・`Slider`・`RangeSlider`・`TextField`・`NumericField`・`DatePicker`・`DateRangePicker`・`DockedDatePicker`・`TimePicker`・`Pager`・`PullToRefresh`・`ZoomView`・`LoadingIndicator`・`CircularProgressIndicator`・`LinearWavyProgressIndicator`・`CircularWavyProgressIndicator` です。それらが共有する部品は、自分の `restyle()`（`FocusIndicator`・`Enablement`・`AnimatedCorners`・`InteractionElevation`・`PopupTransition`・`TopAppBarState`・`DragHandlePainter`・`SheetDragHandle`・`ContentHost`、それに `BottomAppBarState::restyle(limit)`）か、値を替える関数（`TouchScroll::set_tokens`・`Fling::set_decay`・`AnchoredDraggable::set_gesture`・`AnchoredDraggable::retune`・`AnimatedRadii::set_spec`）を持ちます。
 
-ほかの部品は、まだ作ったときに使っていたスタイルの値を持ったままです。`DatePicker`・`DateRangePicker`・`DockedDatePicker`・`TimePicker`・`PickerDialog`・`SplitButton`・`FabMenu`・`FloatingToolbar`・`FlexibleBottomAppBar`・`SearchBar`・`BottomSheet`・`SideSheet`・`Tooltip`・`MenuBar`・`Table`・`NumericField`・`TitleBar`・`ThreePaneScaffold`・`SplitPane`・`ZoomView`・`LoadingIndicator` と、波形と円の進み具合の表示です。そのうちいくつかは上に挙げた部品を中に持っています。分割ボタンの左右などです。中の部品は新しいスタイルに従って大きさが変わることがありますが、持っている側の部品は並べ直しません。スタイルを切り替えた後、この一覧にない部品のうち、大きさや動きを変えたいものは作り直してください。残りの部品も、群ごとに `restyle()` を足し、上のテストで確かめていきます。
+ほかの部品を持つ部品は、中の部品の `restyle()` を呼び、並べ直します。ダイアログは中の並びを組み直し、モーダルのドロワーとレールは自分の場所の中でシートを測り直します。シートは中に入れた中身を、三つの区画の骨組みは区画ごとの部品の集まりを、選ぶためのダイアログは中の区画を読み直させます。`WidgetSet::restyle()` は、`restyle()` を持つ中の部品をどれも読み直させます（`widgets/protocol.hpp` の `Restylable` の約束です）。`DialogPane` は仮想の `restyle()` を持ちます。既定では何もせず、`PaneOf` は中の部品に渡します。開いているメニューは開いたときの基準の場所から、開いている下のメニューは項目の新しい四角から、もう一度置き直します。`Menu::reposition(anchor, window)` と `Menu::reposition(anchor, window, horizontal_margin, vertical_margin)` は、開いているメニューを開き直さずに別の基準の場所で置き直します。メニューバーは開いているメニューを項目の新しい四角の下に、分割ボタンは右のボタンの下に、これで置き直します。持ち主が並べる部品（セグメントボタンの列・ボタンのまとまり）は自分を測り直し、持ち主の次の `measure` と `arrange` で置かれます。分割ボタンと検索バーは、最後に並べられた場所でもう一度自分を並べます。なので、開いているメニューは、ボタンがこれから来る場所のそばに置かれます。
 
-スタイルが変わっても、まだ動きに付いてこないところがあります。ドロワーとレールのすでに動いている引きずりや収まりは、始めたときのばねで終わり、次の動きから新しいスタイルのばねを使います。`PullToRefresh` は、中の読み込み中の表示を、大きさのほかは読み直しません。
+スタイルでなく状態に属するものは、部品が持ったままにします。分割した区画の仕切りの位置、拡大の表示の倍率と位置、期間を選ぶ表が見せている月（新しい月の高さで同じ所まで送ります）、伸び縮みする下のアプリバーのたたみ具合です。選んだタブを真ん中に見せていた送れるタブの列は、もう一度真ん中に見せます。ほかの所へ送ってあれば、そのままです。
 
-スタイルは、その下で作ったものがまだ使うかもしれない間は、ほかのスタイルを入れた後も生かしておいてください。`PagerOptions::tokens`・`PullToRefreshOptions::tokens`・`PullToRefreshOptions::arrow_tokens` は既定では空（null）で、そのとき部品は使うたびに今のスタイルのトークンを読みます。プログラムが指す先を渡したときは、渡したままです。はじいたときの減速の曲線（`fling_decay()`）は、今のスタイルの `gesture.fling_decay` から計算し、同じ値で使うときのために取っておきます。なので、違う減速の値ごとに 1 回だけ計算します。`ScrollArea` と `TabRow` は `restyle()` で新しい曲線を取り、はじいて動いている途中なら今の位置と速さから新しい曲線で続けます。`ScrollArea` の外の `TouchScroll` は作ったときの指の操作のトークンを、`ZoomView` は作ったときの減速の曲線を持ったままです。
+すでに動いているドロワー・レール・下のシートの滑りは、今の位置と速さから新しいスタイルのばねで続けます（`AnchoredDraggable::retune`）。下のシートは、出るところか、隠れるところか、収まるところかを覚えていて、ばねを選びます。スタイルが変わっても、まだ動きに付いてこないところがあります。
+
+- 動いている途中の時間で決まる動き（トゥイーン）は、始めたときの長さと曲線で終わり、次の動きから新しいスタイルのものを使います。引きずった後のドロワーの収まり、横のシートの滑り、波形の進み具合の表示の動き、チップとカードの浮き上がりの動きです。
+- 引きずりは、始めたときの速さの測り方のままです。`TouchScroll`・`ZoomView`・`PaneExpansionState` の速さの測り方は、作ったときのトークンのままです。`AnchoredDraggable` は、次に押したときから新しいものを使います。
+- 部品が中の部品にオプションだけで渡す値は、作ったときのままです。ツールチップの動作のボタンの種類・大きさ・色、ツールバーと下のアプリバーのボタンの中身の色、横のシート・検索バー・日付の選択の見出しのボタンの大きさと中身の色、ドックした日付の選択の入力欄のいちばん小さな幅です。中の部品は、自分のトークンを読み直します。
+
+スタイルは、その下で作ったものがまだ使うかもしれない間は、ほかのスタイルを入れた後も生かしておいてください。`PagerOptions::tokens`・`PullToRefreshOptions::tokens`・`PullToRefreshOptions::arrow_tokens` は既定では空（null）で、そのとき部品は使うたびに今のスタイルのトークンを読みます。プログラムが指す先を渡したときは、渡したままです。はじいたときの減速の曲線（`fling_decay()`）は、今のスタイルの `gesture.fling_decay` から計算し、同じ値で使うときのために取っておきます。なので、違う減速の値ごとに 1 回だけ計算します。`ScrollArea` と `TabRow` は `restyle()` で新しい曲線を取り、はじいて動いている途中なら今の位置と速さから新しい曲線で続けます。`ZoomView` も、はじいたときの動きのために `restyle()` で新しい曲線を取ります。`ScrollArea` の外の `TouchScroll` は、作ったときの指の操作のトークンを持ったままです。`ZoomViewOptions::tokens` は、ページ送りと同じく既定では空（null）で、そのとき拡大の表示は使うたびに今のスタイルの拡大のトークンを読みます。なので、収まりのばねと倍率の限りもスタイルに従います。動いている収まりは、今の進み具合と速さから新しいばねで続けます。読み込み中の表示の形と、円の波形の進み具合の表示の形は、今のスタイルのトークンで作り、同じ値で使うときのために取っておきます。減速の曲線と同じです。
 
 ### 見せ方の切り替え
 
@@ -100,13 +106,16 @@ window.set_style(quiet);
 
 - `lamina::Style` は `namespace lamina` の新しい名前です。`using namespace lamina;` を書いて、名前空間の範囲で自分の `Style` を宣言しているファイルでは、名前があいまいになります。どちらかの名前を変えるか、修飾してください。レイアウトの見本の `Style` は `LayoutStyle` にしました。
 - 既定の値をトークンから取るオプションの構造体（`ButtonGroupOptions::expanded_ratio`・`ChipGroupOptions::spacing` など）は、その構造体を作ったときに使っているスタイルから既定の値を取ります。`badge_count` の `max` のような引数の既定の値は、呼んだときに使っているスタイルから取ります。
-- `PagerOptions::tokens`・`PullToRefreshOptions::tokens`・`PullToRefreshOptions::arrow_tokens` は、既定のスタイルの中を指すのをやめ、既定では空（null）になりました。空なら今のスタイルのトークンを使います。既定のオプションのこのメンバーを読むコードは空のポインターを受け取るので、代わりに `Pager::tokens()` を読んでください。
+- `PagerOptions::tokens`・`PullToRefreshOptions::tokens`・`PullToRefreshOptions::arrow_tokens`・`ZoomViewOptions::tokens` は、既定のスタイルの中を指すのをやめ、既定では空（null）になりました。空なら今のスタイルのトークンを使います。既定のオプションのこのメンバーを読むコードは空のポインターを受け取るので、代わりに `Pager::tokens()` か `ZoomView::tokens()` を読んでください。
 - `tokens::` の表を直に読むコードは、ほかのスタイルを使っているときも Material 3 Expressive の値のままです。スタイルに従うには `current_style()` を読んでください。
 - `paint(render::Canvas&, const color::ColorScheme&)`・`Paintable`・部品を作る関数はどれも変わりません。
 - `Style` に新しいメンバー `revision` が入りました。写しても写されず、写したものは新しい番号を取ります。
 - [スタイルが変わったとき](#スタイルが変わったとき)に挙げた部品は、使っているスタイルが変わった後の最初の `step()`（`Label` は最初の `measure()`）で、持っておく値を読み直します。`StyleScope` の中で作った部品をその外で進めたときもです。わざと別のスタイルの下で作って進めるプログラムでは、部品が後のスタイルに従うようになります。
 - `ButtonGroup` は、ボタンの今の高さでなく、新しい `Button::intrinsic_height()`（スタイルと密度から決まる高さ）でボタンの大きさを決めます。
-- 上の一覧の部品に、公開の `restyle()` が増えました。`Menu` と `GroupedMenu` は開いたときの基準の場所を覚えます。`TextField` はプログラムを始めたときのスタイルからトークンを読んでいましたが、ほかの部品と同じく今のスタイルから読むようになりました。
+- 上の一覧の部品に、公開の `restyle()` が増えました。`Menu` と `GroupedMenu` は開いたときの基準の場所を覚え、`Menu` には `reposition` が増えました。`TextField` はプログラムを始めたときのスタイルからトークンを読んでいましたが、ほかの部品と同じく今のスタイルから読むようになりました。
+- `loading_indicator_morphs()` と `loading_indicator_scale()` は、初めて呼んだときのスタイルの形を持ったままでしたが、今のスタイルの形を返すようになりました。円の波形の進み具合の表示の形も同じです。
+- `Button` に、`set_padding`・`set_min_width`・`set_icon_size`・`set_checked_overlay` が増えました。分割ボタンは、これで左右のボタンに新しいスタイルの余白・いちばん小さな幅・アイコンの大きさ・重ねを渡します。`WidgetSet` に `restyle()`、`widgets/protocol.hpp` に `Restylable` の約束、`DialogPane` に既定では何もしない仮想の `restyle()`、`AnchoredDraggable` に `retune`、`BottomAppBarState` に `restyle(limit)` が増えました。`DialogPane` を継いだクラスが、別の形の `restyle` を自分で宣言していると、元のものが隠れます。
+- `set_width` を呼んでいない `LinearWavyProgressIndicator` と、`set_size` を呼んでいない `CircularWavyProgressIndicator` は、`restyle()` で新しいスタイルの幅か大きさを取ります。プログラムが大きさを決めたものは、その大きさのままです。
 - `ListViewOptions` の最後に新しいメンバー `dividers` が入りました。重なった面は入れ物を新しい `paint_container` で描きます。`paint_surface` は変わりません。
 
 ## 出典
