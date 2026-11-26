@@ -106,6 +106,7 @@ public:
     void handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent&) { return false; }
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     std::optional<render::Rect> caret_area() const;
@@ -180,6 +181,7 @@ private:
     double switch_delay_ = -1.0;
     std::vector<std::unique_ptr<FocusStop>> stops_;
     Enablement enabled_;
+    StyleStamp style_stamp_;
 };
 
 }

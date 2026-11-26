@@ -37,6 +37,7 @@
 #include "lamina/widgets/numeric_field.hpp"
 #include "lamina/widgets/pager.hpp"
 #include "lamina/widgets/pane_scaffold.hpp"
+#include "lamina/widgets/picker_dialog.hpp"
 #include "lamina/widgets/progress_indicator.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/radio_button.hpp"
@@ -52,6 +53,7 @@
 #include "lamina/widgets/table.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina/widgets/time_picker.hpp"
 #include "lamina/widgets/title_bar.hpp"
 #include "lamina/widgets/tooltip.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
@@ -69,7 +71,7 @@ using tokens::ButtonStyle;
 
 namespace {
 
-constexpr render::Point origin{20.0, 20.0};
+constexpr render::Point shot_origin{20.0, 20.0};
 
 icons::Icon icon(icons::Symbol s = res::icons::favorite) {
     return {icon_font(), s};
@@ -77,7 +79,7 @@ icons::Icon icon(icons::Symbol s = res::icons::favorite) {
 
 template <typename W>
 std::unique_ptr<W> placed(std::unique_ptr<W> w) {
-    w->set_origin(origin);
+    w->set_origin(shot_origin);
     return w;
 }
 
@@ -148,7 +150,7 @@ TEST_CASE("a label lays its text out again in the new style's type on its next m
     const widgets::LabelOptions options{"Settings", tokens::TypeRole::title_large};
     auto shot = [](widgets::Label& l) {
         l.measure(layout::Constraints{0.0, static_cast<double>(restyle_canvas_width), 0.0, static_cast<double>(restyle_canvas_height)});
-        l.set_origin(origin);
+        l.set_origin(shot_origin);
         return shoot(l);
     };
     widgets::Label switched(options, fonts());
@@ -184,7 +186,7 @@ struct RelaidGroup {
     std::unique_ptr<widgets::ButtonGroup> g;
     void relayout() {
         const layout::Size size = g->measure({0.0, static_cast<double>(restyle_canvas_width), 0.0, static_cast<double>(restyle_canvas_height)});
-        g->arrange({origin.x, origin.y, size.width, size.height});
+        g->arrange({shot_origin.x, shot_origin.y, size.width, size.height});
     }
     void step(double dt) {
         g->step(dt);
@@ -217,8 +219,8 @@ TEST_CASE("an extended FAB lays out its label in the new style's type and collap
 struct RelaidSegments {
     std::unique_ptr<widgets::SegmentedButtonRow> row;
     void relayout() {
-        const layout::Size size = row->measure({0.0, static_cast<double>(restyle_canvas_width) - 2.0 * origin.x, 0.0, static_cast<double>(restyle_canvas_height)});
-        row->arrange({origin.x, origin.y, size.width, size.height});
+        const layout::Size size = row->measure({0.0, static_cast<double>(restyle_canvas_width) - 2.0 * shot_origin.x, 0.0, static_cast<double>(restyle_canvas_height)});
+        row->arrange({shot_origin.x, shot_origin.y, size.width, size.height});
     }
     void step(double dt) {
         row->step(dt);
@@ -258,9 +260,9 @@ TEST_CASE("a chip group flows its chips again after a style change") {
         widgets::ChipGroupOptions o{{{"Breakfast", tokens::ChipKind::filter}, {"Lunch", tokens::ChipKind::filter}, {"Dinner", tokens::ChipKind::filter},
                                      {"Snacks", tokens::ChipKind::filter}}};
         auto g = std::make_unique<widgets::ChipGroup>(std::move(o), fonts());
-        const double w = restyle_canvas_width - 2.0 * origin.x;
+        const double w = restyle_canvas_width - 2.0 * shot_origin.x;
         const layout::Size size = g->measure({0.0, w, 0.0, static_cast<double>(restyle_canvas_height)});
-        g->arrange({origin.x, origin.y, w, size.height});
+        g->arrange({shot_origin.x, shot_origin.y, w, size.height});
         return g;
     });
     save_round(r, "restyle_chip_group");
@@ -270,7 +272,7 @@ TEST_CASE("a chip group flows its chips again after a style change") {
 TEST_CASE("a clickable card animates its focus with the new style's springs after a style change") {
     auto make = [] {
         auto c = std::make_unique<widgets::Card>(widgets::CardOptions{tokens::CardStyle::outlined, true, true, nullptr, nullptr, "Trip"});
-        c->arrange({origin.x, origin.y, 200.0, 100.0});
+        c->arrange({shot_origin.x, shot_origin.y, 200.0, 100.0});
         return c;
     };
     const RestyleResult r = restyle_round(make);
@@ -284,8 +286,8 @@ TEST_CASE("a tab row lays out its labels in the new style's type and moves its i
         widgets::TabRowOptions o{{{"Flights"}, {"Hotels"}, {"Explore"}}, style};
         o.selected = 1;
         auto row = std::make_unique<widgets::TabRow>(std::move(o), fonts());
-        row->set_origin(origin);
-        row->set_width(restyle_canvas_width - 2.0 * origin.x);
+        row->set_origin(shot_origin);
+        row->set_width(restyle_canvas_width - 2.0 * shot_origin.x);
         return row;
     };
     const RestyleResult r = restyle_round([&] { return make(tokens::TabStyle::primary); });
@@ -498,7 +500,7 @@ TEST_CASE("a slider animates its focus with the new style's springs after a styl
         [] {
             auto s = std::make_unique<widgets::Slider>(widgets::SliderOptions{0.4});
             s->set_width(300.0);
-            s->set_origin(origin);
+            s->set_origin(shot_origin);
             return s;
         },
         [](widgets::Slider& w) { w.set_focused(true); }));
@@ -511,7 +513,7 @@ TEST_CASE("a text field lays out its label and text in the new style's type and 
         o.supporting_text = "As on your card";
         auto field = std::make_unique<widgets::TextField>(o, fonts());
         field->set_width(300.0);
-        field->set_origin(origin);
+        field->set_origin(shot_origin);
         return field;
     };
     const RestyleResult r = restyle_round([&] {
@@ -546,7 +548,7 @@ TEST_CASE("a split button arranged by its owner pads and shapes its halves again
     auto make = [] {
         widgets::SplitButtonOptions o{"Send", std::nullopt, ButtonStyle::filled, ButtonSize::medium, "More"};
         return arranged(std::make_unique<widgets::SplitButton>(std::move(o), fonts(), icon_font()),
-                        {origin.x, origin.y, restyle_canvas_width - 2.0 * origin.x, restyle_canvas_height - 2.0 * origin.y});
+                        {shot_origin.x, shot_origin.y, restyle_canvas_width - 2.0 * shot_origin.x, restyle_canvas_height - 2.0 * shot_origin.y});
     };
     const RestyleResult r = restyle_round(make);
     save_round(r, "restyle_split_button");
@@ -783,7 +785,7 @@ TEST_CASE("a split button keeps its open menu under its trailing button after a 
     const RestyleResult r = restyle_round([] {
         widgets::SplitButtonOptions o{"Send", std::nullopt, ButtonStyle::filled, ButtonSize::small, "More", {{"Schedule"}, {"Save draft"}}};
         auto button = std::make_unique<widgets::SplitButton>(std::move(o), fonts(), icon_font());
-        const render::Rect area{origin.x, origin.y, 200.0, 60.0};
+        const render::Rect area{shot_origin.x, shot_origin.y, 200.0, 60.0};
         button->set_window({static_cast<double>(restyle_canvas_width), 320.0});
         button->arrange(area);
         button->set_checked(true);
@@ -966,7 +968,7 @@ TEST_CASE("a search bar lays out its field and buttons again and expands with th
         o.mode = widgets::SearchViewMode::docked;
         auto bar = std::make_unique<widgets::SearchBar>(std::move(o), fonts());
         bar->set_area({0.0, 0.0, static_cast<double>(restyle_canvas_width), 320.0});
-        bar->arrange({origin.x, origin.y, restyle_canvas_width - 2.0 * origin.x, 80.0});
+        bar->arrange({shot_origin.x, shot_origin.y, restyle_canvas_width - 2.0 * shot_origin.x, 80.0});
         return std::make_unique<SearchRig>(SearchRig{std::move(bar)});
     };
     const RestyleResult r = restyle_round([&] { return make(true); }, {restyle_canvas_width, 320});
@@ -989,4 +991,34 @@ TEST_CASE("a table lays out its headers and cells again and selects with the new
     save_round(r, "restyle_table");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::Table& w) { w.set_selected(1, true); }, {restyle_canvas_width, 320}));
+}
+
+namespace {
+
+constexpr RestyleCanvas picker_canvas{restyle_canvas_width, 640};
+
+}
+
+TEST_CASE("a time picker and its dialog lay out their numbers again and turn the selector with the new style's springs after a style change") {
+    auto make = [] { return placed(std::make_unique<widgets::TimePicker>(widgets::TimePickerOptions{9, 41}, fonts())); };
+    const RestyleResult r = restyle_round(make, picker_canvas);
+    save_round(r, "restyle_time_picker");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::TimePicker& w) { w.set_time(3, 41); }, picker_canvas));
+
+    struct Rig {
+        widgets::TimePicker picker{widgets::TimePickerOptions{9, 41}, fonts()};
+        widgets::PickerDialog dialog{widgets::PickerDialogOptions{"OK", "Cancel", widgets::PickerDialogLayout::time, tokens::CornerSize::extra_large, "Select time"},
+                                     std::make_unique<widgets::PaneOf<widgets::TimePicker>>(picker), fonts()};
+        void step(double dt) { dialog.step(dt); }
+        render::Rect bounds() const { return dialog.bounds(); }
+        void paint(render::Canvas& c, const color::ColorScheme& s) const { dialog.paint(c, s); }
+    };
+    const RestyleResult d = restyle_round([] {
+        auto rig = std::make_unique<Rig>();
+        rig->dialog.open_in({0.0, 0.0, static_cast<double>(picker_canvas.width), static_cast<double>(picker_canvas.height)});
+        return rig;
+    }, picker_canvas);
+    save_round(d, "restyle_picker_dialog");
+    check_round(d);
 }

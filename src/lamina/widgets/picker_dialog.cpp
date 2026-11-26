@@ -189,7 +189,22 @@ void PickerDialog::cancel_interaction() {
     }
 }
 
+void PickerDialog::restyle() {
+    style_stamp_.refresh();
+    pane_->restyle();
+    confirm_.restyle();
+    dismiss_.restyle();
+    if (leading_) {
+        leading_->restyle();
+    }
+    popup_.restyle(d().closed_scale, current_style().motion.default_spatial(), current_style().motion.default_effects());
+    place();
+}
+
 void PickerDialog::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     popup_.step(dt);
     pane_->step(dt);
     confirm_.step(dt);

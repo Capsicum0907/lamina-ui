@@ -747,7 +747,33 @@ void TimePicker::cancel_interaction() {
     dragging_ = false;
 }
 
+void TimePicker::restyle() {
+    style_stamp_.refresh();
+    angle_.set_spec(m().selector);
+    numbers_.set_spec(m().numbers);
+    mode_alpha_.set_spec(m().mode);
+    for (auto* toggles : {&periods_, &selectors_}) {
+        for (Toggle& toggle : *toggles) {
+            toggle.state_layer.set_spec(m().state_layer);
+            toggle.corner.set_spec(m().period_shape);
+            toggle.checked.set_spec(m().colors);
+        }
+    }
+    for (FocusIndicator& f : selector_focus_) {
+        f.restyle();
+    }
+    period_focus_.restyle();
+    dial_focus_.restyle();
+    for (Field& f : fields_) {
+        f.focus.restyle();
+    }
+    enabled_.restyle();
+}
+
 void TimePicker::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     angle_.step(dt);
     numbers_.step(dt);
     mode_alpha_.step(dt);

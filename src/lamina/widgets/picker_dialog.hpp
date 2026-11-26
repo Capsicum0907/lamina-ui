@@ -18,6 +18,7 @@
 #include "lamina/widgets/focus_manager.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/popup_transition.hpp"
+#include "lamina/widgets/protocol.hpp"
 
 namespace lamina::widgets {
 
@@ -34,6 +35,7 @@ public:
     virtual bool handle(const input::WheelEvent& event) = 0;
     virtual void cancel_interaction() = 0;
     virtual void clear_focus() = 0;
+    virtual void restyle() {}
     virtual void step(double dt_seconds) = 0;
     virtual bool animating() const = 0;
     virtual void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const = 0;
@@ -56,6 +58,11 @@ public:
     bool handle(const input::WheelEvent& e) override { return w_.handle(e); }
     void cancel_interaction() override { w_.cancel_interaction(); }
     void clear_focus() override { w_.clear_focus(); }
+    void restyle() override {
+        if constexpr (Restylable<W>) {
+            w_.restyle();
+        }
+    }
     void step(double dt) override { w_.step(dt); }
     bool animating() const override { return w_.animating(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const override { w_.paint(canvas, scheme); }
@@ -109,6 +116,7 @@ public:
     bool handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     std::optional<render::Rect> caret_area() const;
@@ -133,6 +141,7 @@ private:
     PopupTransition popup_;
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     render::Rect surface_{0.0, 0.0, 0.0, 0.0};
+    StyleStamp style_stamp_;
 };
 
 }
