@@ -47,6 +47,7 @@ public:
     void cancel_interaction();
     void step(double dt_seconds);
     bool animating() const { return !state_layer_.settled() || !focus_.settled(); }
+    void restyle();
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
 private:
@@ -124,6 +125,7 @@ public:
     bool handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -150,6 +152,7 @@ private:
     FocusManager own_focus_;
     motion::AnchoredDraggable<SheetValue> drag_;
     motion::Animated scrim_;
+    motion::SpringSpec tokens::SheetMotion::* running_ = &tokens::SheetMotion::show;
     render::Rect area_{0.0, 0.0, 0.0, 0.0};
     double sheet_width_ = 0.0;
     double sheet_height_ = 0.0;
@@ -158,6 +161,7 @@ private:
     bool tracking_ = false;
     double press_y_ = 0.0;
     bool press_on_content_ = false;
+    StyleStamp style_stamp_;
 };
 
 }

@@ -8,6 +8,7 @@
 
 #include "lamina/motion/anchored_draggable.hpp"
 #include "lamina/widgets/button.hpp"
+#include "lamina/widgets/bottom_sheet.hpp"
 #include "lamina/widgets/button_group.hpp"
 #include "lamina/widgets/card.hpp"
 #include "lamina/widgets/checkbox.hpp"
@@ -905,4 +906,37 @@ TEST_CASE("an open side sheet lays out its headline, buttons and content again a
     }, {restyle_canvas_width, 320});
     save_round(r, "restyle_side_sheet");
     check_round(r);
+}
+
+TEST_CASE("an open bottom sheet lays out its handle and content again and goes on sliding with the new style's spring") {
+    const render::Rect area{0.0, 0.0, static_cast<double>(restyle_canvas_width), 320.0};
+    auto make = [&](widgets::SheetValue initial) {
+        auto rig = std::make_unique<SheetRig<widgets::BottomSheet>>();
+        widgets::BottomSheetOptions o;
+        o.content = rig->slot();
+        o.initial = initial;
+        rig->sheet = std::make_unique<widgets::BottomSheet>(std::move(o));
+        rig->sheet->set_area(area);
+        return rig;
+    };
+    const RestyleResult r = restyle_round([&] { return make(widgets::SheetValue::expanded); }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_bottom_sheet");
+    check_round(r);
+    check_round(restyle_motion_round([&] { return make(widgets::SheetValue::hidden); },
+                                     [](SheetRig<widgets::BottomSheet>& w) { w.sheet->show(); }, {restyle_canvas_width, 320}));
+
+    auto slide = [&](bool switch_style) {
+        auto rig = make(widgets::SheetValue::hidden);
+        rig->sheet->show();
+        for (int i = 0; i < restyle_motion_frames; ++i) {
+            rig->step(frame_seconds);
+        }
+        std::optional<StyleScope> scope;
+        if (switch_style) {
+            scope.emplace(restyle_test_style());
+        }
+        rig->step(frame_seconds);
+        return rig->sheet->offset();
+    };
+    CHECK(slide(false) != slide(true));
 }

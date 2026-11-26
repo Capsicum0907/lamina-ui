@@ -67,6 +67,11 @@ void SheetDragHandle::retarget() {
     state_layer_.animate_to(focus_.state_layer_opacity(press_.state_layer_opacity()));
 }
 
+void SheetDragHandle::restyle() {
+    state_layer_.set_spec(current_style().motion.fast_effects());
+    focus_.restyle();
+}
+
 void SheetDragHandle::step(double dt) {
     state_layer_.step(dt);
     focus_.step(dt);
@@ -221,6 +226,7 @@ void BottomSheet::show(input::InputSource source) {
         own_focus_.clear_focus();
     }
     const SheetValue target = drag_.has(SheetValue::partially_expanded) ? SheetValue::partially_expanded : SheetValue::expanded;
+    running_ = &tokens::SheetMotion::show;
     drag_.animate_to(target, motion_spec().show);
     update_handle();
     if (source == input::InputSource::keyboard && modal()) {
@@ -232,18 +238,21 @@ void BottomSheet::show(input::InputSource source) {
 
 void BottomSheet::hide() {
     if (drag_.has(SheetValue::hidden)) {
+        running_ = &tokens::SheetMotion::hide;
         drag_.animate_to(SheetValue::hidden, motion_spec().hide);
         update_handle();
     }
 }
 
 void BottomSheet::expand() {
+    running_ = &tokens::SheetMotion::show;
     drag_.animate_to(SheetValue::expanded, motion_spec().show);
     update_handle();
 }
 
 void BottomSheet::partial_expand() {
     if (drag_.has(SheetValue::partially_expanded)) {
+        running_ = &tokens::SheetMotion::hide;
         drag_.animate_to(SheetValue::partially_expanded, motion_spec().hide);
         update_handle();
     }
@@ -366,6 +375,7 @@ BottomSheetResponse BottomSheet::finish_drag(double time_seconds) {
     const std::optional<double> v = drag_.release(time_seconds);
     tracking_ = false;
     const double velocity = modal() ? damped(v.value_or(0.0)) : v.value_or(0.0);
+    running_ = &tokens::SheetMotion::settle;
     drag_.fling(velocity, motion_spec().settle);
     update_handle();
     return {.dismissed = dismiss_after_settle(), .consumed = true};
@@ -505,6 +515,7 @@ void BottomSheet::cancel_interaction() {
     content_.cancel_interaction();
     if (drag_.dragging()) {
         drag_.cancel_press();
+        running_ = &tokens::SheetMotion::settle;
         drag_.fling(0.0, motion_spec().settle);
     }
     drag_.cancel_press();
@@ -512,7 +523,22 @@ void BottomSheet::cancel_interaction() {
     scrim_pressed_ = false;
 }
 
+void BottomSheet::restyle() {
+    style_stamp_.refresh();
+    handle_.restyle();
+    content_.restyle();
+    scrim_.set_spec(motion_spec().scrim);
+    drag_.set_gesture(current_style().gesture.drag);
+    drag_.retune(motion_spec().*running_);
+    if (drag_.positioned()) {
+        set_area(area_);
+    }
+}
+
 void BottomSheet::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     drag_.step(dt);
     scrim_.animate_to(modal() && drag_.target_value() != SheetValue::hidden ? 1.0 : 0.0);
     scrim_.step(dt);
