@@ -1094,6 +1094,8 @@ namespace {
 
 constexpr double tween_finish_margin = 1e-3;
 constexpr double tween_end_tolerance = 1e-9;
+constexpr double tween_probe_seconds = 1e-5;
+constexpr double tween_probe_fraction = 0.01;
 constexpr double tween_ran_seconds = restyle_motion_frames * frame_seconds;
 
 double remaining_after_restyle(const motion::TweenSpec& running, const motion::TweenSpec& next, double ran_seconds) {
@@ -1110,8 +1112,10 @@ void check_running_tween(W& w, Read read, double target, const motion::TweenSpec
     const StyleScope scope(restyle_test_style());
     w.restyle();
     CHECK(read(w) == before);
+    w.step(tween_probe_seconds);
+    CHECK(std::abs(read(w) - before) <= tween_probe_fraction * std::abs(target - before));
     const double remaining = remaining_after_restyle(running, next, ran_seconds);
-    w.step(remaining - tween_finish_margin);
+    w.step(remaining - tween_probe_seconds - tween_finish_margin);
     CHECK(std::abs(read(w) - target) > tween_end_tolerance);
     w.step(2.0 * tween_finish_margin);
     CHECK(std::abs(read(w) - target) <= tween_end_tolerance);
