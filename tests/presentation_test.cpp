@@ -41,6 +41,12 @@ Style with_foreground_selection() {
     return s;
 }
 
+Style with_plain_foreground_selection() {
+    Style s = with_foreground_selection();
+    s.selection.emphasized_label = false;
+    return s;
+}
+
 Style with_outlined_containers() {
     Style s = m3_expressive_style();
     s.containers.fill = tokens::ContainerFill::outlined;
@@ -77,15 +83,30 @@ int divider_pixels(const Style& style, std::optional<bool> dividers, const char*
     return count_color(*paint_list(style, dividers, shot), scheme()[style.divider.color]);
 }
 
-widgets::NavigationBar bar() {
+std::unique_ptr<widgets::NavigationBar> bar_at(std::size_t selected) {
     std::vector<widgets::NavigationItem> items;
     for (auto [symbol, label] : {std::pair{res::icons::home, "Home"}, std::pair{res::icons::search, "Search"},
                                  std::pair{res::icons::settings, "Settings"}}) {
         items.push_back({icons::Icon{icon_font(), symbol}, label});
     }
-    widgets::NavigationBar b({items}, fonts());
-    b.set_width(list_width);
+    auto b = std::make_unique<widgets::NavigationBar>(widgets::NavigationBarOptions{items, selected}, fonts());
+    b->set_width(list_width);
     return b;
+}
+
+RestyleCanvas bar_canvas(const widgets::NavigationBar& b) {
+    return {list_width, static_cast<int>(b.height())};
+}
+
+int differing_pixels(const RestyleShot& a, const RestyleShot& b, const render::Rect& r) {
+    int n = 0;
+    for (int y = static_cast<int>(r.y); y < static_cast<int>(r.y + r.height) && y < a.canvas.height; ++y) {
+        for (int x = static_cast<int>(r.x); x < static_cast<int>(r.x + r.width) && x < a.canvas.width; ++x) {
+            const std::size_t i = static_cast<std::size_t>(y * a.canvas.width + x);
+            n += a.pixels[i] != b.pixels[i] ? 1 : 0;
+        }
+    }
+    return n;
 }
 
 std::unique_ptr<thorvg::Canvas> paint_menu(const Style& style, const char* shot) {
@@ -175,11 +196,11 @@ TEST_CASE("with foreground selection a selected list row has no container and ta
 TEST_CASE("with foreground selection the navigation bar drops the pill and underlines the selected label") {
     auto paint = [](const Style& style, const char* shot) {
         const StyleScope scope(style);
-        auto b = bar();
-        settle_widget(b);
-        thorvg::Canvas canvas(list_width, static_cast<int>(b.height()));
+        auto b = bar_at(0);
+        settle_widget(*b);
+        thorvg::Canvas canvas(list_width, static_cast<int>(b->height()));
         canvas.clear(restyle_background);
-        b.paint(canvas, scheme());
+        b->paint(canvas, scheme());
         save_shot(canvas, shot);
         return std::pair{count_color(canvas, scheme()[style.navigation_bar.indicator]), count_color(canvas, scheme()[style.selection.foreground])};
     };
@@ -237,4 +258,33 @@ TEST_CASE("with receding layers a grouped menu takes the receded container and d
 
 TEST_CASE("a grouped menu built under the M3 style and switched to receding layers paints as one built under receding layers") {
     check_switched_as_built(switched_and_built(with_receding_layers(), grouped_menu, menu_canvas));
+}
+TEST_CASE("with foreground selection and an emphasized label the navigation bar sets only the selected label in the emphasized type") {
+    auto shot = [](const Style& style) {
+        const StyleScope scope(style);
+        auto b = bar_at(0);
+        settle_widget(*b);
+        return std::pair{shoot(*b, bar_canvas(*b)), std::vector<render::Rect>{b->item_rect(0), b->item_rect(1), b->item_rect(2)}};
+    };
+    const auto [bold, rects] = shot(with_foreground_selection());
+    const auto [plain, plain_rects] = shot(with_plain_foreground_selection());
+    CHECK(differing_pixels(bold, plain, rects[0]) > 0);
+    CHECK(differing_pixels(bold, plain, rects[1]) == 0);
+    CHECK(differing_pixels(bold, plain, rects[2]) == 0);
+}
+
+TEST_CASE("with an emphasized label the navigation bar moves the emphasis to the item it selects") {
+    const StyleScope scope(with_foreground_selection());
+    auto moved = bar_at(0);
+    settle_widget(*moved);
+    moved->select(2);
+    settle_widget(*moved);
+    auto built = bar_at(2);
+    settle_widget(*built);
+    check_switched_as_built({shoot(*moved, bar_canvas(*moved)), shoot(*built, bar_canvas(*built))});
+}
+
+TEST_CASE("a navigation bar built under the M3 style and switched to foreground selection paints as one built under foreground selection") {
+    const RestyleCanvas size{list_width, restyle_canvas_height};
+    check_switched_as_built(switched_and_built(with_foreground_selection(), [] { return bar_at(1); }, size));
 }

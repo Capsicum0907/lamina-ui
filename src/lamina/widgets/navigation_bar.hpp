@@ -82,6 +82,7 @@ private:
         motion::Animated color;
         Enablement enabled;
         bool allowed;
+        tokens::TypeRole label_role = {};
     };
 
     double content_top(std::size_t index) const;
@@ -89,6 +90,8 @@ private:
     double labelled_height() const;
     double label_space(const Item& item) const;
     double label_opacity() const;
+    tokens::TypeRole label_role(std::size_t index) const;
+    void layout_labels(bool all);
     render::Rect full_indicator_rect(std::size_t index) const;
 
     NavigationBarOptions options_;

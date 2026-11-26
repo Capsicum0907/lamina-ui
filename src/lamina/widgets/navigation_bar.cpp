@@ -26,16 +26,30 @@ double label_height(const text::TextLine& line) {
 NavigationBar::NavigationBar(NavigationBarOptions options, const text::FontStack& fonts)
     : options_(std::move(options)), fonts_(fonts), badges_(options_.items, fonts_), labels_(options_.labels ? 1.0 : 0.0, current_style().motion.default_spatial()) {
     name_navigation_items(options_.items);
-    const auto style = current_style().type.text(t().label);
     for (std::size_t i = 0; i < options_.items.size(); ++i) {
-        std::optional<text::TextLine> label;
-        if (!options_.items[i].label.empty()) {
-            label = text::layout_line(fonts_, options_.items[i].label, style);
-        }
         const double on = i == options_.selected ? 1.0 : 0.0;
-        items_.push_back({std::move(label), {}, motion::Animated(0.0, current_style().motion.fast_effects()),
+        items_.push_back({std::nullopt, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
                           motion::Animated(on, current_style().motion.default_spatial()), motion::Animated(on, current_style().motion.default_effects()),
                           Enablement(options_.items[i].enabled), options_.items[i].enabled});
+    }
+    layout_labels(true);
+}
+
+tokens::TypeRole NavigationBar::label_role(std::size_t index) const {
+    const tokens::SelectionTokens& s = current_style().selection;
+    const bool marked = s.mark == tokens::SelectionMark::foreground && s.emphasized_label && index == options_.selected;
+    return marked ? tokens::emphasized(t().label) : t().label;
+}
+
+void NavigationBar::layout_labels(bool all) {
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        Item& item = items_[i];
+        const tokens::TypeRole role = label_role(i);
+        if (options_.items[i].label.empty() || (!all && role == item.label_role)) {
+            continue;
+        }
+        item.label = text::layout_line(fonts_, options_.items[i].label, current_style().type.text(role));
+        item.label_role = role;
     }
 }
 
@@ -114,6 +128,7 @@ render::Rect NavigationBar::indicator_rect(std::size_t index) const {
 
 void NavigationBar::select(std::size_t index) {
     select_navigation_item(items_, options_.selected, index);
+    layout_labels(false);
 }
 
 void NavigationBar::retarget_state_layers() {
@@ -194,12 +209,8 @@ void NavigationBar::restyle() {
     badges_.restyle();
     const auto& motion = current_style().motion;
     labels_.set_spec(motion.default_spatial());
-    const auto style = current_style().type.text(t().label);
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        Item& item = items_[i];
-        if (item.label) {
-            item.label = text::layout_line(fonts_, options_.items[i].label, style);
-        }
+    layout_labels(true);
+    for (Item& item : items_) {
         item.state_layer.set_spec(motion.fast_effects());
         item.indicator.set_spec(motion.default_spatial());
         item.color.set_spec(motion.default_effects());
