@@ -8,6 +8,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/tokens/split_pane.hpp"
 #include "lamina/widgets/accessibility.hpp"
 #include "lamina/widgets/drag_handle.hpp"
@@ -63,6 +64,7 @@ public:
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -90,6 +92,7 @@ private:
     Enablement enabled_;
     DragHandlePainter handle_painter_;
     motion::Animated handle_shown_;
+    StyleStamp style_stamp_;
 };
 
 }

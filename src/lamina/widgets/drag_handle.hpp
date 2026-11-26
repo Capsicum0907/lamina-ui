@@ -22,11 +22,21 @@ public:
           active_(0.0, current_style().drag_handle.color_spring) {}
 
     void set_state(bool pressed, bool dragged) {
+        pressed_ = pressed;
+        dragged_ = dragged;
         const tokens::DragHandleTokens& t = current_style().drag_handle;
         const bool active = pressed || dragged;
         width_.animate_to(dragged ? t.dragged_width : pressed ? t.pressed_width : t.width);
         height_.animate_to(dragged ? t.dragged_height : pressed ? t.pressed_height : t.height);
         active_.animate_to(active ? 1.0 : 0.0);
+    }
+
+    void restyle() {
+        const tokens::DragHandleTokens& t = current_style().drag_handle;
+        width_.set_spec(t.size_spring);
+        height_.set_spec(t.size_spring);
+        active_.set_spec(t.color_spring);
+        set_state(pressed_, dragged_);
     }
 
     void step(double dt) {
@@ -65,6 +75,8 @@ public:
 
 private:
     layout::Axis axis_;
+    bool pressed_ = false;
+    bool dragged_ = false;
     motion::Animated width_;
     motion::Animated height_;
     motion::Animated active_;

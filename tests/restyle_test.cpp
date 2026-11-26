@@ -34,6 +34,7 @@
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/snackbar.hpp"
 #include "lamina/widgets/split_button.hpp"
+#include "lamina/widgets/split_pane.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
@@ -590,4 +591,22 @@ TEST_CASE("a title bar lays out its title again and fades its buttons with the n
         const render::Rect b = w.button_rect(widgets::TitleBarAction::minimize);
         w.handle(input::PointerEvent{input::PointerAction::down, b.x + b.width / 2.0, b.y + b.height / 2.0});
     }));
+}
+
+TEST_CASE("a split pane places its divider again and shows its handle with the new style's springs after a style change") {
+    auto make = [] {
+        widgets::SplitPaneOptions o;
+        o.first_size = 150.0;
+        auto pane = std::make_unique<widgets::SplitPane>(std::move(o));
+        pane->arrange(restyle_area);
+        return pane;
+    };
+    const RestyleResult r = restyle_round([&] {
+        auto pane = make();
+        pane->set_focused(true);
+        return pane;
+    });
+    save_round(r, "restyle_split_pane");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::SplitPane& w) { w.set_focused(true); }));
 }

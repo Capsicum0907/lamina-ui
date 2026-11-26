@@ -214,7 +214,19 @@ void SplitPane::cancel_interaction() {
     retarget();
 }
 
+void SplitPane::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    enabled_.restyle();
+    handle_painter_.restyle();
+    handle_shown_.set_spec(t().handle_fade);
+    place();
+}
+
 void SplitPane::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     enabled_.step(dt);
     handle_painter_.step(dt);
