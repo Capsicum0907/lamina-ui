@@ -61,9 +61,9 @@ public:
         hiding_rail_ = std::make_unique<widgets::ModalNavigationRail>(
             widgets::ModalNavigationRailOptions{rail_options(nullptr), true}, ctx.fonts);
 
-        auto& open_modal = bar_button(res::icons::menu, "Open navigation menu", [this] { open_modal_drawer(); });
-        auto modal_screen = layout::column({app_bar(open_modal, "Inbox"),
-                                            screen_body("", "Open the menu, or drag across this frame to the right.")});
+        auto& open_modal = bar_button(res::icons::menu, "Open navigation menu", [this] { open_modal_drawer(); }, modal_set_);
+        auto modal_screen = layout::column({app_bar(open_modal, "Inbox", modal_set_),
+                                            screen_body("", "Open the menu, or drag across this frame to the right.", modal_set_)});
         modal_screen->fill_cross(true);
         modal_frame_.on_arrange([this](const render::Rect& r) { modal_->set_area(r); });
 
@@ -134,7 +134,7 @@ public:
 
     bool holds_pointer() const override {
         return hiding_rail_->holds_pointer() || rail_->holds_pointer() || modal_->holds_pointer() || dismissible_->holds_pointer() ||
-               permanent_->holds_pointer() || BasePage::holds_pointer();
+               permanent_->holds_pointer() || modal_set_.holds_pointer() || BasePage::holds_pointer();
     }
     bool handle(const input::PointerEvent& e) override {
         source_ = input::InputSource::pointer;
@@ -180,7 +180,8 @@ public:
         if (!rail_->showing() && rail_menu_->handle(e)) {
             toggle_rail();
         }
-        return handle_controls(e);
+        const bool modal_screen = modal_set_.handle(e);
+        return handle_controls(e) || modal_screen;
     }
 
     bool handle(const input::KeyEvent& e) override {
@@ -219,7 +220,7 @@ public:
                 return true;
             }
         }
-        return handle_controls(e);
+        return handle_controls(e) || modal_set_.handle(e);
     }
 
     bool handle(const input::WheelEvent& e) override {
@@ -232,6 +233,7 @@ public:
     void step(double dt) override {
         BasePage::step(dt);
         modal_->step(dt);
+        modal_set_.step(dt);
         dismissible_->step(dt);
         permanent_->step(dt);
         rail_->step(dt);
@@ -257,7 +259,7 @@ public:
     }
 
     bool animating() const override {
-        return BasePage::animating() || modal_->animating() || dismissible_->animating() || permanent_->animating() || rail_->animating() ||
+        return BasePage::animating() || modal_->animating() || modal_set_.animating() || dismissible_->animating() || permanent_->animating() || rail_->animating() ||
                hiding_rail_->animating() || rail_menu_->animating();
     }
 
@@ -275,6 +277,10 @@ public:
         }
         push_frame_.end_clip(canvas);
         modal_frame_.begin_clip(canvas);
+        canvas.save();
+        canvas.translate(modal_->content_shift(), 0.0);
+        modal_set_.paint(canvas, scheme);
+        canvas.restore();
         modal_->paint(canvas, scheme);
         modal_frame_.end_clip(canvas);
         rail_frame_.begin_clip(canvas);
@@ -293,7 +299,10 @@ public:
     }
 
     std::vector<widgets::AccessibleNode> accessible_nodes() const override {
-        std::vector<widgets::AccessibleNode> nodes = BasePage::accessible_nodes();
+        std::vector<widgets::AccessibleNode> nodes = modal_set_.accessible_nodes();
+        for (widgets::AccessibleNode& n : BasePage::accessible_nodes()) {
+            nodes.push_back(std::move(n));
+        }
         if (pinned_) {
             nodes.push_back(permanent_->accessible());
         } else if (auto n = dismissible_->accessible()) {
@@ -318,6 +327,7 @@ public:
 
     void set_enabled(bool enabled) override {
         BasePage::set_enabled(enabled);
+        modal_set_.set_enabled(enabled);
         modal_->sheet().set_enabled(enabled);
         dismissible_->set_enabled(enabled);
         permanent_->set_enabled(enabled);
@@ -330,6 +340,7 @@ public:
 
     void cancel_interaction() override {
         BasePage::cancel_interaction();
+        modal_set_.cancel_interaction();
         modal_->cancel_interaction();
         dismissible_->cancel_interaction();
         permanent_->cancel_interaction();
@@ -364,7 +375,11 @@ private:
     }
 
     widgets::IconButton& bar_button(icons::Symbol s, const char* name, std::function<void()> on_click) {
-        auto& b = controls.emplace_with<widgets::IconButton>(
+        return bar_button(s, name, std::move(on_click), controls);
+    }
+
+    widgets::IconButton& bar_button(icons::Symbol s, const char* name, std::function<void()> on_click, widgets::WidgetSet& set) {
+        auto& b = set.emplace_with<widgets::IconButton>(
             [f = std::move(on_click)](widgets::IconButton&, bool clicked) {
                 if (clicked) {
                     f();
@@ -396,8 +411,8 @@ private:
         return widgets::node(t);
     }
 
-    layout::NodePtr app_bar(widgets::IconButton& button, const char* title) {
-        auto bar = layout::row({widgets::node(button), title_node(title)});
+    layout::NodePtr app_bar(widgets::IconButton& button, const char* title, widgets::WidgetSet& set) {
+        auto bar = layout::row({widgets::node(button), title_node(title, set)});
         bar->spacing(drawers_layout.bar_gap).cross_align(layout::CrossAlign::center).padding(layout::Insets::all(drawers_layout.bar_padding));
         return bar;
     }
@@ -468,6 +483,7 @@ private:
     }
 
     DemoFrame modal_frame_;
+    widgets::WidgetSet modal_set_;
     DemoFrame push_frame_;
     widgets::WidgetSet dismissed_set_;
     widgets::WidgetSet permanent_set_;
