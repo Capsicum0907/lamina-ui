@@ -105,7 +105,20 @@ void Snackbar::cancel_interaction() {
     }
 }
 
+void Snackbar::restyle() {
+    style_stamp_.refresh();
+    popup_.restyle(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects());
+    message_.restyle();
+    if (action_) {
+        action_->restyle();
+    }
+    relayout();
+}
+
 void Snackbar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     popup_.step(dt);
     if (action_) {
         action_->step(dt);

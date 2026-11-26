@@ -38,10 +38,16 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
       icon_(std::move(options.icon)),
       content_(std::move(options.content)),
       popup_(t().closed_scale, current_style().motion.default_spatial(), current_style().motion.default_effects()),
-      default_action_(options.default_action) {
+      default_action_(options.default_action),
+      has_headline_(!options.headline.empty()),
+      has_supporting_(!options.supporting_text.empty()) {
     if (!options.dismiss_label.empty()) {
         dismiss_.emplace(action(options.dismiss_label), fonts);
     }
+    build_layout();
+}
+
+void Dialog::build_layout() {
     std::vector<layout::NodePtr> buttons{node(confirm_)};
     if (dismiss_) {
         buttons.push_back(node(*dismiss_));
@@ -60,7 +66,7 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
         children.push_back(icon);
         children.push_back(layout::spacer({0.0, t().icon_bottom_space}));
     }
-    if (!options.headline.empty()) {
+    if (has_headline_) {
         auto headline = node(headline_);
         if (icon_) {
             headline->self_align = layout::CrossAlign::center;
@@ -69,7 +75,7 @@ Dialog::Dialog(DialogOptions options, const text::FontStack& fonts)
         children.push_back(layout::spacer({0.0, t().headline_bottom_space}));
     }
     std::vector<layout::NodePtr> slot_children;
-    if (!options.supporting_text.empty()) {
+    if (has_supporting_) {
         slot_children.push_back(node(supporting_));
     }
     if (content_ && content_->node) {
@@ -433,7 +439,26 @@ void Dialog::cancel_interaction() {
     }
 }
 
+void Dialog::restyle() {
+    style_stamp_.refresh();
+    popup_.restyle(t().closed_scale, current_style().motion.default_spatial(), current_style().motion.default_effects());
+    headline_.restyle();
+    supporting_.restyle();
+    confirm_.restyle();
+    if (dismiss_) {
+        dismiss_->restyle();
+    }
+    scroll_.restyle();
+    build_layout();
+    if (area_.width > 0.0) {
+        set_area(area_);
+    }
+}
+
 void Dialog::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     popup_.step(dt);
     confirm_.step(dt);
     if (dismiss_) {

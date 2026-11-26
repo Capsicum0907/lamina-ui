@@ -11,6 +11,7 @@
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/chip.hpp"
 #include "lamina/widgets/chip_group.hpp"
+#include "lamina/widgets/dialog.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
@@ -26,6 +27,7 @@
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/side_navigation.hpp"
+#include "lamina/widgets/snackbar.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
@@ -425,4 +427,22 @@ TEST_CASE("a top app bar lays out its title again and places its buttons after a
     });
     save_round(r, "restyle_top_app_bar");
     check_round(r);
+}
+
+TEST_CASE("a snackbar and a dialog lay out their text and actions again after a style change") {
+    const RestyleResult s = restyle_round([] {
+        auto bar = std::make_unique<widgets::Snackbar>(widgets::SnackbarOptions{"Undo", 1000.0}, fonts());
+        bar->set_area(restyle_area);
+        bar->show("Message archived");
+        return in_area(std::move(bar));
+    });
+    save_round(s, "restyle_snackbar");
+    check_round(s);
+    const RestyleResult d = restyle_round([] {
+        auto dialog = std::make_unique<widgets::Dialog>(widgets::DialogOptions{"Discard draft?", "", "Discard", "Cancel"}, fonts());
+        dialog->open_in(restyle_area);
+        return in_area(std::move(dialog));
+    });
+    save_round(d, "restyle_dialog");
+    check_round(d);
 }

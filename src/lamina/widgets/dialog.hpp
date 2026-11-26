@@ -12,6 +12,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/dialog.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -82,6 +83,7 @@ public:
     bool handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -101,6 +103,7 @@ private:
     void reveal_content_focus();
     void deliver_to_content(const input::PointerEvent& e);
     layout::Size measure_root(const render::Rect& area);
+    void build_layout();
 
     Label headline_;
     Label supporting_;
@@ -122,6 +125,9 @@ private:
     std::optional<DialogAction> default_action_;
     std::optional<DialogAction> focus_;
     bool focus_shown_ = false;
+    bool has_headline_ = false;
+    bool has_supporting_ = false;
+    StyleStamp style_stamp_;
 };
 
 }

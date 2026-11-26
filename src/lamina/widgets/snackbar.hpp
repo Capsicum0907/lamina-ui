@@ -48,6 +48,7 @@ public:
     SnackbarResponse handle(const input::PointerEvent& event);
     SnackbarResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     double next_wake_seconds() const;
@@ -74,6 +75,7 @@ private:
     PopupTransition popup_;
     double remaining_ = 0.0;
     bool hovered_ = false;
+    StyleStamp style_stamp_;
 };
 
 }

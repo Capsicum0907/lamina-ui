@@ -32,6 +32,15 @@ public:
         alpha_.animate_to(0.0);
     }
 
+    void restyle(double closed_scale, motion::SpringSpec scale_spring, motion::SpringSpec alpha_spring) {
+        closed_scale_ = closed_scale;
+        scale_.set_spec(scale_spring);
+        alpha_.set_spec(alpha_spring);
+        if (!open_) {
+            scale_.animate_to(closed_scale_);
+        }
+    }
+
     bool is_open() const { return open_; }
     bool visible() const { return open_ || !alpha_.settled() || alpha_.value() > 0.0; }
     double opacity() const { return std::clamp(alpha_.value(), 0.0, 1.0); }
