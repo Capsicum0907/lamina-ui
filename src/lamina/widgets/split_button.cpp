@@ -70,6 +70,7 @@ double SplitButton::min_width() const {
 
 void SplitButton::set_width(double width) {
     given_width_ = width;
+    arranged_.reset();
     const double room = width >= natural_width() ? leading_->intrinsic_width() : width - t().between_space - trailing_->width();
     const double lead = std::max(leading_->min_width(), room);
     leading_->set_size(lead, leading_->height());
@@ -83,8 +84,8 @@ layout::Size SplitButton::measure(const layout::Constraints& c) const {
 
 void SplitButton::arrange(const render::Rect& r) {
     set_width(std::min(natural_width(), r.width));
-    given_width_ = r.width;
     set_origin({r.x, r.y + (r.height - height()) / 2.0});
+    arranged_ = r;
 }
 
 double SplitButton::height() const {
@@ -228,9 +229,17 @@ void SplitButton::restyle() {
     rotation_.set_spec(t().chevron_spring);
     if (given_width_) {
         leading_->set_size(leading_->width(), leading_->intrinsic_height());
+    }
+    if (arranged_) {
+        arrange(*arranged_);
+    } else if (given_width_) {
         set_width(*given_width_);
     }
     set_origin(origin_);
+    if (menu_) {
+        menu_->restyle();
+        menu_->reposition(trailing_->bounds(), window_);
+    }
 }
 
 void SplitButton::step(double dt) {

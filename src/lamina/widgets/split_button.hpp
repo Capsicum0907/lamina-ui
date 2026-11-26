@@ -95,6 +95,7 @@ private:
     render::Point origin_{0.0, 0.0};
     layout::Size window_{0.0, 0.0};
     std::optional<double> given_width_;
+    std::optional<render::Rect> arranged_;
     StyleStamp style_stamp_;
 };
 

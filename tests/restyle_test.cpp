@@ -751,3 +751,35 @@ TEST_CASE("a menu bar lays out its items again and keeps its open menu under its
     save_round(r, "restyle_menu_bar");
     check_round(r);
 }
+
+namespace {
+
+struct SplitWithMenu {
+    std::unique_ptr<widgets::SplitButton> button;
+    render::Rect area;
+    void step(double dt) {
+        button->step(dt);
+        button->arrange(area);
+    }
+    render::Rect bounds() const { return button->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const {
+        button->paint(c, s);
+        button->paint_overlay(c, s);
+    }
+};
+
+}
+
+TEST_CASE("a split button keeps its open menu under its trailing button after a style change") {
+    const RestyleResult r = restyle_round([] {
+        widgets::SplitButtonOptions o{"Send", std::nullopt, ButtonStyle::filled, ButtonSize::small, "More", {{"Schedule"}, {"Save draft"}}};
+        auto button = std::make_unique<widgets::SplitButton>(std::move(o), fonts(), icon_font());
+        const render::Rect area{origin.x, origin.y, 200.0, 60.0};
+        button->set_window({static_cast<double>(restyle_canvas_width), 320.0});
+        button->arrange(area);
+        button->set_checked(true);
+        return std::make_unique<SplitWithMenu>(SplitWithMenu{std::move(button), area});
+    }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_split_button_menu");
+    check_round(r);
+}
