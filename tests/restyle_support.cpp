@@ -90,7 +90,7 @@ const Style& restyle_test_style() {
                                          &s.wavy_progress_motion.circular_handoff_min, &s.wavy_progress_motion.circular_handoff_max}) {
             tween->duration_seconds *= restyle_duration_scale;
         }
-        for (motion::TweenSpec* tween : {&s.pull_arrow.alpha_tween, &s.pull_arrow.crossfade}) {
+        for (motion::TweenSpec* tween : {&s.pull_arrow.alpha_tween, &s.pull_arrow.crossfade, &s.slider.value_indicator_scale}) {
             tween->duration_seconds *= restyle_duration_scale;
         }
         for (motion::TweenSpec* tween : {&s.elevation.tweens.incoming, &s.elevation.tweens.outgoing, &s.elevation.tweens.hover_outgoing}) {

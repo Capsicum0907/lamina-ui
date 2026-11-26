@@ -85,6 +85,7 @@ public:
     std::vector<double> tick_centers() const;
     std::string value_text(RangeThumb thumb) const;
     bool value_indicator_shown(RangeThumb thumb) const { return indicators_[index(thumb)].shown(); }
+    double value_indicator_scale(RangeThumb thumb) const { return indicators_[index(thumb)].scale(); }
 
     std::optional<RangeThumb> focused_thumb() const;
     bool focused(RangeThumb thumb) const { return focus_[index(thumb)].focused(); }

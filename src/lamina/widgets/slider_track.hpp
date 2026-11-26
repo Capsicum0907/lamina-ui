@@ -107,6 +107,7 @@ public:
     bool shown() const { return shown_; }
     double scale() const { return scale_.value(); }
     void step(double dt_seconds) { scale_.step(dt_seconds); }
+    void restyle();
     bool settled() const { return scale_.settled(); }
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme, const text::FontStack& fonts, const std::string& text,
                const render::Rect& handle) const;

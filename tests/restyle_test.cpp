@@ -46,6 +46,7 @@
 #include "lamina/widgets/picker_dialog.hpp"
 #include "lamina/widgets/progress_indicator.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
+#include "lamina/widgets/range_slider.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/search_bar.hpp"
 #include "lamina/widgets/segmented_button.hpp"
@@ -1191,8 +1192,8 @@ TEST_CASE("a side sheet sliding in goes on from where it is and ends at the new 
 namespace {
 
 template <typename W>
-void step_frames(W& w) {
-    for (int i = 0; i < restyle_motion_frames; ++i) {
+void step_frames(W& w, int frames = restyle_motion_frames) {
+    for (int i = 0; i < frames; ++i) {
         w.step(frame_seconds);
     }
 }
@@ -1346,7 +1347,7 @@ constexpr double pull_x = 200.0;
 constexpr double pull_top = 10.0;
 constexpr double pull_finger = 300.0;
 constexpr double pull_step = 4.0;
-constexpr int crossfade_frames = 3;
+constexpr int short_tween_frames = 3;
 
 input::PointerEvent pull_touch(input::PointerAction action, double y) {
     return {action, pull_x, y, 0, input::PointerKind::touch};
@@ -1387,13 +1388,64 @@ TEST_CASE("the running arrow fade and spinner crossfade of a pull to refresh go 
     pull_past_threshold(*released);
     settle_widget(*released);
     release_pull(*released);
-    for (int i = 0; i < crossfade_frames; ++i) {
-        released->step(frame_seconds);
-    }
-    check_running_tween(*released, [](const auto& w) { return w.spinner_mix(); }, 1.0, a.crossfade, b.crossfade, crossfade_frames * frame_seconds);
+    step_frames(*released, short_tween_frames);
+    check_running_tween(*released, [](const auto& w) { return w.spinner_mix(); }, 1.0, a.crossfade, b.crossfade, short_tween_frames * frame_seconds);
 }
 
 TEST_CASE("a pull to refresh switched in the middle of its arrow fade settles as one built under the new style") {
     const RestyleResult r = restyle_tween_round([] { return in_area(arrow_pull()); }, [](auto& w) { pull_past_threshold(*w.w); });
     CHECK((r.switched.pixels == r.built_under_test.pixels));
+}
+
+namespace {
+
+constexpr double slider_width = 300.0;
+
+std::string percent(double v) {
+    return std::to_string(static_cast<int>(v * 100));
+}
+
+std::unique_ptr<widgets::Slider> labelled_slider() {
+    auto s = std::make_unique<widgets::Slider>(widgets::SliderOptions{.value = 0.4, .value_label = percent}, fonts());
+    s->set_width(slider_width);
+    s->set_origin({shot_origin.x, shot_origin.y + restyle_canvas_height / 2.0});
+    return s;
+}
+
+std::unique_ptr<widgets::RangeSlider> labelled_range_slider() {
+    auto s = std::make_unique<widgets::RangeSlider>(widgets::RangeSliderOptions{.start = 0.2, .end = 0.7, .value_label = percent}, fonts());
+    s->set_width(slider_width);
+    s->set_origin({shot_origin.x, shot_origin.y + restyle_canvas_height / 2.0});
+    return s;
+}
+
+}
+
+TEST_CASE("a running value indicator of a slider or a range slider goes on from where it is and ends at the new style's remaining time") {
+    const motion::TweenSpec& a = m3_expressive_style().slider.value_indicator_scale;
+    const motion::TweenSpec& b = restyle_test_style().slider.value_indicator_scale;
+
+    auto slider = labelled_slider();
+    settle_widget(*slider);
+    slider->set_focused(true);
+    REQUIRE(slider->value_indicator_shown());
+    step_frames(*slider, short_tween_frames);
+    check_running_tween(*slider, [](const auto& w) { return w.value_indicator_scale(); }, 1.0, a, b, short_tween_frames * frame_seconds);
+
+    auto range = labelled_range_slider();
+    settle_widget(*range);
+    range->set_focused(widgets::RangeThumb::end, true);
+    REQUIRE(range->value_indicator_shown(widgets::RangeThumb::end));
+    step_frames(*range, short_tween_frames);
+    check_running_tween(*range, [](const auto& w) { return w.value_indicator_scale(widgets::RangeThumb::end); }, 1.0, a, b,
+                        short_tween_frames * frame_seconds);
+}
+
+TEST_CASE("a slider and a range slider switched in the middle of showing their value settle as ones built under the new style") {
+    const RestyleCanvas tall{restyle_canvas_width, restyle_canvas_height};
+    const RestyleResult slider = restyle_tween_round(labelled_slider, [](widgets::Slider& w) { w.set_focused(true); }, tall, short_tween_frames);
+    save_round(slider, "restyle_slider_value_indicator");
+    check_round(slider);
+    check_round(restyle_tween_round(labelled_range_slider, [](widgets::RangeSlider& w) { w.set_focused(widgets::RangeThumb::end, true); }, tall,
+                                    short_tween_frames));
 }

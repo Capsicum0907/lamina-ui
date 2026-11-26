@@ -119,12 +119,12 @@ RestyleResult restyle_motion_round(Make make, Act act, RestyleCanvas size = {}) 
 }
 
 template <typename Make, typename Start>
-RestyleResult restyle_tween_round(Make make, Start start, RestyleCanvas size = {}) {
+RestyleResult restyle_tween_round(Make make, Start start, RestyleCanvas size = {}, int frames = restyle_motion_frames) {
     RestyleResult r;
     auto begin = [&](auto& w) {
         settle_widget(*w);
         start(*w);
-        for (int i = 0; i < restyle_motion_frames; ++i) {
+        for (int i = 0; i < frames; ++i) {
             w->step(frame_seconds);
         }
     };

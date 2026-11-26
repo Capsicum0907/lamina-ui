@@ -116,6 +116,10 @@ void ValueIndicator::set_shown(bool shown) {
     scale_.animate_to(shown ? 1.0 : 0.0, t().value_indicator_scale);
 }
 
+void ValueIndicator::restyle() {
+    scale_.retime(t().value_indicator_scale);
+}
+
 render::Rect ValueIndicator::rect(const text::FontStack& fonts, const std::string& text, const render::Rect& handle) const {
     const text::TextLine line = text::layout_line(fonts, text, current_style().type.text(t().value_indicator_type));
     const double h = std::max(t().value_indicator_min_size, line.box_height() + 2.0 * t().value_indicator_padding);

@@ -282,6 +282,9 @@ void RangeSlider::restyle() {
         f.restyle();
     }
     enabled_.restyle();
+    for (ValueIndicator& i : indicators_) {
+        i.restyle();
+    }
 }
 
 void RangeSlider::step(double dt) {

@@ -282,6 +282,7 @@ void Slider::restyle() {
     style_stamp_.refresh();
     focus_.restyle();
     enabled_.restyle();
+    indicator_.restyle();
 }
 
 void Slider::step(double dt) {
