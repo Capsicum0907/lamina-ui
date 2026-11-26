@@ -265,6 +265,7 @@ std::optional<AccessibleNode> PullToRefresh::accessible() const {
 void PullToRefresh::restyle() {
     style_stamp_.refresh();
     distance_.set_spec(t().settle_spring);
+    indicator_.restyle();
     indicator_.set_size(t().container_size);
 }
 
