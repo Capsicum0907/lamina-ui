@@ -1,6 +1,6 @@
 {
   "name": "lamina-ui",
-  "version-string": "0.3.0",
+  "version-string": "0.4.0",
   "builtin-baseline": "059d760472984042e1b4db0d40efd935a1adcbc9",
   "dependencies": [
     "abseil",
