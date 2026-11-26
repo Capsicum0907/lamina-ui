@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <cmath>
 #include <memory>
 #include <optional>
 #include <string>
@@ -1091,6 +1092,7 @@ TEST_CASE("a scrollable tab row that shows its selected tab in the middle keeps 
 namespace {
 
 constexpr double tween_finish_margin = 1e-3;
+constexpr double tween_end_tolerance = 1e-9;
 constexpr double tween_ran_seconds = restyle_motion_frames * frame_seconds;
 
 double remaining_after_restyle(const motion::TweenSpec& running, const motion::TweenSpec& next) {
@@ -1102,15 +1104,15 @@ double remaining_after_restyle(const motion::TweenSpec& running, const motion::T
 template <typename W, typename Read>
 void check_running_tween(W& w, Read read, double target, const motion::TweenSpec& running, const motion::TweenSpec& next) {
     const double before = read(w);
-    CHECK(before != target);
+    CHECK(std::abs(before - target) > tween_end_tolerance);
     const StyleScope scope(restyle_test_style());
     w.restyle();
     CHECK(read(w) == before);
     const double remaining = remaining_after_restyle(running, next);
     w.step(remaining - tween_finish_margin);
-    CHECK(read(w) != target);
+    CHECK(std::abs(read(w) - target) > tween_end_tolerance);
     w.step(2.0 * tween_finish_margin);
-    CHECK(read(w) == target);
+    CHECK(std::abs(read(w) - target) <= tween_end_tolerance);
 }
 
 template <typename W>
@@ -1183,4 +1185,98 @@ TEST_CASE("a side sheet sliding in goes on from where it is and ends at the new 
     const RestyleResult r = restyle_tween_round(hidden_side_sheet, [](auto& w) { w.open(); }, {restyle_canvas_width, 320});
     save_round(r, "restyle_side_sheet_slide");
     check_round(r);
+}
+
+namespace {
+
+template <typename W>
+void step_frames(W& w) {
+    for (int i = 0; i < restyle_motion_frames; ++i) {
+        w.step(frame_seconds);
+    }
+}
+
+widgets::WavyProgressOptions still_wave(std::optional<double> progress) {
+    widgets::WavyProgressOptions o{progress};
+    o.wave_speed = 0.0;
+    return o;
+}
+
+constexpr double wavy_from = 0.5;
+constexpr double wavy_to = 0.9;
+constexpr double wavy_flat = 0.97;
+constexpr double wavy_handoff = 0.4;
+constexpr double indeterminate_seconds = 1.0;
+
+motion::TweenSpec circular_handoff(const Style& style, double rotation_degrees) {
+    const double r = std::fmod(rotation_degrees, 360.0);
+    const double remaining = (360.0 - (r == 0.0 ? 360.0 : r)) / 360.0;
+    motion::TweenSpec spec = style.wavy_progress_motion.circular_handoff_min;
+    spec.duration_seconds = motion::lerp(style.wavy_progress_motion.circular_handoff_min.duration_seconds,
+                                         style.wavy_progress_motion.circular_handoff_max.duration_seconds, remaining);
+    return spec;
+}
+
+template <typename W>
+void run_indeterminate(W& w) {
+    for (double t = 0.0; t < indeterminate_seconds; t += frame_seconds) {
+        w.step(frame_seconds);
+    }
+}
+
+}
+
+TEST_CASE("running wavy progress tweens go on from where they are and end at the new style's remaining time") {
+    const Style& a = m3_expressive_style();
+    const Style& b = restyle_test_style();
+    auto progress = [](const auto& w) { return w.progress(); };
+    auto amplitude = [](const auto& w) { return w.amplitude(); };
+    auto handoff = [](const auto& w) { return w.handoff(); };
+
+    widgets::LinearWavyProgressIndicator eased(still_wave(wavy_from));
+    settle_widget(eased);
+    eased.ease_progress(wavy_to);
+    step_frames(eased);
+    check_running_tween(eased, progress, wavy_to, a.wavy_progress_motion.progress, b.wavy_progress_motion.progress);
+
+    widgets::LinearWavyProgressIndicator falling(still_wave(wavy_from));
+    settle_widget(falling);
+    falling.set_progress(wavy_flat);
+    step_frames(falling);
+    check_running_tween(falling, amplitude, 0.0, a.wavy_progress_motion.amplitude_down, b.wavy_progress_motion.amplitude_down);
+
+    widgets::LinearWavyProgressIndicator rising(still_wave(wavy_flat));
+    settle_widget(rising);
+    rising.set_progress(wavy_from);
+    step_frames(rising);
+    check_running_tween(rising, amplitude, 1.0, a.wavy_progress_motion.amplitude_up, b.wavy_progress_motion.amplitude_up);
+
+    widgets::LinearWavyProgressIndicator linear(still_wave(std::nullopt));
+    run_indeterminate(linear);
+    linear.set_progress(wavy_handoff);
+    step_frames(linear);
+    check_running_tween(linear, handoff, 1.0, a.wavy_progress_motion.progress, b.wavy_progress_motion.progress);
+
+    widgets::CircularWavyProgressIndicator circular(still_wave(std::nullopt));
+    run_indeterminate(circular);
+    const double rotation = widgets::circular_indeterminate_rotation(circular.play_ms());
+    circular.set_progress(wavy_handoff);
+    step_frames(circular);
+    check_running_tween(circular, handoff, 1.0, circular_handoff(a, rotation), circular_handoff(b, rotation));
+}
+
+TEST_CASE("wavy progress indicators switched in the middle of a tween settle as ones built under the new style") {
+    check_round(restyle_tween_round([] { return placed(std::make_unique<widgets::LinearWavyProgressIndicator>(still_wave(wavy_from))); },
+                                    [](widgets::LinearWavyProgressIndicator& w) { w.ease_progress(wavy_to); }));
+    check_round(restyle_tween_round([] { return placed(std::make_unique<widgets::LinearWavyProgressIndicator>(still_wave(wavy_from))); },
+                                    [](widgets::LinearWavyProgressIndicator& w) { w.set_progress(wavy_flat); }));
+    const RestyleResult circular = restyle_tween_round(
+        [] {
+            auto w = placed(std::make_unique<widgets::CircularWavyProgressIndicator>(still_wave(std::nullopt)));
+            run_indeterminate(*w);
+            return w;
+        },
+        [](widgets::CircularWavyProgressIndicator& w) { w.set_progress(wavy_handoff); });
+    save_round(circular, "restyle_circular_wavy_handoff");
+    check_round(circular);
 }

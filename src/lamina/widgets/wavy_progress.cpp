@@ -182,6 +182,12 @@ void WavyProgressCore::step(double dt, double offset_period_seconds) {
     }
 }
 
+void WavyProgressCore::retime_tweens() {
+    shown_.retime(m().progress);
+    amplitude_.retime(amplitude_.origin() < amplitude_.target() ? m().amplitude_up : m().amplitude_down);
+    handoff_.retime(handoff_motion());
+}
+
 bool WavyProgressCore::animating() const {
     const bool waving = (amplitude_.value() > 0.0 || target_amplitude() > 0.0) && options_.wave_speed.value_or(1.0) > 0.0;
     return !determinate() || waving || !shown_.settled() || !amplitude_.settled() || !handoff_.settled();
@@ -198,7 +204,11 @@ double LinearWavyProgressIndicator::wavelength() const {
 
 void LinearWavyProgressIndicator::on_handoff() {
     handoff_.snap_to(0.0);
-    handoff_.animate_to(1.0, m().progress);
+    handoff_.animate_to(1.0, handoff_motion());
+}
+
+motion::TweenSpec LinearWavyProgressIndicator::handoff_motion() const {
+    return m().progress;
 }
 
 double LinearWavyProgressIndicator::cap() const {
@@ -340,6 +350,7 @@ void LinearWavyProgressIndicator::restyle() {
         width_ = t().linear_width;
     }
     wave_width_ = -1.0;
+    retime_tweens();
 }
 
 void LinearWavyProgressIndicator::step(double dt) {
@@ -405,11 +416,16 @@ void CircularWavyProgressIndicator::on_handoff() {
     handoff_sweep_ = circular_indeterminate_sweep(play_ms_);
     const double r = std::fmod(circular_indeterminate_rotation(play_ms_), 360.0);
     handoff_rotation_ = r == 0.0 ? 360.0 : r;
-    const double remaining = (360.0 - handoff_rotation_) / 360.0;
-    motion::TweenSpec spec = m().circular_handoff_min;
-    spec.duration_seconds = motion::lerp(m().circular_handoff_min.duration_seconds, m().circular_handoff_max.duration_seconds, remaining);
+    handoff_remaining_ = (360.0 - handoff_rotation_) / 360.0;
     handoff_.snap_to(0.0);
-    handoff_.animate_to(1.0, spec);
+    handoff_.animate_to(1.0, handoff_motion());
+}
+
+motion::TweenSpec CircularWavyProgressIndicator::handoff_motion() const {
+    motion::TweenSpec spec = m().circular_handoff_min;
+    spec.duration_seconds =
+        motion::lerp(m().circular_handoff_min.duration_seconds, m().circular_handoff_max.duration_seconds, handoff_remaining_);
+    return spec;
 }
 
 std::vector<render::Point> CircularWavyProgressIndicator::outline(bool active, bool repeat) const {
@@ -497,6 +513,7 @@ void CircularWavyProgressIndicator::restyle() {
     if (!sized_) {
         size_ = t().circular_size;
     }
+    retime_tweens();
 }
 
 void CircularWavyProgressIndicator::step(double dt) {

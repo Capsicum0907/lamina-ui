@@ -56,6 +56,8 @@ public:
 
 protected:
     virtual void on_handoff() {}
+    virtual motion::TweenSpec handoff_motion() const = 0;
+    void retime_tweens();
     double target_amplitude() const;
     WavyProgressOptions options_;
     std::optional<double> target_;
@@ -93,6 +95,7 @@ public:
 
 private:
     void on_handoff() override;
+    motion::TweenSpec handoff_motion() const override;
     double cap() const;
     const render::Polyline& wave() const;
 
@@ -132,6 +135,7 @@ public:
 
 private:
     void on_handoff() override;
+    motion::TweenSpec handoff_motion() const override;
     std::vector<render::Point> outline(bool active, bool repeat) const;
     render::Point centre() const { return {origin_.x + size_ / 2.0, origin_.y + size_ / 2.0}; }
 
@@ -140,6 +144,7 @@ private:
     render::Point origin_{0.0, 0.0};
     double handoff_sweep_ = 0.0;
     double handoff_rotation_ = 0.0;
+    double handoff_remaining_ = 0.0;
 };
 
 }
