@@ -56,7 +56,7 @@ public:
 
 protected:
     virtual void on_handoff() {}
-    virtual motion::TweenSpec handoff_motion() const = 0;
+    virtual motion::TweenSpec handoff_motion() const;
     void retime_tweens();
     double target_amplitude() const;
     WavyProgressOptions options_;
@@ -95,7 +95,6 @@ public:
 
 private:
     void on_handoff() override;
-    motion::TweenSpec handoff_motion() const override;
     double cap() const;
     const render::Polyline& wave() const;
 

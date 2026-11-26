@@ -182,6 +182,10 @@ void WavyProgressCore::step(double dt, double offset_period_seconds) {
     }
 }
 
+motion::TweenSpec WavyProgressCore::handoff_motion() const {
+    return m().progress;
+}
+
 void WavyProgressCore::retime_tweens() {
     shown_.retime(m().progress);
     amplitude_.retime(amplitude_.origin() < amplitude_.target() ? m().amplitude_up : m().amplitude_down);
@@ -205,10 +209,6 @@ double LinearWavyProgressIndicator::wavelength() const {
 void LinearWavyProgressIndicator::on_handoff() {
     handoff_.snap_to(0.0);
     handoff_.animate_to(1.0, handoff_motion());
-}
-
-motion::TweenSpec LinearWavyProgressIndicator::handoff_motion() const {
-    return m().progress;
 }
 
 double LinearWavyProgressIndicator::cap() const {
