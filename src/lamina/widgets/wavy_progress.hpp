@@ -65,6 +65,7 @@ protected:
     double offset_ = 0.0;
     double play_ms_ = 0.0;
     bool eased_ = false;
+    StyleStamp style_stamp_;
 };
 
 class LinearWavyProgressIndicator : public WavyProgressCore {
@@ -73,7 +74,10 @@ public:
 
     double width() const { return width_; }
     double height() const { return current_style().wavy_progress.linear_height; }
-    void set_width(double width) { width_ = width; }
+    void set_width(double width) {
+        width_ = width;
+        sized_ = true;
+    }
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const { return {origin_.x, origin_.y, width_, height()}; }
     double wavelength() const;
@@ -83,6 +87,7 @@ public:
     std::optional<render::Rect> stop_indicator() const;
 
     AccessibleNode accessible() const { return WavyProgressCore::accessible(bounds()); }
+    void restyle();
     void step(double dt_seconds);
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
@@ -92,6 +97,7 @@ private:
     const render::Polyline& wave() const;
 
     double width_ = current_style().wavy_progress.linear_width;
+    bool sized_ = false;
     render::Point origin_{0.0, 0.0};
     mutable render::Polyline wave_;
     mutable double wave_width_ = -1.0;
@@ -106,7 +112,10 @@ public:
 
     double width() const { return size_; }
     double height() const { return size_; }
-    void set_size(double size) { size_ = size; }
+    void set_size(double size) {
+        size_ = size;
+        sized_ = true;
+    }
     void set_origin(render::Point origin) { origin_ = origin; }
     render::Rect bounds() const { return {origin_.x, origin_.y, size_, size_}; }
     double wavelength() const;
@@ -117,6 +126,7 @@ public:
     std::vector<render::Point> track_line() const;
 
     AccessibleNode accessible() const { return WavyProgressCore::accessible(bounds()); }
+    void restyle();
     void step(double dt_seconds);
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
 
@@ -126,6 +136,7 @@ private:
     render::Point centre() const { return {origin_.x + size_ / 2.0, origin_.y + size_ / 2.0}; }
 
     double size_ = current_style().wavy_progress.circular_size;
+    bool sized_ = false;
     render::Point origin_{0.0, 0.0};
     double handoff_sweep_ = 0.0;
     double handoff_rotation_ = 0.0;

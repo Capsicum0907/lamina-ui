@@ -26,6 +26,7 @@
 #include "lamina/widgets/navigation_rail.hpp"
 #include "lamina/widgets/navigation_suite.hpp"
 #include "lamina/widgets/pager.hpp"
+#include "lamina/widgets/progress_indicator.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
@@ -38,6 +39,7 @@
 #include "lamina/widgets/text_field.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
+#include "lamina/widgets/wavy_progress.hpp"
 #include "restyle_support.hpp"
 
 using namespace lamina;
@@ -539,4 +541,21 @@ TEST_CASE("a loading indicator takes the new style's shapes and morphs with the 
     save_round(r, "restyle_loading_indicator");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::LoadingIndicator& w) { w.set_progress(std::nullopt); }));
+}
+
+TEST_CASE("wavy and circular progress indicators take the new style's size and shapes and ease with the new style's motion") {
+    widgets::WavyProgressOptions still{0.5};
+    still.wave_speed = 0.0;
+    const RestyleResult linear = restyle_round([&] { return placed(std::make_unique<widgets::LinearWavyProgressIndicator>(still)); });
+    save_round(linear, "restyle_linear_wavy_progress");
+    check_round(linear);
+    check_round(restyle_motion_round([&] { return placed(std::make_unique<widgets::LinearWavyProgressIndicator>(still)); },
+                                     [](widgets::LinearWavyProgressIndicator& w) { w.ease_progress(0.9); }));
+    const RestyleResult circular = restyle_round([&] { return placed(std::make_unique<widgets::CircularWavyProgressIndicator>(still)); });
+    save_round(circular, "restyle_circular_wavy_progress");
+    check_round(circular);
+    widgets::CircularProgressOptions plain;
+    plain.waves_per_second = 0.0;
+    check_round(restyle_motion_round([&] { return placed(std::make_unique<widgets::CircularProgressIndicator>(plain)); },
+                                     [](widgets::CircularProgressIndicator& w) { w.ease_progress(0.8); }));
 }

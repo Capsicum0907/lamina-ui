@@ -77,7 +77,17 @@ double CircularProgressIndicator::target_amplitude() const {
     return options_.wavy && p > t.wave_start_progress && p < t.wave_end_progress ? 1.0 : 0.0;
 }
 
+void CircularProgressIndicator::restyle() {
+    style_stamp_.refresh();
+    offset_.set_spec(current_style().motion.default_spatial());
+    amplitude_.set_spec(current_style().motion.slow_effects());
+    color_mix_.set_spec(current_style().motion.default_effects());
+}
+
 void CircularProgressIndicator::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     offset_.step(dt);
     amplitude_.animate_to(target_amplitude());
     amplitude_.step(dt);

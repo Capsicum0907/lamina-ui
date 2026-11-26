@@ -79,6 +79,9 @@ const Style& restyle_test_style() {
             *spring = restyle_spring;
         }
         s.loading_indicator.common.active_size -= restyle_length_add;
+        s.wavy_progress.linear_width += restyle_length_add;
+        s.wavy_progress.circular_size += restyle_length_add;
+        s.wavy_progress.star_inner_radius *= static_cast<float>(restyle_corner_scale);
         for (motion::TweenSpec* tween : {&s.side_sheet_motion, &s.navigation_drawer_motion.settle, &s.wavy_progress_motion.progress,
                                          &s.wavy_progress_motion.amplitude_up, &s.wavy_progress_motion.amplitude_down,
                                          &s.wavy_progress_motion.circular_handoff_min, &s.wavy_progress_motion.circular_handoff_max}) {

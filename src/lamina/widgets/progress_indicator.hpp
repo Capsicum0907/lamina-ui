@@ -48,6 +48,7 @@ public:
     void set_colors(ProgressColors colors);
     double amplitude() const { return amplitude_.value(); }
 
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -73,6 +74,7 @@ private:
     motion::Animated amplitude_;
     motion::Animated color_mix_;
     std::string accessible_name_;
+    StyleStamp style_stamp_;
 };
 
 }

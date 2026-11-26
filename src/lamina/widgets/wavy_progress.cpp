@@ -334,7 +334,18 @@ std::optional<render::Rect> LinearWavyProgressIndicator::stop_indicator() const 
     return render::Rect{origin_.x + x, origin_.y + (height() - size) / 2.0, size, size};
 }
 
+void LinearWavyProgressIndicator::restyle() {
+    style_stamp_.refresh();
+    if (!sized_) {
+        width_ = t().linear_width;
+    }
+    wave_width_ = -1.0;
+}
+
 void LinearWavyProgressIndicator::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     const double speed = options_.wave_speed.value_or(wavelength());
     const double lambda = wavelength();
     const double period = speed > 0.0 && lambda > 0.0 ? std::max(t().min_offset_seconds, lambda / speed) : 0.0;
@@ -481,7 +492,17 @@ std::vector<render::Point> CircularWavyProgressIndicator::track_line() const {
     return line;
 }
 
+void CircularWavyProgressIndicator::restyle() {
+    style_stamp_.refresh();
+    if (!sized_) {
+        size_ = t().circular_size;
+    }
+}
+
 void CircularWavyProgressIndicator::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     const double speed = options_.wave_speed.value_or(wavelength());
     const double lambda = wavelength();
     const double period =
