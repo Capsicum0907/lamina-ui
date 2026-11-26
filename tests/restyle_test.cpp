@@ -16,6 +16,7 @@
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/fab_menu.hpp"
+#include "lamina/widgets/flexible_bottom_app_bar.hpp"
 #include "lamina/widgets/floating_toolbar.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/icon_button.hpp"
@@ -809,4 +810,22 @@ TEST_CASE("a floating toolbar restyles its buttons and collapses with the new st
     save_round(r, "restyle_floating_toolbar");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::FloatingToolbar& w) { w.set_expanded(false); }));
+}
+
+TEST_CASE("a flexible bottom app bar takes the new style's height and settles with the new style's spring after a style change") {
+    auto make = [] {
+        auto bar = std::make_unique<widgets::FlexibleBottomAppBar>(
+            widgets::FlexibleBottomAppBarOptions{{{icon(res::icons::edit), "Edit"}, {icon(), "Like"}, {icon(res::icons::search), "Search"}}});
+        bar->set_width(restyle_canvas_width);
+        bar->set_origin({0.0, 20.0});
+        return bar;
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_flexible_bottom_app_bar");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::FlexibleBottomAppBar& w) {
+        w.state().scrolled_to(w.height() * 0.4);
+        w.state().settle();
+        CHECK(w.state().settling());
+    }));
 }

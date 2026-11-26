@@ -47,6 +47,19 @@ void BottomAppBarState::settle() {
     settle_.animate_to(collapsed_fraction() < t().settle_midpoint ? 0.0 : limit_);
 }
 
+void BottomAppBarState::restyle(double limit) {
+    settle_.set_spec(t().snap);
+    const double fraction = collapsed_fraction();
+    const double old_limit = limit_;
+    const bool collapsing = settle_.target() == old_limit && old_limit != 0.0;
+    limit_ = std::min(0.0, limit);
+    height_offset_ = fraction * limit_;
+    if (settling_) {
+        const double scale = old_limit != 0.0 ? limit_ / old_limit : 1.0;
+        settle_.restart(settle_.value() * scale, settle_.velocity() * scale, collapsing ? limit_ : 0.0);
+    }
+}
+
 void BottomAppBarState::step(double dt) {
     if (!settling_) {
         return;
@@ -198,7 +211,19 @@ void FlexibleBottomAppBar::cancel_interaction() {
     }
 }
 
+void FlexibleBottomAppBar::restyle() {
+    style_stamp_.refresh();
+    state_.restyle(-t().height);
+    for (auto& b : actions_) {
+        b->restyle();
+    }
+    place();
+}
+
 void FlexibleBottomAppBar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     state_.step(dt);
     for (auto& b : actions_) {
         b->step(dt);

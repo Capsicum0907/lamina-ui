@@ -33,6 +33,7 @@ public:
     bool needs_settle() const;
     void settle();
     bool settling() const { return settling_; }
+    void restyle(double limit);
     void step(double dt_seconds);
 
 private:
@@ -80,6 +81,7 @@ public:
     std::optional<std::size_t> handle(const input::PointerEvent& event);
     std::optional<std::size_t> handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -99,6 +101,7 @@ private:
     std::optional<double> bottom_;
     render::Point origin_{0.0, 0.0};
     bool enabled_ = true;
+    StyleStamp style_stamp_;
 };
 
 }
