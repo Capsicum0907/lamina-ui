@@ -82,6 +82,7 @@ public:
     TopAppBarResponse handle(const input::PointerEvent& event);
     TopAppBarResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -119,6 +120,7 @@ private:
     double width_ = 0.0;
     double driven_offset_ = 0.0;
     bool enabled_ = true;
+    StyleStamp style_stamp_;
 };
 
 }

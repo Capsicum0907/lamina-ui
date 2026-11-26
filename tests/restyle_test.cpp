@@ -28,6 +28,7 @@
 #include "lamina/widgets/side_navigation.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
+#include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 #include "restyle_support.hpp"
 
@@ -410,5 +411,18 @@ TEST_CASE("a modal navigation rail and a navigation suite lay out their navigati
         return suite;
     });
     save_round(r, "restyle_navigation_suite");
+    check_round(r);
+}
+
+TEST_CASE("a top app bar lays out its title again and places its buttons after a style change") {
+    const RestyleResult r = restyle_round([] {
+        widgets::TopAppBarOptions o{"Inbox"};
+        o.navigation = widgets::IconButtonOptions{icon(res::icons::close), "Close"};
+        o.actions = {widgets::IconButtonOptions{icon(res::icons::search), "Search"}};
+        auto bar = std::make_unique<widgets::TopAppBar>(std::move(o), fonts());
+        bar->arrange({0.0, 0.0, static_cast<double>(restyle_canvas_width), bar->height()});
+        return bar;
+    });
+    save_round(r, "restyle_top_app_bar");
     check_round(r);
 }

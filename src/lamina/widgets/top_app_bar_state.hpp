@@ -17,6 +17,7 @@ public:
         : behavior_(behavior), settle_(0.0, current_style().top_app_bar.common.snap_spring) {}
 
     TopAppBarScroll behavior() const { return behavior_; }
+    void restyle() { settle_.set_spec(current_style().top_app_bar.common.snap_spring); }
     double height_offset_limit() const { return limit_; }
     void set_height_offset_limit(double limit) {
         limit_ = std::min(0.0, limit);

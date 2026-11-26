@@ -303,7 +303,25 @@ void TopAppBar::cancel_interaction() {
     }
 }
 
+void TopAppBar::restyle() {
+    style_stamp_.refresh();
+    state_.restyle();
+    container_.set_spec(t().container_spring);
+    if (navigation_) {
+        navigation_->restyle();
+    }
+    for (IconButton& a : actions_) {
+        a.restyle();
+    }
+    layout_titles();
+    state_.set_height_offset_limit(two_rows() ? collapsed_height() - expanded_height() : -collapsed_height());
+    place_buttons();
+}
+
 void TopAppBar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     state_.step(dt);
     container_.step(dt);
     if (navigation_) {
