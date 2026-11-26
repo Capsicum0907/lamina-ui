@@ -395,6 +395,7 @@ void SideSheet::restyle() {
     each_button([](auto& b) { b.restyle(); });
     content_.restyle();
     drag_.set_gesture(current_style().gesture.drag);
+    drag_.retune(current_style().side_sheet_motion);
     update_anchors();
     place();
 }

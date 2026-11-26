@@ -117,4 +117,37 @@ RestyleResult restyle_motion_round(Make make, Act act, RestyleCanvas size = {}) 
     return r;
 }
 
+template <typename Make, typename Start>
+RestyleResult restyle_tween_round(Make make, Start start, RestyleCanvas size = {}) {
+    RestyleResult r;
+    auto begin = [&](auto& w) {
+        settle_widget(*w);
+        start(*w);
+        for (int i = 0; i < restyle_motion_frames; ++i) {
+            w->step(frame_seconds);
+        }
+    };
+    {
+        auto w = make();
+        begin(w);
+        settle_widget(*w);
+        r.built_under_default = shoot(*w, size);
+    }
+    {
+        auto w = make();
+        begin(w);
+        const StyleScope scope(restyle_test_style());
+        settle_widget(*w);
+        r.switched = shoot(*w, size);
+    }
+    {
+        const StyleScope scope(restyle_test_style());
+        auto w = make();
+        begin(w);
+        settle_widget(*w);
+        r.built_under_test = shoot(*w, size);
+    }
+    return r;
+}
+
 }

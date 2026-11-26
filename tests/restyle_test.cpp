@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "lamina/motion/anchored_draggable.hpp"
+#include "lamina/motion/easing.hpp"
+#include "lamina/motion/tween.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/bottom_sheet.hpp"
 #include "lamina/widgets/button_group.hpp"
@@ -1083,5 +1085,102 @@ TEST_CASE("a scrollable tab row that shows its selected tab in the middle keeps 
     };
     const RestyleResult r = restyle_round(make);
     save_round(r, "restyle_scrollable_tabs");
+    check_round(r);
+}
+
+namespace {
+
+constexpr double tween_finish_margin = 1e-3;
+constexpr double tween_ran_seconds = restyle_motion_frames * frame_seconds;
+
+double remaining_after_restyle(const motion::TweenSpec& running, const motion::TweenSpec& next) {
+    const double linear = tween_ran_seconds / running.duration_seconds;
+    const double progress = running.easing == next.easing ? linear : motion::ease_inverse(next.easing, motion::ease(running.easing, linear));
+    return next.duration_seconds * (1.0 - progress);
+}
+
+template <typename W, typename Read>
+void check_running_tween(W& w, Read read, double target, const motion::TweenSpec& running, const motion::TweenSpec& next) {
+    const double before = read(w);
+    CHECK(before != target);
+    const StyleScope scope(restyle_test_style());
+    w.restyle();
+    CHECK(read(w) == before);
+    const double remaining = remaining_after_restyle(running, next);
+    w.step(remaining - tween_finish_margin);
+    CHECK(read(w) != target);
+    w.step(2.0 * tween_finish_margin);
+    CHECK(read(w) == target);
+}
+
+template <typename W>
+void drag_back(W& w, double from, double to, double y) {
+    constexpr int frames = 12;
+    double now = 0.0;
+    w.handle(input::PointerEvent{input::PointerAction::down, from, y, 0, input::PointerKind::mouse, now});
+    for (int i = 1; i <= frames; ++i) {
+        now += frame_seconds;
+        w.handle(input::PointerEvent{input::PointerAction::move, from + (to - from) * i / frames, y, 0, input::PointerKind::mouse, now});
+        w.step(frame_seconds);
+    }
+    w.handle(input::PointerEvent{input::PointerAction::up, to, y, 0, input::PointerKind::mouse, now});
+}
+
+constexpr double drawer_drag_from = 200.0;
+constexpr double drawer_drag_to = 160.0;
+constexpr double drawer_drag_y = 80.0;
+
+std::unique_ptr<widgets::ModalNavigationDrawer> open_drawer() {
+    widgets::NavigationDrawerOptions o{{{widgets::drawer_headline("Mail"), {widgets::DrawerEntryKind::item, "Inbox"}, {widgets::DrawerEntryKind::item, "Sent"}}, 1}};
+    o.initial = widgets::DrawerValue::open;
+    auto drawer = std::make_unique<widgets::ModalNavigationDrawer>(std::move(o), fonts());
+    drawer->set_area(restyle_area);
+    return drawer;
+}
+
+void settle_drawer_back(widgets::ModalNavigationDrawer& d) {
+    drag_back(d, drawer_drag_from, drawer_drag_to, drawer_drag_y);
+}
+
+const render::Rect side_sheet_area{0.0, 0.0, static_cast<double>(restyle_canvas_width), 320.0};
+
+std::unique_ptr<widgets::SideSheet> hidden_side_sheet() {
+    widgets::SideSheetOptions o;
+    o.headline = "Filters";
+    o.close = widgets::SideSheetIcon{icon(res::icons::close), "Close"};
+    auto sheet = std::make_unique<widgets::SideSheet>(std::move(o), fonts());
+    sheet->set_area(side_sheet_area);
+    return sheet;
+}
+
+}
+
+TEST_CASE("a drawer settling after a drag goes on from where it is and ends at the new style's remaining time") {
+    auto d = open_drawer();
+    settle_widget(*d);
+    settle_drawer_back(*d);
+    for (int i = 0; i < restyle_motion_frames; ++i) {
+        d->step(frame_seconds);
+    }
+    check_running_tween(
+        *d, [](const auto& w) { return w.offset(); }, 0.0, m3_expressive_style().navigation_drawer_motion.settle,
+        restyle_test_style().navigation_drawer_motion.settle);
+
+    const RestyleResult r = restyle_tween_round([] { return in_area(open_drawer()); }, [](auto& w) { settle_drawer_back(*w.w); });
+    save_round(r, "restyle_drawer_settle");
+    check_round(r);
+}
+
+TEST_CASE("a side sheet sliding in goes on from where it is and ends at the new style's remaining time") {
+    auto s = hidden_side_sheet();
+    settle_widget(*s);
+    s->open();
+    for (int i = 0; i < restyle_motion_frames; ++i) {
+        s->step(frame_seconds);
+    }
+    check_running_tween(*s, [](const auto& w) { return w.progress(); }, 1.0, m3_expressive_style().side_sheet_motion, restyle_test_style().side_sheet_motion);
+
+    const RestyleResult r = restyle_tween_round(hidden_side_sheet, [](auto& w) { w.open(); }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_side_sheet_slide");
     check_round(r);
 }
