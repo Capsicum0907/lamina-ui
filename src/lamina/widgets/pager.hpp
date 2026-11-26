@@ -22,7 +22,7 @@ struct PagerOptions {
     std::size_t page = 0;
     std::string accessible_name = {};
     bool mouse_drag = true;
-    const tokens::PagerTokens* tokens = &current_style().pager;
+    const tokens::PagerTokens* tokens = nullptr;
 };
 
 class Pager {
@@ -33,18 +33,18 @@ public:
     const render::Rect& bounds() const { return bounds_; }
     std::size_t count() const { return count_; }
     void set_count(std::size_t count);
-    const tokens::PagerTokens& tokens() const { return *tokens_; }
+    const tokens::PagerTokens& tokens() const { return tokens_ ? *tokens_ : current_style().pager; }
 
     double position() const { return position_; }
     std::size_t current_page() const { return motion::nearest_page(position_, count_); }
     double current_page_offset_fraction() const { return position_ - static_cast<double>(current_page()); }
     std::size_t settled_page() const { return settled_; }
     std::size_t target_page() const { return settling_ ? target_ : current_page(); }
-    double page_pitch() const { return bounds_.width + tokens_->page_spacing; }
+    double page_pitch() const { return bounds_.width + tokens().page_spacing; }
     double page_offset(std::size_t page) const { return (static_cast<double>(page) - position_) * page_pitch(); }
     render::Rect page_rect(std::size_t page) const { return {bounds_.x + page_offset(page), bounds_.y, bounds_.width, bounds_.height}; }
     motion::PageRange pages_in_view() const { return motion::pages_in_view(position_, count_); }
-    motion::PageRange pages_to_build() const { return motion::pages_around(position_, count_, tokens_->beyond_viewport_pages); }
+    motion::PageRange pages_to_build() const { return motion::pages_around(position_, count_, tokens().beyond_viewport_pages); }
 
     bool dragging() const { return gesture_ == Gesture::dragging; }
     bool settling() const { return settling_; }
@@ -61,6 +61,7 @@ public:
 
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const { return settling_ || !focus_.settled(); }
 
@@ -121,6 +122,7 @@ private:
     double origin_y_ = 0.0;
     double last_x_ = 0.0;
     motion::VelocityTracker tracker_;
+    StyleStamp style_stamp_;
 };
 
 template <typename Deliver>

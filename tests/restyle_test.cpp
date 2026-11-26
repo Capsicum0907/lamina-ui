@@ -16,6 +16,8 @@
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
 #include "lamina/widgets/list_view.hpp"
+#include "lamina/widgets/pager.hpp"
+#include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/switch.hpp"
@@ -237,6 +239,26 @@ TEST_CASE("a clickable card animates its focus with the new style's springs afte
     save_round(r, "restyle_card");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::Card& w) { w.set_focused(true); }));
+}
+
+TEST_CASE("a pager and a pull to refresh without their own tokens read the active style's") {
+    Style wide = m3_expressive_style();
+    wide.pager.page_spacing += restyle_length_add;
+    wide.pull_to_refresh.container_size += restyle_length_add;
+    widgets::Pager pager(widgets::PagerOptions{3});
+    pager.set_bounds({0.0, 0.0, 200.0, 100.0});
+    widgets::PullToRefresh pull;
+    pull.set_area({0.0, 0.0, 200.0, 100.0});
+    const double pitch = pager.page_pitch();
+    const double size = pull.container_rect().width;
+    {
+        const StyleScope scope(wide);
+        pager.step(frame_seconds);
+        pull.step(frame_seconds);
+        CHECK(pager.page_pitch() == doctest::Approx(pitch + restyle_length_add));
+        CHECK(pull.container_rect().width == doctest::Approx(size + restyle_length_add));
+    }
+    CHECK(pager.page_pitch() == doctest::Approx(pitch));
 }
 
 TEST_CASE("the fling decay follows the active style and a fling given another decay goes on from where it is") {

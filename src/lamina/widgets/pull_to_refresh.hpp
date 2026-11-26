@@ -20,9 +20,9 @@ enum class PullIndicatorStyle { expressive, arrow };
 struct PullToRefreshOptions {
     std::string accessible_name = {};
     bool enabled = true;
-    const tokens::PullToRefreshTokens* tokens = &current_style().pull_to_refresh;
+    const tokens::PullToRefreshTokens* tokens = nullptr;
     PullIndicatorStyle style = PullIndicatorStyle::expressive;
-    const tokens::PullArrowTokens* arrow_tokens = &current_style().pull_arrow;
+    const tokens::PullArrowTokens* arrow_tokens = nullptr;
 };
 
 struct PullArrow {
@@ -69,7 +69,7 @@ public:
     double indicator_turn_degrees() const { return turn_; }
     PullIndicatorStyle style() const { return options_.style; }
     void set_style(PullIndicatorStyle style);
-    PullArrow arrow() const { return pull_arrow(distance_.value(), *options_.arrow_tokens); }
+    PullArrow arrow() const { return pull_arrow(distance_.value(), a()); }
     double arrow_alpha() const { return arrow_alpha_.value(); }
     double spinner_mix() const { return spinner_mix_.value(); }
     double spinner_sweep_degrees() const;
@@ -79,6 +79,7 @@ public:
     void set_accessible_name(std::string name) { options_.accessible_name = std::move(name); }
     std::optional<AccessibleNode> accessible() const;
 
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -91,7 +92,8 @@ private:
         double anchor_x = 0.0;
     };
 
-    const tokens::PullToRefreshTokens& t() const { return *options_.tokens; }
+    const tokens::PullToRefreshTokens& t() const { return options_.tokens ? *options_.tokens : current_style().pull_to_refresh; }
+    const tokens::PullArrowTokens& a() const { return options_.arrow_tokens ? *options_.arrow_tokens : current_style().pull_arrow; }
     void follow(double y);
     void release(bool commit, PullToRefreshResponse& response);
     void sync_indicator();
@@ -114,6 +116,7 @@ private:
     motion::Tweened arrow_alpha_;
     motion::Tweened spinner_mix_{0.0};
     double spinner_ms_ = 0.0;
+    StyleStamp style_stamp_;
 };
 
 }

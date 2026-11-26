@@ -28,7 +28,7 @@ Pager::Pager(PagerOptions options)
       name_(std::move(options.accessible_name)),
       mouse_drag_(options.mouse_drag),
       count_(options.count),
-      tracker_(options.tokens->tracking) {
+      tracker_(tokens().tracking) {
     scroll_to_page(options.page);
 }
 
@@ -71,7 +71,7 @@ void Pager::animate_to_page(std::size_t page) {
     }
     gesture_ = Gesture::idle;
     const std::size_t to = std::min(page, count_ - 1);
-    const double jump = static_cast<double>(tokens_->animate_jump_pages);
+    const double jump = static_cast<double>(tokens().animate_jump_pages);
     const double target = static_cast<double>(to);
     if (std::abs(target - position_) > jump) {
         position_ = target - sign_of(target - position_) * jump;
@@ -107,9 +107,9 @@ void Pager::follow(double finger_dx) {
 void Pager::release(const input::PointerEvent& e) {
     follow(e.x_dp - last_x_);
     tracker_.release(e.time_seconds);
-    const double velocity = tracker_.velocity(tokens_->maximum_velocity);
+    const double velocity = tracker_.velocity(tokens().maximum_velocity);
     gesture_ = Gesture::idle;
-    const std::size_t page = motion::snap_page(position_, settled_, e.x_dp - press_x_, velocity, count_, tokens_->snap);
+    const std::size_t page = motion::snap_page(position_, settled_, e.x_dp - press_x_, velocity, count_, tokens().snap);
     const double pitch = page_pitch();
     settle_to(page, pitch > 0.0 ? -velocity / pitch : 0.0, Source::swipe);
 }
@@ -124,7 +124,7 @@ Pager::Route Pager::begin(const input::PointerEvent& e) {
     }
     if (e.action == input::PointerAction::leave) {
         if (gesture_ == Gesture::dragging) {
-            settle_to(motion::snap_page(position_, settled_, 0.0, 0.0, count_, tokens_->snap), 0.0, Source::swipe);
+            settle_to(motion::snap_page(position_, settled_, 0.0, 0.0, count_, tokens().snap), 0.0, Source::swipe);
         }
         gesture_ = Gesture::idle;
         return Route::deliver;
@@ -138,12 +138,12 @@ Pager::Route Pager::begin(const input::PointerEvent& e) {
         if (!contains(bounds_, e.x_dp, e.y_dp)) {
             return Route::deliver;
         }
-        tracker_.reset();
+        tracker_ = motion::VelocityTracker(tokens().tracking);
         tracker_.add(e.time_seconds, e.x_dp);
         press_x_ = origin_x_ = last_x_ = e.x_dp;
         origin_y_ = e.y_dp;
         if (settling_) {
-            if (std::abs(static_cast<double>(target_) - position_) * page_pitch() > tokens_->catch_distance) {
+            if (std::abs(static_cast<double>(target_) - position_) * page_pitch() > tokens().catch_distance) {
                 settling_ = false;
                 gesture_ = Gesture::dragging;
                 return Route::claimed;
@@ -188,8 +188,8 @@ bool Pager::after_child(const input::PointerEvent& e, bool holds) {
     tracker_.add(e.time_seconds, e.x_dp);
     const double dx = e.x_dp - origin_x_;
     const double dy = e.y_dp - origin_y_;
-    const double slop = tokens_->touch_slop;
-    if (std::abs(dx) > slop && drag_angle(dx, dy) <= tokens_->horizontal_angle_limit_degrees && can_move(dx)) {
+    const double slop = tokens().touch_slop;
+    if (std::abs(dx) > slop && drag_angle(dx, dy) <= tokens().horizontal_angle_limit_degrees && can_move(dx)) {
         settling_ = false;
         gesture_ = Gesture::dragging;
         follow(dx - sign_of(dx) * slop);
@@ -241,20 +241,28 @@ bool Pager::handle(const input::KeyEvent& e) {
 
 void Pager::cancel_interaction() {
     if (gesture_ == Gesture::dragging) {
-        settle_to(motion::snap_page(position_, settled_, 0.0, 0.0, count_, tokens_->snap), 0.0, Source::swipe);
+        settle_to(motion::snap_page(position_, settled_, 0.0, 0.0, count_, tokens().snap), 0.0, Source::swipe);
     }
     gesture_ = Gesture::idle;
 }
 
+void Pager::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+}
+
 void Pager::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     if (!settling_) {
         return;
     }
     const double target = static_cast<double>(target_);
-    spring_ = motion::advance(tokens_->settle_spring, spring_, target, dt);
+    spring_ = motion::advance(tokens().settle_spring, spring_, target, dt);
     const bool passed = (settle_from_ < target && spring_.value >= target) || (settle_from_ > target && spring_.value <= target);
-    if (passed || motion::is_settled(spring_, target, tokens_->settle_threshold)) {
+    if (passed || motion::is_settled(spring_, target, tokens().settle_threshold)) {
         finish_settle();
         return;
     }
@@ -292,7 +300,7 @@ void Pager::end_page(render::Canvas& canvas) const {
 }
 
 void Pager::paint_focus(render::Canvas& canvas, const color::ColorScheme& scheme) const {
-    focus_.paint_inward(canvas, scheme, bounds_, tokens_->focus_ring_corner);
+    focus_.paint_inward(canvas, scheme, bounds_, tokens().focus_ring_corner);
 }
 
 }

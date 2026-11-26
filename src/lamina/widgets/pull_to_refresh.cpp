@@ -64,16 +64,16 @@ PullArrow pull_arrow(double fraction, const tokens::PullArrowTokens& k) {
 
 PullToRefresh::PullToRefresh(PullToRefreshOptions options)
     : options_(std::move(options)),
-      distance_(0.0, options_.tokens->settle_spring),
-      indicator_(LoadingIndicatorOptions{.progress = 0.0, .contained = true, .size = options_.tokens->container_size}),
-      arrow_alpha_(options_.arrow_tokens->min_alpha) {}
+      distance_(0.0, t().settle_spring),
+      indicator_(LoadingIndicatorOptions{.progress = 0.0, .contained = true, .size = t().container_size}),
+      arrow_alpha_(a().min_alpha) {}
 
 void PullToRefresh::set_style(PullIndicatorStyle style) {
     options_.style = style;
 }
 
 double PullToRefresh::container_size() const {
-    return options_.style == PullIndicatorStyle::arrow ? options_.arrow_tokens->container_size : t().container_size;
+    return options_.style == PullIndicatorStyle::arrow ? a().container_size : t().container_size;
 }
 
 double PullToRefresh::spinner_sweep_degrees() const {
@@ -95,7 +95,7 @@ void PullToRefresh::start_refreshing() {
     if (indicator_.determinate()) {
         indicator_.set_progress(std::nullopt);
     }
-    spinner_mix_.animate_to(1.0, options_.arrow_tokens->crossfade);
+    spinner_mix_.animate_to(1.0, a().crossfade);
     distance_.animate_to(1.0);
 }
 
@@ -262,12 +262,20 @@ std::optional<AccessibleNode> PullToRefresh::accessible() const {
     return node;
 }
 
+void PullToRefresh::restyle() {
+    style_stamp_.refresh();
+    distance_.set_spec(t().settle_spring);
+    indicator_.set_size(t().container_size);
+}
+
 void PullToRefresh::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     if (spinning()) {
         refresh_seconds_ += dt;
     }
-    arrow_alpha_.animate_to(distance_.value() >= 1.0 ? options_.arrow_tokens->max_alpha : options_.arrow_tokens->min_alpha,
-                            options_.arrow_tokens->alpha_tween);
+    arrow_alpha_.animate_to(distance_.value() >= 1.0 ? a().max_alpha : a().min_alpha, a().alpha_tween);
     arrow_alpha_.step(dt);
     spinner_mix_.step(dt);
     if (spinner_mix_.value() > 0.0) {
@@ -288,7 +296,7 @@ void PullToRefresh::step(double dt) {
         turn_ = 0.0;
         spinner_mix_.snap_to(0.0);
         spinner_ms_ = 0.0;
-        arrow_alpha_.snap_to(options_.arrow_tokens->min_alpha);
+        arrow_alpha_.snap_to(a().min_alpha);
     }
 }
 
@@ -306,7 +314,7 @@ bool PullToRefresh::animating() const {
 }
 
 void PullToRefresh::paint_arrow(render::Canvas& canvas, color::Argb color) const {
-    const tokens::PullArrowTokens& k = *options_.arrow_tokens;
+    const tokens::PullArrowTokens& k = a();
     const PullArrow a = arrow();
     const double size = k.container_size;
     const render::Point c{size / 2.0, size / 2.0};
@@ -346,7 +354,7 @@ void PullToRefresh::paint_arrow(render::Canvas& canvas, color::Argb color) const
 }
 
 void PullToRefresh::paint_spinner(render::Canvas& canvas, color::Argb color) const {
-    const tokens::PullArrowTokens& k = *options_.arrow_tokens;
+    const tokens::PullArrowTokens& k = a();
     const double size = k.container_size;
     const render::Point c{size / 2.0, size / 2.0};
     const double radius = (k.spinner_size - k.stroke) / 2.0;
@@ -373,7 +381,7 @@ void PullToRefresh::paint(render::Canvas& canvas, const color::ColorScheme& sche
     canvas.save();
     canvas.push_clip(area_);
     if (options_.style == PullIndicatorStyle::arrow) {
-        const tokens::PullArrowTokens& k = *options_.arrow_tokens;
+        const tokens::PullArrowTokens& k = a();
         paint_surface(canvas, r, current_style().shape.radius(t().container_shape, size, size), scheme[k.container], current_style().elevation.levels[k.elevation_level],
                       scheme[t().shadow]);
         canvas.translate(r.x, r.y);
