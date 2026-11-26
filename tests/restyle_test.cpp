@@ -16,6 +16,7 @@
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/fab_menu.hpp"
+#include "lamina/widgets/floating_toolbar.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
@@ -795,4 +796,17 @@ TEST_CASE("a FAB menu lays out its items again and opens with the new style's sp
     save_round(r, "restyle_fab_menu");
     check_round(r);
     check_round(restyle_motion_round([&] { return make(false); }, [](widgets::FabMenu& w) { w.set_expanded(true); }, {restyle_canvas_width, 320}));
+}
+
+TEST_CASE("a floating toolbar restyles its buttons and collapses with the new style's springs after a style change") {
+    auto make = [] {
+        widgets::FloatingToolbarOptions o{{{icon(res::icons::edit), "Edit"}, {icon(), "Like"}}, {{icon(res::icons::close), "Close"}},
+                                          {{icon(res::icons::search), "Search"}}};
+        o.accessible_name = "Tools";
+        return placed(std::make_unique<widgets::FloatingToolbar>(std::move(o), icon_font()));
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_floating_toolbar");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::FloatingToolbar& w) { w.set_expanded(false); }));
 }

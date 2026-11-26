@@ -337,8 +337,7 @@ FloatingToolbarResponse FloatingToolbar::handle(const input::PointerEvent& e) {
                 response.consumed = true;
             }
             fab_state_layer_.animate_to(fab_focus_.state_layer_opacity(fab_press_.state_layer_opacity()));
-            const std::size_t level = fab_press_.hovered && !fab_press_.pressed ? t().fab_hovered_elevation : t().fab_elevation;
-            fab_elevation_.animate_to(current_style().elevation.levels[level]);
+            fab_elevation_.animate_to(fab_target_elevation());
         }
     }
     const bool over = contains(toolbar_rect(), e.x_dp, e.y_dp) || (has_fab() && contains(*fab_rect(), e.x_dp, e.y_dp));
@@ -379,7 +378,32 @@ void FloatingToolbar::cancel_interaction() {
     fab_state_layer_.animate_to(fab_focus_.state_layer_opacity(0.0));
 }
 
+double FloatingToolbar::fab_target_elevation() const {
+    const std::size_t level = fab_press_.hovered && !fab_press_.pressed ? t().fab_hovered_elevation : t().fab_elevation;
+    return current_style().elevation.levels[level];
+}
+
+void FloatingToolbar::restyle() {
+    style_stamp_.refresh();
+    progress_.set_spec(t().expand);
+    for (Group* g : {&leading_, &content_, &trailing_}) {
+        g->shown.set_spec(t().expand);
+        for (auto& b : g->buttons) {
+            b->restyle();
+        }
+    }
+    fab_state_layer_.set_spec(current_style().motion.fast_effects());
+    fab_elevation_.set_spec(current_style().motion.default_effects());
+    fab_elevation_.animate_to(fab_target_elevation());
+    fab_focus_.restyle();
+    enabled_.restyle();
+    place();
+}
+
 void FloatingToolbar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     progress_.step(dt);
     for (Group* g : {&leading_, &content_, &trailing_}) {
         g->shown.step(dt);

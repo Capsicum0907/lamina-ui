@@ -81,6 +81,7 @@ const Style& restyle_test_style() {
         s.loading_indicator.common.active_size -= restyle_length_add;
         s.wavy_progress.linear_width += restyle_length_add;
         s.split_pane.divider_thickness += restyle_length_add;
+        s.floating_toolbar.item_slot += restyle_length_add;
         s.wavy_progress.circular_size += restyle_length_add;
         s.wavy_progress.star_inner_radius *= static_cast<float>(restyle_corner_scale);
         for (motion::TweenSpec* tween : {&s.side_sheet_motion, &s.navigation_drawer_motion.settle, &s.wavy_progress_motion.progress,

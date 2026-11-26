@@ -113,6 +113,7 @@ public:
     FloatingToolbarResponse handle(const input::PointerEvent& event);
     FloatingToolbarResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -135,6 +136,7 @@ private:
     double fab_size() const;
     bool shows(ToolbarSlot slot, std::size_t index) const;
     void place();
+    double fab_target_elevation() const;
     void paint_group(render::Canvas& canvas, const color::ColorScheme& scheme, const Group& g) const;
 
     FloatingToolbarOptions options_;
@@ -150,6 +152,7 @@ private:
     std::vector<std::unique_ptr<FocusStop>> stops_;
     render::Point origin_{0.0, 0.0};
     TargetArbiter arbiter_;
+    StyleStamp style_stamp_;
 };
 
 }
