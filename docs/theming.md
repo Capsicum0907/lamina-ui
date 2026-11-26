@@ -112,7 +112,7 @@ Some tables are derived from others in `tokens/`: the dense lengths start from t
 
 Not in the style: the raster settings of the window (`tokens::raster`), the frame statistics overlay (`tokens::frame_stats`), the icon font's axes (`tokens::symbol_axes`), the density step (`tokens::density_interval`), the video tokens and the shortcut text formats (`tokens::default_shortcut_format()`, chosen by the platform). The canvas and the text layout do not read the style.
 
-### Breaking changes in the next release
+### Breaking changes in 0.4.0
 
 - `lamina::Style` is a new name in `namespace lamina`. A file that has `using namespace lamina;` and declares its own `Style` at namespace scope gets an ambiguous name; rename one of them or qualify it. The layout example's `Style` is now `LayoutStyle`.
 - The option structs whose defaults come from tokens (`ButtonGroupOptions::expanded_ratio`, `ChipGroupOptions::spacing`, ...) take those defaults from the style active when the options object is constructed, and default arguments such as the `max` of `badge_count` from the style active at the call.
