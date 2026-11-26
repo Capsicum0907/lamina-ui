@@ -75,12 +75,20 @@ render::Point tooltip_position(const render::Rect& anchor, layout::Size window, 
     return {fit(x, 0.0, right_limit), fit(y, 0.0, bottom_limit)};
 }
 
+LabelOptions Tooltip::text_options() const {
+    return {options_.text, options_.kind == TooltipKind::rich ? rich().text : plain().text,
+            options_.kind == TooltipKind::rich ? rich().text_color : plain().content, true};
+}
+
+LabelOptions Tooltip::title_options() const {
+    return {options_.title, rich().title, rich().title_color, true};
+}
+
 Tooltip::Tooltip(TooltipOptions options, const text::FontStack& fonts)
     : options_(std::move(options)),
-      text_({options_.text, options_.kind == TooltipKind::rich ? rich().text : plain().text,
-             options_.kind == TooltipKind::rich ? rich().text_color : plain().content, true},
-            fonts),
-      title_({options_.title, rich().title, rich().title_color, true}, fonts),
+      fonts_(fonts),
+      text_(text_options(), fonts),
+      title_(title_options(), fonts),
       popup_(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects()) {
     if (options_.kind == TooltipKind::rich && !options_.action_label.empty()) {
         action_.emplace(action_options(options_.action_label), fonts);
@@ -166,6 +174,16 @@ std::optional<render::Rect> Tooltip::caret() const {
 
 void Tooltip::open(TooltipTrigger trigger) {
     placed_anchor_ = anchor().bounds;
+    place();
+    popup_.open();
+    trigger_ = trigger;
+    hover_wait_ = -1.0;
+    long_press_wait_ = -1.0;
+    const bool times_out = !options_.persistent && (trigger == TooltipTrigger::focus || trigger == TooltipTrigger::long_press);
+    time_left_ = times_out ? t().timeout_seconds : -1.0;
+}
+
+void Tooltip::place() {
     origin_ = tooltip_position(placed_anchor_, window_, size_, options_.position, spacing());
     if (options_.kind == TooltipKind::plain) {
         const double slack = lines_height(text_, plain().text) - text_.bounds().height;
@@ -190,12 +208,20 @@ void Tooltip::open(TooltipTrigger trigger) {
         const double slot = std::max(rich().action_min_height, action_->height());
         action_->set_origin({origin_.x + rich().horizontal_padding, inner_bottom - slot + (slot - action_->height()) / 2.0});
     }
-    popup_.open();
-    trigger_ = trigger;
-    hover_wait_ = -1.0;
-    long_press_wait_ = -1.0;
-    const bool times_out = !options_.persistent && (trigger == TooltipTrigger::focus || trigger == TooltipTrigger::long_press);
-    time_left_ = times_out ? t().timeout_seconds : -1.0;
+}
+
+void Tooltip::restyle() {
+    style_stamp_.refresh();
+    text_ = Label(text_options(), fonts_);
+    title_ = Label(title_options(), fonts_);
+    if (action_) {
+        action_->restyle();
+    }
+    popup_.restyle(t().closed_scale, current_style().motion.fast_spatial(), current_style().motion.fast_effects());
+    relayout();
+    if (popup_.visible()) {
+        place();
+    }
 }
 
 void Tooltip::show() {
@@ -299,6 +325,9 @@ void Tooltip::cancel_interaction() {
 }
 
 void Tooltip::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     const bool focused_now = anchor().focused;
     if (focused_now && !anchor_focused_) {
         open(TooltipTrigger::focus);

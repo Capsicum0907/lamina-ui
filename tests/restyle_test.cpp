@@ -37,6 +37,7 @@
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
+#include "lamina/widgets/tooltip.hpp"
 #include "lamina/widgets/top_app_bar.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 #include "lamina/widgets/wavy_progress.hpp"
@@ -558,4 +559,18 @@ TEST_CASE("wavy and circular progress indicators take the new style's size and s
     plain.waves_per_second = 0.0;
     check_round(restyle_motion_round([&] { return placed(std::make_unique<widgets::CircularProgressIndicator>(plain)); },
                                      [](widgets::CircularProgressIndicator& w) { w.ease_progress(0.8); }));
+}
+
+TEST_CASE("a shown rich tooltip lays out its text and action again and stays by its anchor after a style change") {
+    const RestyleResult r = restyle_round([] {
+        widgets::TooltipOptions o{"Grant value is calculated using the closing stock price", widgets::TooltipKind::rich, "Add others", "Learn more"};
+        o.position = widgets::TooltipPosition::below;
+        auto tip = std::make_unique<widgets::Tooltip>(std::move(o), fonts());
+        tip->set_window({static_cast<double>(restyle_canvas_width), 320.0});
+        tip->set_anchor({40.0, 10.0, 40.0, 20.0});
+        tip->show();
+        return in_area(std::move(tip));
+    }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_tooltip");
+    check_round(r);
 }

@@ -83,6 +83,7 @@ public:
     TooltipResponse handle(const input::PointerEvent& event);
     TooltipResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     std::optional<double> next_wake_seconds() const;
@@ -91,11 +92,15 @@ public:
 
 private:
     void open(TooltipTrigger trigger);
+    void place();
     void relayout();
+    LabelOptions text_options() const;
+    LabelOptions title_options() const;
     TooltipAnchor anchor() const;
     double spacing() const;
 
     TooltipOptions options_;
+    text::FontStack fonts_;
     Label text_;
     Label title_;
     std::optional<Button> action_;
@@ -111,6 +116,7 @@ private:
     double hover_wait_ = -1.0;
     double long_press_wait_ = -1.0;
     double time_left_ = -1.0;
+    StyleStamp style_stamp_;
 };
 
 template <typename W>
