@@ -90,7 +90,17 @@ void ToggleFab::cancel_interaction() {
     retarget();
 }
 
+void ToggleFab::restyle() {
+    style_stamp_.refresh();
+    progress_.set_spec(tf().progress);
+    state_layer_.set_spec(current_style().motion.fast_effects());
+    focus_.restyle();
+}
+
 void ToggleFab::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     progress_.step(dt);
     state_layer_.step(dt);
     focus_.step(dt);
@@ -114,16 +124,33 @@ void ToggleFab::paint(render::Canvas& canvas, const color::ColorScheme& scheme) 
 
 FabMenu::FabMenu(FabMenuOptions options, const text::FontStack& fonts)
     : options_(std::move(options)), fonts_(fonts), button_(options_.button), stagger_(0.0, fm().stagger) {
-    const text::TextStyle style = current_style().type.text(fm().item_label);
     const bool open = options_.button.checked;
     for (FabMenuItem& spec : options_.items) {
-        text::TextLine line = text::layout_line(fonts_, spec.label, style);
-        const double full = std::max(fm().item_min_width, fm().item_leading_space + fm().item_icon_size + fm().item_icon_label_space + line.width +
-                                                            fm().item_trailing_space);
-        items_.push_back(Item{std::move(spec), std::move(line), full, {}, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
+        items_.push_back(Item{std::move(spec), {}, 0.0, {}, {}, motion::Animated(0.0, current_style().motion.fast_effects()),
                               motion::Animated(open ? 1.0 : 0.0, fm().item_width), motion::Animated(open ? 1.0 : 0.0, fm().item_alpha), open});
+        layout_item(items_.back());
     }
     stagger_.snap_to(open ? static_cast<double>(items_.size()) : 0.0);
+    place_button();
+}
+
+void FabMenu::layout_item(Item& item) const {
+    item.label = text::layout_line(fonts_, item.spec.label, current_style().type.text(fm().item_label));
+    item.full_width = std::max(fm().item_min_width, fm().item_leading_space + fm().item_icon_size + fm().item_icon_label_space + item.label.width +
+                                                        fm().item_trailing_space);
+}
+
+void FabMenu::restyle() {
+    style_stamp_.refresh();
+    button_.restyle();
+    stagger_.set_spec(fm().stagger);
+    for (Item& item : items_) {
+        layout_item(item);
+        item.state_layer.set_spec(current_style().motion.fast_effects());
+        item.width.set_spec(fm().item_width);
+        item.alpha.set_spec(fm().item_alpha);
+        item.focus.restyle();
+    }
     place_button();
 }
 
@@ -315,6 +342,9 @@ void FabMenu::cancel_interaction() {
 }
 
 void FabMenu::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     button_.step(dt);
     stagger_.step(dt);
     retarget_items();

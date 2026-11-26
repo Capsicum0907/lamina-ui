@@ -55,6 +55,7 @@ public:
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -68,6 +69,7 @@ private:
     FocusIndicator focus_;
     motion::Animated progress_;
     motion::Animated state_layer_;
+    StyleStamp style_stamp_;
 };
 
 struct FabMenuItem {
@@ -121,6 +123,7 @@ public:
     FabMenuResponse handle(const input::PointerEvent& event);
     FabMenuResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -142,6 +145,7 @@ private:
     double items_height() const;
     void retarget_items();
     void place_button();
+    void layout_item(Item& item) const;
 
     FabMenuOptions options_;
     text::FontStack fonts_;
@@ -150,6 +154,7 @@ private:
     std::vector<std::unique_ptr<FocusStop>> stops_;
     motion::Animated stagger_;
     render::Point origin_{0.0, 0.0};
+    StyleStamp style_stamp_;
 };
 
 }

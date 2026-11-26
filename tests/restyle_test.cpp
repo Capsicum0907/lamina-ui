@@ -15,6 +15,7 @@
 #include "lamina/widgets/divider.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
+#include "lamina/widgets/fab_menu.hpp"
 #include "lamina/widgets/grouped_menu.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
@@ -782,4 +783,16 @@ TEST_CASE("a split button keeps its open menu under its trailing button after a 
     }, {restyle_canvas_width, 320});
     save_round(r, "restyle_split_button_menu");
     check_round(r);
+}
+
+TEST_CASE("a FAB menu lays out its items again and opens with the new style's springs after a style change") {
+    auto make = [](bool open) {
+        widgets::FabMenuOptions o{{{"Reply", icon(res::icons::edit)}, {"Forward", icon()}}, {icon(res::icons::edit), icon(res::icons::close), "Menu"}};
+        o.button.checked = open;
+        return placed(std::make_unique<widgets::FabMenu>(std::move(o), fonts()));
+    };
+    const RestyleResult r = restyle_round([&] { return make(true); }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_fab_menu");
+    check_round(r);
+    check_round(restyle_motion_round([&] { return make(false); }, [](widgets::FabMenu& w) { w.set_expanded(true); }, {restyle_canvas_width, 320}));
 }
