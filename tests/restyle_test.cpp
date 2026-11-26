@@ -1280,3 +1280,60 @@ TEST_CASE("wavy progress indicators switched in the middle of a tween settle as 
     save_round(circular, "restyle_circular_wavy_handoff");
     check_round(circular);
 }
+
+namespace {
+
+std::unique_ptr<widgets::Card> elevated_card() {
+    auto c = std::make_unique<widgets::Card>(widgets::CardOptions{tokens::CardStyle::elevated, true, true, nullptr, nullptr, "Trip"});
+    c->arrange({shot_origin.x, shot_origin.y, 200.0, 100.0});
+    return c;
+}
+
+std::unique_ptr<widgets::Chip> elevated_chip() {
+    widgets::ChipOptions o{"Vegetarian", tokens::ChipKind::filter};
+    o.elevated = true;
+    return placed(std::make_unique<widgets::Chip>(o, fonts()));
+}
+
+template <typename W>
+void hover(W& w, bool inside) {
+    const render::Rect r = w.bounds();
+    const double x = inside ? r.x + r.width / 2.0 : r.x + r.width + shot_origin.x;
+    w.handle(input::PointerEvent{input::PointerAction::move, x, r.y + r.height / 2.0});
+}
+
+}
+
+TEST_CASE("a running elevation tween of a card or a chip goes on from where it is and ends at the new style's remaining time") {
+    const tokens::ElevationTweens& a = m3_expressive_style().elevation.tweens;
+    const tokens::ElevationTweens& b = restyle_test_style().elevation.tweens;
+    const tokens::StateElevations card_levels = m3_expressive_style().card.style(tokens::CardStyle::elevated).elevation;
+    const tokens::StateElevations chip_levels = m3_expressive_style().chip.style(tokens::ChipKind::filter, true).elevation;
+    auto elevation = [](const auto& w) { return w.elevation(); };
+
+    auto card = elevated_card();
+    settle_widget(*card);
+    hover(*card, true);
+    step_frames(*card);
+    check_running_tween(*card, elevation, card_levels.hovered, a.incoming, b.incoming);
+
+    auto left = elevated_card();
+    hover(*left, true);
+    settle_widget(*left);
+    hover(*left, false);
+    step_frames(*left);
+    check_running_tween(*left, elevation, card_levels.resting, a.hover_outgoing, b.hover_outgoing);
+
+    auto chip = elevated_chip();
+    settle_widget(*chip);
+    hover(*chip, true);
+    step_frames(*chip);
+    check_running_tween(*chip, elevation, chip_levels.hovered, a.incoming, b.incoming);
+}
+
+TEST_CASE("a card and a chip switched in the middle of an elevation tween settle as ones built under the new style") {
+    const RestyleResult card = restyle_tween_round(elevated_card, [](widgets::Card& w) { hover(w, true); });
+    save_round(card, "restyle_card_elevation");
+    check_round(card);
+    check_round(restyle_tween_round(elevated_chip, [](widgets::Chip& w) { hover(w, true); }));
+}

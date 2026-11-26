@@ -24,7 +24,11 @@ public:
 
     void restyle(const tokens::StateElevations& levels) {
         levels_ = levels;
-        elevation_.animate_to(target(), current_style().elevation.tweens.incoming);
+        const tokens::ElevationTweens& t = current_style().elevation.tweens;
+        elevation_.retime(t.*running_);
+        if (target() != elevation_.target()) {
+            animate(t, &tokens::ElevationTweens::incoming);
+        }
     }
 
     void update(bool hovered, bool focused, bool pressed, bool enabled) {
@@ -48,9 +52,9 @@ public:
         }
         const tokens::ElevationTweens& t = current_style().elevation.tweens;
         if (now) {
-            elevation_.animate_to(target(), t.incoming);
+            animate(t, &tokens::ElevationTweens::incoming);
         } else if (before) {
-            elevation_.animate_to(target(), *before == Interaction::hover ? t.hover_outgoing : t.outgoing);
+            animate(t, *before == Interaction::hover ? &tokens::ElevationTweens::hover_outgoing : &tokens::ElevationTweens::outgoing);
         } else {
             elevation_.snap_to(target());
         }
@@ -75,6 +79,15 @@ public:
     }
 
 private:
+    using TweenRole = motion::TweenSpec tokens::ElevationTweens::*;
+
+    void animate(const tokens::ElevationTweens& tweens, TweenRole role) {
+        if (target() == elevation_.target()) {
+            return;
+        }
+        running_ = role;
+        elevation_.animate_to(target(), tweens.*role);
+    }
     std::optional<Interaction> last() const { return active_.empty() ? std::nullopt : std::optional<Interaction>(active_.back()); }
     void track(Interaction i, bool on) {
         const auto it = std::find(active_.begin(), active_.end(), i);
@@ -87,6 +100,7 @@ private:
 
     tokens::StateElevations levels_;
     motion::Tweened elevation_;
+    TweenRole running_ = &tokens::ElevationTweens::incoming;
     bool enabled_;
     std::vector<Interaction> active_;
 };

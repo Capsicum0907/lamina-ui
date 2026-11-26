@@ -19,6 +19,7 @@ inline constexpr double restyle_corner_scale = 0.5;
 inline constexpr double restyle_duration_scale = 0.5;
 inline constexpr double restyle_velocity_tolerance = 0.01;
 inline constexpr motion::SpringSpec restyle_spring{1.0, 50.0};
+inline constexpr motion::CubicBezier restyle_easing = tokens::easing::standard;
 inline constexpr color::Argb restyle_background = 0xffffffff;
 
 const Style& restyle_test_style();
