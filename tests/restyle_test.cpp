@@ -49,6 +49,7 @@
 #include "lamina/widgets/split_button.hpp"
 #include "lamina/widgets/split_pane.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina/widgets/table.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
 #include "lamina/widgets/title_bar.hpp"
@@ -972,4 +973,20 @@ TEST_CASE("a search bar lays out its field and buttons again and expands with th
     save_round(r, "restyle_search_bar");
     check_round(r);
     check_round(restyle_motion_round([&] { return make(false); }, [](SearchRig& w) { w.bar->expand(); }, {restyle_canvas_width, 320}));
+}
+
+TEST_CASE("a table lays out its headers and cells again and selects with the new style's springs after a style change") {
+    auto make = [] {
+        widgets::TableOptions o{{{"Name", 200.0}, {"Size", 120.0}}, 4, [](std::size_t r, std::size_t c) {
+                                    return c == 0 ? "File " + std::to_string(r + 1) : std::to_string((r + 1) * 12) + " KB";
+                                }, "Files"};
+        o.icon_font = icon_font();
+        auto table = std::make_unique<widgets::Table>(std::move(o), fonts());
+        table->arrange({0.0, 0.0, static_cast<double>(restyle_canvas_width), 320.0});
+        return table;
+    };
+    const RestyleResult r = restyle_round(make, {restyle_canvas_width, 320});
+    save_round(r, "restyle_table");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::Table& w) { w.set_selected(1, true); }, {restyle_canvas_width, 320}));
 }

@@ -135,6 +135,7 @@ public:
     bool handle(const input::WheelEvent& event);
     bool handle(const input::ContextClick& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     double next_wake_seconds() const { return scroll_.next_wake_seconds(); }
@@ -201,6 +202,7 @@ private:
     double resize_start_width_ = 0.0;
     mutable std::map<std::size_t, std::vector<text::TextLine>> cache_;
     mutable TableStats stats_;
+    StyleStamp style_stamp_;
 };
 
 }

@@ -552,7 +552,29 @@ void Table::cancel_interaction() {
     retarget_rows();
 }
 
+void Table::restyle() {
+    style_stamp_.refresh();
+    const auto style = current_style().type.text(t().header_label);
+    for (Column& c : columns_) {
+        c.label = text::layout_line(fonts_, c.title, style);
+        c.hover.set_spec(t().state_layer_spring);
+    }
+    for (auto& [model, state] : rows_) {
+        state.selected.set_spec(t().color_spring);
+        state.state_layer.set_spec(t().state_layer_spring);
+    }
+    cache_.clear();
+    focus_.restyle();
+    enabled_.restyle();
+    scroll_.restyle();
+    retarget_rows();
+    arrange(bounds_);
+}
+
 void Table::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     scroll_.step(dt);
     focus_.step(dt);
     enabled_.step(dt);
