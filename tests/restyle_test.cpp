@@ -1095,20 +1095,21 @@ constexpr double tween_finish_margin = 1e-3;
 constexpr double tween_end_tolerance = 1e-9;
 constexpr double tween_ran_seconds = restyle_motion_frames * frame_seconds;
 
-double remaining_after_restyle(const motion::TweenSpec& running, const motion::TweenSpec& next) {
-    const double linear = tween_ran_seconds / running.duration_seconds;
+double remaining_after_restyle(const motion::TweenSpec& running, const motion::TweenSpec& next, double ran_seconds) {
+    const double linear = ran_seconds / running.duration_seconds;
     const double progress = running.easing == next.easing ? linear : motion::ease_inverse(next.easing, motion::ease(running.easing, linear));
     return next.duration_seconds * (1.0 - progress);
 }
 
 template <typename W, typename Read>
-void check_running_tween(W& w, Read read, double target, const motion::TweenSpec& running, const motion::TweenSpec& next) {
+void check_running_tween(W& w, Read read, double target, const motion::TweenSpec& running, const motion::TweenSpec& next,
+                         double ran_seconds = tween_ran_seconds) {
     const double before = read(w);
     CHECK(std::abs(before - target) > tween_end_tolerance);
     const StyleScope scope(restyle_test_style());
     w.restyle();
     CHECK(read(w) == before);
-    const double remaining = remaining_after_restyle(running, next);
+    const double remaining = remaining_after_restyle(running, next, ran_seconds);
     w.step(remaining - tween_finish_margin);
     CHECK(std::abs(read(w) - target) > tween_end_tolerance);
     w.step(2.0 * tween_finish_margin);
@@ -1336,4 +1337,63 @@ TEST_CASE("a card and a chip switched in the middle of an elevation tween settle
     save_round(card, "restyle_card_elevation");
     check_round(card);
     check_round(restyle_tween_round(elevated_chip, [](widgets::Chip& w) { hover(w, true); }));
+}
+
+namespace {
+
+constexpr render::Rect pull_area{0.0, 0.0, static_cast<double>(restyle_canvas_width), static_cast<double>(restyle_canvas_height)};
+constexpr double pull_x = 200.0;
+constexpr double pull_top = 10.0;
+constexpr double pull_finger = 300.0;
+constexpr double pull_step = 4.0;
+constexpr int crossfade_frames = 3;
+
+input::PointerEvent pull_touch(input::PointerAction action, double y) {
+    return {action, pull_x, y, 0, input::PointerKind::touch};
+}
+
+std::unique_ptr<widgets::PullToRefresh> arrow_pull() {
+    auto p = std::make_unique<widgets::PullToRefresh>(widgets::PullToRefreshOptions{.accessible_name = "Refresh", .style = widgets::PullIndicatorStyle::arrow});
+    p->set_area(pull_area);
+    return p;
+}
+
+void pull_past_threshold(widgets::PullToRefresh& p) {
+    p.handle(pull_touch(input::PointerAction::down, pull_top), true);
+    for (double y = pull_top; y < pull_finger;) {
+        y = std::min(pull_finger, y + pull_step);
+        p.handle(pull_touch(input::PointerAction::move, y), true);
+    }
+}
+
+void release_pull(widgets::PullToRefresh& p) {
+    p.handle(pull_touch(input::PointerAction::up, pull_finger), true);
+}
+
+}
+
+TEST_CASE("the running arrow fade and spinner crossfade of a pull to refresh go on from where they are and end at the new style's remaining time") {
+    const tokens::PullArrowTokens& a = m3_expressive_style().pull_arrow;
+    const tokens::PullArrowTokens& b = restyle_test_style().pull_arrow;
+
+    auto held = arrow_pull();
+    settle_widget(*held);
+    pull_past_threshold(*held);
+    step_frames(*held);
+    check_running_tween(*held, [](const auto& w) { return w.arrow_alpha(); }, a.max_alpha, a.alpha_tween, b.alpha_tween);
+
+    auto released = arrow_pull();
+    settle_widget(*released);
+    pull_past_threshold(*released);
+    settle_widget(*released);
+    release_pull(*released);
+    for (int i = 0; i < crossfade_frames; ++i) {
+        released->step(frame_seconds);
+    }
+    check_running_tween(*released, [](const auto& w) { return w.spinner_mix(); }, 1.0, a.crossfade, b.crossfade, crossfade_frames * frame_seconds);
+}
+
+TEST_CASE("a pull to refresh switched in the middle of its arrow fade settles as one built under the new style") {
+    const RestyleResult r = restyle_tween_round([] { return in_area(arrow_pull()); }, [](auto& w) { pull_past_threshold(*w.w); });
+    CHECK((r.switched.pixels == r.built_under_test.pixels));
 }

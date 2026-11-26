@@ -267,6 +267,8 @@ void PullToRefresh::restyle() {
     distance_.set_spec(t().settle_spring);
     indicator_.restyle();
     indicator_.set_size(t().container_size);
+    arrow_alpha_.retime(a().alpha_tween);
+    spinner_mix_.retime(a().crossfade);
 }
 
 void PullToRefresh::step(double dt) {
