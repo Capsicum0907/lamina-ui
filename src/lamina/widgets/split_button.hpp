@@ -12,6 +12,7 @@
 #include "lamina/layout/layout.hpp"
 #include "lamina/motion/animated.hpp"
 #include "lamina/render/canvas.hpp"
+#include "lamina/style/style.hpp"
 #include "lamina/text/font.hpp"
 #include "lamina/tokens/split_button.hpp"
 #include "lamina/widgets/accessibility.hpp"
@@ -73,6 +74,7 @@ public:
     SplitButtonResponse handle(const input::PointerEvent& event);
     SplitButtonResponse handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -80,6 +82,8 @@ public:
 
 private:
     void sync_menu(input::InputSource source);
+    ButtonShapes leading_shapes() const;
+    ButtonShapes trailing_shapes() const;
 
     SplitButtonOptions options_;
     std::unique_ptr<Button> leading_;
@@ -87,8 +91,11 @@ private:
     TargetArbiter arbiter_;
     std::unique_ptr<Menu> menu_;
     motion::Animated rotation_;
+    icons::IconFont icon_font_;
     render::Point origin_{0.0, 0.0};
     layout::Size window_{0.0, 0.0};
+    std::optional<double> given_width_;
+    StyleStamp style_stamp_;
 };
 
 }

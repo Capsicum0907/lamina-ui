@@ -31,6 +31,7 @@
 #include "lamina/widgets/side_navigation.hpp"
 #include "lamina/widgets/slider.hpp"
 #include "lamina/widgets/snackbar.hpp"
+#include "lamina/widgets/split_button.hpp"
 #include "lamina/widgets/switch.hpp"
 #include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/text_field.hpp"
@@ -499,4 +500,34 @@ TEST_CASE("a text field lays out its label and text in the new style's type and 
     save_round(r, "restyle_text_field");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::TextField& w) { w.set_focused(true); }));
+}
+
+template <typename W>
+struct Arranged {
+    std::unique_ptr<W> w;
+    render::Rect area;
+    void step(double dt) {
+        w->step(dt);
+        w->arrange(area);
+    }
+    render::Rect bounds() const { return w->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const { w->paint(c, s); }
+};
+
+template <typename W>
+std::unique_ptr<Arranged<W>> arranged(std::unique_ptr<W> w, render::Rect area) {
+    w->arrange(area);
+    return std::make_unique<Arranged<W>>(Arranged<W>{std::move(w), area});
+}
+
+TEST_CASE("a split button arranged by its owner pads and shapes its halves again and turns its chevron with the new style's springs") {
+    auto make = [] {
+        widgets::SplitButtonOptions o{"Send", std::nullopt, ButtonStyle::filled, ButtonSize::medium, "More"};
+        return arranged(std::make_unique<widgets::SplitButton>(std::move(o), fonts(), icon_font()),
+                        {origin.x, origin.y, restyle_canvas_width - 2.0 * origin.x, restyle_canvas_height - 2.0 * origin.y});
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_split_button");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](Arranged<widgets::SplitButton>& w) { w.w->set_checked(true); }));
 }

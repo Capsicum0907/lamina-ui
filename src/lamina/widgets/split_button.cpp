@@ -16,14 +16,24 @@ const tokens::SplitButtonTokens& t() {
 
 }
 
+ButtonShapes SplitButton::leading_shapes() const {
+    const tokens::SplitButtonSizeTokens& s = current_style().split_button.size(options_.size);
+    return {tokens::split_leading_corners(s.inner_corner), tokens::split_leading_corners(s.inner_pressed_corner), std::nullopt, t().shape_spring};
+}
+
+ButtonShapes SplitButton::trailing_shapes() const {
+    const tokens::SplitButtonSizeTokens& s = current_style().split_button.size(options_.size);
+    return {tokens::split_trailing_corners(s.inner_corner), tokens::split_trailing_corners(s.inner_pressed_corner),
+            tokens::all_corners(tokens::CornerSize::full), t().shape_spring};
+}
+
 SplitButton::SplitButton(SplitButtonOptions options, const text::FontStack& fonts, const icons::IconFont& icon_font)
-    : options_(std::move(options)), rotation_(0.0, t().chevron_spring) {
+    : options_(std::move(options)), rotation_(0.0, t().chevron_spring), icon_font_(icon_font) {
     const tokens::SplitButtonSizeTokens& s = current_style().split_button.size(options_.size);
     ButtonOptions lead{options_.label, options_.style, options_.size, tokens::ButtonShape::round, options_.icon};
     lead.enabled = options_.enabled;
     lead.accessible_name = options_.label.empty() ? options_.accessible_name : std::string();
-    lead.shapes = ButtonShapes{tokens::split_leading_corners(s.inner_corner), tokens::split_leading_corners(s.inner_pressed_corner),
-                               std::nullopt, t().shape_spring};
+    lead.shapes = leading_shapes();
     lead.padding = ButtonPadding{s.leading_leading_space, s.leading_trailing_space};
     lead.min_width = t().min_width;
     lead.ellipsize_label = true;
@@ -34,8 +44,7 @@ SplitButton::SplitButton(SplitButtonOptions options, const text::FontStack& font
     trail.accessible_name = required_name(options_.trailing_name, "The trailing button of a split button");
     trail.toggle = ButtonToggle{.checked = false, .radio = false, .checked_colors = false, .checked_overlay = t().checked_overlay,
                                 .fill_checked_icon = false};
-    trail.shapes = ButtonShapes{tokens::split_trailing_corners(s.inner_corner), tokens::split_trailing_corners(s.inner_pressed_corner),
-                                tokens::all_corners(tokens::CornerSize::full), t().shape_spring};
+    trail.shapes = trailing_shapes();
     trail.center_optically = true;
     trail.padding = ButtonPadding{s.trailing_leading_space, s.trailing_trailing_space};
     trail.min_width = t().min_width;
@@ -60,6 +69,7 @@ double SplitButton::min_width() const {
 }
 
 void SplitButton::set_width(double width) {
+    given_width_ = width;
     const double room = width >= natural_width() ? leading_->intrinsic_width() : width - t().between_space - trailing_->width();
     const double lead = std::max(leading_->min_width(), room);
     leading_->set_size(lead, leading_->height());
@@ -73,6 +83,7 @@ layout::Size SplitButton::measure(const layout::Constraints& c) const {
 
 void SplitButton::arrange(const render::Rect& r) {
     set_width(std::min(natural_width(), r.width));
+    given_width_ = r.width;
     set_origin({r.x, r.y + (r.height - height()) / 2.0});
 }
 
@@ -200,7 +211,32 @@ void SplitButton::cancel_interaction() {
     }
 }
 
+void SplitButton::restyle() {
+    style_stamp_.refresh();
+    const tokens::SplitButtonSizeTokens& s = current_style().split_button.size(options_.size);
+    leading_->set_shapes(leading_shapes());
+    leading_->set_padding(ButtonPadding{s.leading_leading_space, s.leading_trailing_space});
+    leading_->set_min_width(t().min_width);
+    trailing_->set_shapes(trailing_shapes());
+    trailing_->set_padding(ButtonPadding{s.trailing_leading_space, s.trailing_trailing_space});
+    trailing_->set_min_width(t().min_width);
+    trailing_->set_icon_size(s.trailing_icon_size);
+    trailing_->set_checked_overlay(t().checked_overlay);
+    trailing_->set_icon(icons::Icon{icon_font_, t().chevron});
+    leading_->restyle();
+    trailing_->restyle();
+    rotation_.set_spec(t().chevron_spring);
+    if (given_width_) {
+        leading_->set_size(leading_->width(), leading_->intrinsic_height());
+        set_width(*given_width_);
+    }
+    set_origin(origin_);
+}
+
 void SplitButton::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     leading_->step(dt);
     trailing_->step(dt);
     if (menu_) {
