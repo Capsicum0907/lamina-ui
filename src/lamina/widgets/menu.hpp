@@ -128,6 +128,8 @@ private:
     std::vector<std::optional<input::Key>> enabled_access_keys() const;
     void reveal_access_keys();
     void place(std::function<render::Point(layout::Size)> position, const render::Rect& anchor, layout::Size window, input::InputSource source);
+    void reanchor(std::function<render::Point(layout::Size)> position, const render::Rect& anchor);
+    void reanchor_child();
     double item_top(std::size_t index) const;
     double divider_height() const;
     void open_child(std::size_t index, input::InputSource source);

@@ -178,9 +178,24 @@ void Menu::restyle() {
     }
     layout_items();
     if (position_ && popup_.is_open()) {
-        origin_ = position_({width_, height()});
-        pivot_ = menu_transform_origin(anchor_, bounds());
+        reanchor(position_, anchor_);
     }
+}
+
+void Menu::reanchor(std::function<render::Point(layout::Size)> position, const render::Rect& anchor) {
+    position_ = std::move(position);
+    anchor_ = anchor;
+    origin_ = position_({width_, height()});
+    pivot_ = menu_transform_origin(anchor_, bounds());
+    reanchor_child();
+}
+
+void Menu::reanchor_child() {
+    if (!open_child_) {
+        return;
+    }
+    const render::Rect item = item_rect(*open_child_);
+    children_[*open_child_]->reanchor([item, window = window_](layout::Size size) { return submenu_position(item, window, size); }, item);
 }
 
 void Menu::set_density(tokens::Density density) {

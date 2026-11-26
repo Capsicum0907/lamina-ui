@@ -702,3 +702,21 @@ TEST_CASE("a numeric field lays out its label, value and unit again and outlines
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::NumericField& w) { w.set_focused(true); }));
 }
+
+TEST_CASE("an open submenu follows its item to its new place after a style change") {
+    auto make = [] {
+        widgets::MenuOptions o{.items = {{.label = "New"}, {.label = "Recent", .submenu = {{.label = "notes.txt"}, {.label = "plan.md"}}}},
+                               .accessible_name = "File",
+                               .icon_font = icon_font()};
+        auto menu = std::make_unique<widgets::Menu>(std::move(o), fonts());
+        menu->open({10.0, 0.0, 10.0, 10.0}, {static_cast<double>(restyle_canvas_width), 320.0}, input::InputSource::keyboard);
+        menu->handle(input::KeyEvent{input::Key::down});
+        menu->handle(input::KeyEvent{input::Key::right});
+        return in_area(std::move(menu));
+    };
+    const RestyleResult r = restyle_round(make, {restyle_canvas_width, 320});
+    save_round(r, "restyle_submenu");
+    check_round(r);
+    const auto opened = make();
+    CHECK(opened->w->open_submenu() == 1u);
+}
