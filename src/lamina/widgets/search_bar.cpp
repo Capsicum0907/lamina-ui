@@ -81,6 +81,7 @@ layout::Size SearchBar::measure(const layout::Constraints& c) const {
 }
 
 void SearchBar::arrange(const render::Rect& rect) {
+    arranged_ = rect;
     const layout::Size s = measure({0.0, rect.width, 0.0, rect.height});
     collapsed_ = {rect.x + (rect.width - s.width) / 2.0, rect.y + (rect.height - s.height) / 2.0, s.width, s.height};
     place();
@@ -492,7 +493,27 @@ void SearchBar::cancel_interaction() {
     pressed_ = PointerPart::none;
 }
 
+void SearchBar::restyle() {
+    style_stamp_.refresh();
+    field_.set_padding(slot_padding(), options_.trailing ? slot_padding() : t().padding);
+    field_.restyle();
+    back_->restyle();
+    if (trailing_) {
+        trailing_->restyle();
+    }
+    results_.restyle();
+    progress_.set_spec(progress_.target() == 1.0 ? current_style().search_motion.expand : current_style().search_motion.collapse);
+    if (arranged_) {
+        arrange(*arranged_);
+    } else {
+        place();
+    }
+}
+
 void SearchBar::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     if (claim_focus_) {
         claim_focus_ = false;
         if (expanded() && !focused()) {

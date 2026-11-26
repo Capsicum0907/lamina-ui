@@ -40,6 +40,7 @@
 #include "lamina/widgets/progress_indicator.hpp"
 #include "lamina/widgets/pull_to_refresh.hpp"
 #include "lamina/widgets/radio_button.hpp"
+#include "lamina/widgets/search_bar.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/side_navigation.hpp"
 #include "lamina/widgets/side_sheet.hpp"
@@ -939,4 +940,36 @@ TEST_CASE("an open bottom sheet lays out its handle and content again and goes o
         return rig->sheet->offset();
     };
     CHECK(slide(false) != slide(true));
+}
+
+namespace {
+
+struct SearchRig {
+    std::unique_ptr<widgets::SearchBar> bar;
+    void step(double dt) { bar->step(dt); }
+    render::Rect bounds() const { return bar->bounds(); }
+    void paint(render::Canvas& c, const color::ColorScheme& s) const {
+        bar->paint(c, s);
+        bar->paint_expanded(c, s);
+    }
+};
+
+}
+
+TEST_CASE("a search bar lays out its field and buttons again and expands with the new style's spring after a style change") {
+    auto make = [](bool results) {
+        widgets::SearchBarOptions o{"Search mail", icon(res::icons::search), {icon(res::icons::close), "Back"}};
+        if (results) {
+            o.results = {{"Inbox"}, {"Sent"}};
+        }
+        o.mode = widgets::SearchViewMode::docked;
+        auto bar = std::make_unique<widgets::SearchBar>(std::move(o), fonts());
+        bar->set_area({0.0, 0.0, static_cast<double>(restyle_canvas_width), 320.0});
+        bar->arrange({origin.x, origin.y, restyle_canvas_width - 2.0 * origin.x, 80.0});
+        return std::make_unique<SearchRig>(SearchRig{std::move(bar)});
+    };
+    const RestyleResult r = restyle_round([&] { return make(true); }, {restyle_canvas_width, 320});
+    save_round(r, "restyle_search_bar");
+    check_round(r);
+    check_round(restyle_motion_round([&] { return make(false); }, [](SearchRig& w) { w.bar->expand(); }, {restyle_canvas_width, 320}));
 }

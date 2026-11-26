@@ -104,6 +104,7 @@ public:
     SearchBarResponse handle(const input::TextEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -138,6 +139,8 @@ private:
     bool field_pressed_ = false;
     bool claim_focus_ = false;
     PointerPart pressed_ = PointerPart::none;
+    std::optional<render::Rect> arranged_;
+    StyleStamp style_stamp_;
 };
 
 }
