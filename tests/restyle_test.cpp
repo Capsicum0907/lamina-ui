@@ -1,10 +1,12 @@
 #include <doctest/doctest.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "lamina/motion/anchored_draggable.hpp"
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/button_group.hpp"
 #include "lamina/widgets/card.hpp"
@@ -828,4 +830,43 @@ TEST_CASE("a flexible bottom app bar takes the new style's height and settles wi
         w.state().settle();
         CHECK(w.state().settling());
     }));
+}
+
+TEST_CASE("a running slide of a drawer or a rail goes on from where it is with the new style's spring") {
+    motion::AnchoredDraggable<int> retuned(0, {}, m3_expressive_style().gesture.drag);
+    retuned.set_anchors({{0, 0.0}, {1, 300.0}}, 0);
+    retuned.animate_to(1, m3_expressive_style().motion.default_spatial());
+    for (int i = 0; i < restyle_motion_frames; ++i) {
+        retuned.step(frame_seconds);
+    }
+    const motion::SpringState before{retuned.offset(), retuned.velocity()};
+    retuned.retune(restyle_spring);
+    retuned.step(frame_seconds);
+    const motion::SpringState expected = motion::advance(restyle_spring, before, 300.0, frame_seconds);
+    CHECK(retuned.offset() == doctest::Approx(expected.value));
+    CHECK(retuned.velocity() == doctest::Approx(expected.velocity));
+
+    auto run = [](bool switch_style) {
+        widgets::ModalNavigationRailOptions o{{navigation_items(), 1}};
+        o.hide_on_collapse = true;
+        auto rail = std::make_unique<widgets::ModalNavigationRail>(std::move(o), fonts());
+        rail->arrange(restyle_area);
+        settle_widget(*rail);
+        rail->expand();
+        for (int i = 0; i < restyle_motion_frames; ++i) {
+            rail->step(frame_seconds);
+        }
+        const double at = rail->offset();
+        std::optional<StyleScope> scope;
+        if (switch_style) {
+            scope.emplace(restyle_test_style());
+        }
+        rail->step(frame_seconds);
+        return std::pair{at, rail->offset()};
+    };
+    const auto kept = run(false);
+    const auto switched = run(true);
+    CHECK(kept.first == switched.first);
+    CHECK(kept.first < 0.0);
+    CHECK(kept.second != switched.second);
 }

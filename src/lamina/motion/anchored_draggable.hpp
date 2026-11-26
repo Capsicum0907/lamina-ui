@@ -69,6 +69,11 @@ public:
     }
 
     void set_gesture(DragGesture gesture) { gesture_ = gesture; }
+    void retune(const SpringSpec& spring) {
+        if (animating_ && std::holds_alternative<SpringSpec>(motion_)) {
+            motion_ = spring;
+        }
+    }
 
     bool positioned() const { return positioned_; }
     bool has(T value) const { return position_of(value).has_value(); }

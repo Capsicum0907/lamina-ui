@@ -416,6 +416,7 @@ DrawerSlide::DrawerSlide(DrawerValue initial) : drag_(initial, drawer_thresholds
 
 void DrawerSlide::restyle() {
     drag_.set_gesture(current_style().gesture.drag);
+    drag_.retune(drag_.target_value() == DrawerValue::open ? motion_spec().open : motion_spec().close);
 }
 
 void DrawerSlide::set_width(double width) {

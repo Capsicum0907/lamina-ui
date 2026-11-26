@@ -194,6 +194,7 @@ void ModalNavigationRail::restyle() {
     style_stamp_.refresh();
     rail_.restyle();
     slide_.set_gesture(current_style().gesture.drag);
+    slide_.retune(t().slide);
     scrim_.set_spec(t().scrim);
     layout_rail();
 }
