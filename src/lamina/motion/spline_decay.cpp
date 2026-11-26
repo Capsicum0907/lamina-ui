@@ -99,6 +99,18 @@ double SplineDecay::velocity(double velocity, double time_seconds) const {
     return at(time_seconds / duration).velocity * sign_of(velocity) * magnitude(velocity) / duration;
 }
 
+void Fling::set_decay(const SplineDecay& decay) {
+    if (&decay == decay_) {
+        return;
+    }
+    const bool was_active = active_;
+    const double v = velocity();
+    decay_ = &decay;
+    if (was_active) {
+        start(value_, v);
+    }
+}
+
 void Fling::start(double value, double velocity) {
     origin_ = value;
     value_ = value;

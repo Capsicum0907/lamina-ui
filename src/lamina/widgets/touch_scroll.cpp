@@ -2,7 +2,10 @@
 #include "lamina/widgets/touch_scroll.hpp"
 
 #include <cmath>
+#include <deque>
+#include <mutex>
 #include <numbers>
+#include <utility>
 
 namespace lamina::widgets {
 
@@ -21,8 +24,16 @@ double drag_angle(double dx, double dy) {
 }
 
 const motion::SplineDecay& fling_decay() {
-    static const motion::SplineDecay decay(current_style().gesture.fling_decay);
-    return decay;
+    static std::mutex lock;
+    static std::deque<std::pair<motion::SplineDecaySpec, motion::SplineDecay>> decays;
+    const motion::SplineDecaySpec& spec = current_style().gesture.fling_decay;
+    const std::scoped_lock hold(lock);
+    for (const auto& [seen, decay] : decays) {
+        if (seen == spec) {
+            return decay;
+        }
+    }
+    return decays.emplace_back(spec, motion::SplineDecay(spec)).second;
 }
 
 bool angle_aligned(const tokens::TouchScrollTokens& t, input::ScrollAxes axis, double angle) {

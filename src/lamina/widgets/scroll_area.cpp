@@ -410,6 +410,8 @@ void ScrollArea::restyle() {
     hover_.set_spec(t().bar_spring);
     hover_x_.set_spec(t().bar_spring);
     touch_.set_tokens(current_style().gesture.touch_scroll);
+    fling_.set_decay(fling_decay());
+    fling_x_.set_decay(fling_decay());
 }
 
 void ScrollArea::step(double dt) {

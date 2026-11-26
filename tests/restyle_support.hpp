@@ -16,6 +16,7 @@ inline constexpr int restyle_canvas_height = 160;
 inline constexpr double restyle_type_scale = 1.25;
 inline constexpr double restyle_length_add = 8.0;
 inline constexpr double restyle_corner_scale = 0.5;
+inline constexpr double restyle_velocity_tolerance = 0.01;
 inline constexpr motion::SpringSpec restyle_spring{1.0, 50.0};
 inline constexpr color::Argb restyle_background = 0xffffffff;
 

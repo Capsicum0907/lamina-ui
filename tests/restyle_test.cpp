@@ -19,6 +19,7 @@
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina/widgets/touch_scroll.hpp"
 #include "restyle_support.hpp"
 
 using namespace lamina;
@@ -236,4 +237,29 @@ TEST_CASE("a clickable card animates its focus with the new style's springs afte
     save_round(r, "restyle_card");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::Card& w) { w.set_focused(true); }));
+}
+
+TEST_CASE("the fling decay follows the active style and a fling given another decay goes on from where it is") {
+    Style slippery = m3_expressive_style();
+    slippery.gesture.fling_decay.friction *= restyle_corner_scale;
+    const motion::SplineDecay& first = widgets::fling_decay();
+    const motion::SplineDecay* other = nullptr;
+    {
+        const StyleScope scope(slippery);
+        other = &widgets::fling_decay();
+        CHECK(&widgets::fling_decay() == other);
+    }
+    CHECK(other != &first);
+    CHECK(&widgets::fling_decay() == &first);
+    CHECK(other->distance(1000.0) > first.distance(1000.0));
+
+    motion::Fling fling(first);
+    fling.start(0.0, 1000.0);
+    fling.step(frame_seconds);
+    const double value = fling.value();
+    const double velocity = fling.velocity();
+    fling.set_decay(*other);
+    CHECK(fling.active());
+    CHECK(fling.value() == value);
+    CHECK(fling.velocity() == doctest::Approx(velocity).epsilon(restyle_velocity_tolerance));
 }

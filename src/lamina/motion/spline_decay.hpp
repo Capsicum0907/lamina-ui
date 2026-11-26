@@ -18,6 +18,8 @@ struct SplineDecaySpec {
     double physical_friction;
     double deceleration_rate_base;
     double deceleration_rate_reference;
+
+    bool operator==(const SplineDecaySpec&) const = default;
 };
 
 class SplineDecay {
@@ -48,6 +50,8 @@ private:
 class Fling {
 public:
     explicit Fling(const SplineDecay& decay) : decay_(&decay) {}
+
+    void set_decay(const SplineDecay& decay);
 
     void start(double value, double velocity);
     void stop() { active_ = false; }
