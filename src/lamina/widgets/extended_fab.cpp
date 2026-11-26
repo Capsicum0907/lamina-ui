@@ -63,7 +63,21 @@ void ExtendedFab::cancel_interaction() {
     retarget();
 }
 
+void ExtendedFab::restyle() {
+    style_stamp_.refresh();
+    label_ = text::layout_line(fonts_, options_.label, current_style().type.text(current_style().fab.extended_size(options_.size).label));
+    width_progress_.set_spec(current_style().fab.extended_motion.width);
+    label_alpha_.set_spec(current_style().fab.extended_motion.label_alpha);
+    state_layer_.set_spec(current_style().motion.fast_effects());
+    elevation_.set_spec(current_style().motion.default_effects());
+    focus_.restyle();
+    retarget();
+}
+
 void ExtendedFab::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     width_progress_.step(dt);
     label_alpha_.step(dt);
     state_layer_.step(dt);

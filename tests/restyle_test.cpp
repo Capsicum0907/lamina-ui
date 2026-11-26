@@ -8,6 +8,7 @@
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/button_group.hpp"
 #include "lamina/widgets/checkbox.hpp"
+#include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
 #include "lamina/widgets/icon_button.hpp"
 #include "lamina/widgets/label.hpp"
@@ -158,4 +159,12 @@ TEST_CASE("a connected button group laid out again by its owner follows a style 
     });
     save_round(r, "restyle_button_group");
     check_round(r);
+}
+
+TEST_CASE("an extended FAB lays out its label in the new style's type and collapses with the new style's springs") {
+    auto make = [] { return placed(std::make_unique<widgets::ExtendedFab>(widgets::ExtendedFabOptions{"Compose", icon(res::icons::edit)}, fonts())); };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_extended_fab");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::ExtendedFab& w) { w.set_expanded(false); }));
 }

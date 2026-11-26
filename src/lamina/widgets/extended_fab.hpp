@@ -48,6 +48,7 @@ public:
     bool handle(const input::PointerEvent& event);
     bool handle(const input::KeyEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -65,6 +66,7 @@ private:
     motion::Animated label_alpha_;
     motion::Animated state_layer_;
     motion::Animated elevation_;
+    StyleStamp style_stamp_;
 };
 
 }
