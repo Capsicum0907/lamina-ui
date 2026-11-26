@@ -148,7 +148,18 @@ void Card::cancel_interaction() {
     retarget();
 }
 
+void Card::restyle() {
+    style_stamp_.refresh();
+    focus_.restyle();
+    enabled_.restyle();
+    elevation_.restyle(current_style().card.style(options_.style).elevation);
+    state_layer_.set_spec(t().state_layer_spring);
+}
+
 void Card::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     focus_.step(dt);
     enabled_.step(dt);
     elevation_.step(dt);

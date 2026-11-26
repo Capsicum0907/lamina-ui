@@ -22,6 +22,11 @@ public:
         elevation_.snap_to(target());
     }
 
+    void restyle(const tokens::StateElevations& levels) {
+        levels_ = levels;
+        elevation_.animate_to(target(), current_style().elevation.tweens.incoming);
+    }
+
     void update(bool hovered, bool focused, bool pressed, bool enabled) {
         const std::optional<Interaction> before = last();
         track(Interaction::hover, hovered);

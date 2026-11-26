@@ -7,6 +7,7 @@
 
 #include "lamina/widgets/button.hpp"
 #include "lamina/widgets/button_group.hpp"
+#include "lamina/widgets/card.hpp"
 #include "lamina/widgets/checkbox.hpp"
 #include "lamina/widgets/extended_fab.hpp"
 #include "lamina/widgets/fab.hpp"
@@ -195,4 +196,16 @@ TEST_CASE("a segmented button row laid out again by its owner follows a style ch
     save_round(r, "restyle_segmented_button");
     check_round(r);
     check_round(restyle_motion_round(make, [](RelaidSegments& w) { w.row->set_checked(1, true); }));
+}
+
+TEST_CASE("a clickable card animates its focus with the new style's springs after a style change") {
+    auto make = [] {
+        auto c = std::make_unique<widgets::Card>(widgets::CardOptions{tokens::CardStyle::outlined, true, true, nullptr, nullptr, "Trip"});
+        c->arrange({origin.x, origin.y, 200.0, 100.0});
+        return c;
+    };
+    const RestyleResult r = restyle_round(make);
+    save_round(r, "restyle_card");
+    check_round(r);
+    check_round(restyle_motion_round(make, [](widgets::Card& w) { w.set_focused(true); }));
 }
