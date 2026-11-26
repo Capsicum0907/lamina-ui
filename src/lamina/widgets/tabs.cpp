@@ -378,7 +378,37 @@ void TabRow::cancel_interaction() {
     retarget_state_layers();
 }
 
+void TabRow::restyle() {
+    style_stamp_.refresh();
+    const motion::SpringSpec spatial = current_style().motion.default_spatial();
+    indicator_offset_.set_spec(spatial);
+    indicator_width_.set_spec(spatial);
+    scroll_.set_spec(spatial);
+    touch_.set_tokens(current_style().gesture.touch_scroll);
+    fling_.set_decay(fling_decay());
+    focus_.restyle();
+    const auto style = current_style().type.text(t().label);
+    for (std::size_t i = 0; i < tabs_.size(); ++i) {
+        Tab& tab = tabs_[i];
+        if (tab.label) {
+            tab.label = text::layout_line(fonts_, options_.tabs[i].label, style);
+        }
+        tab.state_layer.set_spec(current_style().motion.fast_effects());
+        tab.selected.set_spec(tab.selected.target() > 0.5 ? fade_in_spring() : fade_out_spring());
+        tab.enabled.restyle();
+        natural_widths_[i] = natural_width(tab);
+    }
+    update_height();
+    if (placed_) {
+        retarget_indicator();
+        clamp_scroll();
+    }
+}
+
 void TabRow::step(double dt) {
+    if (style_stamp_.stale()) {
+        restyle();
+    }
     indicator_offset_.step(dt);
     indicator_width_.step(dt);
     if (fling_.active()) {

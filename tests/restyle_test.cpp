@@ -21,6 +21,7 @@
 #include "lamina/widgets/radio_button.hpp"
 #include "lamina/widgets/segmented_button.hpp"
 #include "lamina/widgets/switch.hpp"
+#include "lamina/widgets/tabs.hpp"
 #include "lamina/widgets/touch_scroll.hpp"
 #include "restyle_support.hpp"
 
@@ -239,6 +240,21 @@ TEST_CASE("a clickable card animates its focus with the new style's springs afte
     save_round(r, "restyle_card");
     check_round(r);
     check_round(restyle_motion_round(make, [](widgets::Card& w) { w.set_focused(true); }));
+}
+
+TEST_CASE("a tab row lays out its labels in the new style's type and moves its indicator to the new width after a style change") {
+    auto make = [](tokens::TabStyle style) {
+        widgets::TabRowOptions o{{{"Flights"}, {"Hotels"}, {"Explore"}}, style};
+        o.selected = 1;
+        auto row = std::make_unique<widgets::TabRow>(std::move(o), fonts());
+        row->set_origin(origin);
+        row->set_width(restyle_canvas_width - 2.0 * origin.x);
+        return row;
+    };
+    const RestyleResult r = restyle_round([&] { return make(tokens::TabStyle::primary); });
+    save_round(r, "restyle_tabs");
+    check_round(r);
+    check_round(restyle_motion_round([&] { return make(tokens::TabStyle::secondary); }, [](widgets::TabRow& w) { w.select(2); }));
 }
 
 TEST_CASE("a pager and a pull to refresh without their own tokens read the active style's") {

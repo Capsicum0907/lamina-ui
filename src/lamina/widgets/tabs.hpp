@@ -83,6 +83,7 @@ public:
     bool handle(const input::KeyEvent& event);
     bool handle(const input::WheelEvent& event);
     void cancel_interaction();
+    void restyle();
     void step(double dt_seconds);
     bool animating() const;
     void paint(render::Canvas& canvas, const color::ColorScheme& scheme) const;
@@ -131,6 +132,7 @@ private:
     std::vector<double> natural_widths_;
     FocusIndicator focus_;
     bool row_enabled_ = true;
+    StyleStamp style_stamp_;
 
     void refresh_tabs();
 };
